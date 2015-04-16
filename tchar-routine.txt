@@ -1,0 +1,224 @@
+find routine											
+function to look for					result						
+strchr	_tcschr	1	_ftcstok	#N/A	_tcschr						
+											
+routine	default	unicode	non-unicode	sbcs	mbcs		default	routine		sbcs	routine
+_ftccmp	_tccmp	n/a	n/a	n/a	n/a		_tccmp	_ftccmp		_strdec	_tcsdec
+_ftccpy	_tccpy	n/a	n/a	n/a	n/a		_tccpy	_ftccpy		_stricmp	_tcsicmp
+_ftclen	_tclen	n/a	n/a	n/a	n/a		_tclen	_ftclen		_stricoll	_tcsicoll
+_ftcscat	_tcscat	n/a	n/a	n/a	n/a		_tcscat	_ftcscat		_strinc	_tcsinc
+_ftcschr	_tcschr	n/a	n/a	n/a	n/a		_tcschr	_ftcschr		_strlwr	_tcslwr
+_ftcsclen	_tcsclen	n/a	n/a	n/a	n/a		_tcsclen	_ftcsclen		_strncnt	_tcsnbcnt
+_ftcscmp	_tcscmp	n/a	n/a	n/a	n/a		_tcscmp	_ftcscmp		_strncnt	_tcsnccnt
+_ftcscoll	_tcscoll	n/a	n/a	n/a	n/a		_tcscoll	_ftcscoll		_strncoll	_tcsnccoll
+_ftcscpy	_tcscpy	n/a	n/a	n/a	n/a		_tcscpy	_ftcscpy		_strncoll	_tcsncoll
+_ftcscspn	_tcscspn	n/a	n/a	n/a	n/a		_tcscspn	_ftcscspn		_strnextc	_tcsnextc
+_ftcsdec	_tcsdec	n/a	n/a	n/a	n/a		_tcsdec	_ftcsdec		_strnicmp	_tcsncicmp
+_ftcsdup	_tcsdup	n/a	n/a	n/a	n/a		_tcsdup	_ftcsdup		_strnicmp	_tcsnicmp
+_ftcsicmp	_tcsicmp	n/a	n/a	n/a	n/a		_tcsicmp	_ftcsicmp		_strnicoll	_tcsncicoll
+_ftcsicoll	_tcsicoll	n/a	n/a	n/a	n/a		_tcsicoll	_ftcsicoll		_strnicoll	_tcsnicoll
+_ftcsinc	_tcsinc	n/a	n/a	n/a	n/a		_tcsinc	_ftcsinc		_strninc	_tcsninc
+_ftcslen	_tcslen	n/a	n/a	n/a	n/a		_tcslen	_ftcslen		_strnset	_tcsncset
+_ftcslwr	_tcslwr	n/a	n/a	n/a	n/a		_tcslwr	_ftcslwr		_strnset	_tcsnset
+_ftcsnbcnt	_tcsnbcnt	n/a	n/a	n/a	n/a		_tcsnbcnt	_ftcsnbcnt		_strrev	_tcsrev
+_ftcsncat	_tcsncat	n/a	n/a	n/a	n/a		_tcsncat	_ftcsncat		_strset	_tcsset
+_ftcsnccat	_tcsnccat	n/a	n/a	n/a	n/a		_tcsnccat	_ftcsnccat		_strspnp	_tcsspnp
+_ftcsnccmp	_tcsnccmp	n/a	n/a	n/a	n/a		_tcsnccmp	_ftcsnccmp		_strupr	_tcsupr
+_ftcsnccnt	_tcsnccnt	n/a	n/a	n/a	n/a		_tcsnccnt	_ftcsnccnt		char	_TCHAR
+_ftcsnccoll	_tcsnccoll	n/a	n/a	n/a	n/a		_tcsnccoll	_ftcsnccoll		char	_TXCHAR
+_ftcsnccpy	_tcsnccpy	n/a	n/a	n/a	n/a		_tcsnccpy	_ftcsnccpy		int	_TINT
+_ftcsncicmp	_tcsncicmp	n/a	n/a	n/a	n/a		_tcsncicmp	_ftcsncicmp		signed char	_TSCHAR
+_ftcsncicoll	_tcsncicoll	n/a	n/a	n/a	n/a		_tcsncicoll	_ftcsncicoll		strchr	_tcschr
+_ftcsncmp	_tcsncmp	n/a	n/a	n/a	n/a		_tcsncmp	_ftcsncmp		strcmp	_tcscmp
+_ftcsncoll	_tcsncoll	n/a	n/a	n/a	n/a		_tcsncoll	_ftcsncoll		strcoll	_tcscoll
+_ftcsncpy	_tcsncpy	n/a	n/a	n/a	n/a		_tcsncpy	_ftcsncpy		strcspn	_tcscspn
+_ftcsncset	_tcsncset	n/a	n/a	n/a	n/a		_tcsncset	_ftcsncset		strlen	_tcsclen
+_ftcsnextc	_tcsnextc	n/a	n/a	n/a	n/a		_tcsnextc	_ftcsnextc		strncat	_tcsncat
+_ftcsnicmp	_tcsnicmp	n/a	n/a	n/a	n/a		_tcsnicmp	_ftcsnicmp		strncat	_tcsnccat
+_ftcsnicoll	_tcsnicoll	n/a	n/a	n/a	n/a		_tcsnicoll	_ftcsnicoll		strncmp	_tcsnccmp
+_ftcsninc	_tcsninc	n/a	n/a	n/a	n/a		_tcsninc	_ftcsninc		strncmp	_tcsncmp
+_ftcsnset	_tcsnset	n/a	n/a	n/a	n/a		_tcsnset	_ftcsnset		strncpy	_tcsnccpy
+_ftcspbrk	_tcspbrk	n/a	n/a	n/a	n/a		_tcspbrk	_ftcspbrk		strncpy	_tcsncpy
+_ftcsrchr	_tcsrchr	n/a	n/a	n/a	n/a		_tcsrchr	_ftcsrchr		strpbrk	_tcspbrk
+_ftcsrev	_tcsrev	n/a	n/a	n/a	n/a		_tcsrev	_ftcsrev		strrchr	_tcsrchr
+_ftcsset	_tcsset	n/a	n/a	n/a	n/a		_tcsset	_ftcsset		strspn	_tcsspn
+_ftcsspn	_tcsspn	n/a	n/a	n/a	n/a		_tcsspn	_ftcsspn		strstr	_tcsstr
+_ftcsspnp	_tcsspnp	n/a	n/a	n/a	n/a		_tcsspnp	_ftcsspnp		strtok	_tcstok
+_ftcsstr	_tcsstr	n/a	n/a	n/a	n/a		_tcsstr	_ftcsstr		strxfrm	_tcsxfrm
+_ftcstok	_tcstok	n/a	n/a	n/a	n/a		_tcstok	_ftcstok		unsigned char	_TUCHAR
+_ftcsupr	_tcsupr	n/a	n/a	n/a	n/a		_tcsupr	_ftcsupr
+_istlead(_c)	n/a	0	0	0	n/a			
+_istleadbyte(_c)	n/a	0	0	0	n/a			
+_tcsdec	n/a	_wcsdec	_wcsdec	_strdec	_mbsdec			
+_tcsicmp	n/a	_wcsicmp	_wcsicmp	_stricmp	_mbsicmp			
+_tcsicoll	n/a	_wcsicoll	_wcsicoll	_stricoll	_mbsicoll			
+_tcsinc	n/a	_wcsinc	_wcsinc	_strinc	_mbsinc			
+_tcslwr	n/a	_wcslwr	_wcslwr	_strlwr	_mbslwr			
+_tcsnbcnt	n/a	_wcsncnt	_wcsncnt	_strncnt	_mbsnbcnt			
+_tcsnccnt	n/a	_wcsncnt	_wcsncnt	_strncnt	_mbsnccnt			
+_tcsnccoll	n/a	_wcsncoll	_wcsncoll	_strncoll	_mbsncoll			
+_tcsncoll	n/a	_wcsncoll	_wcsncoll	_strncoll	_mbsnbcoll			
+_tcsnextc	n/a	_wcsnextc	_wcsnextc	_strnextc	_mbsnextc			
+_tcsncicmp	n/a	_wcsnicmp	_wcsnicmp	_strnicmp	_mbsnicmp			
+_tcsnicmp	n/a	_wcsnicmp	_wcsnicmp	_strnicmp	_mbsnbicmp			
+_tcsncicoll	n/a	_wcsnicoll	_wcsnicoll	_strnicoll	_mbsnicoll			
+_tcsnicoll	n/a	_wcsnicoll	_wcsnicoll	_strnicoll	_mbsnbicoll
+_tcsninc	n/a	_wcsninc	_wcsninc	_strninc	_mbsninc
+_tcsncset	n/a	_wcsnset	_wcsnset	_strnset	_mbsnset
+_tcsnset	n/a	_wcsnset	_wcsnset	_strnset	_mbsnbset
+_tcsrev	n/a	_wcsrev	_wcsrev	_strrev	_mbsrev
+_tcsset	n/a	_wcsset	_wcsset	_strset	_mbsset
+_tcsspnp	n/a	_wcsspnp	_wcsspnp	_strspnp	_mbsspnp
+_tcsupr	n/a	_wcsupr	_wcsupr	_strupr	_mbsupr
+_TCHAR	n/a	wchar_t	wchar_t	char	char
+_TXCHAR	n/a	wchar_t	wchar_t	char	unsigned char
+_TINT	n/a	wint_t	wint_t	int	unsigned int
+__targv	n/a	__wargv	__wargv	n/a	n/a
+_CPC	n/a	n/a	n/a	n/a	const char*
+_CPUC	n/a	n/a	n/a	n/a	const char*
+_fgettc	n/a	fgetwc	fgetwc	n/a	n/a
+_fgettchar	n/a	_fgetwchar	_fgetwchar	n/a	n/a
+_fgetts	n/a	fgetws	fgetws	n/a	n/a
+_fputtc	n/a	fputwc	fputwc	n/a	n/a
+_fputtchar	n/a	_fputwchar	_fputwchar	n/a	n/a
+_fputts	n/a	fputws	fputws	n/a	n/a
+_ftprintf	n/a	fwprintf	fwprintf	n/a	n/a
+_ftscanf	n/a	fwscanf	fwscanf	n/a	n/a
+_gettc	n/a	getwc	getwc	n/a	n/a
+_gettchar	n/a	getwchar	getwchar	n/a	n/a
+_getts	n/a	_getws	_getws	n/a	n/a
+_i64tot	n/a	_i64tow	_i64tow	n/a	n/a
+_istalnum	n/a	iswalnum	iswalnum	n/a	_ismbcalnum
+_istalpha	n/a	iswalpha	iswalpha	n/a	_ismbcalpha
+_istascii	n/a	iswascii	iswascii	n/a	n/a
+_istcntrl	n/a	iswcntrl	iswcntrl	n/a	n/a
+_istdigit	n/a	iswdigit	iswdigit	n/a	_ismbcdigit
+_istgraph	n/a	iswgraph	iswgraph	n/a	_ismbcgraph
+_istlead	n/a	n/a	n/a	n/a	_ismbblead
+_istleadbyte	n/a	n/a	n/a	n/a	isleadbyte
+_istlegal	n/a	n/a	n/a	n/a	_ismbclegal
+_istlegal(_c)	n/a	-1	-1	n/a	n/a
+_istlower	n/a	iswlower	iswlower	n/a	_ismbclower
+_istprint	n/a	iswprint	iswprint	n/a	_ismbcprint
+_istpunct	n/a	iswpunct	iswpunct	n/a	_ismbcpunct
+_istspace	n/a	iswspace	iswspace	n/a	_ismbcspace
+_istupper	n/a	iswupper	iswupper	n/a	_ismbcupper
+_istxdigit	n/a	iswxdigit	iswxdigit	n/a	n/a
+_itot	n/a	_itow	_itow	n/a	n/a
+_ltot	n/a	_ltow	_ltow	n/a	n/a
+_PC	n/a	n/a	n/a	n/a	char *
+_PUC	n/a	n/a	n/a	n/a	unsigned char*
+_puttc	n/a	putwc	putwc	n/a	n/a
+_puttchar	n/a	putwchar	putwchar	n/a	n/a
+_putts	n/a	_putws	_putws	n/a	n/a
+_sntprintf	n/a	_snwprintf	_snwprintf	n/a	n/a
+_stprintf	n/a	swprintf	swprintf	n/a	n/a
+_stscanf	n/a	swscanf	swscanf	n/a	n/a
+_taccess	n/a	_waccess	_waccess	n/a	n/a
+_tasctime	n/a	_wasctime	_wasctime	n/a	n/a
+_tccpy	n/a	n/a	n/a	n/a	_mbccpy
+_tchdir	n/a	_wchdir	_wchdir	n/a	n/a
+_tchmod	n/a	_wchmod	_wchmod	n/a	n/a
+_tclen	n/a	n/a	n/a	n/a	_mbclen
+_tcreat	n/a	_wcreat	_wcreat	n/a	n/a
+_tcscat	n/a	wcscat	wcscat	n/a	n/a
+_tcscpy	n/a	wcscpy	wcscpy	n/a	n/a
+_tcsdup	n/a	_wcsdup	_wcsdup	n/a	n/a
+_tcsftime	n/a	wcsftime	wcsftime	n/a	n/a
+_tcslen	n/a	wcslen	wcslen	n/a	n/a
+_tcstod	n/a	wcstod	wcstod	n/a	n/a
+_tcstol	n/a	wcstol	wcstol	n/a	n/a
+_tcstoul	n/a	wcstoul	wcstoul	n/a	n/a
+_tctime	n/a	_wctime	_wctime	n/a	n/a
+_tenviron	n/a	_wenviron	_wenviron	n/a	n/a
+_TEOF	n/a	WEOF	WEOF	n/a	n/a
+_texecl	n/a	_wexecl	_wexecl	n/a	n/a
+_texecle	n/a	_wexecle	_wexecle	n/a	n/a
+_texeclp	n/a	_wexeclp	_wexeclp	n/a	n/a
+_texeclpe	n/a	_wexeclpe	_wexeclpe	n/a	n/a
+_texecv	n/a	_wexecv	_wexecv	n/a	n/a
+_texecve	n/a	_wexecve	_wexecve	n/a	n/a
+_texecvp	n/a	_wexecvp	_wexecvp	n/a	n/a
+_texecvpe	n/a	_wexecvpe	_wexecvpe	n/a	n/a
+_tfdopen	n/a	_wfdopen	_wfdopen	n/a	n/a
+_tfinddata_t	n/a	_wfinddata_t	_wfinddata_t	n/a	n/a
+_tfinddatai64_t	n/a	_wfinddatai64_t	_wfinddatai64_t	n/a	n/a
+_tfindfirst	n/a	_wfindfirst	_wfindfirst	n/a	n/a
+_tfindfirsti64	n/a	_wfindfirsti64	_wfindfirsti64	n/a	n/a
+_tfindnext	n/a	_wfindnext	_wfindnext	n/a	n/a
+_tfindnexti64	n/a	_wfindnexti64	_wfindnexti64	n/a	n/a
+_tfopen	n/a	_wfopen	_wfopen	n/a	n/a
+_tfreopen	n/a	_wfreopen	_wfreopen	n/a	n/a
+_tfsopen	n/a	_wfsopen	_wfsopen	n/a	n/a
+_tfullpath	n/a	_wfullpath	_wfullpath	n/a	n/a
+_tgetcwd	n/a	_wgetcwd	_wgetcwd	n/a	n/a
+_tgetdcwd	n/a	_wgetdcwd	_wgetdcwd	n/a	n/a
+_tgetenv	n/a	_wgetenv	_wgetenv	n/a	n/a
+_tmain	n/a	wmain	wmain	n/a	n/a
+_tmakepath	n/a	_wmakepath	_wmakepath	n/a	n/a
+_tmkdir	n/a	_wmkdir	_wmkdir	n/a	n/a
+_tmktemp	n/a	_wmktemp	_wmktemp	n/a	n/a
+_topen	n/a	_wopen	_wopen	n/a	n/a
+_totlower	n/a	towlower	towlower	n/a	_mbctolower
+_totupper	n/a	towupper	towupper	n/a	_mbctoupper
+_tperror	n/a	_wperror	_wperror	n/a	n/a
+_tpopen	n/a	_wpopen	_wpopen	n/a	n/a
+_tprintf	n/a	wprintf	wprintf	n/a	n/a
+_tputenv	n/a	_wputenv	_wputenv	n/a	n/a
+_tremove	n/a	_wremove	_wremove	n/a	n/a
+_trename	n/a	_wrename	_wrename	n/a	n/a
+_trmdir	n/a	_wrmdir	_wrmdir	n/a	n/a
+_tscanf	n/a	wscanf	wscanf	n/a	n/a
+_tsearchenv	n/a	_wsearchenv	_wsearchenv	n/a	n/a
+_tsetlocale	n/a	_wsetlocale	_wsetlocale	n/a	n/a
+_tsopen	n/a	_wsopen	_wsopen	n/a	n/a
+_tspawnl	n/a	_wspawnl	_wspawnl	n/a	n/a
+_tspawnle	n/a	_wspawnle	_wspawnle	n/a	n/a
+_tspawnlp	n/a	_wspawnlp	_wspawnlp	n/a	n/a
+_tspawnlpe	n/a	_wspawnlpe	_wspawnlpe	n/a	n/a
+_tspawnv	n/a	_wspawnv	_wspawnv	n/a	n/a
+_tspawnve	n/a	_wspawnve	_wspawnve	n/a	n/a
+_tspawnvp	n/a	_wspawnvp	_wspawnvp	n/a	n/a
+_tspawnvpe	n/a	_wspawnvpe	_wspawnvpe	n/a	n/a
+_tsplitpath	n/a	_wsplitpath	_wsplitpath	n/a	n/a
+_tstat	n/a	_wstat	_wstat	n/a	n/a
+_tstati64	n/a	_wstati64	_wstati64	n/a	n/a
+_tstrdate	n/a	_wstrdate	_wstrdate	n/a	n/a
+_tstrtime	n/a	_wstrtime	_wstrtime	n/a	n/a
+_tsystem	n/a	_wsystem	_wsystem	n/a	n/a
+_ttempnam	n/a	_wtempnam	_wtempnam	n/a	n/a
+_ttmpnam	n/a	_wtmpnam	_wtmpnam	n/a	n/a
+_ttoi	n/a	_wtoi	_wtoi	n/a	n/a
+_ttoi64	n/a	_wtoi64	_wtoi64	n/a	n/a
+_ttol	n/a	_wtol	_wtol	n/a	n/a
+_tunlink	n/a	_wunlink	_wunlink	n/a	n/a
+_tutime	n/a	_wutime	_wutime	n/a	n/a
+_tWinMain	n/a	wWinMain	wWinMain	n/a	n/a
+_UI	n/a	n/a	n/a	n/a	unsigned int
+_ui64tot	n/a	_ui64tow	_ui64tow	n/a	n/a
+_ultot	n/a	_ultow	_ultow	n/a	n/a
+_ungettc	n/a	ungetwc	ungetwc	n/a	n/a
+_vftprintf	n/a	vfwprintf	vfwprintf	n/a	n/a
+_vsntprintf	n/a	_vsnwprintf	_vsnwprintf	n/a	n/a
+_vstprintf	n/a	vswprintf	vswprintf	n/a	n/a
+_vtprintf	n/a	vwprintf	vwprintf	n/a	n/a
+TCHAR	n/a	wchar_t	wchar_t	n/a	n/a
+_TSCHAR	n/a	wchar_t	wchar_t	signed char	signed char
+_tcschr	n/a	wcschr	wcschr	strchr	_mbschr
+_tcscmp	n/a	wcscmp	wcscmp	strcmp	_mbscmp
+_tcscoll	n/a	wcscoll	wcscoll	strcoll	_mbscoll
+_tcscspn	n/a	wcscspn	wcscspn	strcspn	_mbscspn
+_tcsclen	n/a	wcslen	wcslen	strlen	_mbslen
+_tcsncat	n/a	wcsncat	wcsncat	strncat	_mbsnbcat
+_tcsnccat	n/a	wcsncat	wcsncat	strncat	_mbsncat
+_tcsnccmp	n/a	wcsncmp	wcsncmp	strncmp	_mbsncmp
+_tcsncmp	n/a	wcsncmp	wcsncmp	strncmp	_mbsnbcmp
+_tcsnccpy	n/a	wcsncpy	wcsncpy	strncpy	_mbsncpy
+_tcsncpy	n/a	wcsncpy	wcsncpy	strncpy	_mbsnbcpy
+_tcspbrk	n/a	wcspbrk	wcspbrk	strpbrk	_mbspbrk
+_tcsrchr	n/a	wcsrchr	wcsrchr	strrchr	_mbsrchr
+_tcsspn	n/a	wcsspn	wcsspn	strspn	_mbsspn
+_tcsstr	n/a	wcsstr	wcsstr	strstr	_mbsstr
+_tcstok	n/a	wcstok	wcstok	strtok	_mbstok
+_tcsxfrm	n/a	wcsxfrm	wcsxfrm	strxfrm	n/a
+_TUCHAR	n/a	wchar_t	wchar_t	unsigned char	unsigned char

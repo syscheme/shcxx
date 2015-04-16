@@ -1,0 +1,38 @@
+<Rules>
+   <Rule name="Rule1" >
+     <Action name="TestAction" />
+   </Rule>
+   <Rule name="Rule2" >
+     <Action name="CountStream" />
+   </Rule>
+   <Rule name="Rule3" >
+     <Action name="CountStream" />
+   </Rule>
+   <Rule name="Rule4" >
+     <Action name="CountStream" />
+   </Rule>
+   <Rule name="Rule5" >
+     <Action name="CountStream" />
+   </Rule>
+   <Rule name="Rule6" >
+     <Action name="CountStream" />
+   </Rule>   
+   <Rule name="Rule7" >
+     <Exec rule="Rule1" />
+     <Exec rule="Rule2" />
+     <Exec rule="Rule3" />
+     <Exec rule="Rule4" />
+     <Exec rule="Rule5" />
+     <Exec rule="Rule6" />
+   </Rule>               
+   <Rule name="Rule2" >
+     <Exec rule="RuleX" />
+   </Rule>  
+   <Rule name="RuleX" >
+     <Exec rule="Rule1" />
+   </Rule>    
+   <Event category="Stream" event="Created" >
+       <!--Exec rule="Rule1" /-->
+       <Exec rule="RuleX" />
+   </Event>
+</Rules>

@@ -1,0 +1,38 @@
+<ZQ>
+	<Definitions src="MetaConfig.xml">
+		<property name="EMAIL_SUFFIX" value="@i-zq.com"/>
+	</Definitions>
+	<department name="SE1">
+		<members count="2">
+			<member name="A">
+				<detail mail="A${EMAIL_SUFFIX}"/>
+				<job name="this" desc="very importent" priority="1"/>
+				<job name="that" priority="3"/>
+				<job name="other" priority="2"/>
+				...other jobs
+			</member>
+			<member name="B">
+				<detail mail="B${EMAIL_SUFFIX}"/>
+				nothing to do.
+			</member>
+					...other members
+		</members>
+	</department>
+	<department name="IA">
+		<members count="2">
+			<member name="AA">
+				<detail mail="AA${EMAIL_SUFFIX}"/>
+				<job name="this" desc="very importent" priority="1"/>
+				<job name="that" priority="3"/>
+				<job name="other" priority="2"/>
+				...other jobs
+			</member>
+			<member name="BB">
+				<detail mail="BB${EMAIL_SUFFIX}"/>
+				nothing to do.
+			</member>
+					...other members
+		</members>
+	</department>
+	...other departments
+</ZQ>

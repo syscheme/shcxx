@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<ClientTest>
+  <Log level="7" filename="HttpImplCurl.log" size="50000000" count="10"/>
+  
+  <Session>
+  	<Pool serverIP="10.15.10.74" port="12000" Maxclient="100" interval="100" timeout="5000">
+    <Item name="RTITest1234567891004xor.com.0X0000" type="0" url="/scs/getfile?file=${file}&amp;ic=10000000000&amp;rate=37500000"/>
+    <Item name="RTITest1234567891004xor.com.0X0000" type="0" url="/scs/getfile?file=${file}&amp;ic=10000000000&amp;rate=37500000"/>
+    <Item name="RTITest1234567891004xor.com.0X0000" type="0" url="/scs/getfile?file=${file}&amp;ic=10000000000&amp;rate=37500000"/>
+    <Item name="RTITest1234567891004xor.com.0X0000" type="0" url="/scs/getfile?file=${file}&amp;ic=10000000000&amp;rate=37500000"/>
+    <Item name="RTITest1234567891004xor.com.0X0000" type="0" url="/scs/getfile?file=${file}&amp;ic=10000000000&amp;rate=37500000"/>
+    <Item name="RTITest1234567891004xor.com.0X0000" type="0" url="/scs/getfile?file=${file}&amp;ic=10000000000&amp;rate=37500000"/>
+    <Item name="RTITest1234567891004xor.com.0X0000" type="0" url="/scs/getfile?file=${file}&amp;ic=10000000000&amp;rate=37500000"/>
+    <Item name="RTITest1234567891004xor.com.0X0000" type="0" url="/scs/getfile?file=${file}&amp;ic=10000000000&amp;rate=37500000"/>
+    <Item name="RTITest1234567891004xor.com.0X0000" type="0" url="/scs/getfile?file=${file}&amp;ic=10000000000&amp;rate=37500000"/>
+    <Item name="RTITest1234567891004xor.com.0X0000" type="0" url="/scs/getfile?file=${file}&amp;ic=10000000000&amp;rate=37500000"/>   
+    <Item name="RTITest1234567891004xor.com.0X0000" type="0" url="/scs/getfile?file=${file}&amp;ic=10000000000&amp;rate=37500000"/>
+    <Item name="RTITest1234567891004xor.com.0X0000" type="0" url="/scs/getfile?file=${file}&amp;ic=10000000000&amp;rate=37500000"/>
+    <Item name="RTITest1234567891004xor.com.0X0000" type="0" url="/scs/getfile?file=${file}&amp;ic=10000000000&amp;rate=37500000"/>
+    <Item name="RTITest1234567891004xor.com.0X0000" type="0" url="/scs/getfile?file=${file}&amp;ic=10000000000&amp;rate=37500000"/>
+    <Item name="RTITest1234567891004xor.com.0X0000" type="0" url="/scs/getfile?file=${file}&amp;ic=10000000000&amp;rate=37500000"/>   
+    </Pool>
+    
+   
+  </Session>
+
+</ClientTest>

@@ -1,0 +1,20 @@
+关于例子的说明
+在 service frame 的源代码中包含一个部分实现 ftp 协议的服务器例子, 它的主要代码包括在Main.cpp中
+它的结构简要描述如下
+
+   [ftp_session]---------------|
+        |                      |
+  [ftpsvr_channel]             |
+    |        |                 |
+[MainConn][DataConnection]     |
+    |      |                   |
+   [Dialogue]-------------------
+       |
+ [ServiceFrame]
+
+ftp_session 实现协议, 它抽象了一个 ftpsvr_channel, 用于ftp的数据交换, 在这里的实现依赖于由Frame提供的MainConn(
+DataConnection 由 MainConn创建)
+
+当请求到达时, Frame将请求发送给相应的 Dialogue, Dialogue 由协议层实现, 它将相应的请求发送给 ftp_session对象, 
+ftp_session 处理完请求后将 response 通过 ftpsvr_channel 返回给客户端, ftpsvr_channel事实上是通过 由frame 提供的
+MainConn 和 DataConnection 向客户端(主动或被动地)发送response.

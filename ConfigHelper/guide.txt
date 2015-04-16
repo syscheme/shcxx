@@ -1,0 +1,240 @@
+1 Introduction
+	The ConfigHelper module is a suite of classes that can help you dealing with config file in XML format.
+	The main objective include:
+		* Provide a transparent layer of loading config file on top of XML reading API.
+		* Support multiple layers of XML hierarchy.
+		* Support variable and template in XML file(macro).
+		* Support SNMP variable management integration.
+2 Usage
+	To load config file with ConfigHelper, we need follow several steps:
+		a). Design several data structures (c++ class or struct) to group config items.
+		b). Define the member function structure() for each class to describe the structure of the xml file.
+		c). Use the Config::Loader template class to load xml file.
+		d). Validate & adjust the config value.
+		e). Enable the SNMP variable management.
+		
+		For example a piece of XML file:
+		
+			<Person name="someone">
+				<basic age="20" sex="female"/>
+				<TODO>
+					<Job name="this" desc="very importent" priority="1"/>
+					<Job name="that"  priority="3"/>
+					<Job name="other" priority="2"/>
+				</TODO>
+			<Person>
+			
+	2.1 Design several data structures (c++ class or struct) to group config items.
+		Each class represents some kind of XML node and has data members to store the config item values.
+		We need two classes to group the config items.
+		
+			struct Job
+			{
+				std::string name;
+				std::string desc;
+				int32 priority;
+			}
+			
+			class Person
+			{
+			public:
+				std::string name;
+				int32 age;
+				char sex[10];
+				typedef std::vector<Job> TODOList;
+				TODOList todo_list;
+			}
+		
+	2.2 Define the member function structure() for each class to describe the structure of the xml node.
+		The prototype of structure() is:
+			static void structure(Config::Holder<FragmentT> &holder);
+		The type FragmentT is you class which is designed to store the config value.
+		
+		We need to invoke Config::Holder's interfaces to supply the structure of node.
+		The Config::Holder is a template class that hold the structure of the config fragment and take the responsibility
+		of reading config value from XML node. 
+
+		The Config::Holder's interface:
+		template < class FragmentT >
+		class Holder : public FragmentT
+		{
+		public:
+			explicit Holder(const std::string& keyAttr = "");
+		    void read(XMLUtil::XmlNode node, const Preprocessor* hPP = NULL);
+		    
+		    void addDetail(const std::string &path, const std::string &name, PMem_Int32 address, const char *defaultValue = NULL, SnmpOption snmpOpt = optNone, const std::string &snmpName = "");
+		    void addDetail(const std::string &path, const std::string &name, PMem_StdString address, const char *defaultValue = NULL, SnmpOption snmpOpt = optNone, const std::string &snmpName = "");
+		    void addDetail(const std::string &path, const std::string &name, PMem_CharArray address, size_t length, const char *defaultValue = NULL, SnmpOption snmpOpt = optNone, const std::string &snmpName = "");
+		   
+		    void addDetail(const std::string &path, ReadOther readFunc, RegisterOther registerFunc, const Range nodeCount = Range(0, -1), const std::string &snmpName = "");
+		    
+		    void snmpRegister(const std::string &full_path);
+		}
+		
+		The Holder inherits from your config class, so the config value can be accessed thru the Holder object.
+		
+		The constructor need a key attribute name who's value is used as a unique id of this kind of node.
+		For the <Job> node in the pervious example, the 'name' attribute can be used as the key attribute.
+		The key attribute name only affects the SNMP variable management behavior, so it can be empty
+		for the node that needn't be registered into SNMP variable management system or the unique node.
+		
+		The read() member function read config value from the XML node. The type XMLUtil::XmlNode is the smart pointer type of XMLPreferenceEx.
+		The class Preprocessor implement the MACRO function. The read() us a handle of Preprocessor object to enable MACRO in XML file.
+
+		The snmpRegister() register the config value into the SNMP variable management. It need the full path to the node.
+		
+		The addDetail() is the interface that can be used to describe the structure of the XML node.
+		There are two basic case of config items' organization in a class. One is the data member of simple type (int, string) that 
+		map to a XML node's attribute. The other is the data member of compound type (vector, list, other config data structure, etc.)
+		that map to some sort of XML nodes.
+		
+		For the simple type, you need to provide the relative path to the target node, the attribute name of the config item and
+		the address of the storage data member at least.
+		The prototype is:
+			void addDetail(const std::string &path, const std::string &name, PMem_Int32 address, const char *defaultValue = NULL, SnmpOption snmpOpt = optNone, const std::string &snmpName = "");
+			
+		The path is the relative path to the target node. It's a file-path-like string that describe the route to locate the target node.
+		It is composed of tag names and character '/' as delimiter. The empty path ("") refer the current node.
+		
+		The name is the config item's attribute name.
+		
+		The address is the address of the storage data member. It's in type of pointer to member. This prototype is for int32 member,
+		and there are also prototypes for std::string and char[]. For the char[] type, the prototype is slight different from the others. It need
+		a addition parameter named length to describe the size of the char[] member. And the address must be cast to type PMem_CharArray
+		to eliminate the compiler's explain.
+		
+		The defaultValue is the default value of the config item if that attribute is not provided in XML file. The NULL value indicates the attribute can't be omitted.
+		
+		The snmpOpt is the SNMP register option. There are 3 possible value which are optNone, optReadOnly and optReadWrite. 
+		The optNone indicates this config item is not need to be registered to SNMP variable management. The others indicate the
+		access privilege of this config item in SNMP variable management.
+		
+		The snmpName is the short name for this config item in SNMP variable management. If not provide, the ConfigHelper will genarate a name from path and name.
+		For the <Job> node in the previous example, the class Job's definition may be:
+			struct Job
+			{
+				std::string name;
+				std::string desc;
+				int32 priority;
+				static void structure(Config::Holder< Job > &holder)
+				{
+					holder.addDetail("", "name", &Job::name);
+					holder.addDetail("", "desc", &Job::desc, "", Config::optReadOnly);
+					holder.addDetail("", "priority", &Job::priority, NULL, Config::optReadOnly);
+				}
+			}
+			
+		For the compound type, you need to provide the relative path to the target node, and the actions on processing the node.
+		The prototype is:
+			 void addDetail(const std::string &path, ReadOther readFunc, RegisterOther registerFunc, const Range nodeCount = Range(0, -1), const std::string &snmpName = "");
+
+		The path is the relative path to the target node.
+		
+		The readFunc is the action on reading config of the node. You need define a member function of type ReadOther.
+		The type ReadOther's definition is:
+			void (FragmentT::* ReadOther)(XMLUtil::XmlNode node, const Preprocessor* hPP);
+
+		The definition of you readFunc is always trivial	. What you need to do is to read the config value from XML node thru
+		Holder::read() and the storage stuff.
+		The class Person need a readJob() to process the <Job> node. The definition may be:
+			void readJob(XMLUtil::XmlNode node, const Preprocessor* hPP)
+			{
+				Config::Holder<Job> jobholder("name"); // 'name' is the key attribute
+				jobholder.read(node, hPP);
+				todo_list.push_back(jobholder);
+			}
+		
+		The registerFunc is the action on SNMP register of this kind of node. You need define a member function of type RegisterOther.
+		The type RegisterOther's definition is:
+			void RegisterOther(const std::string &full_path);
+		The definition of you RegisterOther is similar with the ReadOther.
+		To enable the SNMP register we need the use Holder<Job> instead of Job to take the config value.
+			typedef std::vector<Job> TODOList;
+			
+		The definition of registerJobs() may be:
+			void registerJobs(const std::string &full_path)
+			{
+				for(TODOList::iterator it = todo_list.begin(); it != todo_list.end(); ++it)
+				{
+					it->snmpRegister(full_path);
+				}
+			}
+		
+		The nodeCount is the range of the target nodes count. It is a number pair.
+		The snmpName is the short name for this kind of node in SNMP variable management. If not provide, the ConfigHelper will use the path as the name.
+
+		The class Person's structure()'s definition may be:
+			static void structure(Config::Holder<Person> &holder)
+			{
+				holder.addDetail("", "name", &Person::name);
+				holder.addDetail("basic", "age", &Person::age, NULL, optReadWrite, "age");
+				holder.addDetail("basic", "sex", (Config::Holder<Person>::PMem_CharArray)&Person::sex, 10, "male", optReadOnly, "sex");
+				holder.addDetail("TODO/Job", &Person::readJob, &Person:registerJobs, Config::Range(0, -1));
+			}
+
+	2.3 Use the Config::Loader template class to load xml file.
+		The Loader inherits from the Holder class, so the config value can also be accessed thru the Loader object.
+		The Loader implements ILoader interface and can work with XML file.
+		The ILoader's interface:
+			class ILoader
+			{
+			public:
+				virtual bool load(const char *path, bool enablePP) = 0;
+				virtual bool loadInFolder(const char *folder, bool enablePP) = 0;
+				virtual void setLogger(ZQ::common::Log* pLog) = 0;
+				virtual const std::string& getConfigFolder() = 0;
+				virtual const std::string& getConfigFileName() = 0;
+				virtual const std::string& getConfigFilePath() = 0;
+			};
+		The load() read config from the XML file that specified thru the parameter 'path'.
+		The loadInFolder() read config from a particular XML file in a folder. The config file's name is supplied thru other approach(Config::Loader's constructor).
+		The setLogger() set the logger instance from the outside.
+		The three get* functions refer the config file's name info.
+
+		The Loader's constructor need the config file's name, and this file name will be used by loadInFolder() subsequently.
+		The config file's name may be empty if no loadInFolder() will be called.
+		Suppose the XML file with only the Person node above named person.xml.
+		The reading code may be:
+			Config::Loader<Person> loader("person.xml");
+			loader.loadInFolder("ConfigFolderPath");
+		Or:
+			Config::Loader<Person> loader("");
+			loader.load("FullPathOfTheConfigFile");
+	2.4 Validate & adjust the config value.
+	2.5 Enable the SNMP variable management (this step may not be necessary).
+		To register the config value into SNMP variable management system, you need invoke the Loader's 
+		snmpRegister() with a full path to the root node of the XML file. This full path can be treated as a prefix
+		of the SNMP variable name. You can leave full path empty or use the file's name or anything else.
+		The code may be:
+			loader.snmpRegister("person.xml");
+		The SNMP variable name of the priority of Job that should be "person.xml/TODO/Job[that]/priority"
+3 Note
+	There are several restriction need to be attended about ConfigHelper.
+	a). Not using precompiled headers in VC preject (Project -> Setting -> C/C++ -> Precompiled Headers -> Not using precompiled headers).
+	b). The structure() member function MUST be static.
+	c). Holder::addDetail() need a pointer to data member as the data address.
+	d). Holder::addDetail() need a pointer to member function as the function address.
+	e). The char [] member's pointer to member type must be cast to Holder<FragmentT>::PMem_CharArray (or char FragmentT::*).
+	f). Need boost.
+	g). The config object must be stable before invoke snmpRegister().
+4 Reference
+	See the file SourceOffSite/ZQPorjs/Common/ConfigHelper.h.
+5 Example
+	See the project SourceOffSite/ZQPorjs/Common/ConfigHelper/ConfigHelperTest.dsp.
+	
+Appendix A : Use the MACRO
+
+ To define the config file with MACRO, you need to add a node <Definitions> under the root.
+ You can include another definition file  with the src attribute and add MACROs with <property> node under <Definitions>.
+ The 'src' can be a full path or a file name that refer a file in the same folder.
+ 
+ To refer a MACRO, you need us the scheme ${<property>}.
+ 	<root>
+ 		<Definitions src="MetaConfig.xml">
+ 				<property name="EmailSuffix" value="@i-zq.com"/>
+		</Definitions>
+		...
+		<person name="somebody" email="somebody${EmailSuffix}"/>
+	</root>
+	
+	The ${EmailSuffix} will be replaced with @i-zq.com.
