@@ -1,0 +1,6 @@
+DESCRIPTION 'ZQ SNMP Extension Agent'
+EXPORTS
+  SnmpExtensionInit
+  SnmpExtensionTrap
+  SnmpExtensionQuery
+  SnmpExtensionClose

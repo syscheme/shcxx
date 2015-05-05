@@ -1,0 +1,27 @@
+Microsoft Visual Studio Solution File, Format Version 8.00
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testcli", "test_testcli.vcproj", "{B67C7AC4-174D-4259-AA65-2C2A33BF21DF}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testsvc", "test_testsvc.vcproj", "{8C20AD85-D3E2-47CA-88EE-B00FCB3F5CC2}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(DPCodeReviewSolutionGUID) = preSolution
+		DPCodeReviewSolutionGUID = {00000000-0000-0000-0000-000000000000}
+	EndGlobalSection
+	GlobalSection(SolutionConfiguration) = preSolution
+		Default = Default
+	EndGlobalSection
+	GlobalSection(ProjectConfiguration) = postSolution
+		{B67C7AC4-174D-4259-AA65-2C2A33BF21DF}.Default.ActiveCfg = Default|Win32
+		{B67C7AC4-174D-4259-AA65-2C2A33BF21DF}.Default.Build.0 = Default|Win32
+		{8C20AD85-D3E2-47CA-88EE-B00FCB3F5CC2}.Default.ActiveCfg = Default|Win32
+		{8C20AD85-D3E2-47CA-88EE-B00FCB3F5CC2}.Default.Build.0 = Default|Win32
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+	EndGlobalSection
+	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+EndGlobal
