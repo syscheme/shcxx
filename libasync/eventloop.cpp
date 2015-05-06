@@ -79,6 +79,13 @@ namespace LibAsync {
 	int EventLoop::run() {
 		if( mCpuId >= 0 ) {
 #ifdef ZQ_OS_LINUX
+			int policy;
+			struct sched_param param;
+
+			pthread_getschedparam(pthread_self(), &policy, &param);
+			param.sched_priority = sched_get_priority_max(policy);
+			pthread_setschedparam(pthread_self(), policy, &param);
+
 			cpu_set_t cpuset;
 			pthread_t thread = pthread_self();
 			CPU_ZERO(&cpuset);
