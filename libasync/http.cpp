@@ -10,7 +10,7 @@ namespace LibAsync {
 	public:
 		EventLoopCenter();
 		virtual ~EventLoopCenter();
-		bool	startCenter( size_t count);
+		bool	startCenter( size_t count, ZQ::common::Log& log);
 		void	stopCenter();
 		
 		///从Center里面获取一个EventLoop，当前的实现版本是roundrobin
@@ -30,14 +30,14 @@ namespace LibAsync {
 		stopCenter();
 	}
 
-	bool EventLoopCenter::startCenter( size_t count) {
+	bool EventLoopCenter::startCenter( size_t count, ZQ::common::Log& log) {
 		if( count <= 0)
 			count =	1;
 		ZQ::common::MutexGuard gd(mLocker);
 		if( mLoops.size() > 0 )
 			return true;
 		for( size_t i = 0; i < count; i ++ ) {
-			EventLoop* l = new EventLoop(i);
+			EventLoop* l = new EventLoop(log, i);
 			if(!l->start()){
 				delete l;
 				return false;
@@ -80,7 +80,7 @@ namespace LibAsync {
 	static EventLoopCenter httpClientCenter;
 	static AsyncBuffer		chunkTail;
 
-	bool HttpProcessor::setup(size_t loopCount){
+	bool HttpProcessor::setup(size_t loopCount, ZQ::common::Log& log){
 #ifdef ZQ_OS_MSWIN
 		//init WSA env
 		WSADATA	wsaData;
@@ -92,7 +92,7 @@ namespace LibAsync {
 		chunkTail.base = (char*)malloc( sizeof(char)*2);
 		chunkTail.len = 2;
 		memcpy(chunkTail.base,"\r\n",2);
-		return httpClientCenter.startCenter(loopCount);
+		return httpClientCenter.startCenter(loopCount, log);
 	}
 
 	void HttpProcessor::teardown() {
@@ -579,7 +579,14 @@ namespace LibAsync {
 	}
 	
 	void HttpServant::onHttpError( int err ) {
-		mLogger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServant,"onHttpError, got an error[%d]"), err );
+		mLogger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServant,"onHttpError, [%p] got an error[%d],systemerr[%d]"), this, err, errno );
+		std::string locip="";
+		unsigned short locport=0;
+		getLocalAddress(locip, locport);
+		std::string peerip="";
+		unsigned short  peerport=0;
+		getPeerAddress(peerip, peerport);
+        mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServant, "onHttpError [%p] [%s:%d==>%s:%d]."), this, locip.c_str(), locport, peerip.c_str(), peerport);
 		if(mHandler)
 			mHandler->onHttpError(err);
 		clear();
@@ -589,6 +596,15 @@ namespace LibAsync {
 		if(!mHandler) {			
 			return;
 		}
+		std::string locip="";
+		unsigned short locport=0;
+		getLocalAddress(locip, locport);
+		std::string peerip="";
+		unsigned short  peerport=0;
+		getPeerAddress(peerip, peerport);
+        mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServant, "onHttpDataSent [%p] [%s:%d==>%s:%d]."), this, locip.c_str(), locport, peerip.c_str(), peerport);
+
+		mLogger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServant,"onHttpDataSent, [%p] size[%d]"), this, size);
 		mHandler->onHttpDataSent(size);
 	}
 

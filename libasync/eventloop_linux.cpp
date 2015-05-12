@@ -13,15 +13,18 @@ namespace LibAsync {
 
 void EventLoop::createLoop()
 {
-	  mEpollFd = ::epoll_create(1000);
-	  //mEventFd = ::eventfd(0, 0);
+	  mEpollFd = ::epoll_create(20000);
+	 //mEpollFd = ::epoll_create1(EPOLL_CLOEXEC);
 	  if ( mEpollFd == -1)
 			::abort();
-//	  struct epoll_event ev;
-//	  ev.events = EPOLLIN;
-//	  ev.data.fd = mEventFd;
-//	  if (::epoll_ctl(mEpollFd, EPOLL_CTL_ADD, mEventFd, &ev)  != 0)
-//			::abort();
+	
+	  int flags = fcntl(mEpollFd, F_GETFL, 0);
+	  if (flags == -1)
+		::abort();
+
+	  if( fcntl(mEpollFd, F_SETFL, flags | O_NONBLOCK) == -1)
+	  	::abort();
+	
 	  bool eventfdCreate = mDummyEventFd.create();
 	  assert(eventfdCreate && "create DummyEventFd falled.");
 	  struct epoll_event ev;
@@ -98,19 +101,27 @@ bool EventLoop::unregisterEvent(Socket::Ptr sock, int event)
 // 	  }
 }
 
+uint64 currentTime() {
+	    struct timeval v;
+		gettimeofday( &v , NULL );
+		return (uint64)v.tv_sec * 1000 * 1000 + v.tv_usec;
+}
+
 void EventLoop::processEvent( int64 expireAt )
 {
 	  int waitTimeOut = (int)(expireAt - ::ZQ::common::TimeUtil::now());
 	  if (waitTimeOut < 0)
 			waitTimeOut = 10;
 	  struct epoll_event events[EPOLLEVENTS];
+	  int64 processStart = currentTime(); 
 	  int res = ::epoll_wait(mEpollFd, events, EPOLLEVENTS, waitTimeOut);
-	  if ( (0 == res) )
-	  {
-			return;
-	  }
-	  else
-	  {
+	  int64 loopStart = currentTime();
+	  //if ( (0 == res) )
+	  //{
+	//		return;
+	  //}
+	 // else
+	  //{
 			int i;
 			for(i = 0; i< res; i++)
 			{
@@ -211,7 +222,16 @@ void EventLoop::processEvent( int64 expireAt )
 						continue;
 				  }
 			}//for(i = 0; i< res; i++)
-	  }//else
+	 // }//else
+	 int64 loopEnd = currentTime();
+	 int processWait = 0;
+	 if( mPreTime != 0 )
+		 processWait = (int) (processStart - mPreTime);
+	 int loopWaitTime = (int) (loopStart - processStart);
+
+	 int loopTime = (int) (loopEnd - loopStart);
+	 mPreTime = loopEnd;
+	 mLog(ZQ::common::Log::L_DEBUG, CLOGFMT(EventLoop, "processEvent() loop[%p] processWait[%d] waitTime[%d]us, loopTime[%d]us,events[%d]"), this, processWait, loopWaitTime, loopTime, res);
 	  return;
 }
 

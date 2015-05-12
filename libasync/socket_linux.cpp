@@ -127,6 +127,8 @@ namespace LibAsync {
 		mRecValid = false;
 		mRecedSize = 0;	
 		mRecBufs = bufs;
+		//if(recvAction())
+		//	return true;
 		Socket::Ptr sockPtr (this);
 		mSocketEvetns = ( mSocketEvetns | EPOLLIN );
 		if( !mLoop.registerEvent(sockPtr, mSocketEvetns) )
@@ -140,6 +142,8 @@ namespace LibAsync {
 	}
 
 	bool Socket::send( const AsyncBufferS& bufs ) {
+		if( buffer_size(bufs) == 0 )
+			return false;
 		(new PostponeSend(this))->send(bufs);
 		return true;
 	}
@@ -151,9 +155,8 @@ namespace LibAsync {
 		mSendValid = false;
 		mSentSize = 0;
 		mSendBufs = bufs;
-		if ( sendAction())
+		if ( sendAction(true))
 			return true;
-
 		Socket::Ptr sockPtr (this);
 		mSocketEvetns = ( mSocketEvetns | EPOLLOUT );
 		if( !mLoop.registerEvent(sockPtr, mSocketEvetns) )
@@ -309,7 +312,7 @@ namespace LibAsync {
 				mbAlive = false;
 				mRecedSize = 0;
 				mRecValid = true;
-				onSocketError(ERR_EOF);
+				onSocketError(ERR_EOF3);
 				break;
 			}
 			else
@@ -317,7 +320,7 @@ namespace LibAsync {
 				if ( errno == EINTR )
 					continue;
 				if(errno == EWOULDBLOCK || errno == EAGAIN)
-					return true;
+					return false;
 				//if error then unregisterEvent of EPOLLIN
 				Socket::Ptr sockPtr (this);
 				mSocketEvetns = ( mSocketEvetns & (~EPOLLIN) );
@@ -328,10 +331,10 @@ namespace LibAsync {
 				break;
 			}
 		}
-		return false;
+		return true;
 	}
 
-	bool Socket::sendAction()
+	bool Socket::sendAction(bool firstSend/* = false*/)
 	{
 		//const AsyncBufferS& bufs= sock->mSendBufs;
 		bool   sendSucc = false;
@@ -365,24 +368,36 @@ namespace LibAsync {
 				mSentSize += ret;
 				sendSucc = true;
 			}
-			else if ( 0 == ret)
-			{
-				Socket::Ptr sockPtr (this);
+			//else if ( 0 == ret)
+			//{
+			//	if(firstSend)
+			//		return false;
+			//	Socket::Ptr sockPtr (this);
+			//	mSocketEvetns = ( mSocketEvetns | EPOLLOUT );
+			//	if( !mLoop.registerEvent(sockPtr, mSocketEvetns) )
+			//		return false;
+			//	return true;
+				/*
 				mSocketEvetns = ( mSocketEvetns & (~EPOLLOUT) );
 				mLoop.registerEvent(sockPtr, mSocketEvetns);
 				mSentSize = 0;
 				mSendValid = true;
 				mSendBufs.clear();
-				onSocketError(ERR_EOF);
+				if(errno == 2)
+					//return true;
+					//sendSucc = false;
+					onSocketError(-30);
+				else
+					onSocketError(ERR_EOF2);
 				sendSucc = false;
-				break;
-			}
+				break;*/
+			//}
 			else
 			{
+				if( ret == 0 || ((errno == EWOULDBLOCK || errno == EAGAIN)))
+					return false;
 				if ( errno == EINTR )
 					continue;
-				if(errno == EWOULDBLOCK || errno == EAGAIN)
-					return false;
 				Socket::Ptr sockPtr (this);
 				mSocketEvetns = ( mSocketEvetns & (~EPOLLOUT) );
 				mLoop.registerEvent(sockPtr, mSocketEvetns);

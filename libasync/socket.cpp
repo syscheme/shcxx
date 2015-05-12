@@ -233,7 +233,7 @@ namespace LibAsync{
 	}
 
 	bool Socket::setSendBufSize( int size ) {
-		return 0 == setsockopt( mSocket, SOL_SOCKET, SO_SNDBUF, (const char*)&size, sizeof(size));
+		return 0 == setsockopt( mSocket, SOL_SOCKET, SO_SNDBUFFORCE, (const char*)&size, sizeof(size));
 	}
 
 }//namespace LibAsync

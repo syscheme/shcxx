@@ -151,7 +151,7 @@ namespace LibAsync {
 
 		bool    acceptAction(bool firstAccept = false);
 		bool    recvAction();
-		bool    sendAction();
+		bool    sendAction(bool firstSend = false);
 #elif defined ZQ_OS_MSWIN
 		bool	innerAccept();
 #endif		

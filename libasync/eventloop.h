@@ -27,6 +27,9 @@
 #include <list>
 #include <Pointer.h> //for smart pointer
 
+//ADD_EVENT_LOG
+#include <Log.h>
+#include <TimeUtil.h>
 namespace LibAsync {
 
 	typedef enum _ErrorCode
@@ -43,8 +46,9 @@ namespace LibAsync {
 
 		//linux
 		ERR_EPOLLREGISTERFAIL  = -21,
-		ERR_EPOLLEXCEPTION = - 22
-
+		ERR_EPOLLEXCEPTION = - 22,
+		ERR_EOF2           = -23,
+		ERR_EOF3           = -24
 	}ErrorCode;
 
     class Socket;
@@ -204,7 +208,7 @@ namespace LibAsync {
 
 	class ZQ_COMMON_API EventLoop : public ZQ::common::NativeThread {
 	public:
-		EventLoop(int cpuid = -1 );
+		EventLoop(ZQ::common::Log& log, int cpuid = -1);
 		virtual ~EventLoop();
 	public:
 		/// ∆Ù∂Øthread£¨‘À––eventloop
@@ -285,6 +289,9 @@ namespace LibAsync {
 	  bool						mbAsyncWorkMessagePosted;
 
 	  int					mCpuId;
+	//ADD_EVENT_LOG
+	  ZQ::common::Log           &mLog;
+	  int64                     mPreTime;
 	};
 
 }//namespace LibAsync
