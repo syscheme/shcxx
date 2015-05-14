@@ -337,6 +337,7 @@ namespace LibAsync {
 	bool Socket::sendAction(bool firstSend/* = false*/)
 	{
 		//const AsyncBufferS& bufs= sock->mSendBufs;
+		int sendTimes = 0;
 		bool   sendSucc = false;
 		while(mSentSize < buffer_size(mSendBufs))
 		{
@@ -367,6 +368,14 @@ namespace LibAsync {
 			{
 				mSentSize += ret;
 				sendSucc = true;
+			}
+			else if (0 == ret)
+			{
+				sendTimes ++;
+				if(sendTimes <= 4 )
+					continue;
+				else
+					return false;
 			}
 			//else if ( 0 == ret)
 			//{
