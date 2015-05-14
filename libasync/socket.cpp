@@ -236,5 +236,9 @@ namespace LibAsync{
 		return 0 == setsockopt( mSocket, SOL_SOCKET, SO_SNDBUFFORCE, (const char*)&size, sizeof(size));
 	}
 
+	bool Socket::setRecvBufSize( int size ) {
+		return 0 == setsockopt( mSocket, SOL_SOCKET, SO_RCVBUFFORCE, (const char*)&size, sizeof(size));
+	}
+
 }//namespace LibAsync
 //vim: ts=4:sw=4:autoindent:fileencodings=gb2312
