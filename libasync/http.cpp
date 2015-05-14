@@ -602,9 +602,8 @@ namespace LibAsync {
 		std::string peerip="";
 		unsigned short  peerport=0;
 		getPeerAddress(peerip, peerport);
-        mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServant, "onHttpDataSent [%p] [%s:%d==>%s:%d]."), this, locip.c_str(), locport, peerip.c_str(), peerport);
+        mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServant, "onHttpDataSent [%p] [%s:%d==>%s:%d] size[%d]."), this, locip.c_str(), locport, peerip.c_str(), peerport, size);
 
-		mLogger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServant,"onHttpDataSent, [%p] size[%d]"), this, size);
 		mHandler->onHttpDataSent(size);
 	}
 
