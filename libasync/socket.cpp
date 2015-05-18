@@ -126,6 +126,7 @@ namespace LibAsync{
 	,mSocketEvetns(0),
 	mRecedSize(0),
 	mSentSize(0)
+
 #endif//
 	{
 	}

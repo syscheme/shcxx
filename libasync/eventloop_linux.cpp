@@ -100,139 +100,132 @@ bool EventLoop::unregisterEvent(Socket::Ptr sock, int event)
 // 			return false;
 // 	  }
 }
-
+/*
 uint64 currentTime() {
 	    struct timeval v;
 		gettimeofday( &v , NULL );
 		return (uint64)v.tv_sec * 1000 * 1000 + v.tv_usec;
 }
-
+*/
 void EventLoop::processEvent( int64 expireAt )
 {
-	  int waitTimeOut = (int)(expireAt - ::ZQ::common::TimeUtil::now());
-	  if (waitTimeOut < 0)
-			waitTimeOut = 10;
-	  struct epoll_event events[EPOLLEVENTS];
-	  int64 processStart = currentTime(); 
-	  int res = ::epoll_wait(mEpollFd, events, EPOLLEVENTS, waitTimeOut);
-	  int64 loopStart = currentTime();
-	  //if ( (0 == res) )
-	  //{
-	//		return;
-	  //}
-	 // else
-	  //{
-			int i;
-			for(i = 0; i< res; i++)
+	int waitTimeOut = (int)(expireAt - ::ZQ::common::TimeUtil::now());
+	if (waitTimeOut < 0)
+		waitTimeOut = 10;
+	struct epoll_event events[EPOLLEVENTS];
+	int res = ::epoll_wait(mEpollFd, events, EPOLLEVENTS, waitTimeOut);
+	int i;
+	for(i = 0; i< res; i++)
+	{
+		if (mDummyEventFd.isA(events[i].data.fd))
+		{
+			//wake up event loop.
+			mDummyEventFd.read();
+			continue;
+		}
+		Socket::Ptr sock(reinterpret_cast<Socket*>(events[i].data.ptr));
+		if( events[i].events & EPOLLERR )
+		{
+			if(errno != ENOENT && errno != EBADF &&  sock->mSocket != -1)
+				sock->onSocketError(ERR_EPOLLEXCEPTION);
+			unregisterEvent(sock, sock->mSocketEvetns);
+			continue;
+		}
+
+		if (sock == NULL || sock->mSocketEvetns == 0)
+		{
+			assert(false && "get null sock or mSocketEvents=0");
+			unregisterEvent(sock, sock->mSocketEvetns);
+			continue;;
+		}
+
+
+		if( !sock->mInEpoll )
+		{
+			unregisterEvent(sock, sock->mSocketEvetns);
+			continue;
+		}
+
+		//int fd = events[i].data.fd;
+		if ( !sock->alive() && !sock->mbListenSocket)
+		{
+			if (events[i].events & EPOLLOUT)
 			{
-				  if (mDummyEventFd.isA(events[i].data.fd))
-				  {
-						//wake up event loop.
-						mDummyEventFd.read();
-						continue;
-				  }
-				  Socket::Ptr sock(reinterpret_cast<Socket*>(events[i].data.ptr));
-				  if( events[i].events & EPOLLERR )
-				  {
-						if(errno != ENOENT && errno != EBADF &&  sock->mSocket != -1)
-							sock->onSocketError(ERR_EPOLLEXCEPTION);
-						unregisterEvent(sock, sock->mSocketEvetns);
-						continue;
-				  }
+				sock->mbAlive = true;
+				sock->mSocketEvetns = ( sock->mSocketEvetns & (~EPOLLOUT) );
+				registerEvent(sock, sock->mSocketEvetns);
+				sock->onSocketConnected();
+				continue;
+			}
+			if ( errno == EINTR || errno == EINPROGRESS )
+				continue;
+			unregisterEvent(sock, sock->mSocketEvetns);
+			sock->onSocketError(ERR_CONNREFUSED);
+			continue;
+		}
+		if ( !sock->alive())
+		{
+			unregisterEvent(sock, sock->mSocketEvetns);
+			continue;
+		}
+		if ( (events[i].events & EPOLLIN) || ( events[i].events & EPOLLPRI))//recv data
+		{
+			if (sock->mbListenSocket)
+			{
+				int loopAccept = 0;
+				while(loopAccept < 16 )
+				{
+					if ( !sock->acceptAction() )
+						break;
+					loopAccept ++;
+				}
+			}
+			else
+			{
+				sock->recvAction();	
+			}
+			continue;
+		}
+		else if( events[i].events & EPOLLOUT ) //send data
+		{
+			sock->sendAction();
+			continue;
+		}//send data
+		else if( /*(events[i].events & EPOLLRDHUP) ||*/ ( events[i].events & EPOLLHUP)) //peer close
+		{
+			unregisterEvent(sock,sock->mSocketEvetns);
+			sock->mbAlive = false;
+			sock->mSentSize = 0;
+			sock->mSendValid = true;
+			sock->mRecedSize = 0;
+			sock->mRecValid = true;
+			sock->onSocketError(ERR_EOF);
+			continue;
+		}
+		else
+		{
+			unregisterEvent(sock, sock->mSocketEvetns);
+			sock->mbAlive = false;
+			sock->mSentSize = 0;
+			sock->mSendValid = true;
+			sock->mRecedSize = 0;
+			sock->mRecValid = true;
+			sock->onSocketError(ERR_EPOLLEXCEPTION);
+			continue;
+		}
+	}//for(i = 0; i< res; i++)
+/*
+   int64 loopEnd = currentTime();
+   int processWait = 0;
+   if( mPreTime != 0 )
+   processWait = (int) (processStart - mPreTime);
+   int loopWaitTime = (int) (loopStart - processStart);
 
-				  if (sock == NULL || sock->mSocketEvetns == 0)
-				  {
-						assert(false && "get null sock or mSocketEvents=0");
-						unregisterEvent(sock, sock->mSocketEvetns);
-						continue;;
-				  }
-
-
-				  if( !sock->mInEpoll )
-				  {
-				  	unregisterEvent(sock, sock->mSocketEvetns);
-					continue;
-				  }
-
-				  //int fd = events[i].data.fd;
-				  if ( !sock->alive() && !sock->mbListenSocket)
-				  {
-						if (events[i].events & EPOLLOUT)
-						{
-							  sock->mbAlive = true;
-							  sock->mSocketEvetns = ( sock->mSocketEvetns & (~EPOLLOUT) );
-							  registerEvent(sock, sock->mSocketEvetns);
-							  sock->onSocketConnected();
-							  continue;
-						}
-						if ( errno == EINTR || errno == EINPROGRESS )
-							continue;
-						unregisterEvent(sock, sock->mSocketEvetns);
-						sock->onSocketError(ERR_CONNREFUSED);
-						continue;
-				  }
-				  if ( !sock->alive())
-				  {
-						unregisterEvent(sock, sock->mSocketEvetns);
-						continue;
-				  }
-				  if ( (events[i].events & EPOLLIN) || ( events[i].events & EPOLLPRI))//recv data
-				  {
-						if (sock->mbListenSocket)
-						{
-							  int loopAccept = 0;
-							  while(loopAccept < 16 )
-							  {
-									if ( !sock->acceptAction() )
-										  break;
-									loopAccept ++;
-							  }
-						}
-						else
-						{
-							  sock->recvAction();	
-						}
-						continue;
-				  }
-				  else if( events[i].events & EPOLLOUT ) //send data
-				  {
-						sock->sendAction();
-						continue;
-				  }//send data
-				  else if( /*(events[i].events & EPOLLRDHUP) ||*/ ( events[i].events & EPOLLHUP)) //peer close
-				  {
-						unregisterEvent(sock,sock->mSocketEvetns);
-						sock->mbAlive = false;
-						sock->mSentSize = 0;
-						sock->mSendValid = true;
-						sock->mRecedSize = 0;
-						sock->mRecValid = true;
-						sock->onSocketError(ERR_EOF);
-						continue;
-				  }
-				  else
-				  {
-						unregisterEvent(sock, sock->mSocketEvetns);
-						sock->mbAlive = false;
-						sock->mSentSize = 0;
-						sock->mSendValid = true;
-						sock->mRecedSize = 0;
-						sock->mRecValid = true;
-						sock->onSocketError(ERR_EPOLLEXCEPTION);
-						continue;
-				  }
-			}//for(i = 0; i< res; i++)
-	 // }//else
-	 int64 loopEnd = currentTime();
-	 int processWait = 0;
-	 if( mPreTime != 0 )
-		 processWait = (int) (processStart - mPreTime);
-	 int loopWaitTime = (int) (loopStart - processStart);
-
-	 int loopTime = (int) (loopEnd - loopStart);
-	 mPreTime = loopEnd;
-	 mLog(ZQ::common::Log::L_DEBUG, CLOGFMT(EventLoop, "processEvent() loop[%p] processWait[%d] waitTime[%d]us, loopTime[%d]us,events[%d]"), this, processWait, loopWaitTime, loopTime, res);
-	  return;
+   int loopTime = (int) (loopEnd - loopStart);
+   mPreTime = loopEnd;
+   mLog(ZQ::common::Log::L_DEBUG, CLOGFMT(EventLoop, "processEvent() loop[%p] processWait[%d] waitTime[%d]us, loopTime[%d]us,events[%d]"), this, processWait, loopWaitTime, loopTime, res);
+   */ 
+return;
 }
 
 void EventLoop::wakeupLoop()
