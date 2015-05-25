@@ -144,15 +144,16 @@ namespace LibAsync {
 	bool Socket::send( const AsyncBufferS& bufs ) {
 		if( buffer_size(bufs) == 0 )
 			return false;
+		if ( !mSendValid || !mbAlive)
+			return false;
+		mSendValid = false;
+
 		(new PostponeSend(this))->send(bufs);
 		return true;
 	}
 
 	bool Socket::innerSend( const AsyncBufferS& bufs )
 	{
-		if ( !mSendValid || !mbAlive)
-			return false;
-		mSendValid = false;
 		mSentSize = 0;
 		mSendBufs = bufs;
 		if ( sendAction(true))
@@ -336,6 +337,15 @@ namespace LibAsync {
 
 	bool Socket::sendAction(bool firstSend/* = false*/)
 	{
+		if (mWriteable)
+		{
+			mWriteable = false;
+			Socket::Ptr sockPtr (this);
+			mSocketEvetns = ( mSocketEvetns & (~EPOLLOUT) );
+			mLoop.registerEvent(sockPtr, mSocketEvetns);
+			onWritable();
+			return false;
+		}
 		//const AsyncBufferS& bufs= sock->mSendBufs;
 		bool   sendSucc = false;
 		while(mSentSize < buffer_size(mSendBufs))
@@ -377,20 +387,20 @@ namespace LibAsync {
 			//	if( !mLoop.registerEvent(sockPtr, mSocketEvetns) )
 			//		return false;
 			//	return true;
-				/*
-				mSocketEvetns = ( mSocketEvetns & (~EPOLLOUT) );
-				mLoop.registerEvent(sockPtr, mSocketEvetns);
-				mSentSize = 0;
-				mSendValid = true;
-				mSendBufs.clear();
-				if(errno == 2)
-					//return true;
-					//sendSucc = false;
-					onSocketError(-30);
-				else
-					onSocketError(ERR_EOF2);
-				sendSucc = false;
-				break;*/
+			/*
+			   mSocketEvetns = ( mSocketEvetns & (~EPOLLOUT) );
+			   mLoop.registerEvent(sockPtr, mSocketEvetns);
+			   mSentSize = 0;
+			   mSendValid = true;
+			   mSendBufs.clear();
+			   if(errno == 2)
+			//return true;
+			//sendSucc = false;
+			onSocketError(-30);
+			else
+			onSocketError(ERR_EOF2);
+			sendSucc = false;
+			break;*/
 			//}
 			else
 			{
@@ -424,4 +434,76 @@ namespace LibAsync {
 		return true;
 	}
 
-}
+	int Socket::sendDirect(const AsyncBufferS& bufs)
+	{	
+		if ( !mSendValid || !mbAlive )  
+			return ERR_SOCKETVAIN;
+		if( buffer_size(bufs) == 0 )
+			return 0;
+		mSendValid = false;
+		int iovecSize = bufs.size();
+		struct iovec* iovSend = (struct iovec*)malloc(sizeof(struct iovec) * iovecSize);
+		if ( NULL == iovSend )
+		{
+			mSendValid = true;
+			return ERR_MEMVAIN;
+		}
+		memset(iovSend, 0, sizeof(struct iovec) * iovecSize);
+		//3ï¼Œè½¬æ¢bufså’Œiovs ,å¹¶ç»„ç»‡sendMsgæ•°æ®
+		mapBufsToIovs(bufs, iovSend, 0, 0, iovecSize);
+		struct msghdr sendMsg;
+		sendMsg.msg_name = NULL;
+		sendMsg.msg_namelen = 0;
+		sendMsg.msg_iov = iovSend;
+		sendMsg.msg_iovlen = iovecSize;
+		sendMsg.msg_control = NULL;
+		sendMsg.msg_controllen = 0;
+		sendMsg.msg_flags = 0;
+		//4,å‘é€bufferï¼Œå¹¶å¤„ç†ç»“æžœ
+SEND_DATA:
+		int ret = ::sendmsg(mSocket, &sendMsg, MSG_DONTWAIT);
+		if (ret > 0)
+		{
+			free(iovSend);
+			iovSend = NULL;
+			mSendValid = true;
+			return ret;
+		}
+		else
+		{
+			if ( errno == EINTR )
+				goto SEND_DATA;
+
+			if( ret == 0 || ((errno == EWOULDBLOCK || errno == EAGAIN)))
+			{
+				free(iovSend);
+				iovSend = NULL;
+				mSendValid = true;
+				return ERR_EAGAIN;
+			}
+			free(iovSend);
+			iovSend = NULL;
+			mSendValid = true;
+			return ERR_SENDFAIL;
+		}//else
+
+	}
+
+	bool    Socket::registerWrite()
+	{
+		Socket::Ptr sockPtr (this);
+		mSocketEvetns = ( mSocketEvetns | EPOLLOUT );
+		mWriteable = true;
+		if (mLoop.registerEvent(sockPtr, mSocketEvetns))
+			return true;
+		else
+		{
+			assert(false && "failed to register event");
+			mWriteable = false;
+			return false;
+		}
+		
+	}
+
+
+}//libAsync

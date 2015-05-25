@@ -40,7 +40,9 @@ namespace LibAsync {
 		ERR_CONNREFUSED		= -7,	//connection refused
 		ERR_RECVFAIL    = -8, //revc return false
 		ERR_SENDFAIL    = -9, //send return false
-
+		ERR_EAGAIN      = -10,
+		ERR_SOCKETVAIN = -11, // the socket can not been send/recv
+		ERR_MEMVAIN = -12,   // the mem malloc err 
 		//linux
 		ERR_EPOLLREGISTERFAIL  = -21,
 		ERR_EPOLLEXCEPTION = - 22,

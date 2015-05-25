@@ -109,7 +109,8 @@ namespace LibAsync{
 #ifdef ZQ_OS_LINUX
 	,mSocketEvetns(0),
 	mRecedSize(0),
-	mSentSize(0)
+	mSentSize(0),
+	mWriteable(false)
 #endif
 	{
 	}
@@ -125,7 +126,8 @@ namespace LibAsync{
 #ifdef ZQ_OS_LINUX
 	,mSocketEvetns(0),
 	mRecedSize(0),
-	mSentSize(0)
+	mSentSize(0),
+	mWriteable(false)
 
 #endif//
 	{
@@ -225,6 +227,12 @@ namespace LibAsync{
 	{
 		  AsyncBufferS bufs;bufs.push_back(buf);
 		  return send(bufs);
+	}
+
+	int Socket::sendDirect( AsyncBuffer buf )
+	{
+		AsyncBufferS bufs;bufs.push_back(buf);
+		return sendDirect(bufs);
 	}
 
 	bool Socket::setReuseAddr( bool reuse ) {

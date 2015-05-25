@@ -118,6 +118,13 @@ namespace LibAsync {
 		/// send的语义是send_all,也就是说必须是所有的数据都发送完毕以后才能调用onSent.中途出错的话就调用onError
 		bool	send( AsyncBuffer buf );
 		bool	send( const AsyncBufferS& bufs );
+		
+		//   发起发送数据的请求，user code通过返回值返回， 调用者需要跟句返回值来决定接下来的动作
+		//   发送成功则返回发送的数据大小。
+		int     sendDirect(AsyncBuffer buf);
+		int     sendDirect(const AsyncBufferS& bufs);
+        // 向EPOLL中注册写事件，当该socket可写的时，通过回调onWritable通知该socket可发
+		bool 	registerWrite();
 
 		///NOTE:///////////////////////////////////////////
 		///  由于可以在任何一个时间调用close
@@ -167,6 +174,7 @@ namespace LibAsync {
 		virtual	void	onSocketRecved(size_t size) { }
 
 		virtual void	onSocketSent(size_t size) { }
+		virtual void    onWritable() { }
 
 		virtual Socket::Ptr	onSocketAccepted( SOCKET sock ) {
 #ifdef ZQ_OS_LINUX
@@ -227,6 +235,7 @@ namespace LibAsync {
 		
 		AsyncBufferS        mSendBufs;
 		size_t              mSentSize;
+		bool                mWriteable;
 		bool             	mInEpoll;
 #else
 #	error "unsupported OS"
