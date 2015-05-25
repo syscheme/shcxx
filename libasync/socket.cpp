@@ -242,11 +242,19 @@ namespace LibAsync{
 	}
 
 	bool Socket::setSendBufSize( int size ) {
-		return 0 == setsockopt( mSocket, SOL_SOCKET, SO_SNDBUFFORCE, (const char*)&size, sizeof(size));
+#ifdef ZQ_OS_LINUX
+        return 0 == setsockopt( mSocket, SOL_SOCKET, SO_SNDBUFFORCE, (const char*)&size, sizeof(size));
+#else
+        return 0 == setsockopt( mSocket, SOL_SOCKET, SO_SNDBUF, (const char*)&size, sizeof(size));
+#endif
 	}
 
 	bool Socket::setRecvBufSize( int size ) {
-		return 0 == setsockopt( mSocket, SOL_SOCKET, SO_RCVBUFFORCE, (const char*)&size, sizeof(size));
+#ifdef ZQ_OS_LINUX
+        return 0 == setsockopt( mSocket, SOL_SOCKET, SO_RCVBUFFORCE, (const char*)&size, sizeof(size));
+#else
+        return 0 == setsockopt( mSocket, SOL_SOCKET, SO_RCVBUF, (const char*)&size, sizeof(size));
+#endif
 	}
 
 }//namespace LibAsync

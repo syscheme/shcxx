@@ -123,8 +123,10 @@ namespace LibAsync {
 		//   发送成功则返回发送的数据大小。
 		int     sendDirect(AsyncBuffer buf);
 		int     sendDirect(const AsyncBufferS& bufs);
+#ifdef ZQ_OS_LINUX
         // 向EPOLL中注册写事件，当该socket可写的时，通过回调onWritable通知该socket可发
 		bool 	registerWrite();
+#endif
 
 		///NOTE:///////////////////////////////////////////
 		///  由于可以在任何一个时间调用close
@@ -174,8 +176,9 @@ namespace LibAsync {
 		virtual	void	onSocketRecved(size_t size) { }
 
 		virtual void	onSocketSent(size_t size) { }
+#ifdef ZQ_OS_LINUX
 		virtual void    onWritable() { }
-
+#endif
 		virtual Socket::Ptr	onSocketAccepted( SOCKET sock ) {
 #ifdef ZQ_OS_LINUX
 			::close(sock);

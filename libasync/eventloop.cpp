@@ -4,6 +4,30 @@
 #include "socket.h"
 
 namespace LibAsync {
+    AsyncBufferS BufferHelper::adjust(int sentSize)
+    {
+        AsyncBufferS tmpBufs = _bufs;
+        _bufs.clear();
+        AsyncBufferS::iterator it = tmpBufs.begin();
+        for (; it != _bufs.end(); it++)
+        {
+            if (sentSize >= it->len)
+            {
+                sentSize = sentSize - it->len;
+                continue;
+            }
+
+            it->base += sentSize;
+            it->len = it->len - sentSize;
+            break;
+        }
+        _bufs.insert(_bufs.end(), it, tmpBufs.end());
+        return _bufs;
+    }
+    bool BufferHelper::isEOF(int sentSize)
+    {
+        return buffer_size(_bufs) == sentSize;
+    }
 
 	size_t buffer_size( const AsyncBufferS& bufs) {
 		size_t size = 0;
