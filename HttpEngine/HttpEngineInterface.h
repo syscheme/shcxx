@@ -3,6 +3,7 @@
 #include <ZQ_common_conf.h>
 #include <string>
 #include <map>
+#include <Pointer.h>
 
 namespace ZQHttp
 {
@@ -29,6 +30,13 @@ public:
     virtual const char* header(const char* h) const = 0;
 };
 
+class IChannelWritable {
+public:
+	typedef ZQ::common::Pointer<IChannelWritable> Ptr;
+	virtual ~IChannelWritable(){}
+	virtual void onWriteable() = 0;
+};
+
 class IResponse
 {
 public:
@@ -38,6 +46,15 @@ public:
     virtual void setHeader(const char* hdr, const char* val) = 0;
     virtual bool headerPrepared() = 0;
     virtual bool addContent(const char* data, size_t len) = 0;
+
+	/// new method addBody does the same thing as addContent
+	/// but here's some different between them
+	/// 1. addBody do not guarantee the whole data will be transfered. if not, error code retuned
+	virtual int addBody( const char* data, size_t len) {}
+	/// register an event for writing data
+	/// return false if failed to register
+	virtual bool registerWrite( IChannelWritable::Ptr cb ) { return false; }
+
     virtual bool complete() = 0;
 
     virtual void sendDefaultErrorPage(int statusCode) = 0;
