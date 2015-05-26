@@ -109,7 +109,8 @@ namespace LibAsync{
 #ifdef ZQ_OS_LINUX
 	,mSocketEvetns(0),
 	mRecedSize(0),
-	mSentSize(0)
+	mSentSize(0),
+	mWriteable(false)
 #endif
 	{
 	}
@@ -125,7 +126,8 @@ namespace LibAsync{
 #ifdef ZQ_OS_LINUX
 	,mSocketEvetns(0),
 	mRecedSize(0),
-	mSentSize(0)
+	mSentSize(0),
+	mWriteable(false)
 
 #endif//
 	{
@@ -227,6 +229,12 @@ namespace LibAsync{
 		  return send(bufs);
 	}
 
+	int Socket::sendDirect( AsyncBuffer buf )
+	{
+		AsyncBufferS bufs;bufs.push_back(buf);
+		return sendDirect(bufs);
+	}
+
 	bool Socket::setReuseAddr( bool reuse ) {
 		int reuse_value = reuse ? 1 : 0;
 		return setsockopt(mSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse_value, sizeof(reuse_value)) == 0;
@@ -234,11 +242,19 @@ namespace LibAsync{
 	}
 
 	bool Socket::setSendBufSize( int size ) {
-		return 0 == setsockopt( mSocket, SOL_SOCKET, SO_SNDBUFFORCE, (const char*)&size, sizeof(size));
+#ifdef ZQ_OS_LINUX
+        return 0 == setsockopt( mSocket, SOL_SOCKET, SO_SNDBUFFORCE, (const char*)&size, sizeof(size));
+#else
+        return 0 == setsockopt( mSocket, SOL_SOCKET, SO_SNDBUF, (const char*)&size, sizeof(size));
+#endif
 	}
 
 	bool Socket::setRecvBufSize( int size ) {
-		return 0 == setsockopt( mSocket, SOL_SOCKET, SO_RCVBUFFORCE, (const char*)&size, sizeof(size));
+#ifdef ZQ_OS_LINUX
+        return 0 == setsockopt( mSocket, SOL_SOCKET, SO_RCVBUFFORCE, (const char*)&size, sizeof(size));
+#else
+        return 0 == setsockopt( mSocket, SOL_SOCKET, SO_RCVBUF, (const char*)&size, sizeof(size));
+#endif
 	}
 
 }//namespace LibAsync

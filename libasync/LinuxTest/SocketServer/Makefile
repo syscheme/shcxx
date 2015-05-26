@@ -4,12 +4,12 @@ include $(TOPDIR)/build/defines.mk
 
 TARGET	:= socketserver
  
-OBJS	:= socket_linux.o socket.o eventloop.o eventloop_linux.o  DoSocket.o SocketServer.o Main.o
+OBJS	:= socket_linux.o socket.o eventloop.o eventloop_linux.o  DoSocket.o SocketServer.o Main.o ReadFile.o
 
 INCDIR += . ../.. ../../..
 
 VPATH += :.:../..
 
-LDFLAGS += -lZQCommon
+LDFLAGS += -L. -lZQCommon
 
 include $(TOPDIR)/build/common.mk

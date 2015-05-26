@@ -40,7 +40,9 @@ namespace LibAsync {
 		ERR_CONNREFUSED		= -7,	//connection refused
 		ERR_RECVFAIL    = -8, //revc return false
 		ERR_SENDFAIL    = -9, //send return false
-
+		ERR_EAGAIN      = -10,
+		ERR_SOCKETVAIN = -11, // the socket can not been send/recv
+		ERR_MEMVAIN = -12,   // the mem malloc err 
 		//linux
 		ERR_EPOLLREGISTERFAIL  = -21,
 		ERR_EPOLLEXCEPTION = - 22,
@@ -114,6 +116,21 @@ namespace LibAsync {
 		AsyncBuffer( char* a, size_t l):base(a),len(l){}		
 	};
 	typedef std::vector<AsyncBuffer>	AsyncBufferS;
+
+    class ZQ_COMMON_API BufferHelper : public virtual ZQ::common::SharedObject
+    {
+    public:
+        typedef ZQ::common::Pointer<BufferHelper> Ptr;
+        BufferHelper(AsyncBuffer buf) { _bufs.push_back(buf); }
+        BufferHelper(AsyncBufferS bufs) : _bufs(bufs) {}
+        virtual ~BufferHelper() {}
+
+        AsyncBufferS adjust(int sentSize);
+        bool isEOF(int sentSize);
+        AsyncBufferS getBuffers() {return _bufs;}
+    private:
+        AsyncBufferS _bufs;
+    };
 
 	size_t buffer_size( const AsyncBufferS& bufs);
 

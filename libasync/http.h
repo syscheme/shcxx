@@ -26,6 +26,12 @@ namespace LibAsync{
 		bool			sendBody( const AsyncBuffer& buf );
 		bool			sendBody( const AsyncBufferS& bufs);
 		bool			endSend( );
+#ifdef ZQ_OS_LINUX
+        bool			beginSend_direct( HttpMessagePtr msg );
+        bool			sendBody_direct( const AsyncBuffer& buf );
+        bool			sendBody_direct( const AsyncBufferS& bufs);
+        bool			endSend_direct( );
+#endif
 
 		void			resetHttp( ); // reset current all pending flag
 
@@ -67,6 +73,7 @@ namespace LibAsync{
 		AsyncBufferS			mWritingBufs;
 		AsyncBuffer				mChunkHeader;
 		AsyncBuffer				mHeadersBuf;
+        BufferHelper::Ptr       mBufferHelper;
 		std::string				mOutgoingHeadersTemp;
 		bool					mbRecving;
 		bool					mbSending;

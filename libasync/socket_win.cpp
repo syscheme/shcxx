@@ -28,11 +28,6 @@ namespace LibAsync{
         return setsockopt(mSocket, SOL_SOCKET, SO_SNDBUF, (const char*)&size, sizeof(size)) == 0;
     }*/
 
-    bool Socket::setRecvBufSize( int size )
-    {
-        return setsockopt(mSocket, SOL_SOCKET, SO_RCVBUF, (const char*)&size, sizeof(size)) == 0;
-    }
-
 	bool Socket::connect( const std::string& ip, unsigned short port )
 	{
 		SocketAddrHelper helper;
@@ -224,6 +219,11 @@ namespace LibAsync{
 		// deal with receive success event at IOCP
 		return true;
 	}
+
+    int Socket::sendDirect(const AsyncBufferS& bufs)
+    {
+        return 0;
+    }
 
 	void Socket::close()
 	{
