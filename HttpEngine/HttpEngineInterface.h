@@ -32,11 +32,11 @@ public:
 	virtual LibAsync::EventLoop* getLoop() { return NULL; }
 };
 
-class IChannelWritable {
+class IChannelWritable : public ZQ::common::SharedObject {
 public:
 	typedef ZQ::common::Pointer<IChannelWritable> Ptr;
 	virtual ~IChannelWritable(){}
-	virtual void onWriteable() = 0;
+	virtual void onWritable() = 0;
 };
 
 class IResponse
