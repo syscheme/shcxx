@@ -29,7 +29,8 @@ public:
     virtual const char* queryArgument(const char* q) const = 0;
     virtual std::map<std::string, std::string> queryArguments() const = 0;
     virtual const char* header(const char* h) const = 0;
-	virtual LibAsync::EventLoop* getLoop() { return NULL; }
+
+	virtual LibAsync::EventLoop* getLoop() const { return NULL; }
 };
 
 class IChannelWritable : public ZQ::common::SharedObject {
