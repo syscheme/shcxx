@@ -228,6 +228,8 @@ namespace LibAsync{
 		virtual void	onHttpDataSent( size_t size) = 0;
 
 		virtual void	onHttpDataReceived( size_t size ) = 0;
+
+		virtual void 	onWriteable() = 0;
 	};
 
 	class HttpServer;
