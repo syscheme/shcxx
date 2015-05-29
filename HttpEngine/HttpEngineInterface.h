@@ -53,7 +53,7 @@ public:
 	/// new method addBody does the same thing as addContent
 	/// but here's some different between them
 	/// 1. addBody do not guarantee the whole data will be transfered. if not, error code retuned
-	virtual int addBody( const char* data, size_t len) {}
+	virtual int addBody( const char* data, size_t len) { return 0; }
 	/// register an event for writing data
 	/// return false if failed to register
 	virtual bool registerWrite( IChannelWritable::Ptr cb ) { return false; }
