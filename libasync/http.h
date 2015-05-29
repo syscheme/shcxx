@@ -27,10 +27,10 @@ namespace LibAsync{
 		bool			sendBody( const AsyncBufferS& bufs);
 		bool			endSend( );
 #ifdef ZQ_OS_LINUX
-        bool			beginSend_direct( HttpMessagePtr msg );
-        bool			sendBody_direct( const AsyncBuffer& buf );
-        bool			sendBody_direct( const AsyncBufferS& bufs);
-        bool			endSend_direct( );
+        int			beginSend_direct( HttpMessagePtr msg );
+        int			sendBody_direct( const AsyncBuffer& buf );
+        int			sendBody_direct( const AsyncBufferS& bufs);
+        int			endSend_direct( );
 #endif
 
 		void			resetHttp( ); // reset current all pending flag
@@ -228,6 +228,8 @@ namespace LibAsync{
 		virtual void	onHttpDataSent( size_t size) = 0;
 
 		virtual void	onHttpDataReceived( size_t size ) = 0;
+
+		virtual void 	onWriteable() = 0;
 	};
 
 	class HttpServer;
@@ -259,6 +261,8 @@ namespace LibAsync{
 	private:
 
 		virtual void	onHttpError( int err );
+
+        virtual void    onWritable();
 
 		virtual void	onHttpDataSent( size_t size);
 

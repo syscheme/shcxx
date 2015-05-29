@@ -262,7 +262,7 @@ namespace LibAsync {
 	}
 
 #ifdef ZQ_OS_LINUX
-    bool HttpProcessor::beginSend_direct(LibAsync::HttpMessagePtr msg) {
+    int HttpProcessor::beginSend_direct(LibAsync::HttpMessagePtr msg) {
         if(!canSendHeader()) {
             assert(false&&"invalid state");
             return false;
@@ -277,35 +277,15 @@ namespace LibAsync {
         mbSending = true;
         mbOutgoingKeepAlive = msg->keepAlive();
 
-        int ret = 0;
-        int sendSize = 0;
-        mBufferHelper = new BufferHelper(buf);
-        do 
-        {
-            int lastSendSize = ret;
-            sendSize += ret;
-            if (mBufferHelper->isEOF(lastSendSize))
-            {
-                onSocketSent(sendSize);
-                return true;
-            }
-            ret = sendDirect(mBufferHelper->adjust(lastSendSize));
-        } while (ret > 0);
-
-        if (ERR_EAGAIN == ret)
-            return ret;
-
-        // error occured when send
-        onSocketError(ret);
-        return false;
+        return sendDirect(buf);
     }
 
-    bool HttpProcessor::sendBody_direct(const LibAsync::AsyncBuffer &buf) {
+    int HttpProcessor::sendBody_direct(const LibAsync::AsyncBuffer &buf) {
         LibAsync::AsyncBufferS bufs(1,buf);
         return sendBody_direct( bufs );
     }
 
-    bool HttpProcessor::sendBody_direct(const LibAsync::AsyncBufferS &bufs) {
+    int HttpProcessor::sendBody_direct(const LibAsync::AsyncBufferS &bufs) {
         if(!canSendBody()) {
             assert(false && "invalid state");
             return false;
@@ -322,30 +302,10 @@ namespace LibAsync {
         }
         mbSending = true;
 
-        int ret = 0;
-        int sendSize = 0;
-        mBufferHelper = new BufferHelper(mWritingBufs);
-        do 
-        {
-            int lastSendSize = ret;
-            sendSize += ret;
-            if (mBufferHelper->isEOF(lastSendSize))
-            {
-                onSocketSent(sendSize);
-                return true;
-            }
-            ret = sendDirect(mBufferHelper->adjust(lastSendSize));
-        } while (ret > 0);
-
-        if (ERR_EAGAIN == ret)
-            return ret;
-
-        // error occured when send
-        onSocketError(ret);
-        return false;
+        return sendDirect(mWritingBufs);
     }
 
-    bool HttpProcessor::endSend_direct() {
+    int HttpProcessor::endSend_direct() {
         if( !canSendBody() ) {
             assert( false && "invalid state");
             return false;
@@ -364,27 +324,7 @@ namespace LibAsync {
         mOutgoingMsg = NULL;
         mbSending = true;
 
-        int ret = 0;
-        int sendSize = 0;
-        mBufferHelper = new BufferHelper(mWritingBufs);
-        do 
-        {
-            int lastSendSize = ret;
-            sendSize += ret;
-            if (mBufferHelper->isEOF(lastSendSize))
-            {
-                onSocketSent(sendSize);
-                return true;
-            }
-            ret = sendDirect(mBufferHelper->adjust(lastSendSize));
-        } while (ret > 0);
-
-        if (ERR_EAGAIN == ret)
-            return ret;
-
-        // error occured when send
-        onSocketError(ret);
-        return false;
+        return sendDirect(mWritingBufs);
     }
 #endif
 	
@@ -733,6 +673,15 @@ namespace LibAsync {
 			mHandler->onHttpError(err);
 		clear();
 	}
+
+    void HttpServant::onWritable()
+    {
+        if(!mHandler) {			
+            return;
+        }
+
+        mHandler->onWriteable();
+    }
 
 	void HttpServant::onHttpDataSent( size_t size) {
 		if(!mHandler) {			
