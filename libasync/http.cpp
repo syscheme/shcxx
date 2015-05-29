@@ -680,7 +680,7 @@ namespace LibAsync {
             return;
         }
 
-        mHandler->onWriteable();
+        mHandler->onWritable();
     }
 
 	void HttpServant::onHttpDataSent( size_t size) {
