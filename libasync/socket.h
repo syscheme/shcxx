@@ -96,6 +96,8 @@ namespace LibAsync {
 #ifdef ZQ_OS_LINUX
 		bool	setNoNagle( bool nagle );
 		bool	setCork( bool cork );
+        // 向EPOLL中注册写事件，当该socket可写的时，通过回调onWritable通知该socket可发
+		bool 	registerWrite();
 #endif//ZQ_OS
 
 	protected:
@@ -123,11 +125,6 @@ namespace LibAsync {
 		//   发送成功则返回发送的数据大小。
 		int     sendDirect(AsyncBuffer buf);
 		int     sendDirect(const AsyncBufferS& bufs);
-#ifdef ZQ_OS_LINUX
-        // 向EPOLL中注册写事件，当该socket可写的时，通过回调onWritable通知该socket可发
-		bool 	registerWrite();
-#endif
-
 		///NOTE:///////////////////////////////////////////
 		///  由于可以在任何一个时间调用close
 		///  所以事先上必须要考虑close以后socket对象是否还被epoll/IOCP引用，这个是一个关键点。
