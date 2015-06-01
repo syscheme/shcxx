@@ -42,7 +42,7 @@ namespace LibAsync{
 		
 		//for ConnectEX bind local address
 		std::string  localIp;
-		unsigned short localPort;
+		//unsigned short localPort;
 		struct sockaddr addr;
 		int addrSize = sizeof(addr);
 		if(getsockname(mSocket,(struct sockaddr*)&addr, &addrSize) != 0)
