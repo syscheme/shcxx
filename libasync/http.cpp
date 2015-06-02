@@ -539,12 +539,9 @@ namespace LibAsync {
 			return;
 		HttpMessagePtr msg = mRequest;
 		mRequest = NULL;
-#ifdef ZQ_OS_LINUX
-        beginSend_direct(msg);
-#else
         beginSend(msg);
-#endif
 	}
+
 	//////////////////////////////////////////////////////////////////////////
 	//SimpleHttpClient
 	SimpleHttpClient::SimpleHttpClient()
