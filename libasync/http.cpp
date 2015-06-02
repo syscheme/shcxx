@@ -313,14 +313,14 @@ namespace LibAsync {
     int HttpProcessor::endSend_direct() {
         if( !canSendBody() ) {
             assert( false && "invalid state");
-            return false;
+            return ERR_ERROR;
         }
         if(!mOutgoingMsg->chunked()) {
             //TODO: invoking callback here
             onHttpDataSent(0);
             mOutgoingMsg = NULL;
             onHttpEndSent(mbOutgoingKeepAlive);
-            return true;
+            return 0;
         }
         mChunkHeader.len = sprintf(mChunkHeader.base,"0\r\n");
         mWritingBufs.clear();
