@@ -276,8 +276,11 @@ namespace LibAsync {
         buf.len = mOutgoingHeadersTemp.length();
         mbSending = true;
         mbOutgoingKeepAlive = msg->keepAlive();
+       
+        int res = sendDirect(buf);
+        mbSending = false;
 
-        return sendDirect(buf);
+        return res;
     }
 
     int HttpProcessor::sendBody_direct(const LibAsync::AsyncBuffer &buf) {
@@ -301,8 +304,10 @@ namespace LibAsync {
             mWritingBufs.push_back( chunkTail );
         }
         mbSending = true;
+        int res = sendDirect(mWritingBufs);
+        mbSending = false;
 
-        return sendDirect(mWritingBufs);
+        return res;
     }
 
     int HttpProcessor::endSend_direct() {
@@ -324,7 +329,10 @@ namespace LibAsync {
         mOutgoingMsg = NULL;
         mbSending = true;
 
-        return sendDirect(mWritingBufs);
+        int res = sendDirect(mWritingBufs);
+        mbSending =  false;
+
+        return res;
     }
 #endif
 	
