@@ -506,19 +506,11 @@ namespace LibAsync {
 	}
 
 	bool HttpClient::sendReqBody( const AsyncBufferS& bufs ) {
-#ifdef ZQ_OS_LINUX
         return sendBody_direct(bufs);
-#else
-        return sendBody(bufs);
-#endif
 	}
 
 	bool HttpClient::endRequest( ) {
-#ifdef ZQ_OS_LINUX
-        return endSend_direct();
-#else
         return endSend();
-#endif
 	}
 
 	bool HttpClient::getResponse( ) {
