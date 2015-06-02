@@ -506,7 +506,7 @@ namespace LibAsync {
 	}
 
 	bool HttpClient::sendReqBody( const AsyncBufferS& bufs ) {
-        return sendBody_direct(bufs);
+        return sendBody(bufs);
 	}
 
 	bool HttpClient::endRequest( ) {
