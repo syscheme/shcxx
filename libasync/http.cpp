@@ -658,14 +658,14 @@ namespace LibAsync {
 	}
 	
 	void HttpServant::onHttpError( int err ) {
-		mLogger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServant,"onHttpError, [%p] got an error[%d]"), this, err);
 		std::string locip="";
 		unsigned short locport=0;
 		getLocalAddress(locip, locport);
 		std::string peerip="";
 		unsigned short  peerport=0;
 		getPeerAddress(peerip, peerport);
-        mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServant, "onHttpError [%p] [%s:%d==>%s:%d]."), this, locip.c_str(), locport, peerip.c_str(), peerport);
+        mLogger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServant, "onHttpError [%p] [%s:%hu => %s:%hu], error[%s]"), 
+				this, locip.c_str(), locport, peerip.c_str(), peerport, ErrorCodeToStr((ErrorCode)err));
 		if(mHandler)
 			mHandler->onHttpError(err);
 		clear();
@@ -690,7 +690,7 @@ namespace LibAsync {
 		std::string peerip="";
 		unsigned short  peerport=0;
 		getPeerAddress(peerip, peerport);
-        mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServant, "onHttpDataSent [%p] [%s:%d==>%s:%d] size[%d]."), this, locip.c_str(), locport, peerip.c_str(), peerport, size);
+        mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServant, "onHttpDataSent [%p] [%s:%hu==>%s:%hu] size[%d]."), this, locip.c_str(), locport, peerip.c_str(), peerport, (int)size);
 
 		mHandler->onHttpDataSent(size);
 	}

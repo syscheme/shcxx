@@ -4,6 +4,28 @@
 #include "socket.h"
 
 namespace LibAsync {
+
+	const char* ErrorCodeToStr( ErrorCode c ) {
+		switch( c ) {
+		case ERR_ERROR:		return "Generic Error";
+		case ERR_EOF:		return "EOF";
+		case ERR_INVAID:	return "Invalid Paramater";
+		case ERR_ADDRINUSE:	return "Address In Use";
+		case ERR_TIMEOUT:	return "Timed Out";
+		case ERR_CONNREFUSED:	return "Connection Refused";
+		case ERR_RECVFAIL:	return "Recv Failed";
+		case ERR_SENDFAIL:	return "Send Fail";
+		case ERR_EAGAIN:	return "Work In Progress";
+		case ERR_SOCKETVAIN:	return "Socket Closed/Operation In Progress";
+		case ERR_MEMVAIN:	return "Not Enough Memory";
+		case ERR_EPOLLREGISTERFAIL:	return "EPOLL Error";
+		case ERR_EPOLLEXCEPTION:		return "EPOLL Exception";
+		case ERR_EOF2:		return "EOF2";
+		case ERR_EOF3:		return "EOF3";
+		default:			return "Unknown Error";
+		}
+	}
+
     AsyncBufferS BufferHelper::adjust(int sentSize)
     {
         AsyncBufferS tmpBufs = _bufs;
@@ -11,7 +33,7 @@ namespace LibAsync {
         AsyncBufferS::iterator it = tmpBufs.begin();
         for (; it != _bufs.end(); it++)
         {
-            if (sentSize >= it->len)
+            if (sentSize >= (int)it->len)
             {
                 sentSize = sentSize - it->len;
                 continue;
@@ -26,7 +48,7 @@ namespace LibAsync {
     }
     bool BufferHelper::isEOF(int sentSize)
     {
-        return buffer_size(_bufs) == sentSize;
+        return (int)buffer_size(_bufs) == sentSize;
     }
 
 	size_t buffer_size( const AsyncBufferS& bufs) {

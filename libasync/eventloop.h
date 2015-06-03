@@ -50,6 +50,8 @@ namespace LibAsync {
 		ERR_EOF3           = -24
 	}ErrorCode;
 
+	const char* ErrorCodeToStr( ErrorCode c );
+
     class Socket;
     //	typedef SocketPtr;
     typedef ZQ::common::Pointer<Socket>		SocketPtr;
