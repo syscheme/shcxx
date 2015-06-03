@@ -194,7 +194,7 @@ namespace LibAsync {
 		bool                mRecValid;
 		bool				mSendValid;
 		bool				mbListenSocket;// is this socket used for listen
-		
+
 #ifdef ZQ_OS_MSWIN
 		SOCKET					mSocket;
 		SOCKET					mAcceptSocket;

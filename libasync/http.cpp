@@ -658,7 +658,7 @@ namespace LibAsync {
 	}
 	
 	void HttpServant::onHttpError( int err ) {
-		mLogger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServant,"onHttpError, [%p] got an error[%d],systemerr[%d]"), this, err, errno );
+		mLogger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServant,"onHttpError, [%p] got an error[%d]"), this, err);
 		std::string locip="";
 		unsigned short locport=0;
 		getLocalAddress(locip, locport);

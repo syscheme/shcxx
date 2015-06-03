@@ -182,14 +182,10 @@ namespace LibAsync{
 	}
 
 	bool Socket::getLocalAddress(std::string& ip, unsigned short& port) const {
-		if(!mbAlive)
-			return false;
 		return getNameInfo(true, ip, port);
 	}
 
 	bool Socket::getPeerAddress(std::string& ip, unsigned short& port) const {
-		if(!mbAlive)
-			return false;
 		return getNameInfo(false, ip, port);
 	}
 
@@ -211,8 +207,9 @@ namespace LibAsync{
 		if( getnameinfo((const struct sockaddr*)&addr, addrSize, 
 			strIp,sizeof(strIp)-1,
 			strPort, sizeof(strPort)-1 ,
-			NI_NUMERICHOST|NI_NUMERICSERV ) !=0 )
+			NI_NUMERICHOST|NI_NUMERICSERV ) !=0 ) {
 			return false;
+		}
 		ip = strIp;
 		port = (unsigned short)atoi(strPort);
 		return true;
