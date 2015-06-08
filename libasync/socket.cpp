@@ -235,7 +235,6 @@ namespace LibAsync{
 	bool Socket::setReuseAddr( bool reuse ) {
 		int reuse_value = reuse ? 1 : 0;
 		return setsockopt(mSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse_value, sizeof(reuse_value)) == 0;
-
 	}
 
 	bool Socket::setSendBufSize( int size ) {

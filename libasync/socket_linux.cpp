@@ -46,13 +46,14 @@ namespace LibAsync {
 			::close(mSocket);
 			return false;
 		}
-		setReuseAddr(true);
+		bool bOK = setReuseAddr(true);
+		assert(bOK);
 		mRecBufs.clear();
 		mSendBufs.clear();
 		mSendValid = true;
 		mRecValid = true;
 		mSocketEvetns = 0;
-		return true;
+		return bOK;
 	}
 
 	bool Socket::accept( int backlog /*= 10 * 1000*/ )
@@ -82,6 +83,7 @@ namespace LibAsync {
 				return false;
 		}
 		bool loop = true;
+		int retryCount = 0;
 		while ( loop )
 		{
 			struct sockaddr_in  conAddr;
@@ -92,10 +94,9 @@ namespace LibAsync {
 			int ret = ::connect(mSocket, (struct sockaddr*)&conAddr, sizeof(conAddr));
 			if (ret != 0)
 			{
-				if ( errno == EINTR )
+				if ( errno == EINTR ) {
 					continue;
-				if( errno == EINPROGRESS )
-				{
+				} else if( errno == EINPROGRESS )	{
 					Socket::Ptr sockPtr (this);
 					mSocketEvetns =  EPOLLOUT ;
 					if( !mLoop.registerEvent(sockPtr, mSocketEvetns) )
@@ -105,7 +106,12 @@ namespace LibAsync {
 						return false;
 					}
 					return true;
+				} else if ( errno == ) {
+					if( ++retryCount < 8 ) {
+						continue;
+					}
 				}
+
 				onSocketError(ERR_CONNREFUSED);
 				close();
 				return false;
