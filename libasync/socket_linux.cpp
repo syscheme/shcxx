@@ -106,12 +106,11 @@ namespace LibAsync {
 						return false;
 					}
 					return true;
-				} else if ( errno == ) {
+				} else if ( errno == EADDRNOTAVAIL ) {
 					if( ++retryCount < 8 ) {
 						continue;
 					}
 				}
-
 				onSocketError(ERR_CONNREFUSED);
 				close();
 				return false;
