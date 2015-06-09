@@ -111,7 +111,7 @@ void EventLoop::processEvent( int64 expireAt )
 {
 	int waitTimeOut = (int)(expireAt - ::ZQ::common::TimeUtil::now());
 	if (waitTimeOut < 0)
-		waitTimeOut = 10;
+		waitTimeOut = 0;
 	struct epoll_event events[EPOLLEVENTS];
 	int res = ::epoll_wait(mEpollFd, events, EPOLLEVENTS, waitTimeOut);
 	int i;

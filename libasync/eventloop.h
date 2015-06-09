@@ -15,7 +15,7 @@
 #	include <netdb.h>
 //#include <sys/eventfd.h>
 
-#define EPOLLEVENTS 10000
+#define EPOLLEVENTS 	128
 #define BUFFERSIZE		1024
 #else
 #error "unsupported OS"
