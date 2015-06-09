@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <vector>
 #include <Locks.h>
+#include <TimeUtil.h>
 #include <urlstr.h>
 #include "http.h"
 
@@ -619,7 +620,10 @@ namespace LibAsync {
 	}
 
 	HttpServant::~HttpServant() {
+		int64 tsStart = ZQ::common::now();
 		Socket::close();
+		int64 delta = ZQ::common::now() - tsStart;
+		mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServant, "took [%ld]ms to close socket"), delta);
 	}
 
 	void HttpServant::reset( IHttpHandler::Ptr	handler) {
