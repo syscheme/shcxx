@@ -224,9 +224,10 @@ namespace LibAsync {
 
 	class ZQ_COMMON_API EventLoop : public ZQ::common::NativeThread {
 	public:
-		EventLoop( int cpuid = -1);
+		EventLoop(ZQ::common::Log& log, int cpuid = -1);
+		//EventLoop(int cpuid = -1);
 		virtual ~EventLoop();
-		//ZQ::common::Log&  getLog(){ return mLog;}
+		ZQ::common::Log&  getLog(){ return mLog;}
 	public:
 		/// 启动thread，运行eventloop
 		/// 对于windows来说是运行GetQueuedCompletionStatus
@@ -306,6 +307,8 @@ namespace LibAsync {
 	  bool						mbAsyncWorkMessagePosted;
 
 	  int					mCpuId;
+	  ZQ::common::Log&       mLog;
+	  int64                  mPreTime;
 	};
 
 }//namespace LibAsync

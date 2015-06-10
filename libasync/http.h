@@ -14,7 +14,7 @@ namespace LibAsync{
 	class ZQ_COMMON_API HttpProcessor : public ParserCallback, public Socket {
 	public:
 		//////////////////////////////////////////////////////////////////////////		
-		static bool	setup(size_t loopCount);
+		static bool	setup(ZQ::common::Log& log, size_t loopCount);
 		static void	teardown();
 		typedef ZQ::common::Pointer<HttpProcessor> Ptr;
 		virtual ~HttpProcessor();
@@ -78,6 +78,9 @@ namespace LibAsync{
 		bool					mbRecving;
 		bool					mbSending;
 		bool					mbOutgoingKeepAlive;
+#define HEADER_BUF_LEN	4096
+#define CHUNKHEADER_BUF_LEN 32
+		char					mTempBuffer[ HEADER_BUF_LEN + CHUNKHEADER_BUF_LEN ];
 	};
 
 	class ZQ_COMMON_API HttpClient;
