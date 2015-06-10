@@ -1539,6 +1539,7 @@ public:
 		dialog->enableMessageDump(_textDumpMode, _dumpIncomingMesage, _dumpOutgoingMessage);
 		return dialog;
 	}
+
 	virtual void onReleaseDataDialog(ZQ::DataPostHouse::IDataDialogPtr dialog, ZQ::DataPostHouse::IDataCommunicatorPtr communicator)
 	{
 		if( communicator)
