@@ -100,20 +100,22 @@ bool EventLoop::unregisterEvent(Socket::Ptr sock, int event)
 // 			return false;
 // 	  }
 }
-/*
+
 uint64 currentTime() {
 	    struct timeval v;
 		gettimeofday( &v , NULL );
 		return (uint64)v.tv_sec * 1000 * 1000 + v.tv_usec;
 }
-*/
+
 void EventLoop::processEvent( int64 expireAt )
 {
+	int64 processStart = currentTime();
 	int waitTimeOut = (int)(expireAt - ::ZQ::common::TimeUtil::now());
 	if (waitTimeOut < 0)
 		waitTimeOut = 0;
 	struct epoll_event events[EPOLLEVENTS];
 	int res = ::epoll_wait(mEpollFd, events, EPOLLEVENTS, waitTimeOut);
+	int64 loopStart = currentTime();
 	int i;
 	for(i = 0; i< res; i++)
 	{
@@ -214,17 +216,15 @@ void EventLoop::processEvent( int64 expireAt )
 			continue;
 		}
 	}//for(i = 0; i< res; i++)
-/*
    int64 loopEnd = currentTime();
    int processWait = 0;
    if( mPreTime != 0 )
-   processWait = (int) (processStart - mPreTime);
+   		processWait = (int) (processStart - mPreTime);
    int loopWaitTime = (int) (loopStart - processStart);
 
    int loopTime = (int) (loopEnd - loopStart);
    mPreTime = loopEnd;
-   mLog(ZQ::common::Log::L_DEBUG, CLOGFMT(EventLoop, "processEvent() loop[%p] processWait[%d] waitTime[%d]us, loopTime[%d]us,events[%d]"), this, processWait, loopWaitTime, loopTime, res);
-   */ 
+   mLog(ZQ::common::Log::L_DEBUG, CLOGFMT(EventLoop, "processEvent() loop[%p] processWait[%d] waitTime[%d]us, loopTime[%d]us,events[%d]"), this, processWait, loopWaitTime, loopTime, res); 
 return;
 }
 

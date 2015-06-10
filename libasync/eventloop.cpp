@@ -61,8 +61,10 @@ namespace LibAsync {
 		return size;
 	}
 
-	EventLoop::EventLoop( int cpuid )
-		:mCpuId(cpuid)
+	EventLoop::EventLoop( ZQ::common::Log&log, int cpuid )
+		:mCpuId(cpuid),
+		mLog(log),
+		mPreTime(0)
 	{
 		createLoop();
 	}

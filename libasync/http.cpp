@@ -11,7 +11,7 @@ namespace LibAsync {
 	public:
 		EventLoopCenter();
 		virtual ~EventLoopCenter();
-		bool	startCenter( size_t count);
+		bool	startCenter(ZQ::common::Log& log, size_t count);
 		void	stopCenter();
 		
 		///从Center里面获取一个EventLoop，当前的实现版本是roundrobin
@@ -31,14 +31,14 @@ namespace LibAsync {
 		stopCenter();
 	}
 
-	bool EventLoopCenter::startCenter( size_t count) {
+	bool EventLoopCenter::startCenter( ZQ::common::Log& log, size_t count) {
 		if( count <= 0)
 			count =	1;
 		ZQ::common::MutexGuard gd(mLocker);
 		if( mLoops.size() > 0 )
 			return true;
 		for( size_t i = 0; i < count; i ++ ) {
-			EventLoop* l = new EventLoop(i);
+			EventLoop* l = new EventLoop(log, i);
 			if(!l->start()){
 				delete l;
 				return false;
@@ -81,7 +81,7 @@ namespace LibAsync {
 	static EventLoopCenter httpClientCenter;
 	static AsyncBuffer		chunkTail;
 
-	bool HttpProcessor::setup(size_t loopCount){
+	bool HttpProcessor::setup(ZQ::common::Log&log, size_t loopCount){
 #ifdef ZQ_OS_MSWIN
 		//init WSA env
 		WSADATA	wsaData;
@@ -93,7 +93,7 @@ namespace LibAsync {
 		chunkTail.base = (char*)malloc( sizeof(char)*2);
 		chunkTail.len = 2;
 		memcpy(chunkTail.base,"\r\n",2);
-		return httpClientCenter.startCenter(loopCount);
+		return httpClientCenter.startCenter(log, loopCount);
 	}
 
 	void HttpProcessor::teardown() {
