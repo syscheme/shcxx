@@ -197,12 +197,12 @@ namespace LibAsync{
 		socklen_t addrSize = sizeof(addr);
 		if( local ) {
 			if(getsockname(mSocket,(struct sockaddr*)&addr, &addrSize) != 0) {
-				assert(false);
+				//assert(false);
 				return false;
 			}
 		} else {
 			if(getpeername(mSocket,(struct sockaddr*)&addr, &addrSize) != 0) {
-				assert(false);
+				//assert(false);
 				return false;
 			}
 		}

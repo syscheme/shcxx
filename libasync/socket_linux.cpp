@@ -409,6 +409,8 @@ namespace LibAsync {
 			//}
 			else
 			{
+				if(mSentSize >= buffer_size(mSendBufs))
+					assert(false && "send error");
 				if( ret == 0 || ((errno == EWOULDBLOCK || errno == EAGAIN)))
 					return false;
 				if ( errno == EINTR )
