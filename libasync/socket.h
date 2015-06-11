@@ -94,7 +94,7 @@ namespace LibAsync {
 		bool	setRecvBufSize( int size );
 
 #ifdef ZQ_OS_LINUX
-		bool	setNoNagle( bool nagle );
+		bool	setNoDelay( bool noDelay );
 		bool	setCork( bool cork );
         // 向EPOLL中注册写事件，当该socket可写的时，通过回调onWritable通知该socket可发
 		bool 	registerWrite();
