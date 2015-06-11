@@ -261,6 +261,10 @@ namespace LibAsync{
 
 		void	reset( IHttpHandler::Ptr handler );
 
+		void	initHint();
+
+		const std::string& hint() const { return mHint; }
+
 	private:
 
 		virtual void	onHttpError( int err );
@@ -297,6 +301,8 @@ namespace LibAsync{
 		int							mOutstandingRequests;
 		ZQ::common::Log&			mLogger;
 		bool						mHeaderComplete;
+
+		std::string					mHint;
 	};
 
 	struct HttpServerConfig {

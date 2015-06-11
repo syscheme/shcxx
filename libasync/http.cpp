@@ -635,6 +635,15 @@ namespace LibAsync {
 		// Socket::close();
 	}
 
+	void HttpServant::initHint() {
+		std::string ip;
+		unsigned short port = 0;
+		getPeerAddress(ip,port);
+		std::ostringstream oss;
+		oss<<"["<<ip<<":"<<port<<"]";
+		mHint = oss.str();
+	}
+
 	bool HttpServant::start( ) {
 		if(!beginRecv())
 			return false;
@@ -643,8 +652,10 @@ namespace LibAsync {
 	
 	void HttpServant::onSocketConnected() {
 		if(!start() ) {
+			mLogger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpServant,"%s failed to start receiving data"), mHint.c_str());
 			return;
 		}
+		mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServant,"%s start to receive data"),mHint.c_str());
 		mServer.updateServant(this);
 	}
 
@@ -838,8 +849,10 @@ namespace LibAsync {
 	}
 
 	Socket::Ptr HttpServer::onSocketAccepted( SOCKET sock ) {
-		mLogger(ZQ::common::Log::L_DEBUG,CLOGFMT(HttpServer,"got a new socket"));
-		return new HttpServant(*this, sock, mLogger);
+		HttpServant::Ptr s = new HttpServant(*this, sock, mLogger);
+		s->initHint();
+		mLogger(ZQ::common::Log::L_INFO, CLOGFMT(httpServer,"comes a new connection from [%s]"),s->hint().c_str());
+		return s;
 	}
 	
 	void HttpServer::updateServant( HttpServant::Ptr servant ) {
