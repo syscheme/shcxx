@@ -196,11 +196,15 @@ namespace LibAsync{
 #endif
 		socklen_t addrSize = sizeof(addr);
 		if( local ) {
-			if(getsockname(mSocket,(struct sockaddr*)&addr, &addrSize) != 0)
+			if(getsockname(mSocket,(struct sockaddr*)&addr, &addrSize) != 0) {
+				assert(false);
 				return false;
+			}
 		} else {
-			if(getpeername(mSocket,(struct sockaddr*)&addr, &addrSize) != 0)
+			if(getpeername(mSocket,(struct sockaddr*)&addr, &addrSize) != 0) {
+				assert(false);
 				return false;
+			}
 		}
 		char strIp[32] = {0};
 		char strPort[16] = {0};
