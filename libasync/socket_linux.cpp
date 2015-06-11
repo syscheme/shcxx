@@ -1,4 +1,9 @@
 #include <unistd.h> 
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netdb.h>
+#include <errno.h>
+#include <netinet/tcp.h>
 #include <fcntl.h> 
 
 #include "socket.h"
@@ -48,6 +53,7 @@ namespace LibAsync {
 		}
 		bool bOK = setReuseAddr(true);
 		assert(bOK);
+		setNoDelay(true);
 		mRecBufs.clear();
 		mSendBufs.clear();
 		mSendValid = true;
@@ -508,6 +514,11 @@ SEND_DATA:
 			return false;
 		}
 		
+	}
+
+	bool Socket::setNoDelay( bool nodelay ) {
+		int iNoDelay = nodelay ? 1:0;
+		return 0 == setsockopt( mSocket, IPPROTO_TCP, TCP_NODELAY, (const char*)&iNoDelay, sizeof(iNoDelay));
 	}
 
 
