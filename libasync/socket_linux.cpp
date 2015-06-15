@@ -69,6 +69,7 @@ namespace LibAsync {
 		setReuseAddr(true);
 		if (::listen(mSocket, backlog) != 0 )
 			return false;
+		mLoop.setType(true);
 		return acceptAction( true );
 	}
 
@@ -111,6 +112,7 @@ namespace LibAsync {
 						close();				 
 						return false;
 					}
+					mLoop.getLog()(ZQ::common::Log::L_DEBUG, CLOGFMT(Socket, "register not connect socket[%p] to epoll" ), this);
 					return true;
 				} else if ( errno == EADDRNOTAVAIL ) {
 					if( ++retryCount < 8 ) {
