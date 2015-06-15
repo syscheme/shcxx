@@ -241,8 +241,6 @@ namespace LibAsync {
 
 		bool	addTimer( Timer::Ptr t );
 		void	removeTimer( Timer::Ptr t );
-		bool getType() { return mListenLoop; }
-		void  setType(bool type) { mListenLoop = type; }
 
 #ifdef ZQ_OS_MSWIN
 		bool	addSocket(SocketPtr sock);
@@ -311,7 +309,6 @@ namespace LibAsync {
 	  int					mCpuId;
 	  ZQ::common::Log&       mLog;
 	  int64                  mPreTime;
-	  bool                   mListenLoop;
 	};
 
 }//namespace LibAsync

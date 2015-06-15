@@ -67,7 +67,6 @@ namespace LibAsync {
 
 	///从Center里面获取一个EventLoop，当前的实现版本是roundrobin
 	EventLoop& EventLoopCenter::getLoop(){
-		/*
 	    size_t idx = 0;
 		assert(mLoops.size() > 0);
 		{
@@ -75,19 +74,6 @@ namespace LibAsync {
 			idx = mIdxLoop++;
 			if(mIdxLoop >= mLoops.size())
 				mIdxLoop = 0;
-		}*/
-        size_t idx = 0;
-		assert(mLoops.size() > 1);
-		while(true)
-		{
-			  {
-					ZQ::common::MutexGuard gd(mLocker);
-					idx = mIdxLoop++;
-					if(mIdxLoop >= mLoops.size())
-						  mIdxLoop = 0;
-			  }
-			  if ( !mLoops[idx]->getType() )
-					break;
 		}
 		return *mLoops[idx];
 	}

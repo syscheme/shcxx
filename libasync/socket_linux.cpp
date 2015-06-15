@@ -69,7 +69,6 @@ namespace LibAsync {
 		setReuseAddr(true);
 		if (::listen(mSocket, backlog) != 0 )
 			return false;
-		mLoop.setType(true);
 		return acceptAction( true );
 	}
 
@@ -105,7 +104,7 @@ namespace LibAsync {
 					continue;
 				} else if( errno == EINPROGRESS )	{
 					Socket::Ptr sockPtr (this);
-					mSocketEvetns =  EPOLLOUT ;
+					mSocketEvetns =  EPOLLOUT | EPOLLERR | EPOLLHUP;
 					if( !mLoop.registerEvent(sockPtr, mSocketEvetns) )
 					{	 
 						onSocketError(ERR_EPOLLREGISTERFAIL);
