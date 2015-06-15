@@ -151,13 +151,28 @@ void EventLoop::processEvent( int64 expireAt )
 		//int fd = events[i].data.fd;
 		if ( !sock->alive() && !sock->mbListenSocket)
 		{
-			if (events[i].events & EPOLLOUT)
+			/*if (events[i].events & EPOLLOUT)
+			  {
+			  sock->mbAlive = true;
+			  sock->mSocketEvetns = ( sock->mSocketEvetns & (~EPOLLOUT) );
+			  registerEvent(sock, sock->mSocketEvetns);
+			  sock->onSocketConnected();
+			  continue;
+			  }*/
+			 mLog(ZQ::common::Log::L_DEBUG, CLOGFMT(EventLoop, "process event conection event[%d] come client[%p]."), events[i].events, sock._ptr);
+			int retVal = -1;
+			socklen_t retValLen = sizeof (retVal);
+			if (getsockopt (sock->mSocket, SOL_SOCKET, SO_ERROR, &retVal, &retValLen) >= 0)
 			{
-				sock->mbAlive = true;
-				sock->mSocketEvetns = ( sock->mSocketEvetns & (~EPOLLOUT) );
-				registerEvent(sock, sock->mSocketEvetns);
-				sock->onSocketConnected();
-				continue;
+				if( retVal == 0)
+				{
+					sock->mbAlive = true;
+					sock->mSocketEvetns = 0;//( sock->mSocketEvetns & ~(EPOLLOUT | EPOLLIN | EPOLLERR) );
+					//registerEvent(sock, sock->mSocketEvetns);
+					unregisterEvent(sock, sock->mSocketEvetns);
+					sock->onSocketConnected();
+					continue;
+				}	   
 			}
 			if ( errno == EINTR || errno == EINPROGRESS )
 				continue;
