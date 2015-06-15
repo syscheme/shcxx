@@ -63,8 +63,9 @@ void  EventLoop::ignoreSigpipe()
 bool EventLoop::registerEvent(Socket::Ptr sock, int event)
 {
 	 // Socket* sockPoint = sock._ptr;//::ZQ::common::Pointer::dynamicCast(sock).get();
-	  if( sock->mSocket == -1 && !sock->mbListenSocket)
+	  if( sock->mSocket == -1 && !sock->mbListenSocket) {
 		assert(false && "get a -1 socket to registe.");
+	  }
 	  if( event <= 0 )
 	  {
 			unregisterEvent(sock, event);
@@ -73,11 +74,12 @@ bool EventLoop::registerEvent(Socket::Ptr sock, int event)
 	  struct epoll_event ev;
 	  ev.events = (__uint32_t) event;
 	  ev.data.ptr = reinterpret_cast<void*>(sock._ptr);
-	  if (::epoll_ctl(mEpollFd, EPOLL_CTL_MOD, sock->mSocket, &ev) != 0)
-			if (::epoll_ctl(mEpollFd, EPOLL_CTL_ADD, sock->mSocket, &ev) != 0) {
-				assert(false);
-				  return false;
-	}
+	  if (::epoll_ctl(mEpollFd, EPOLL_CTL_MOD, sock->mSocket, &ev) != 0) {
+		  if (::epoll_ctl(mEpollFd, EPOLL_CTL_ADD, sock->mSocket, &ev) != 0) {
+			  assert(false);
+			  return false;
+		  }
+	  }
 	  sock->mSocketEvetns = event;
 	  sock->mInEpoll = true;
 	  return true;
