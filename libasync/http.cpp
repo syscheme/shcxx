@@ -111,6 +111,8 @@ namespace LibAsync {
 	:Socket(httpClientCenter.getLoop()),
 	mParseType(clientSide?HTTP_RESPONSE:HTTP_REQUEST),
 	mHttpParser(mParseType),
+	mSendingChunkState(SENDING_CHUNK_NULL),
+	mLastUnsentBytes(0),
 	mbRecving(false),
 	mbSending(false), 
 	mbOutgoingKeepAlive(false) {
@@ -296,15 +298,48 @@ namespace LibAsync {
             assert( false && "http message do not have a content body");
             return false;
         }
-        mWritingBufs = bufs;
-        if( mOutgoingMsg->chunked() ) {
-            mChunkHeader.len =  sprintf( mChunkHeader.base, "%x\r\n", (unsigned int)buffer_size(bufs));// should not fail
-            mWritingBufs.insert(mWritingBufs.begin(),mChunkHeader);
-            mWritingBufs.push_back( chunkTail );
-        }
+		if( mLastUnsentBytes == 0 ) {
+			mWritingBufs = bufs;
+			if( mOutgoingMsg->chunked() ) {
+				mChunkHeader.len =  sprintf( mChunkHeader.base, "%x\r\n", (unsigned int)buffer_size(bufs));// should not fail
+				mWritingBufs.insert(mWritingBufs.begin(),mChunkHeader);
+				mWritingBufs.push_back( chunkTail );
+			}
+		} else {
+
+		}
+
+		size_t dataSize = buffer_size(bufs);
+		size_t expectSize = buffer_size(mWritingBufs);
+
         mbSending = true;
         int res = sendDirect(mWritingBufs);
         mbSending = false;
+
+		if( res >= 0 && rc < expectSize) {
+			if (res == 0 ) {
+				res = ERR_EAGAIN;
+				mLastUnsentBytes = 0;
+				mSendingChunkState = SENDING_CHUNK_NULL;
+			} else {
+				if( (size_t)rc < mChunkHeader.len ) {
+					mLastUnsentBytes = mChunkHeader.len - (size_t)rc;
+					mSendingChunkState = SENDING_CHUNK_HEADER;
+					res = 0;
+					assert( mLastUnsentBytes <= mChunkHeader.len );
+				} else if( (size_t)rc < ( dataSize + mChunkHeader.len ) ) {
+					res -= mChunkHeader.len;
+					mLastUnsentBytes = dataSize - res;
+					mSendingChunkState = SENDING_CHUNK_BODY;
+					assert( mLastUnsentBytes <= dataSize);
+				} else {
+					mLastUnsentBytes = chunkTail - (res - mChunkHeader.len - dataSize );
+					mSendingChunkState = SENDING_CHUNK_TAIL;
+					res = dataSize;
+					assert( mLastUnsentBytes <= 2);
+				}
+			}
+		} 
 
         return res;
     }
@@ -321,15 +356,36 @@ namespace LibAsync {
             onHttpEndSent(mbOutgoingKeepAlive);
             return 0;
         }
-        mChunkHeader.len = sprintf(mChunkHeader.base,"0\r\n");
-        mWritingBufs.clear();
-        mWritingBufs.push_back(mChunkHeader);
-        mWritingBufs.push_back(chunkTail);
-        mOutgoingMsg = NULL;
+		if( mLastUnsentBytes == 0 ) {
+			mChunkHeader.len = sprintf(mChunkHeader.base,"0\r\n");
+			mWritingBufs.clear();
+			mWritingBufs.push_back(mChunkHeader);
+			mWritingBufs.push_back(chunkTail);
+		}
         mbSending = true;
 
         int res = sendDirect(mWritingBufs);
+		mWritingBufs.clear();
         mbSending =  false;
+		if( res >= 0 && rc < 5 ) {
+			//assume the next call would send out all data
+			if( rc < 3 ) {
+				AsyncBuffer buf(mChunkHeader);
+				buf.base += rc;
+				buf.len -= rc;
+				mWritingBufs.push_back(buf);
+				mWritingBufs.push_back(chunkTail);
+			} else {
+				AsyncBuffer buf(chunkTail);
+				buf.base += (rc-3);
+				buf.len -= (rc-3);
+				mWritingBufs.push_back(buf);
+			}
+			rese = ERR_EAGAIN;
+		} else {
+			mLastUnsentBytes = 0;
+			mOutgoingMsg = NULL;
+		}
 
         return res;
     }

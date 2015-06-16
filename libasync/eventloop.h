@@ -119,19 +119,19 @@ namespace LibAsync {
 	};
 	typedef std::vector<AsyncBuffer>	AsyncBufferS;
 
-    class ZQ_COMMON_API BufferHelper : public virtual ZQ::common::SharedObject
+    class ZQ_COMMON_API BufferHelper
     {
     public:
         typedef ZQ::common::Pointer<BufferHelper> Ptr;
-        BufferHelper(AsyncBuffer buf) { _bufs.push_back(buf); }
-        BufferHelper(AsyncBufferS bufs) : _bufs(bufs) {}
+        BufferHelper(const AsyncBuffer& buf):_bufs(buf,1) {  }
+        BufferHelper(const AsyncBufferS& bufs) : _bufs(bufs) {}
         virtual ~BufferHelper() {}
 
         AsyncBufferS adjust(int sentSize);
         bool isEOF(int sentSize);
         AsyncBufferS getBuffers() {return _bufs;}
     private:
-        AsyncBufferS _bufs;
+        AsyncBufferS 	bufs;
     };
 
 	size_t buffer_size( const AsyncBufferS& bufs);

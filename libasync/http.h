@@ -9,7 +9,7 @@
 #include "socket.h"
 #include "httpparser.h"
 
-namespace LibAsync{
+namespace LibAsync {
 
 	class ZQ_COMMON_API HttpProcessor : public Socket, public ParserCallback{
 	public:
@@ -67,13 +67,24 @@ namespace LibAsync{
 	private:
 		http_parser_type		mParseType;
 		HttpParser				mHttpParser;
+		
 		HttpMessagePtr			mIncomingMsg;
 		HttpMessagePtr			mOutgoingMsg;
+
 		AsyncBufferS			mReadingBufs;
+		AsyncBuffer				mHeadersBuf;
+	
+		enum ChunkSendingState {
+			SENDING_CHUNK_NULL,
+			SENDING_CHUNK_HEADER,
+			SENDING_CHUNK_BODY,
+			SENDING_CHUNK_TAIL,
+		};
 		AsyncBufferS			mWritingBufs;
 		AsyncBuffer				mChunkHeader;
-		AsyncBuffer				mHeadersBuf;
-        BufferHelper::Ptr       mBufferHelper;
+		ChunkSendingState		mSendingChunkState;
+		size_t					mLastUnsentBytes;
+
 		std::string				mOutgoingHeadersTemp;
 		bool					mbRecving;
 		bool					mbSending;
