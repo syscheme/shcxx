@@ -234,7 +234,15 @@ public:
 	
 	/// set the default verbosity log level
 	void			setVerbosity(int newlevel = L_ERROR);
-	
+
+	///add helper functions
+	Log&			debug( const char* fmt, ... ) PRINTFLIKE(2,3);
+	Log&			info( const char* fmt, ... ) PRINTFLIKE(2,3);
+	Log&			notice( const char* fmt, ... ) PRINTFLIKE(2,3);
+	Log&			warning( const char* fmt, ... ) PRINTFLIKE(2,3);
+	Log&			error( const char* fmt, ... ) PRINTFLIKE(2,3);
+	Log&			crit( const char* fmt, ... ) PRINTFLIKE(2,3);
+	Log&			emerg( const char* fmt, ... ) PRINTFLIKE(2,3);
 	/// full log entry
 	/// @param level   - Log level to write the message
 	/// @param fmt     - format string

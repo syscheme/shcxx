@@ -266,6 +266,48 @@ const char* Log::getVerbosityStr()
 	return getVerbosityStr(_verbosity);
 }
 
+Log& Log::debug( const char* fmt, ... ) {
+	va_list args;
+	va_start(args, fmt);
+	return operator()(Log::L_DEBUG, fmt,args);
+}
+
+Log& Log::info( const char* fmt, ... ) {
+	va_list args;
+	va_start(args, fmt);
+	return operator()(Log::L_INFO, fmt,args);
+}
+
+Log& Log::notice( const char* fmt, ... ) {
+	va_list args;
+	va_start(args, fmt);
+	return operator()(Log::L_NOTICE, fmt,args);
+}
+
+Log& Log::warning( const char* fmt, ... ) {
+	va_list args;
+	va_start(args, fmt);
+	return operator()(Log::L_WARNING, fmt,args);
+}
+
+Log& Log::error( const char* fmt, ... ) {
+	va_list args;
+	va_start(args, fmt);
+	return operator()(Log::L_ERROR, fmt,args);
+}
+
+Log& Log::crit( const char* fmt, ... ) {
+	va_list args;
+	va_start(args, fmt);
+	return operator()(Log::L_CRIT, fmt,args);
+}
+
+Log& Log::emerg( const char* fmt, ... ) {
+	va_list args;
+	va_start(args, fmt);
+	return operator()(Log::L_EMERG, fmt,args);
+}
+
 Log& Log::operator()(int level, const char *fmt, ...)
 {
 	if ((level & 0xff) > _verbosity)
