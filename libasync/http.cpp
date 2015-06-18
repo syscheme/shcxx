@@ -446,18 +446,33 @@ namespace LibAsync {
 						bh.adjust(mWritingBufs[1].len);
 						sentDataSize += mWritingBufs[1].len;
 						mLastUnsentBodyBytes -= mWritingBufs[1].len;
+						if(mWritingBufs.size() == 2) {
+							mLastUnsentBytes = mLastUnsentBodyBytes;
+							mSendingChunkState = SENDING_CHUNK_BODY;
+						} else if( mWritingBufs.size() == 3) {
+							mLastUnsentBytes = 0;
+							mSendingChunkState = SENDING_CHUNK_NULL;
+						}
 						break;
 					case SENDING_CHUNK_BODY:
 						bh.adjust(mWritingBufs[0].len);
 						sentDataSize += mWritingBufs[0].len;
-						mLastUnsentBodyBytes -= mWritingBufs[0].len;				
+						mLastUnsentBodyBytes -= mWritingBufs[0].len;
+						if( mWritingBufs.size() == 1) {
+							mLastUnsentBytes = mLastUnsentBodyBytes;
+							mSendingChunkState = SENDING_CHUNK_BODY;
+						} else if( mWritingBufs.size() == 2) {
+							mLastUnsentBytes = 0;
+							mSendingChunkState = SENDING_CHUNK_NULL;
+						}
+						break;
+					case SENDING_CHUNK_TAIL:
+						mLastUnsentBytes = mLastUnsentBodyBytes = 0;
+						mSendingChunkState = SENDING_CHUNK_NULL;
 						break;
 					default:
 						break;
-				}			
-				mLastUnsentBytes = 0;
-				if ( mLastUnsentBodyBytes == 0)
-					mSendingChunkState = SENDING_CHUNK_NULL;
+				}
 				continue;
 			} else {
 				break;
