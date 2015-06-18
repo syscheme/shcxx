@@ -43,6 +43,7 @@ namespace LibAsync {
 		ERR_EAGAIN      = -10,
 		ERR_SOCKETVAIN = -11, // the socket can not been send/recv
 		ERR_MEMVAIN = -12,   // the mem malloc err 
+		ERR_BUFFERTOOBIG = -13,
 		//linux
 		ERR_EPOLLREGISTERFAIL  = -21,
 		ERR_EPOLLEXCEPTION = - 22,

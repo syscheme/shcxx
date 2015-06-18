@@ -493,7 +493,10 @@ SEND_DATA:
 				free(iovSend);
 				iovSend = NULL;
 				mSendValid = true;
-				return ERR_EAGAIN;
+				if( ret == 0 )
+					return ERR_BUFFERTOOBIG;
+				else 
+					return ERR_EAGAIN;
 			}
 			free(iovSend);
 			iovSend = NULL;
