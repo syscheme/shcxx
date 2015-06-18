@@ -385,8 +385,7 @@ namespace LibAsync {
 					mLastUnsentBytes = 0;
 					mLastUnsentBodyBytes = 0;
 					mSendingChunkState = SENDING_CHUNK_NULL;
-				}
-				else {
+				} else {
 					// mWritingBufs.size() == 1 only occur when sending chunktail which should always succeed
 					assert(mWritingBufs.size() > 1);
 					switch (mSendingChunkState) {
@@ -458,7 +457,6 @@ namespace LibAsync {
 			return res;
 		else
 			return (int)sentDataSize;	
-
     }
 
     int HttpProcessor::endSend_direct() {
