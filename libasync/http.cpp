@@ -444,6 +444,7 @@ namespace LibAsync {
 				sentDataSize += res;
 				break;
 			} else if ( res == expectSize ) {
+				bh.adjust(mLastUnsentBodyBytes);
 				mLastUnsentBytes = 0;
 				mSendingChunkState = SENDING_CHUNK_NULL;
 				sentDataSize += mLastUnsentBodyBytes;
