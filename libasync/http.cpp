@@ -376,9 +376,6 @@ namespace LibAsync {
 			if (res >= 0 && (size_t)res < expectSize) {
 				if (res == 0) {
 					res = ERR_EAGAIN;
-					mLastUnsentBytes = 0;
-					mLastUnsentBodyBytes = 0;
-					mSendingChunkState = SENDING_CHUNK_NULL;
 				}
 				else {				
 					assert(mWritingBufs.size() >= 1);
@@ -389,7 +386,7 @@ namespace LibAsync {
 							{
 								const AsyncBuffer& header = mWritingBufs[0];
 								const AsyncBuffer& body = mWritingBufs[1];
-								if (mWritingBufs.size() >= 3 && (size_t)res < header.len) {
+								if ((size_t)res < header.len) {
 									mLastUnsentBytes = header.len - (size_t)res;
 									mSendingChunkState = SENDING_CHUNK_HEADER;
 									res = 0;
@@ -399,6 +396,7 @@ namespace LibAsync {
 									mLastUnsentBytes = mLastUnsentBodyBytes;
 									mSendingChunkState = SENDING_CHUNK_BODY;
 								} else {
+									assert( (expectSize - res ) <= 2 );
 									mLastUnsentBytes = expectSize - (size_t)res;
 									mSendingChunkState = SENDING_CHUNK_TAIL;
 									res = (int)mLastUnsentBodyBytes;
@@ -415,6 +413,7 @@ namespace LibAsync {
 									mSendingChunkState = SENDING_CHUNK_BODY;
 								} else {
 									mLastUnsentBytes = expectSize - (size_t)res;
+									assert( (expectSize - res ) <= 2 );
 									mSendingChunkState = SENDING_CHUNK_TAIL;
 									res = (int)mLastUnsentBodyBytes;
 									mLastUnsentBodyBytes = 0;
@@ -424,6 +423,7 @@ namespace LibAsync {
 						case SENDING_CHUNK_TAIL:
 							{
 								mLastUnsentBytes = expectSize - (size_t)res;
+								assert( (expectSize - res ) <= 2 );
 								mSendingChunkState = SENDING_CHUNK_TAIL;
 								res = (int)mLastUnsentBodyBytes;
 								mLastUnsentBodyBytes = 0;
