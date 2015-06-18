@@ -26,29 +26,40 @@ namespace LibAsync {
 		}
 	}
 
-    AsyncBufferS BufferHelper::adjust(int sentSize)
+    void BufferHelper::adjust(size_t sentSize)
     {
-        AsyncBufferS tmpBufs = _bufs;
-        _bufs.clear();
-        AsyncBufferS::iterator it = tmpBufs.begin();
-        for (; it != _bufs.end(); it++)
-        {
-            if (sentSize >= (int)it->len)
-            {
-                sentSize = sentSize - it->len;
-                continue;
-            }
-
-            it->base += sentSize;
-            it->len = it->len - sentSize;
-            break;
-        }
-        _bufs.insert(_bufs.end(), it, tmpBufs.end());
-        return _bufs;
+		assert(sentSize <= _dataSize);
+		_dataSize -= sentSize;
+		AsyncBufferS::iterator it = _bufs.begin();
+		for( ; it != _bufs.end() ; it ++ ) {
+			if( sentSize < it->len) {
+				it->len -= sentSize;
+				break;
+			}
+			sentSize -= it->len;
+		}
+		_bufs.erase(_bufs.begin(), it );
     }
-    bool BufferHelper::isEOF(int sentSize)
+
+	AsyncBufferS BufferHelper::getAt(size_t size) {
+		AsyncBufferS ret;
+		AsyncBufferS::const_iterator it = _bufs.begin();
+		for (; size > 0 && it != _bufs.end(); it++) {
+			if (size < it->len) {
+				AsyncBuffer buf = *it;
+				buf.len = size;
+				ret.push_back(buf);
+				break;
+			}
+			ret.push_back(*it);
+		}
+		return ret;
+	}
+
+
+    bool BufferHelper::isEOF( ) const
     {
-        return (int)buffer_size(_bufs) == sentSize;
+        return _dataSize == 0;
     }
 
 	size_t buffer_size( const AsyncBufferS& bufs) {

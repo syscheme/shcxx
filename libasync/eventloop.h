@@ -115,26 +115,41 @@ namespace LibAsync {
 		char*		base;
 		size_t		len;
 		AsyncBuffer():base(NULL),len(0){}
-		AsyncBuffer( char* a, size_t l):base(a),len(l){}		
+		AsyncBuffer( char* a, size_t l):base(a),len(l){}
+		void reset() { base = NULL; len = 0; }
 	};
 	typedef std::vector<AsyncBuffer>	AsyncBufferS;
+
+	size_t buffer_size( const AsyncBufferS& bufs);
 
     class ZQ_COMMON_API BufferHelper
     {
     public:
-        typedef ZQ::common::Pointer<BufferHelper> Ptr;
-        BufferHelper(const AsyncBuffer& buf):_bufs(buf,1) {  }
-        BufferHelper(const AsyncBufferS& bufs) : _bufs(bufs) {}
+        BufferHelper(const AsyncBuffer& buf)
+			:_bufs(1,buf) { 
+			_dataSize = buffer_size(_bufs);
+		}
+        BufferHelper(const AsyncBufferS& bufs)
+			: _bufs(bufs) { 
+			_dataSize = buffer_size(_bufs);
+		}
         virtual ~BufferHelper() {}
 
-        AsyncBufferS adjust(int sentSize);
-        bool isEOF(int sentSize);
-        AsyncBufferS getBuffers() {return _bufs;}
-    private:
-        AsyncBufferS 	bufs;
-    };
+        void	adjust( size_t sentSize);
 
-	size_t buffer_size( const AsyncBufferS& bufs);
+        bool 	isEOF() const;
+
+        AsyncBufferS getBuffers() const {return _bufs;}
+
+		AsyncBufferS getAt( size_t expectSize );
+
+		inline size_t	size() const { return _dataSize; }
+
+    private:
+        AsyncBufferS 	_bufs;
+		size_t			_dataSize;
+	};
+
 
 	class EventLoop;
 

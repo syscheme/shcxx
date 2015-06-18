@@ -79,11 +79,14 @@ namespace LibAsync {
 			SENDING_CHUNK_HEADER,
 			SENDING_CHUNK_BODY,
 			SENDING_CHUNK_TAIL,
+			SENDING_CHUNK_ZERO
 		};
 		AsyncBufferS			mWritingBufs;
 		AsyncBuffer				mChunkHeader;
 		ChunkSendingState		mSendingChunkState;
 		size_t					mLastUnsentBytes;
+		size_t					mLastUnsentBodyBytes;
+		bool					mbResentZeroChunk;
 
 		std::string				mOutgoingHeadersTemp;
 		bool					mbRecving;
