@@ -324,9 +324,7 @@ namespace LibAsync {
 				mWritingBufs.insert(mWritingBufs.begin(), mChunkHeader);
 				mWritingBufs.push_back(chunkTail);
 				mLastUnsentBodyBytes = bh.size();
-			}
-			else {
-
+			} else {
 				mWritingBufs.clear();
 
 				switch (mSendingChunkState) {
@@ -343,7 +341,7 @@ namespace LibAsync {
 						//fallthrough
 					case SENDING_CHUNK_BODY:
 						{
-							if (mLastUnsentBodyBytes < bh.size()) {
+							if (mLastUnsentBodyBytes <= bh.size()) {
 								AsyncBufferS newBufs = bh.getAt(mLastUnsentBytes);
 								bh.adjust(mLastUnsentBytes);
 								mWritingBufs.insert(mWritingBufs.end(), newBufs.begin(), newBufs.end());
@@ -352,7 +350,6 @@ namespace LibAsync {
 								AsyncBufferS newBufs = bh.getBuffers();
 								bh.adjust(bh.size());
 								mWritingBufs.insert(mWritingBufs.end(), newBufs.begin(), newBufs.end());
-								mWritingBufs.push_back(chunkTail);
 							}				
 						}
 						break;
@@ -443,15 +440,34 @@ namespace LibAsync {
 				}
 				sentDataSize += res;
 				break;
-			} else if ( res == expectSize ) {
-				bh.adjust(mLastUnsentBodyBytes);
-				mLastUnsentBytes = 0;
-				mSendingChunkState = SENDING_CHUNK_NULL;
-				sentDataSize += mLastUnsentBodyBytes;
-				mLastUnsentBodyBytes = 0;
-				continue;
-			} else {
+			} else if( res < 0 ) {
 				break;
+			} else if ( (size_t)res == expectSize ) {
+				switch (mSendingChunkState) {
+					case SENDING_CHUNK_NULL:
+						//fallthrough
+					case SENDING_CHUNK_HEADER:
+						{
+							bh.adjust(mWritingBufs[1].len);
+							sentDataSize += mWritingBufs[1].len;
+							mLastUnsentBodyBytes -= mWritingBufs[1].len;
+							break;
+						}
+					case SENDING_CHUNK_BODY:
+						{
+							bh.adjust(mWritingBufs[0].len);
+							sentDataSize += mWritingBufs[0].len;
+							mLastUnsentBodyBytes -= mWritingBufs[0].len;
+							sentDataSize += mWritingBufs[0].len;				
+							break;			
+						}
+					default:
+						break;
+				}			
+				mLastUnsentBytes = 0;
+				if ( mLastUnsentBodyBytes == 0)
+					mSendingChunkState = SENDING_CHUNK_NULL;
+				continue;
 			}
 		}
 		if (sentDataSize == 0)
