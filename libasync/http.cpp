@@ -324,6 +324,7 @@ namespace LibAsync {
 				mWritingBufs.insert(mWritingBufs.begin(), mChunkHeader);
 				mWritingBufs.push_back(chunkTail);
 				mLastUnsentBodyBytes = bh.size();
+				mSendingChunkState = SENDING_CHUNK_NULL;
 			} else {
 				mWritingBufs.clear();
 
