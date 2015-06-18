@@ -376,61 +376,60 @@ namespace LibAsync {
 			if (res >= 0 && (size_t)res < expectSize) {
 				if (res == 0) {
 					res = ERR_EAGAIN;
-				}
-				else {				
+				} else {				
 					assert(mWritingBufs.size() >= 1);
 					switch (mSendingChunkState) {
-						case SENDING_CHUNK_NULL:
-							//fallthrough
-						case SENDING_CHUNK_HEADER:
-							{
-								const AsyncBuffer& header = mWritingBufs[0];
-								const AsyncBuffer& body = mWritingBufs[1];
-								if ((size_t)res < header.len) {
-									mLastUnsentBytes = header.len - (size_t)res;
-									mSendingChunkState = SENDING_CHUNK_HEADER;
-									res = 0;
-								} else if ((size_t)res < (header.len + body.len)) {
-									res -= (int)header.len;
-									mLastUnsentBodyBytes -= (size_t)res;
-									mLastUnsentBytes = mLastUnsentBodyBytes;
-									mSendingChunkState = SENDING_CHUNK_BODY;
-								} else {
-									assert( (expectSize - res ) <= 2 );
-									mLastUnsentBytes = expectSize - (size_t)res;
-									mSendingChunkState = SENDING_CHUNK_TAIL;
-									res = (int)mLastUnsentBodyBytes;
-									mLastUnsentBodyBytes = 0;
-								}
-								break;
-							}				
-						case SENDING_CHUNK_BODY:
-							{					
-								const AsyncBuffer& body = mWritingBufs[0];
-								if ((size_t)res <body.len) {						
-									mLastUnsentBodyBytes -= (size_t)res;
-									mLastUnsentBytes = mLastUnsentBodyBytes;
-									mSendingChunkState = SENDING_CHUNK_BODY;
-								} else {
-									mLastUnsentBytes = expectSize - (size_t)res;
-									assert( (expectSize - res ) <= 2 );
-									mSendingChunkState = SENDING_CHUNK_TAIL;
-									res = (int)mLastUnsentBodyBytes;
-									mLastUnsentBodyBytes = 0;
-								}
-								break;
-							}				
-						case SENDING_CHUNK_TAIL:
-							{
+					case SENDING_CHUNK_NULL:
+						//fallthrough
+					case SENDING_CHUNK_HEADER:
+						{
+							const AsyncBuffer& header = mWritingBufs[0];
+							const AsyncBuffer& body = mWritingBufs[1];
+							if ((size_t)res < header.len) {
+								mLastUnsentBytes = header.len - (size_t)res;
+								mSendingChunkState = SENDING_CHUNK_HEADER;
+								res = 0;
+							} else if ((size_t)res < (header.len + body.len)) {
+								res -= (int)header.len;
+								mLastUnsentBodyBytes -= (size_t)res;
+								mLastUnsentBytes = mLastUnsentBodyBytes;
+								mSendingChunkState = SENDING_CHUNK_BODY;
+							} else {
+								assert( (expectSize - res ) <= 2 );
+								mLastUnsentBytes = expectSize - (size_t)res;
+								mSendingChunkState = SENDING_CHUNK_TAIL;
+								res = (int)mLastUnsentBodyBytes;
+								mLastUnsentBodyBytes = 0;
+							}
+							break;
+						}				
+					case SENDING_CHUNK_BODY:
+						{					
+							const AsyncBuffer& body = mWritingBufs[0];
+							if ((size_t)res <body.len) {						
+								mLastUnsentBodyBytes -= (size_t)res;
+								mLastUnsentBytes = mLastUnsentBodyBytes;
+								mSendingChunkState = SENDING_CHUNK_BODY;
+							} else {
 								mLastUnsentBytes = expectSize - (size_t)res;
 								assert( (expectSize - res ) <= 2 );
 								mSendingChunkState = SENDING_CHUNK_TAIL;
 								res = (int)mLastUnsentBodyBytes;
 								mLastUnsentBodyBytes = 0;
-								break;
-							}				
-						default:
+							}
 							break;
+						}				
+					case SENDING_CHUNK_TAIL:
+						{
+							mLastUnsentBytes = expectSize - (size_t)res;
+							assert( (expectSize - res ) <= 2 );
+							mSendingChunkState = SENDING_CHUNK_TAIL;
+							res = (int)mLastUnsentBodyBytes;
+							mLastUnsentBodyBytes = 0;
+							break;
+						}				
+					default:
+						break;
 					}
 				}
 				sentDataSize += res;
