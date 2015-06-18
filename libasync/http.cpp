@@ -374,12 +374,11 @@ namespace LibAsync {
 			res = sendDirect(mWritingBufs);
 			mbSending = false;
 
-			if (res >= 0 && (size_t)res < expectSize) {
-				if (res == 0) {
-					res = ERR_EAGAIN;
-				} else {				
-					assert(mWritingBufs.size() >= 1);
-					switch (mSendingChunkState) {
+			assert( res != 0 );
+
+			if (res > 0 && (size_t)res < expectSize) {
+				assert(mWritingBufs.size() >= 1);
+				switch (mSendingChunkState) {
 					case SENDING_CHUNK_NULL:
 						//fallthrough
 					case SENDING_CHUNK_HEADER:
@@ -431,7 +430,6 @@ namespace LibAsync {
 						}				
 					default:
 						break;
-					}
 				}
 				sentDataSize += res;
 				break;
