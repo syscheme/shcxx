@@ -34,6 +34,7 @@ namespace LibAsync {
 		for( ; it != _bufs.end() ; it ++ ) {
 			if( sentSize < it->len) {
 				it->len -= sentSize;
+				it->base += sentSize;
 				break;
 			}
 			sentSize -= it->len;

@@ -39,6 +39,7 @@ namespace LibAsync {
 		HttpProcessor( bool clientSide );
 		HttpProcessor( bool clientSide, SOCKET socket);
 		void			reset( ParserCallback* callback = NULL );
+		int 			sendChunk( BufferHelper& bh);
 	private:
 		HttpProcessor( const HttpProcessor&);
 		HttpProcessor& operator=( const HttpProcessor&);
