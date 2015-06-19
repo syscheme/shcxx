@@ -313,174 +313,23 @@ namespace LibAsync {
 			return sendDirect( bufs);
 		}
 
-		size_t sentDataSize = 0;
-		BufferHelper bh(bufs);
-		int res = 0;
-		while (bh.size() > 0) {
-			if (mLastUnsentBytes == 0) {
-				mWritingBufs = bh.getBuffers();
+		mWritingBufs.clear();
 
-				mChunkHeader.len = sprintf(mChunkHeader.base, "%x\r\n", (unsigned int)bh.size());// should not fail
-				mWritingBufs.insert(mWritingBufs.begin(), mChunkHeader);
-				mWritingBufs.push_back(chunkTail);
-				mLastUnsentBodyBytes = bh.size();
-				mSendingChunkState = SENDING_CHUNK_NULL;
-			} else {
-				mWritingBufs.clear();
+		mWritingBufs = bufs;
+		mChunkHeader.len = sprintf(mChunkHeader.base, "%x\r\n",(unsigned int)buffer_size(bufs) );// should not fail
+		mWritingBufs.insert(mWritingBufs.begin(), mChunkHeader);
+		mWritingBufs.push_back(chunkTail);
 
-				switch (mSendingChunkState) {
-					case SENDING_CHUNK_NULL:
-						assert(false);//should not be here
-						break;
-					case SENDING_CHUNK_HEADER:
-						{				
-							AsyncBuffer buf(mChunkHeader);
-							buf.base += (buf.len - mLastUnsentBytes);
-							buf.len = mLastUnsentBytes;
-							mWritingBufs.push_back(buf);
-						}
-						//fallthrough
-					case SENDING_CHUNK_BODY:
-						{
-							if (mLastUnsentBodyBytes <= bh.size()) {
-								AsyncBufferS newBufs = bh.getAt( mLastUnsentBodyBytes );					
-								mWritingBufs.insert(mWritingBufs.end(), newBufs.begin(), newBufs.end());
-								mWritingBufs.push_back(chunkTail);
-							} else {
-								AsyncBufferS newBufs = bh.getBuffers();					
-								mWritingBufs.insert(mWritingBufs.end(), newBufs.begin(), newBufs.end());
-								//mWritingBufs.push_back(chunkTail);
-							}				
-						}
-						break;
-					case SENDING_CHUNK_TAIL:
-						{
-							assert(mLastUnsentBytes <= chunkTail.len);
-							AsyncBuffer buf(chunkTail);
-							buf.base += (chunkTail.len - mLastUnsentBytes);
-							buf.len = mLastUnsentBytes;
-							mWritingBufs.push_back(buf);
-						}
-						break;
-					default:
-						assert(false && "ivnalid coding logic");
-						break;			
-				}
-			}
-
-			size_t expectSize = buffer_size(mWritingBufs);
-
-			mbSending = true;
-			res = sendDirect(mWritingBufs);
-			mbSending = false;
-
-			assert( res != 0 );
-
-			if (res > 0 && (size_t)res < expectSize) {
-				assert(mWritingBufs.size() >= 1);
-				switch (mSendingChunkState) {
-					case SENDING_CHUNK_NULL:
-						//fallthrough
-					case SENDING_CHUNK_HEADER:
-						{
-							const AsyncBuffer& header = mWritingBufs[0];
-							const AsyncBuffer& body = mWritingBufs[1];
-							if ((size_t)res < header.len) {
-								mLastUnsentBytes = header.len - (size_t)res;
-								mSendingChunkState = SENDING_CHUNK_HEADER;
-								res = 0;
-							} else if ((size_t)res < (header.len + body.len)) {
-								res -= (int)header.len;
-								mLastUnsentBodyBytes -= (size_t)res;
-								mLastUnsentBytes = mLastUnsentBodyBytes;
-								mSendingChunkState = SENDING_CHUNK_BODY;
-							} else {
-								assert( (expectSize - res ) <= 2 );
-								mLastUnsentBytes = expectSize - (size_t)res;
-								mSendingChunkState = SENDING_CHUNK_TAIL;
-								res = (int)mLastUnsentBodyBytes;
-								mLastUnsentBodyBytes = 0;
-							}
-							break;
-						}				
-					case SENDING_CHUNK_BODY:
-						{					
-							const AsyncBuffer& body = mWritingBufs[0];
-							if ((size_t)res <body.len) {						
-								mLastUnsentBodyBytes -= (size_t)res;
-								mLastUnsentBytes = mLastUnsentBodyBytes;
-								mSendingChunkState = SENDING_CHUNK_BODY;
-							} else {
-								mLastUnsentBytes = expectSize - (size_t)res;
-								assert( (expectSize - res ) <= 2 );
-								mSendingChunkState = SENDING_CHUNK_TAIL;
-								res = (int)mLastUnsentBodyBytes;
-								mLastUnsentBodyBytes = 0;
-							}
-							break;
-						}				
-					case SENDING_CHUNK_TAIL:
-						{
-							mLastUnsentBytes = expectSize - (size_t)res;
-							assert( (expectSize - res ) <= 2 );
-							mSendingChunkState = SENDING_CHUNK_TAIL;
-							res = (int)mLastUnsentBodyBytes;
-							mLastUnsentBodyBytes = 0;
-							break;
-						}				
-					default:
-						break;
-				}
-				sentDataSize += res;
-				break;
-			} else if( res < 0 ){
-				break;
-			} else if ( (size_t)res == expectSize ) {
-				switch (mSendingChunkState) 
-				{
-					case SENDING_CHUNK_NULL:
-						//fallthrough
-					case SENDING_CHUNK_HEADER:
-						bh.adjust(mWritingBufs[1].len);
-						sentDataSize += mWritingBufs[1].len;
-						mLastUnsentBodyBytes -= mWritingBufs[1].len;
-						if(mWritingBufs.size() == 2) {
-							mLastUnsentBytes = mLastUnsentBodyBytes;
-							mSendingChunkState = SENDING_CHUNK_BODY;
-						} else if( mWritingBufs.size() == 3) {
-							mLastUnsentBytes = 0;
-							mSendingChunkState = SENDING_CHUNK_NULL;
-						}
-						break;
-					case SENDING_CHUNK_BODY:
-						bh.adjust(mWritingBufs[0].len);
-						sentDataSize += mWritingBufs[0].len;
-						mLastUnsentBodyBytes -= mWritingBufs[0].len;
-						if( mWritingBufs.size() == 1) {
-							mLastUnsentBytes = mLastUnsentBodyBytes;
-							mSendingChunkState = SENDING_CHUNK_BODY;
-						} else if( mWritingBufs.size() == 2) {
-							mLastUnsentBytes = 0;
-							mSendingChunkState = SENDING_CHUNK_NULL;
-						}
-						break;
-					case SENDING_CHUNK_TAIL:
-						mLastUnsentBytes = mLastUnsentBodyBytes = 0;
-						mSendingChunkState = SENDING_CHUNK_NULL;
-						break;
-					default:
-						break;
-				}
-				continue;
-			} else {
-				break;
-			}
+		mbSending = true;
+		int res = sendDirect(mWritingBufs);
+		mbSending = false;
+		if( res > 0 ) {
+			if( (size_t)res > mWritingBufs[0].len)
+				res -= mWritingBufs[0].len;
+			if( (size_t)res > mWritingBufs[1].len)
+				res = mWritingBufs[1].len;
 		}
-		if (sentDataSize == 0)
-			return res;
-		else
-			return (int)sentDataSize;
-
+		return res;
     }
 
     int HttpProcessor::endSend_direct() {
@@ -497,52 +346,15 @@ namespace LibAsync {
         }
 		//FIXME: 这里还是有问题的，如果sendbody_direct没有完成tail的发送，那么需要在这个地方来完成这个事情
 		
-		AsyncBuffer headerBuf;
-		if( !mbResentZeroChunk ) {
-			if( mLastUnsentBytes == 0 ) {
-				mChunkHeader.len = sprintf(mChunkHeader.base,"0\r\n");
-			} else {
-				mChunkHeader.len = sprintf(mChunkHeader.base,"\r\n0\r\n");
-			} 
-			mLastUnsentBytes += mChunkHeader.len;
-			headerBuf = mChunkHeader;
-			if( mLastUnsentBytes != 0 ) {
-				//在极端情况下上，最后一次sendBody_direct可能没有成功发出上一次的chunktail,
-				//那么就需要在本次一并发送
-				headerBuf.base += headerBuf.len-mLastUnsentBytes;
-				headerBuf.len = mLastUnsentBytes;
-			}
 			mWritingBufs.clear();
-			mWritingBufs.push_back(headerBuf);
+			mChunkHeader.len = sprintf(mChunkHeader.base,"0\r\n");
+			mWritingBufs.push_back(mChunkHeader);
 			mWritingBufs.push_back(chunkTail);
-		}
 
-		size_t expectSize = buffer_size(mWritingBufs);
 
         mbSending = true;
         int res = sendDirect(mWritingBufs);
         mbSending =  false;
-		if( res >= 0 && (size_t)res < expectSize ) {
-			//assume the next call would send out all data
-			if( (size_t)res < mWritingBufs[0].len ) {
-				mLastUnsentBytes -= res;
-				mWritingBufs[0].base += res;
-				mWritingBufs[0].len -= res;
-			} else if((size_t)res >= mWritingBufs[0].len)	{
-				res -= mWritingBufs[0].len;
-				mWritingBufs.clear();
-				AsyncBuffer buf(chunkTail);
-				buf.base += (3-res);
-				buf.len -= (3-res);
-				mWritingBufs.push_back(buf);
-			}
-			mbResentZeroChunk = true;
-			res = ERR_EAGAIN;
-		} else {
-			mbResentZeroChunk = false;
-			mLastUnsentBytes = 0;
-			mOutgoingMsg = NULL;
-		}
 
         return res;
     }
