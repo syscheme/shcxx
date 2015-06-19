@@ -350,7 +350,6 @@ namespace LibAsync {
 				{		
 					if (mLastUnsentBytes == 0) {
 						mWritingBufs = bh.getBuffers();
-						assert(mLastUnsentBodyBytes == 0);
 						mChunkHeader.len = sprintf(mChunkHeader.base, "%x\r\n", (unsigned int)bh.size());
 						mWritingBufs.insert(mWritingBufs.begin(), mChunkHeader);
 						mWritingBufs.push_back(chunkTail);
@@ -591,7 +590,7 @@ namespace LibAsync {
 				break;
 			 }
 			default:
-				assert( false && "bad logic");
+				 return ERR_ERROR;
 				break;
 		}
 		size_t expectSize = buffer_size(mWritingBufs);
