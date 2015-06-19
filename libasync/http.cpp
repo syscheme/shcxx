@@ -580,6 +580,8 @@ namespace LibAsync {
 				mWritingBufs.push_back(chunkTail);
 				break;
 			 }
+			case SENDING_CHUNK_NULL:
+				assert( mLastUnsentBytes == 0 );
 			case SENDING_CHUNK_ZERO: {
 				if(mLastUnsentBytes == 0 ) {
 					mChunkHeader.len = sprintf(mChunkHeader.base,"0\r\n");
