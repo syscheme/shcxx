@@ -346,56 +346,60 @@ namespace LibAsync {
 		switch (mSendingChunkState) {
 			case SENDING_CHUNK_NULL:
 				//fallthrough
-			case SENDING_CHUNK_HEADER: {		
-				   if (mLastUnsentBytes == 0) {
-					   mWritingBufs = bh.getBuffers();
-					   assert(mLastUnsentBodyBytes == 0);
-					   mChunkHeader.len = sprintf(mChunkHeader.base, "%x\r\n", (unsigned int)bh.size());
-					   mWritingBufs.insert(mWritingBufs.begin(), mChunkHeader);
-					   mWritingBufs.push_back(chunkTail);
-					   mLastUnsentBodyBytes = bh.size();
-				   } else {
-					   AsyncBuffer chunkHeader(mChunkHeader);
-					   assert(mLastUnsentBytes <= chunkHeader.len);
-					   chunkHeader.base += (chunkHeader.len - mLastUnsentBytes);
-					   chunkHeader.len = mLastUnsentBytes;
-					   mWritingBufs.insert(mWritingBufs.begin(), chunkHeader);
-					   if (mLastUnsentBodyBytes <= bh.size()) {
-						   AsyncBufferS bodyBufs = bh.getAt(mLastUnsentBodyBytes);
-						   mWritingBufs.insert(mWritingBufs.end(), bodyBufs.begin(), bodyBufs.end());
-						   mWritingBufs.push_back(chunkTail);
-					   } else {
-						   mWritingBufs.insert(mWritingBufs.end(), bufs.begin(), bufs.end());
-					   }
-				   }
-				   break;
-			   }
-
-			case SENDING_CHUNK_BODY:{
-				assert(mLastUnsentBodyBytes != 0);
-				assert(mLastUnsentBodyBytes == mLastUnsentBytes);
-				if (mLastUnsentBodyBytes <= bh.size()) {
-					mWritingBufs = bh.getAt(mLastUnsentBodyBytes);
-					mWritingBufs.push_back(chunkTail);
-				} else {
-					mWritingBufs = bufs;
+			case SENDING_CHUNK_HEADER:
+				{		
+					if (mLastUnsentBytes == 0) {
+						mWritingBufs = bh.getBuffers();
+						assert(mLastUnsentBodyBytes == 0);
+						mChunkHeader.len = sprintf(mChunkHeader.base, "%x\r\n", (unsigned int)bh.size());
+						mWritingBufs.insert(mWritingBufs.begin(), mChunkHeader);
+						mWritingBufs.push_back(chunkTail);
+						mLastUnsentBodyBytes = bh.size();
+					} else {
+						AsyncBuffer chunkHeader(mChunkHeader);
+						assert(mLastUnsentBytes <= chunkHeader.len);
+						chunkHeader.base += (chunkHeader.len - mLastUnsentBytes);
+						chunkHeader.len = mLastUnsentBytes;
+						mWritingBufs.insert(mWritingBufs.begin(), chunkHeader);
+						if (mLastUnsentBodyBytes <= bh.size()) {
+							AsyncBufferS bodyBufs = bh.getAt(mLastUnsentBodyBytes);
+							mWritingBufs.insert(mWritingBufs.end(), bodyBufs.begin(), bodyBufs.end());
+							mWritingBufs.push_back(chunkTail);
+						} else {
+							mWritingBufs.insert(mWritingBufs.end(), bufs.begin(), bufs.end());
+						}
+					}
+					break;
 				}
-				break;
-			}
 
-			case SENDING_CHUNK_TAIL: {
-				 assert(mLastUnsentBodyBytes == 0);
-				 assert(mLastUnsentBytes != 0 && mLastUnsentBytes <= chunkTail.len);
-				 AsyncBuffer bufTail(chunkTail);
-				 bufTail.base += (bufTail.len - mLastUnsentBytes);
-				 bufTail.len = mLastUnsentBytes;
-				 mWritingBufs.push_back(bufTail);
-				 break;
-			 }
-			default: {
-						 assert(false && "bad logic");
-						 break;
-					 }
+			case SENDING_CHUNK_BODY:
+				{
+					assert(mLastUnsentBodyBytes != 0);
+					assert(mLastUnsentBodyBytes == mLastUnsentBytes);
+					if (mLastUnsentBodyBytes <= bh.size()) {
+						mWritingBufs = bh.getAt(mLastUnsentBodyBytes);
+						mWritingBufs.push_back(chunkTail);
+					} else {
+						mWritingBufs = bufs;
+					}
+					break;
+				}
+
+			case SENDING_CHUNK_TAIL:
+				{
+					assert(mLastUnsentBodyBytes == 0);
+					assert(mLastUnsentBytes != 0 && mLastUnsentBytes <= chunkTail.len);
+					AsyncBuffer bufTail(chunkTail);
+					bufTail.base += (bufTail.len - mLastUnsentBytes);
+					bufTail.len = mLastUnsentBytes;
+					mWritingBufs.push_back(bufTail);
+					break;
+				}
+			default:
+				{
+					assert(false && "bad logic");
+					break;
+				}
 		}
 
 		mbSending = true;
@@ -411,65 +415,76 @@ namespace LibAsync {
 		size_t res = (size_t)rc;
 		size_t idx = findPosInBufferS(mWritingBufs, res);
 
-		switch (mSendingChunkState) {
+		switch (mSendingChunkState) 
+		{
 			case SENDING_CHUNK_NULL:
-			case SENDING_CHUNK_HEADER: {
-				   // size of mWritingBufs should be 2 or 3
-				   switch (idx) {
-					   case 0: {
-								   assert(res < mWritingBufs[0].len);
-								   mLastUnsentBytes = mWritingBufs[0].len - res;
-								   mSendingChunkState = SENDING_CHUNK_HEADER;
-								   rc = 0;
-								   break;
-							   }
-					   case 1: {
-								   if (res > 0) {
-									   assert(res < mWritingBufs[1].len);
-									   assert(mLastUnsentBodyBytes >= mWritingBufs[1].len);
-								   }
-								   mLastUnsentBodyBytes -= res;
-								   mLastUnsentBytes = mLastUnsentBodyBytes;
-								   mSendingChunkState = SENDING_CHUNK_BODY;
-								   rc -= (int)mWritingBufs[0].len;
-								   break;
-							   }
-					   case 2: {
-								   if (res > 0) {
-									   assert(res < mWritingBufs[2].len);
-									   assert(mLastUnsentBodyBytes == mWritingBufs[1].len);
-								   }
-								   mLastUnsentBodyBytes = 0;
-								   mLastUnsentBytes = mWritingBufs[2].len - res;
-								   mSendingChunkState = SENDING_CHUNK_TAIL;
-								   rc = (int)mWritingBufs[1].len;//body length
-								   break;
-							   }
-					   case 3: {
-								   assert(res == 0);
-								   mLastUnsentBodyBytes = 0;
-								   mLastUnsentBytes = 0;
-								   mSendingChunkState = SENDING_CHUNK_NULL;
-								   rc = (int)mWritingBufs[1].len;
-								   break;
-							   }
-					   default:
-							   assert(false && "bad logic");
-				   }
-				   break;
-			   }
-			case SENDING_CHUNK_BODY: {
-				 // size of mWritingBufs should be 1 or 2
-				 switch (idx) {
-					 case 0: {
-								 assert(mLastUnsentBodyBytes > res);
-								 mLastUnsentBodyBytes -= res;
-								 mLastUnsentBytes = mLastUnsentBodyBytes;
-								 mSendingChunkState = SENDING_CHUNK_BODY;
-								 rc = (int)res;
-								 break;
-							 }
-					 case 1:{
+			case SENDING_CHUNK_HEADER:
+				{
+					// size of mWritingBufs should be 2 or 3
+					switch (idx)
+					{
+						case 0:
+							{
+								assert(res < mWritingBufs[0].len);
+								mLastUnsentBytes = mWritingBufs[0].len - res;
+								mSendingChunkState = SENDING_CHUNK_HEADER;
+								rc = 0;
+								break;
+							}
+						case 1:
+							{
+								if (res > 0) {
+									assert(res < mWritingBufs[1].len);
+									assert(mLastUnsentBodyBytes >= mWritingBufs[1].len);
+								}
+								mLastUnsentBodyBytes -= res;
+								mLastUnsentBytes = mLastUnsentBodyBytes;
+								mSendingChunkState = SENDING_CHUNK_BODY;
+								rc -= (int)mWritingBufs[0].len;
+								break;
+							}
+						case 2:
+							{
+								if (res > 0) {
+									assert(res < mWritingBufs[2].len);
+									assert(mLastUnsentBodyBytes == mWritingBufs[1].len);
+								}
+								mLastUnsentBodyBytes = 0;
+								mLastUnsentBytes = mWritingBufs[2].len - res;
+								mSendingChunkState = SENDING_CHUNK_TAIL;
+								rc = (int)mWritingBufs[1].len;//body length
+								break;
+							}
+						case 3:
+							{
+								assert(res == 0);
+								mLastUnsentBodyBytes = 0;
+								mLastUnsentBytes = 0;
+								mSendingChunkState = SENDING_CHUNK_NULL;
+								rc = (int)mWritingBufs[1].len;
+								break;
+							}
+						default:
+							assert(false && "bad logic");
+					}
+					break;
+				}
+			case SENDING_CHUNK_BODY: 
+				{
+					// size of mWritingBufs should be 1 or 2
+					switch (idx) 
+					{
+						case 0: 
+							{
+								assert(mLastUnsentBodyBytes > res);
+								mLastUnsentBodyBytes -= res;
+								mLastUnsentBytes = mLastUnsentBodyBytes;
+								mSendingChunkState = SENDING_CHUNK_BODY;
+								rc = (int)res;
+								break;
+							}
+						case 1:
+							{
 								if (res > 0) {
 									assert(res < mWritingBufs[1].len);
 									mLastUnsentBytes = mWritingBufs[1].len - res;
@@ -481,24 +496,29 @@ namespace LibAsync {
 								rc = (int)mWritingBufs[0].len;
 								break;
 							}
-					 case 2: {
-								 assert(res == 0);
-								 mLastUnsentBodyBytes = 0;
-								 mLastUnsentBytes = 0;
-								 mSendingChunkState = SENDING_CHUNK_NULL;
-								 rc = (int)mWritingBufs[0].len;
-								 break;
-							 }
-					 default:{
-								 assert(false && "bad logic");
-							 }
-				 }
-				 break;
-			 }
-			case SENDING_CHUNK_TAIL: {
-				 // size of mWritingBufs should be 1
-				 switch (idx) {
-					 case 0:{
+						case 2: 
+							{
+								assert(res == 0);
+								mLastUnsentBodyBytes = 0;
+								mLastUnsentBytes = 0;
+								mSendingChunkState = SENDING_CHUNK_NULL;
+								rc = (int)mWritingBufs[0].len;
+								break;
+							}
+						default:
+							{
+								assert(false && "bad logic");
+							}
+					}
+					break;
+				}
+			case SENDING_CHUNK_TAIL: 
+				{
+					// size of mWritingBufs should be 1
+					switch (idx) 
+					{
+						case 0:
+							{
 								assert(mWritingBufs[0].len > res);
 								mLastUnsentBytes = mWritingBufs[0].len - res;
 								mLastUnsentBodyBytes = 0;
@@ -506,7 +526,8 @@ namespace LibAsync {
 								rc = 0;
 								break;
 							}
-					 case 1:{
+						case 1:
+							{
 								assert(res == 0);
 								mLastUnsentBodyBytes = 0;
 								mLastUnsentBytes = 0;
@@ -514,17 +535,20 @@ namespace LibAsync {
 								rc = 0;
 								break;
 							}
-					 default:{
-								 assert(false && "bad logic");
-								 break;
-							 }
-				 }
-				 break;
-				default:{
+						default:
+							{
+								assert(false && "bad logic");
+								break;
+							}
+					}
+					break;
+
+				}
+			default:
+				{
 					assert(false && "bad logic");
 					break;
 				}
-			 }
 		}
 		if (rc > 0)
 			bh.adjust(rc);
