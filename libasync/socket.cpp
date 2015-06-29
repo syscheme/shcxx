@@ -151,6 +151,7 @@ namespace LibAsync{
 
 	Socket::~Socket(){
 		close();
+		mLoop.decreateSockCount();
 	}
 
 	Socket::Ptr Socket::create(EventLoop& loop) {

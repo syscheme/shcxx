@@ -7,7 +7,7 @@
 
 namespace LibAsync {
 	
-	class EventLoopCenter {
+	class EventLoopCenter : public LoopCenter {
 	public:
 		EventLoopCenter();
 		virtual ~EventLoopCenter();
@@ -16,11 +16,26 @@ namespace LibAsync {
 		
 		///从Center里面获取一个EventLoop，当前的实现版本是roundrobin
 		virtual EventLoop&	getLoop();
+		void				releaseLoop();
+	protected:
+		virtual void	addSocket(int id);
+		virtual void	removeSocket( int id);
 
 	private:
-		typedef std::vector<EventLoop*>	LOOPS;
+		struct LoopInfo {
+			EventLoop*	loop;
+			size_t		sockCount;
+			LoopInfo():loop(NULL),
+			sockCount(0) {
+			}
+			bool operator<( const LoopInfo& rhs ) const {
+				return sockCount < rhs.sockCount;
+			}
+		};
+		typedef std::vector<LoopInfo>	LOOPS;
 		size_t				mIdxLoop;
 		LOOPS				mLoops;
+		LOOPS				mTmpLoops;
 		ZQ::common::Mutex	mLocker;
 	};
 
@@ -38,13 +53,16 @@ namespace LibAsync {
 		if( mLoops.size() > 0 )
 			return true;
 		for( size_t i = 0; i < count; i ++ ) {
-			EventLoop* l = new EventLoop(log, i);
+			EventLoop* l = new EventLoop(log, i, this, i);
 			if(!l->start()){
 				delete l;
 				return false;
 			}
-			mLoops.push_back(l);
+			LoopInfo info;
+			info.loop = l;
+			mLoops.push_back(info);
 		}
+		mTmpLoops.reserve( mLoops.size() );
 
 #ifdef ZQ_OS_MSWIN
         if (!Socket::getAcceptEx() || !Socket::getConnectEx()){
@@ -59,23 +77,33 @@ namespace LibAsync {
 		if( mLoops.size() == 0 )
 			return;
 		for( size_t i = 0 ; i < mLoops.size(); i ++ ) {
-			mLoops[i]->stop();
-			delete mLoops[i];
+			mLoops[i].loop->stop();
+			delete mLoops[i].loop;
 		}
 		mLoops.clear();
 	}
 
+	void EventLoopCenter::addSocket(int id) {
+		ZQ::common::MutexGuard gd(mLocker);
+		mLoops[id].sockCount ++;
+	}
+
+	void EventLoopCenter::removeSocket( int id ) {
+		ZQ::common::MutexGuard gd(mLocker);
+		mLoops[id].sockCount --;
+	}
+
 	///从Center里面获取一个EventLoop，当前的实现版本是roundrobin
 	EventLoop& EventLoopCenter::getLoop(){
-	    size_t idx = 0;
 		assert(mLoops.size() > 0);
 		{
 			ZQ::common::MutexGuard gd(mLocker);
-			idx = mIdxLoop++;
-			if(mIdxLoop >= mLoops.size())
-				mIdxLoop = 0;
+			mTmpLoops = mLoops;
 		}
-		return *mLoops[idx];
+		std::sort( mTmpLoops.begin(), mTmpLoops.end());
+		EventLoop* loop = mTmpLoops[0].loop;
+		loop->increateSockCount();
+		return *loop;
 	}
 
 	static EventLoopCenter httpClientCenter;

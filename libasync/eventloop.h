@@ -238,9 +238,16 @@ namespace LibAsync {
 	同时EventLoop还需要为我们提供Timer事件通知，这个其实就是一个timer事件记录表。
 	*/
 
+	class LoopCenter {
+	public:
+		virtual ~LoopCenter() {};
+		virtual void	addSocket( int id ) = 0;
+		virtual void	removeSocket( int id ) = 0;
+	};
+
 	class ZQ_COMMON_API EventLoop : public ZQ::common::NativeThread {
 	public:
-		EventLoop(ZQ::common::Log& log, int cpuid = -1);
+		EventLoop(ZQ::common::Log& log, int cpuid = -1, LoopCenter* center = NULL, int mId = 0 );
 		//EventLoop(int cpuid = -1);
 		virtual ~EventLoop();
 		ZQ::common::Log&  getLog(){ return mLog;}
@@ -266,6 +273,16 @@ namespace LibAsync {
 		bool	unregisterEvent(SocketPtr sock, int event);
 		void  ignoreSigpipe();
 #endif
+
+		inline void increateSockCount() { 
+			if(mLoopCenter)
+				mLoopCenter->addSocket(mLoopId);
+		}
+
+		inline void decreateSockCount() {
+			if( mLoopCenter)
+				mLoopCenter->removeSocket( mLoopId );
+		}
 
 	private:
 		int			run();
@@ -325,6 +342,8 @@ namespace LibAsync {
 	  int					mCpuId;
 	  ZQ::common::Log&       mLog;
 	  int64                  mPreTime;
+	  LoopCenter*			mLoopCenter;
+	  int					mLoopId;
 	};
 
 }//namespace LibAsync
