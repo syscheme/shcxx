@@ -177,6 +177,7 @@ namespace LibAsync {
 				onTimer，这样可以防止在onTimer的实现中调用updateTimer(0)之类的值，
 				导致该Timer不断被执行
 				*/
+				ZQ::common::MutexGuard gd(mLocker);
 				while(true) {
 					if(mTimers.empty()) {
 						mNextWakeup = ZQ::common::now() + 10 * 1000;//configurable ?

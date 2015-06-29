@@ -1056,10 +1056,13 @@ namespace LibAsync {
 	HttpServer::HttpServer( const HttpServerConfig& conf, ZQ::common::Log& logger )
 	:Socket(httpClientCenter.getLoop()),
 	mConfig(conf),
-	mLogger(logger) {
+	mLogger(logger),
+	mSocket(-1),
+	mbRunning(false){
 	}
 
 	HttpServer::~HttpServer() {
+		stop();
 	}
 
 	HttpServer::Ptr	HttpServer::create( const HttpServerConfig& conf, ZQ::common::Log& logger ) {
@@ -1096,6 +1099,60 @@ namespace LibAsync {
 		return factory->create(conn );
 	}
 
+	bool HttpServer::startAt( const std::string& ip, unsigned short port ) {
+		SocketAddrHelper addr(ip,port);
+		return startAt( addr );
+	}
+
+	bool HttpServer::startAt( const std::string& ip, const std::string& port ) {
+		SocketAddrHelper addr(ip,port);
+		return startAt( addr );
+	}
+
+	bool HttpServer::startAt( const SocketAddrHelper& addr ) {
+		const struct addrinfo * info = addr.info();
+		if(!info)
+			return false;
+		mSocket = ::socket(info->ai_family, info->ai_socktype, info->ai_protocol);
+
+		int reuse_value = 1;
+		if( setsockopt(mSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse_value, sizeof(reuse_value)) != 0 )
+			return false;
+
+		if( mSocket < 0 )
+			return false;
+		if( 0 != ::bind( mSocket, info->ai_addr, info->ai_addrlen) )
+			return false;
+		if(0 != ::listen(mSocket,10000) )
+			return false;
+		mbRunning = true;
+		return ZQ::common::NativeThread::start();
+	}
+
+	int HttpServer::run( ) {
+		mLogger(ZQ::common::Log::L_INFO, CLOGFMT(HttpServer,"server start"));
+		struct sockaddr_storage addr;
+		while( mbRunning ) {
+			socklen_t size= (socklen_t)sizeof( addr );
+			int sock = ::accept( mSocket, (struct sockaddr*)&addr, &size);
+			if( sock < 0 )
+				break;
+			Socket::Ptr newSock = onSocketAccepted( sock );
+			if( newSock ) {
+				newSock->initialServerSocket();
+			}
+		}
+		mLogger(ZQ::common::Log::L_INFO, CLOGFMT(HttpServer,"server quit"));
+		return 0;
+	}
+	void HttpServer::stop() {
+		mbRunning = false;
+		::close(mSocket);
+		waitHandle(-1);
+	}
+
+
+	/**
 	bool HttpServer::startAt( const std::string& ip, unsigned short port) {
 		if(!bind(ip,port)) {
 			mLogger(ZQ::common::Log::L_ERROR,CLOGFMT(HttpServer,"failed to start server at[%s:%hu]"),
@@ -1112,6 +1169,7 @@ namespace LibAsync {
 		sscanf(port.c_str(),"%hu", &usport);
 		return startAt(ip,usport);
 	}
+	*/
 	
 	void HttpServer::onSocketError(int err) {
 		// should I ignore this ?

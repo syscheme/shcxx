@@ -336,7 +336,7 @@ namespace LibAsync {
 		uint64		maxConns;
 	};
 
-	class ZQ_COMMON_API HttpServer : public Socket {
+	class ZQ_COMMON_API HttpServer : public Socket, public ZQ::common::NativeThread {
 	protected:
 		HttpServer( const HttpServerConfig& conf, ZQ::common::Log& logger );
 	public:	
@@ -355,10 +355,17 @@ namespace LibAsync {
 		bool	startAt( const std::string& ip, unsigned short port);
 		bool	startAt( const std::string& ip, const std::string& port);
 
+		void	stop( );
+
 		HttpMessagePtr makeSimpleResponse( int code ) const;
 
 		const HttpServerConfig&	config() const { return mConfig; }
+
+
 	private:
+		bool					startAt( const SocketAddrHelper& addr );
+
+		int						run( );
 		
 		virtual	void			onSocketError(int err);
 
@@ -375,6 +382,8 @@ namespace LibAsync {
 		std::set<HttpServant::Ptr> mServants;
 		ZQ::common::Mutex		mLocker;
 		ZQ::common::Log&		mLogger;
+		int						mSocket;
+		bool					mbRunning;
 	};
 
 }//namespace LibAsync
