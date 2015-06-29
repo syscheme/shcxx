@@ -69,6 +69,7 @@ namespace LibAsync {
 		setReuseAddr(true);
 		if (::listen(mSocket, backlog) != 0 )
 			return false;
+		setDeferAccept();
 		return acceptAction( true );
 	}
 
@@ -234,7 +235,7 @@ namespace LibAsync {
 	bool Socket::acceptAction( bool firstAccept/* = false*/ )
 	{
 		struct sockaddr_in  clientAddr;
-		socklen_t clientLen;
+		socklen_t clientLen = sizeof(clientAddr);
 		int sockFd = ::accept(mSocket, (struct sockaddr*)&clientAddr, &clientLen);
 		if (sockFd > 0)
 		{
@@ -525,7 +526,12 @@ SEND_DATA:
 	bool Socket::setNoDelay( bool nodelay ) {
 		int iNoDelay = nodelay ? 1:0;
 		return 0 == setsockopt( mSocket, IPPROTO_TCP, TCP_NODELAY, (const char*)&iNoDelay, sizeof(iNoDelay));
+	//	return true;
 	}
 
+	bool Socket::setDeferAccept( ){
+		int val = 1;
+		return 0 == setsockopt( mSocket, SOL_TCP, TCP_DEFER_ACCEPT, &val, sizeof(val)) ;
+	}
 
 }//libAsync
