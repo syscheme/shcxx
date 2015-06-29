@@ -195,12 +195,13 @@ void EventLoop::processEvent( int64 expireAt )
 			if (sock->mbListenSocket)
 			{
 				int loopAccept = 0;
-				while(loopAccept < 16 )
+				while(/*loopAccept < 16*/sock->acceptAction() )
 				{
-					if ( !sock->acceptAction() )
-						break;
+					//if ( !sock->acceptAction() )
+					//	break;
 					loopAccept ++;
 				}
+				mLog(ZQ::common::Log::L_DEBUG, CLOGFMT(EventLoop, "process event accept event[%d] come client[%p], accept[%d]."), events[i].events, sock._ptr, loopAccept);				
 			}
 			else
 			{

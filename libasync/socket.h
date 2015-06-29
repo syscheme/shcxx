@@ -98,6 +98,7 @@ namespace LibAsync {
 		bool	setCork( bool cork );
         // 向EPOLL中注册写事件，当该socket可写的时，通过回调onWritable通知该socket可发
 		bool 	registerWrite();
+		bool    setDeferAccept();
 #endif//ZQ_OS
 
 	protected:
