@@ -30,6 +30,8 @@
 #include "Locks.h"
 
 #include <vector>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
 
 #define		Min_FileNum 2
 #define		Max_FileNum 30
@@ -212,9 +214,9 @@ protected:
 	std::vector<LogBuffer*>		mToBeFlushBuffers;
 	std::vector<LogBuffer*>		mAvailBuffers;
 	LogBuffer*		mRunningBuffer;
-	Mutex			m_buffMtx;					//»º³åÇø±£»¤Ëø
-	Semaphore		m_semAvail;
-	Semaphore		m_semFlush;
+	boost::mutex	m_buffMtx;
+	boost::condition_variable m_semAvail;
+	boost::condition_variable m_semFlush;
 
 	bool			mbRunning;
 

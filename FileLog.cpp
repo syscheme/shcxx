@@ -420,11 +420,11 @@ void FileLog::clear()
 
 	//销毁缓冲区
 	mbRunning = false;
-	m_semFlush.post();
+	m_semFlush.notify_one();
 	waitHandle(-1);
 
 	{
-		ZQ::common::MutexGuard gd(m_buffMtx);
+		boost::mutex::scoped_lock gd(m_buffMtx);
 		for( size_t i = 0; i < mAvailBuffers.size(); i ++ ) {
 			LogBuffer* buf = mAvailBuffers[i];
 			assert(buf != NULL);
@@ -562,8 +562,7 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 		size_t	m_nMaxBuffSize = buffSizeIn8KB * (8 * 1024);
 		char* m_Buff = new char[m_nMaxBuffSize];					//分配缓冲区
 		LogBuffer* buf = new LogBuffer(m_Buff, m_nMaxBuffSize);
-		makeBufferToBeFlush(buf);
-	//	memset(m_Buff, 0, m_nMaxBuffSize);
+		makeBufferAvail(buf);
 	}
 	
 	// 根据文件名创建所需的directory
@@ -730,7 +729,7 @@ void FileLog::writeMessage(const char *msg, int level)
 
 	while(true)
 	{
-		MutexGuard lk(m_buffMtx);
+		boost::mutex::scoped_lock gd(m_buffMtx);
 		while(!getAvailBuffer() ){
 			;
 		}
@@ -813,7 +812,7 @@ void FileLog::flushData()
 	std::vector<LogBuffer*> buffers;
 
 	{
-		ZQ::common::MutexGuard gd(m_buffMtx);
+		boost::mutex::scoped_lock gd(m_buffMtx);
 		buffers.swap( mToBeFlushBuffers );
 	}
 
@@ -875,7 +874,11 @@ void FileLog::flushData()
 int FileLog::run() {
 
 	while(mbRunning ) {
-		m_semFlush.wait();
+		{
+			boost::mutex::scoped_lock gd(m_buffMtx);
+			if(mToBeFlushBuffers.size() == 0 ) 
+				m_semFlush.wait(gd);
+		}
 		flushData();
 	}
 	return 0;
@@ -884,22 +887,32 @@ int FileLog::run() {
 void FileLog::makeBufferAvail( LogBuffer* buf ) {
 	assert( buf != NULL );
 	{
-		ZQ::common::MutexGuard gd(m_buffMtx);
+		boost::mutex::scoped_lock gd(m_buffMtx);
 		mAvailBuffers.push_back(buf);
 	}
-	m_semAvail.post();
+	m_semAvail.notify_one();
 }
 
 void FileLog::makeBufferToBeFlush( LogBuffer* buf ) {
 	assert( buf != 0 );
 	{
-		ZQ::common::MutexGuard gd(m_buffMtx);
+		boost::mutex::scoped_lock gd(m_buffMtx);
+		assert(buf == mRunningBuffer);
+		assert(mRunningBuffer == mAvailBuffers[0]);
+		mAvailBuffers.erase(mAvailBuffers.begin());
+		if(mAvailBuffers.size()>0) {
+			mRunningBuffer = mAvailBuffers[0];
+		} else {
+			mRunningBuffer = NULL;
+		}
+
 		mToBeFlushBuffers.push_back(buf);
 	}
-	m_semFlush.post();
+	m_semFlush.notify_one();
 }
 
 bool FileLog::getAvailBuffer( ) {
+	boost::mutex::scoped_lock gd(m_buffMtx);
 	while(true) {
 		if(mRunningBuffer != NULL)
 			return true;
@@ -907,9 +920,7 @@ bool FileLog::getAvailBuffer( ) {
 			mRunningBuffer = *mAvailBuffers.begin();
 			return true;
 		}
-		m_buffMtx.leave();
-		m_semAvail.wait();
-		m_buffMtx.enter();
+		m_semAvail.wait(gd);
 	}
 	return false;
 }
@@ -978,7 +989,7 @@ void FileLog::increaseInsert(std::vector<int>& vctInts, int valInt)
 
 void FileLog::RenameAndCreateFile()
 {
-	ZQ::common::MutexGuard gd(m_buffMtx);
+	boost::mutex::scoped_lock gd(m_buffMtx);
 	if (m_cYield >0)
 	{
 		--m_cYield;
@@ -1312,15 +1323,9 @@ int FileLog::run_interval()
 void FileLog::flush()
 {
 	{
-		ZQ::common::MutexGuard gd(m_buffMtx);
+		boost::mutex::scoped_lock gd(m_buffMtx);
 		if(mRunningBuffer != NULL && mAvailBuffers.size() > 0 && mRunningBuffer->m_nCurrentBuffSize > 0 ) {
 			makeBufferToBeFlush(mRunningBuffer);
-			mAvailBuffers.erase(mAvailBuffers.begin());
-			if(mAvailBuffers.size() > 0 ) {
-				mRunningBuffer = *mAvailBuffers.begin();
-			} else {
-				mRunningBuffer = NULL;
-			}
 		}
 	}
 }
@@ -1332,7 +1337,7 @@ const char* FileLog::getLogFilePathname() const
 
 void FileLog::setFileSize(const int& fileSize)
 {
-	MutexGuard lk(m_buffMtx);
+	boost::mutex::scoped_lock lk(m_buffMtx);
 
 	// 设置log的文件大小为1MB的整数倍，并且最小值为2MB，最大值为2000MB
 	int nLogSizeIn1MB = fileSize / (1024 * 1024);
@@ -1351,7 +1356,7 @@ void FileLog::setFileSize(const int& fileSize)
 
 void FileLog::setFileCount(const int& fileCount)
 {
-	MutexGuard lk(m_buffMtx);
+	boost::mutex::scoped_lock lk(m_buffMtx);
 	
 	m_nMaxLogfileNum = fileCount;					//设置log文件的数目, Min_FileNum ~ Max_FileNum个
 	if(m_nMaxLogfileNum > Max_FileNum)
@@ -1362,16 +1367,23 @@ void FileLog::setFileCount(const int& fileCount)
 
 void FileLog::setBufferSize(const int& buffSize)
 {
+
+	boost::mutex::scoped_lock lk(m_buffMtx);
+
+	flush();
 	flushData();
 
 	//do not support changing buffer size on the fly
+	std::vector<LogBuffer*>::iterator it  = mAvailBuffers.begin();
 
-	/*
-	//销毁缓冲区
-	if (NULL != m_Buff)
-		delete []m_Buff;
-	m_Buff = NULL;
-
+	for( ; it != mAvailBuffers.end() ; it ++ ) {
+		LogBuffer* buf = *it;
+		if (NULL != buf->m_Buff)
+			delete [](buf->m_Buff);
+		delete buf;
+	}
+	mAvailBuffers.clear();
+	
 	int buffSizeIn8KB = buffSize / (8 * 1024);
 	if (buffSize % (8 * 1024) != 0)
 		buffSizeIn8KB ++;
@@ -1379,15 +1391,19 @@ void FileLog::setBufferSize(const int& buffSize)
 		buffSizeIn8KB = 1; // 8 KB
 	if (buffSizeIn8KB > 1024)
 		buffSizeIn8KB = 1024; // 8 MB
-	m_nMaxBuffSize = buffSizeIn8KB * (8 * 1024);
-	m_Buff = new char[m_nMaxBuffSize];					//分配缓冲区
-	memset(m_Buff, 0, m_nMaxBuffSize);
-	*/
+	int m_nMaxBuffSize = buffSizeIn8KB * (8 * 1024);
+
+	for( size_t i = 0 ; i < 3; i ++ ) {
+		char* m_Buff = new char[m_nMaxBuffSize];					//分配缓冲区
+		LogBuffer* buf = new LogBuffer(m_Buff, m_nMaxBuffSize);
+		makeBufferAvail(buf);
+	}
+	mRunningBuffer = mAvailBuffers[0];
 }
 
 void FileLog::setLevel(const int& level)
 {
-	MutexGuard lk(m_buffMtx);
+	boost::mutex::scoped_lock lk(m_buffMtx);
 	setVerbosity(level);
 }
 
