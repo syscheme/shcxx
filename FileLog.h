@@ -85,7 +85,7 @@ typedef LogVector::iterator LogItor;
 	Mutex _lockLogInsts;
 };
 	
-class FileLog : public Log
+class FileLog : public Log, public NativeThread
 {
 	friend class FileLogNest;
 	friend class LogThread;
@@ -172,6 +172,8 @@ protected:
 	//强制将缓冲区数据写入log文件
 	virtual void flushData();
 
+	virtual int		run();
+
 	//与log文件相关的变量
 protected:
 	SysLog		m_SysLog;					//系统事件log
@@ -181,15 +183,41 @@ protected:
 	char		m_FileName[MAX_PATH];		//log文件名
 	FileLogNest* _pNest;
 
+private:
+	struct LogBuffer {
+		char*		m_Buff;
+		int			m_nMaxBuffSize;
+		int			m_nCurrentBuffSize;
+		LogBuffer(char* buf, int maxSize)
+		:
+		m_Buff(buf),
+		m_nMaxBuffSize(maxSize),
+		m_nCurrentBuffSize(0) {
+		}
+	};
+
+
+	void		makeBufferAvail( LogBuffer* buf );
+	void		makeBufferToBeFlush( LogBuffer* buf );
+	bool		getAvailBuffer( );
+
 	//与log缓冲区相关的变量
 protected:
 	void	createDir(const std::string& dirName);
 	void	RenameAndCreateFile();
 	bool	IsFileExsit(const char* filename,int& retFileSize);
-	char*			m_Buff;						//缓冲区指针
-	int				m_nMaxBuffSize;				//缓冲区最大size
-	int				m_nCurrentBuffSize;			//当前缓冲区size
+
+
+	
+	std::vector<LogBuffer*>		mToBeFlushBuffers;
+	std::vector<LogBuffer*>		mAvailBuffers;
+	LogBuffer*		mRunningBuffer;
 	Mutex			m_buffMtx;					//缓冲区保护锁
+	Semaphore		m_semAvail;
+	Semaphore		m_semFlush;
+
+	bool			mbRunning;
+
 	int				m_nFlushInterval;			//定时将缓冲区中的数据写入log文件
 	uint16			m_currentMonth;				//当前月份
 	int				m_eventLogLevel;			//写入系统EventLog的log级别

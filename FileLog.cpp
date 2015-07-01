@@ -14,7 +14,7 @@
 #include <functional>
 
 extern "C" {
-
+#include <assert.h>
 #ifndef ZQ_OS_MSWIN
 #  include <sys/stat.h>
 #  include <sys/timeb.h>
@@ -345,9 +345,6 @@ FileLog::FileLog()
 	, m_nCurrentFileSize(0)
 	, m_nMaxFileSize(2000 * 1024 * 1024)
 	, _pNest(NULL)
-	, m_Buff(NULL)
-	, m_nMaxBuffSize(ZQLOG_DEFAULT_BUFFSIZE)
-	, m_nCurrentBuffSize(0)
 	, m_nFlushInterval(ZQLOG_DEFAULT_FLUSHINTERVAL)
 	, m_currentMonth(0)
 	, m_eventLogLevel(ZQLOG_DEFAULT_EVENTLOGLEVEL)
@@ -373,9 +370,6 @@ FileLog::FileLog(const char* filename, const int verbosity, int logFileNum, int 
 	, m_nCurrentFileSize(0)
 	, m_nMaxFileSize(2000 * 1024 * 1024)
 	, _pNest(NULL)
-	, m_Buff(NULL)
-	, m_nMaxBuffSize(ZQLOG_DEFAULT_BUFFSIZE)
-	, m_nCurrentBuffSize(0)
 	, m_nFlushInterval(ZQLOG_DEFAULT_FLUSHINTERVAL)
 	, m_currentMonth(0)
 	, m_eventLogLevel(ZQLOG_DEFAULT_EVENTLOGLEVEL)
@@ -401,7 +395,7 @@ FileLog::FileLog(const char* filename, const int verbosity, int logFileNum, int 
 FileLog::~FileLog()
 {
 	// 清理对象
-	try {clear();} catch (...) {}
+	clear();
 }
 
 void FileLog::clear()
@@ -422,11 +416,24 @@ void FileLog::clear()
 
 	// 强制写文件
 	flush();
+	flushData();
 
 	//销毁缓冲区
-	if (NULL != m_Buff)
-		delete []m_Buff;
-	m_Buff = NULL;
+	mbRunning = false;
+	m_semFlush.post();
+	waitHandle(-1);
+
+	{
+		ZQ::common::MutexGuard gd(m_buffMtx);
+		for( size_t i = 0; i < mAvailBuffers.size(); i ++ ) {
+			LogBuffer* buf = mAvailBuffers[i];
+			assert(buf != NULL);
+			if (NULL != buf->m_Buff)
+				delete [](buf->m_Buff);
+			delete buf;
+		}
+		mAvailBuffers.clear();
+	}
 
 	// 关闭文件
 	if (NULL != _pNest && NULL != _pNest->m_FileStream && true == _pNest->m_FileStream->is_open())
@@ -540,7 +547,6 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 	m_nFlushInterval = flushInterval;
 
 	m_nCurrentFileSize		= 0;							//设置当前的log文件大小
-	m_nCurrentBuffSize		= 0;							//设置当前的buffer size
 	m_eventLogLevel = eventLogLevel;						//设置写入系统EventLog的log级别
 
 	int buffSizeIn8KB = buffersize / (8 * 1024);
@@ -550,9 +556,15 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 		buffSizeIn8KB = 1; // 8 KB
 	if (buffSizeIn8KB > 1024)
 		buffSizeIn8KB = 1024; // 8 MB
-	m_nMaxBuffSize = buffSizeIn8KB * (8 * 1024);
-	m_Buff = new char[m_nMaxBuffSize];					//分配缓冲区
-	memset(m_Buff, 0, m_nMaxBuffSize);
+
+
+	for( size_t i = 0 ; i < 3; i ++ ) {
+		size_t	m_nMaxBuffSize = buffSizeIn8KB * (8 * 1024);
+		char* m_Buff = new char[m_nMaxBuffSize];					//分配缓冲区
+		LogBuffer* buf = new LogBuffer(m_Buff, m_nMaxBuffSize);
+		makeBufferToBeFlush(buf);
+	//	memset(m_Buff, 0, m_nMaxBuffSize);
+	}
 	
 	// 根据文件名创建所需的directory
 	std::string pathName = getPath(m_FileName);	
@@ -617,6 +629,8 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 		m_instIdent = ++ m_lastInstIdent;
 		m_staticThread->addLogInst(this); // 向static thread注册
 	}
+	mbRunning = true;
+	NativeThread::start();
 }
 
 //向buffer 中写入数据，要对buffer进行加锁
@@ -636,8 +650,7 @@ void FileLog::writeMessage(const char *msg, int level)
 	{
 		m_currentMonth = time.wMonth;
 		{
-			MutexGuard lk(m_buffMtx);
-			flushData();
+			flush();
 			RenameAndCreateFile();
 		}
 	}
@@ -662,8 +675,7 @@ void FileLog::writeMessage(const char *msg, int level)
 	{
 		m_currentMonth = ptm->tm_mon + 1;
 		{
-			MutexGuard mg(m_buffMtx);
-			flushData();
+			flush();
 			RenameAndCreateFile();
 		}
 	}
@@ -716,21 +728,24 @@ void FileLog::writeMessage(const char *msg, int level)
 #endif
 	}
 
+	while(true)
 	{
 		MutexGuard lk(m_buffMtx);
-		int totalBuffSize = m_nCurrentBuffSize + nLineSize;
-		if(totalBuffSize > m_nMaxBuffSize)
+		while(!getAvailBuffer() ){
+			;
+		}
+		assert(mRunningBuffer != NULL);
+		int totalBuffSize = mRunningBuffer->m_nCurrentBuffSize + nLineSize;
+		if(totalBuffSize >= mRunningBuffer->m_nMaxBuffSize)
 		{
 			//若缓冲区不能容纳，则将缓冲区信息flush到文件里面
-			flushData();
-			memcpy(m_Buff, line, nLineSize);
-			m_nCurrentBuffSize = nLineSize;
+			makeBufferToBeFlush( mRunningBuffer );
+			while(!getAvailBuffer()) {
+				;
+			}
 		}
-		else
-		{
-			memcpy(m_Buff + m_nCurrentBuffSize, line, nLineSize);
-			m_nCurrentBuffSize += nLineSize;
-		}
+		memcpy( mRunningBuffer->m_Buff + mRunningBuffer->m_nCurrentBuffSize, line, nLineSize);
+		mRunningBuffer->m_nCurrentBuffSize += nLineSize;
 	}
 
 	return;
@@ -795,45 +810,108 @@ void FileLog::flushData()
 
 void FileLog::flushData()
 {
-	if (m_nCurrentBuffSize == 0)
-		return; // no need to flush buffer data
+	std::vector<LogBuffer*> buffers;
 
-	//若不大于文件的maxsize，则写入文件
-	if( NULL == _pNest->m_FileStream)
 	{
-		SYSTEMFILELOG(Log::L_DEBUG, "opening logfile[%s]", m_FileName);
-		_pNest->m_FileStream = new std::ofstream();
-		if(NULL == _pNest->m_FileStream)
-			throw FileLogException("failed to instance an fstream to write");
-
-		// refresh the filesize by reading file system
-		m_nCurrentFileSize = 0;
-		FILE *fp = NULL;
-		if (NULL != (fp=fopen(m_FileName, "rb")))
-		{
-			fseek(fp, 0, SEEK_END);
-			m_nCurrentFileSize = ftell(fp);
-			fclose(fp);
-		}
-
-		_pNest->m_FileStream->open(m_FileName, std::ios::app | std::ios::binary);
-		if (!_pNest->m_FileStream->is_open())
-		{	
-			delete _pNest->m_FileStream;
-			_pNest->m_FileStream = NULL;
-			SYSTEMFILELOG(Log::L_EMERG, "failed to open logfile[%s]", m_FileName);
-			return;
-		}
+		ZQ::common::MutexGuard gd(m_buffMtx);
+		buffers.swap( mToBeFlushBuffers );
 	}
 
-	_pNest->m_FileStream->write(m_Buff, m_nCurrentBuffSize);
-	_pNest->m_FileStream->flush();
-	m_nCurrentFileSize += m_nCurrentBuffSize;
-	m_nCurrentBuffSize =0;
+	std::vector<LogBuffer*>::const_iterator it = buffers.begin();
+	
+	char*			m_Buff;						//缓冲区指针
+	int				m_nMaxBuffSize;				//缓冲区最大size
+	int				m_nCurrentBuffSize;			//当前缓冲区size
 
-	// rotate the files if file size exceeded the limitation
-	if (m_nCurrentFileSize > m_nMaxFileSize)
-		RenameAndCreateFile();
+	for( ; it != buffers.end() ; it ++ ) {
+		//若不大于文件的maxsize，则写入文件
+		LogBuffer* buf = *it;
+		m_Buff = buf->m_Buff;
+		m_nMaxBuffSize = buf->m_nMaxBuffSize;
+		m_nCurrentBuffSize = buf->m_nCurrentBuffSize;
+		
+		if( NULL == _pNest->m_FileStream)
+		{
+			SYSTEMFILELOG(Log::L_DEBUG, "opening logfile[%s]", m_FileName);
+			_pNest->m_FileStream = new std::ofstream();
+			if(NULL == _pNest->m_FileStream)
+				throw FileLogException("failed to instance an fstream to write");
+
+			// refresh the filesize by reading file system
+			m_nCurrentFileSize = 0;
+			FILE *fp = NULL;
+			if (NULL != (fp=fopen(m_FileName, "rb")))
+			{
+				fseek(fp, 0, SEEK_END);
+				m_nCurrentFileSize = ftell(fp);
+				fclose(fp);
+			}
+
+			_pNest->m_FileStream->open(m_FileName, std::ios::app | std::ios::binary);
+			if (!_pNest->m_FileStream->is_open())
+			{	
+				delete _pNest->m_FileStream;
+				_pNest->m_FileStream = NULL;
+				SYSTEMFILELOG(Log::L_EMERG, "failed to open logfile[%s]", m_FileName);
+				return;
+			}
+		}
+
+		_pNest->m_FileStream->write(m_Buff, m_nCurrentBuffSize);
+		_pNest->m_FileStream->flush();
+		m_nCurrentFileSize += m_nCurrentBuffSize;
+		m_nCurrentBuffSize = 0;
+		buf->m_nCurrentBuffSize = m_nCurrentBuffSize;
+		makeBufferAvail( buf );
+
+		// rotate the files if file size exceeded the limitation
+		if (m_nCurrentFileSize > m_nMaxFileSize) {
+			RenameAndCreateFile();
+		}
+
+	}
+}
+
+int FileLog::run() {
+
+	while(mbRunning ) {
+		m_semFlush.wait();
+		flushData();
+	}
+	return 0;
+}
+
+void FileLog::makeBufferAvail( LogBuffer* buf ) {
+	assert( buf != NULL );
+	{
+		ZQ::common::MutexGuard gd(m_buffMtx);
+		mAvailBuffers.push_back(buf);
+	}
+	m_semAvail.post();
+}
+
+void FileLog::makeBufferToBeFlush( LogBuffer* buf ) {
+	assert( buf != 0 );
+	{
+		ZQ::common::MutexGuard gd(m_buffMtx);
+		mToBeFlushBuffers.push_back(buf);
+	}
+	m_semFlush.post();
+}
+
+bool FileLog::getAvailBuffer( ) {
+	while(true) {
+		if(mRunningBuffer != NULL)
+			return true;
+		if(mAvailBuffers.size() != 0 ) {
+			mRunningBuffer = *mAvailBuffers.begin();
+			return true;
+		}
+		m_buffMtx.leave();
+		m_semAvail.wait();
+		m_buffMtx.enter();
+	}
+	return false;
 }
 
 
@@ -900,6 +978,7 @@ void FileLog::increaseInsert(std::vector<int>& vctInts, int valInt)
 
 void FileLog::RenameAndCreateFile()
 {
+	ZQ::common::MutexGuard gd(m_buffMtx);
 	if (m_cYield >0)
 	{
 		--m_cYield;
@@ -1226,34 +1305,24 @@ void FileLog::RenameAndCreateFile()
 
 int FileLog::run_interval()
 {
-	try{
-		flush();
-	}
-	catch(...) {}
-//	while (false == _bQuit)
-//	{
-//		flush();
-//#ifdef ZQ_OS_MSWIN
-//		WaitForSingleObject(_event, m_nFlushInterval*1000);
-//#else
-//		struct timespec ts;
-//		struct timeb tb;
-//		
-//		ftime(&tb);
-//		tb.time += m_nFlushInterval;		
-//		ts.tv_sec = tb.time;
-//		ts.tv_nsec = tb.millitm * 1000000;
-//		sem_timedwait(&_pthsem,&ts);
-//
-//#endif
-//	}
+	flushData();
 	return 0;
 }
 
 void FileLog::flush()
 {
-	MutexGuard lk(m_buffMtx);
-	flushData();
+	{
+		ZQ::common::MutexGuard gd(m_buffMtx);
+		if(mRunningBuffer != NULL && mAvailBuffers.size() > 0 && mRunningBuffer->m_nCurrentBuffSize > 0 ) {
+			makeBufferToBeFlush(mRunningBuffer);
+			mAvailBuffers.erase(mAvailBuffers.begin());
+			if(mAvailBuffers.size() > 0 ) {
+				mRunningBuffer = *mAvailBuffers.begin();
+			} else {
+				mRunningBuffer = NULL;
+			}
+		}
+	}
 }
 
 const char* FileLog::getLogFilePathname() const
@@ -1293,10 +1362,11 @@ void FileLog::setFileCount(const int& fileCount)
 
 void FileLog::setBufferSize(const int& buffSize)
 {
-	MutexGuard lk(m_buffMtx);
-
 	flushData();
 
+	//do not support changing buffer size on the fly
+
+	/*
 	//销毁缓冲区
 	if (NULL != m_Buff)
 		delete []m_Buff;
@@ -1312,6 +1382,7 @@ void FileLog::setBufferSize(const int& buffSize)
 	m_nMaxBuffSize = buffSizeIn8KB * (8 * 1024);
 	m_Buff = new char[m_nMaxBuffSize];					//分配缓冲区
 	memset(m_Buff, 0, m_nMaxBuffSize);
+	*/
 }
 
 void FileLog::setLevel(const int& level)
