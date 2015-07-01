@@ -30,8 +30,9 @@
 #include "Locks.h"
 
 #include <vector>
+
 #include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
+#include <boost/thread/condition_variable.hpp>
 
 #define		Min_FileNum 2
 #define		Max_FileNum 30
