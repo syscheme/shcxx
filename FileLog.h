@@ -31,9 +31,6 @@
 
 #include <vector>
 
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/condition_variable.hpp>
-
 #define		Min_FileNum 2
 #define		Max_FileNum 30
 #define		ZQLOG_DEFAULT_FILENUM		10					// 最多可以有几个log备份文件
@@ -210,14 +207,15 @@ protected:
 	void	RenameAndCreateFile();
 	bool	IsFileExsit(const char* filename,int& retFileSize);
 
-
+typedef void*	BOOSTMUTEX;
+typedef void*	BOOSTCOND;
 	
 	std::vector<LogBuffer*>		mToBeFlushBuffers;
 	std::vector<LogBuffer*>		mAvailBuffers;
 	LogBuffer*		mRunningBuffer;
-	boost::mutex	m_buffMtx;
-	boost::condition_variable m_semAvail;
-	boost::condition_variable m_semFlush;
+	BOOSTMUTEX		m_buffMtx;
+	BOOSTCOND		m_semAvail;
+	BOOSTCOND		m_semFlush;
 
 	bool			mbRunning;
 
