@@ -745,8 +745,7 @@ void FileLog::writeMessage(const char *msg, int level)
 #endif
 	}
 
-	while(true)
-	{
+	do{
 		boost::recursive_mutex::scoped_lock gd(*(reinterpret_cast<boost::recursive_mutex*>(m_buffMtx)));
 		while( true ){
 			if(mRunningBuffer != NULL)
@@ -768,7 +767,7 @@ void FileLog::writeMessage(const char *msg, int level)
 		memcpy( mRunningBuffer->m_Buff + mRunningBuffer->m_nCurrentBuffSize, line, nLineSize);
 		mRunningBuffer->m_nCurrentBuffSize += nLineSize;
 		break;
-	}
+	} while(true);
 
 	return;
 }
