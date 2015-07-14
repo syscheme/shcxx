@@ -3,7 +3,7 @@
 // FileLog.cpp: implementation of the FileLog class.
 // Author: copyright (c) Han Guan
 //////////////////////////////////////////////////////////////////////
-#include <boost/thread/mutex.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/condition_variable.hpp>
 
 #include "FileLog.h"
@@ -356,9 +356,9 @@ FileLog::FileLog()
 {
 	memset(m_FileName, 0, sizeof(m_FileName));
 
-	m_buffMtx = reinterpret_cast<void*>( new boost::mutex());
-	m_semAvail = reinterpret_cast<void*>( new boost::condition_variable());
-	m_semFlush = reinterpret_cast<void*>( new boost::condition_variable());
+	m_buffMtx = reinterpret_cast<void*>( new boost::recursive_mutex());
+	m_semAvail = reinterpret_cast<void*>( new boost::condition_variable_any());
+	m_semFlush = reinterpret_cast<void*>( new boost::condition_variable_any());
 
 	// 创建输出文件流
 	try
@@ -385,9 +385,9 @@ FileLog::FileLog(const char* filename, const int verbosity, int logFileNum, int 
 {
 	memset(m_FileName, 0, sizeof(m_FileName));
 
-	m_buffMtx = reinterpret_cast<void*>( new boost::mutex());
-	m_semAvail = reinterpret_cast<void*>( new boost::condition_variable());
-	m_semFlush = reinterpret_cast<void*>( new boost::condition_variable());
+	m_buffMtx = reinterpret_cast<void*>( new boost::recursive_mutex());
+	m_semAvail = reinterpret_cast<void*>( new boost::condition_variable_any());
+	m_semFlush = reinterpret_cast<void*>( new boost::condition_variable_any());
 
 	// 创建输出文件流
 	try
@@ -407,12 +407,12 @@ FileLog::~FileLog()
 	// 清理对象
 	clear();
 
-	boost::mutex *pMutex = reinterpret_cast<boost::mutex*>(m_buffMtx);
+	boost::recursive_mutex *pMutex = reinterpret_cast<boost::recursive_mutex*>(m_buffMtx);
 	delete pMutex;
-	boost::condition_variable* pCond = reinterpret_cast<boost::condition_variable*>(m_semAvail);
+	boost::condition_variable_any* pCond = reinterpret_cast<boost::condition_variable_any*>(m_semAvail);
 	delete pCond;
 
-	pCond = reinterpret_cast<boost::condition_variable*>(m_semFlush);
+	pCond = reinterpret_cast<boost::condition_variable_any*>(m_semFlush);
 	delete pCond;
 }
 
@@ -438,11 +438,11 @@ void FileLog::clear()
 
 	//销毁缓冲区
 	mbRunning = false;
-	(reinterpret_cast<boost::condition_variable*>(m_semFlush))->notify_one();
+	(reinterpret_cast<boost::condition_variable_any*>(m_semFlush))->notify_one();
 	waitHandle(-1);
 
 	{
-		boost::mutex::scoped_lock gd(*(reinterpret_cast<boost::mutex*>(m_buffMtx)));
+		boost::recursive_mutex::scoped_lock gd(*(reinterpret_cast<boost::recursive_mutex*>(m_buffMtx)));
 		for( size_t i = 0; i < mAvailBuffers.size(); i ++ ) {
 			LogBuffer* buf = mAvailBuffers[i];
 			assert(buf != NULL);
@@ -747,7 +747,7 @@ void FileLog::writeMessage(const char *msg, int level)
 
 	while(true)
 	{
-		boost::mutex::scoped_lock gd(*(reinterpret_cast<boost::mutex*>(m_buffMtx)));
+		boost::recursive_mutex::scoped_lock gd(*(reinterpret_cast<boost::recursive_mutex*>(m_buffMtx)));
 		while(!getAvailBuffer() ){
 			;
 		}
@@ -830,7 +830,7 @@ void FileLog::flushData()
 	std::vector<LogBuffer*> buffers;
 
 	{
-		boost::mutex::scoped_lock gd(*(reinterpret_cast<boost::mutex*>(m_buffMtx)));
+		boost::recursive_mutex::scoped_lock gd(*(reinterpret_cast<boost::recursive_mutex*>(m_buffMtx)));
 		buffers.swap( mToBeFlushBuffers );
 	}
 
@@ -893,9 +893,10 @@ int FileLog::run() {
 
 	while(mbRunning ) {
 		{
-			boost::mutex::scoped_lock gd(*(reinterpret_cast<boost::mutex*>(m_buffMtx)));
-			if(mToBeFlushBuffers.size() == 0 ) 
-				(reinterpret_cast<boost::condition_variable*>(m_semFlush))->wait(gd);
+			boost::recursive_mutex::scoped_lock gd(*(reinterpret_cast<boost::recursive_mutex*>(m_buffMtx)));
+			if(mToBeFlushBuffers.size() == 0 )  {
+				(reinterpret_cast<boost::condition_variable_any*>(m_semFlush))->wait(gd);
+			}
 		}
 		flushData();
 	}
@@ -905,16 +906,16 @@ int FileLog::run() {
 void FileLog::makeBufferAvail( LogBuffer* buf ) {
 	assert( buf != NULL );
 	{
-		boost::mutex::scoped_lock gd(*(reinterpret_cast<boost::mutex*>(m_buffMtx)));
+		boost::recursive_mutex::scoped_lock gd(*(reinterpret_cast<boost::recursive_mutex*>(m_buffMtx)));
 		mAvailBuffers.push_back(buf);
 	}
-	(reinterpret_cast<boost::condition_variable*>(m_semAvail))->notify_one();
+	(reinterpret_cast<boost::condition_variable_any*>(m_semAvail))->notify_one();
 }
 
 void FileLog::makeBufferToBeFlush( LogBuffer* buf ) {
 	assert( buf != 0 );
 	{
-		boost::mutex::scoped_lock gd(*(reinterpret_cast<boost::mutex*>(m_buffMtx)));
+		//caller already hold the locker
 		assert(buf == mRunningBuffer);
 		assert(mRunningBuffer == mAvailBuffers[0]);
 		mAvailBuffers.erase(mAvailBuffers.begin());
@@ -926,11 +927,12 @@ void FileLog::makeBufferToBeFlush( LogBuffer* buf ) {
 
 		mToBeFlushBuffers.push_back(buf);
 	}
-	(reinterpret_cast<boost::condition_variable*>(m_semFlush))->notify_one();
+	(reinterpret_cast<boost::condition_variable_any*>(m_semFlush))->notify_one();
 }
 
 bool FileLog::getAvailBuffer( ) {
-	boost::mutex::scoped_lock gd(*(reinterpret_cast<boost::mutex*>(m_buffMtx)));
+	//caller should hold the locker
+	boost::recursive_mutex::scoped_lock gd(*(reinterpret_cast<boost::recursive_mutex*>(m_buffMtx)));
 	while(true) {
 		if(mRunningBuffer != NULL)
 			return true;
@@ -938,7 +940,7 @@ bool FileLog::getAvailBuffer( ) {
 			mRunningBuffer = *mAvailBuffers.begin();
 			return true;
 		}
-		(reinterpret_cast<boost::condition_variable*>(m_semAvail))->wait(gd);
+		(reinterpret_cast<boost::condition_variable_any*>(m_semAvail))->wait(gd);
 	}
 	return false;
 }
@@ -1007,7 +1009,7 @@ void FileLog::increaseInsert(std::vector<int>& vctInts, int valInt)
 
 void FileLog::RenameAndCreateFile()
 {
-	boost::mutex::scoped_lock gd(*(reinterpret_cast<boost::mutex*>(m_buffMtx)));
+	boost::recursive_mutex::scoped_lock gd(*(reinterpret_cast<boost::recursive_mutex*>(m_buffMtx)));
 	if (m_cYield >0)
 	{
 		--m_cYield;
@@ -1341,7 +1343,7 @@ int FileLog::run_interval()
 void FileLog::flush()
 {
 	{
-		boost::mutex::scoped_lock gd(*(reinterpret_cast<boost::mutex*>(m_buffMtx)));
+		boost::recursive_mutex::scoped_lock gd(*(reinterpret_cast<boost::recursive_mutex*>(m_buffMtx)));
 		if(mRunningBuffer != NULL && mAvailBuffers.size() > 0 && mRunningBuffer->m_nCurrentBuffSize > 0 ) {
 			makeBufferToBeFlush(mRunningBuffer);
 		}
@@ -1355,7 +1357,7 @@ const char* FileLog::getLogFilePathname() const
 
 void FileLog::setFileSize(const int& fileSize)
 {
-	boost::mutex::scoped_lock lk(*(reinterpret_cast<boost::mutex*>(m_buffMtx)));
+	boost::recursive_mutex::scoped_lock lk(*(reinterpret_cast<boost::recursive_mutex*>(m_buffMtx)));
 
 	// 设置log的文件大小为1MB的整数倍，并且最小值为2MB，最大值为2000MB
 	int nLogSizeIn1MB = fileSize / (1024 * 1024);
@@ -1374,7 +1376,7 @@ void FileLog::setFileSize(const int& fileSize)
 
 void FileLog::setFileCount(const int& fileCount)
 {
-	boost::mutex::scoped_lock lk(*(reinterpret_cast<boost::mutex*>(m_buffMtx)));
+	boost::recursive_mutex::scoped_lock lk(*(reinterpret_cast<boost::recursive_mutex*>(m_buffMtx)));
 	
 	m_nMaxLogfileNum = fileCount;					//设置log文件的数目, Min_FileNum ~ Max_FileNum个
 	if(m_nMaxLogfileNum > Max_FileNum)
@@ -1386,21 +1388,23 @@ void FileLog::setFileCount(const int& fileCount)
 void FileLog::setBufferSize(const int& buffSize)
 {
 
-	boost::mutex::scoped_lock lk(*(reinterpret_cast<boost::mutex*>(m_buffMtx)));
 
 	flush();
 	flushData();
 
-	//do not support changing buffer size on the fly
-	std::vector<LogBuffer*>::iterator it  = mAvailBuffers.begin();
+	{
+		boost::recursive_mutex::scoped_lock lk(*(reinterpret_cast<boost::recursive_mutex*>(m_buffMtx)));
+		//do not support changing buffer size on the fly
+		std::vector<LogBuffer*>::iterator it  = mAvailBuffers.begin();
 
-	for( ; it != mAvailBuffers.end() ; it ++ ) {
-		LogBuffer* buf = *it;
-		if (NULL != buf->m_Buff)
-			delete [](buf->m_Buff);
-		delete buf;
+		for( ; it != mAvailBuffers.end() ; it ++ ) {
+			LogBuffer* buf = *it;
+			if (NULL != buf->m_Buff)
+				delete [](buf->m_Buff);
+			delete buf;
+		}
+		mAvailBuffers.clear();
 	}
-	mAvailBuffers.clear();
 	
 	int buffSizeIn8KB = buffSize / (8 * 1024);
 	if (buffSize % (8 * 1024) != 0)
@@ -1421,7 +1425,7 @@ void FileLog::setBufferSize(const int& buffSize)
 
 void FileLog::setLevel(const int& level)
 {
-	boost::mutex::scoped_lock lk(*(reinterpret_cast<boost::mutex*>(m_buffMtx)));
+	boost::recursive_mutex::scoped_lock lk(*(reinterpret_cast<boost::recursive_mutex*>(m_buffMtx)));
 	setVerbosity(level);
 }
 
