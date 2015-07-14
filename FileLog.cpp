@@ -767,6 +767,7 @@ void FileLog::writeMessage(const char *msg, int level)
 		}
 		memcpy( mRunningBuffer->m_Buff + mRunningBuffer->m_nCurrentBuffSize, line, nLineSize);
 		mRunningBuffer->m_nCurrentBuffSize += nLineSize;
+		break;
 	}
 
 	return;
