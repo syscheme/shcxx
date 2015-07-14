@@ -43,7 +43,7 @@ OBJS := Exception.os       \
 		HttpClient.os				\
 		SystemInfo.os
 
-LDFLAGS += -lpthread -ldl -lrt -luuid $(_expat_dir)/lib/libexpat.a
+LDFLAGS += -lpthread -ldl -lrt -luuid $(_expat_dir)/lib/libexpat.a -lboost_thread-mt
 
 include $(TOPDIR)/build/common.mk
 
