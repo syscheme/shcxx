@@ -748,8 +748,14 @@ void FileLog::writeMessage(const char *msg, int level)
 	while(true)
 	{
 		boost::recursive_mutex::scoped_lock gd(*(reinterpret_cast<boost::recursive_mutex*>(m_buffMtx)));
-		while(!getAvailBuffer() ){
-			;
+		while( true ){
+			if(mRunningBuffer != NULL)
+				break;
+			if(mAvailBuffers.size() != 0 ) {
+				mRunningBuffer = *mAvailBuffers.begin();
+				break;
+			}
+			(reinterpret_cast<boost::condition_variable_any*>(m_semAvail))->wait(gd);
 		}
 		assert(mRunningBuffer != NULL);
 		int totalBuffSize = mRunningBuffer->m_nCurrentBuffSize + nLineSize;
@@ -757,9 +763,7 @@ void FileLog::writeMessage(const char *msg, int level)
 		{
 			//若缓冲区不能容纳，则将缓冲区信息flush到文件里面
 			makeBufferToBeFlush( mRunningBuffer );
-			while(!getAvailBuffer()) {
-				;
-			}
+			continue;
 		}
 		memcpy( mRunningBuffer->m_Buff + mRunningBuffer->m_nCurrentBuffSize, line, nLineSize);
 		mRunningBuffer->m_nCurrentBuffSize += nLineSize;
@@ -906,6 +910,7 @@ int FileLog::run() {
 void FileLog::makeBufferAvail( LogBuffer* buf ) {
 	assert( buf != NULL );
 	{
+		buf->m_nCurrentBuffSize = 0;
 		boost::recursive_mutex::scoped_lock gd(*(reinterpret_cast<boost::recursive_mutex*>(m_buffMtx)));
 		mAvailBuffers.push_back(buf);
 	}
@@ -931,17 +936,6 @@ void FileLog::makeBufferToBeFlush( LogBuffer* buf ) {
 }
 
 bool FileLog::getAvailBuffer( ) {
-	//caller should hold the locker
-	boost::recursive_mutex::scoped_lock gd(*(reinterpret_cast<boost::recursive_mutex*>(m_buffMtx)));
-	while(true) {
-		if(mRunningBuffer != NULL)
-			return true;
-		if(mAvailBuffers.size() != 0 ) {
-			mRunningBuffer = *mAvailBuffers.begin();
-			return true;
-		}
-		(reinterpret_cast<boost::condition_variable_any*>(m_semAvail))->wait(gd);
-	}
 	return false;
 }
 
