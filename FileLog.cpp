@@ -438,7 +438,7 @@ void FileLog::clear()
 
 	//Ïú»Ù»º³åÇø
 	mbRunning = false;
-	(reinterpret_cast<boost::condition_variable*>(m_semFlush))->notify_one();
+	(reinterpret_cast<boost::condition_variable*>(m_semFlush))->notify_all();
 	waitHandle(-1);
 
 	{
@@ -913,7 +913,7 @@ void FileLog::makeBufferAvail( LogBuffer* buf ) {
 		buf->m_nCurrentBuffSize = 0;
 		boost::mutex::scoped_lock gd(*(reinterpret_cast<boost::mutex*>(m_buffMtx)));
 		mAvailBuffers.push_back(buf);
-		(reinterpret_cast<boost::condition_variable*>(m_semAvail))->notify_one();
+		(reinterpret_cast<boost::condition_variable*>(m_semAvail))->notify_all();
 	}
 }
 
@@ -932,7 +932,7 @@ void FileLog::makeBufferToBeFlush( LogBuffer* buf ) {
 
 		mToBeFlushBuffers.push_back(buf);
 	}
-	(reinterpret_cast<boost::condition_variable*>(m_semFlush))->notify_one();
+	(reinterpret_cast<boost::condition_variable*>(m_semFlush))->notify_all();
 }
 
 bool FileLog::getAvailBuffer( ) {
