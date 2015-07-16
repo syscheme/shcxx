@@ -576,7 +576,7 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 		buffSizeIn8KB = 1024; // 8 MB
 
 
-	for( size_t i = 0 ; i < 3; i ++ ) {
+	for( size_t i = 0 ; i < 8; i ++ ) {
 		size_t	m_nMaxBuffSize = buffSizeIn8KB * (8 * 1024);
 		char* m_Buff = new char[m_nMaxBuffSize];					//分配缓冲区
 		LogBuffer* buf = new LogBuffer(m_Buff, m_nMaxBuffSize);
@@ -1411,7 +1411,7 @@ void FileLog::setBufferSize(const int& buffSize)
 		buffSizeIn8KB = 1024; // 8 MB
 	int m_nMaxBuffSize = buffSizeIn8KB * (8 * 1024);
 
-	for( size_t i = 0 ; i < 3; i ++ ) {
+	for( size_t i = 0 ; i < 8; i ++ ) {
 		char* m_Buff = new char[m_nMaxBuffSize];					//分配缓冲区
 		LogBuffer* buf = new LogBuffer(m_Buff, m_nMaxBuffSize);
 		makeBufferAvail(buf);
