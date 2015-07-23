@@ -668,7 +668,7 @@ void FileLog::writeMessage(const char *msg, int level)
 		m_currentMonth = time.wMonth;
 		{
 			flush();
-			RenameAndCreateFile();
+			//RenameAndCreateFile();
 		}
 	}
 	char line[ZQLOG_DEFAULT_MAXLINESIZE];
@@ -693,7 +693,7 @@ void FileLog::writeMessage(const char *msg, int level)
 		m_currentMonth = ptm->tm_mon + 1;
 		{
 			flush();
-			RenameAndCreateFile();
+			//RenameAndCreateFile();
 		}
 	}
 	
