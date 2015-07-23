@@ -14,8 +14,9 @@ namespace LibAsync {
 	class ZQ_COMMON_API HttpProcessor : public Socket, public ParserCallback{
 	public:
 		//////////////////////////////////////////////////////////////////////////		
-		static bool	setup(ZQ::common::Log& log, size_t loopCount);
+		static bool	setup(ZQ::common::Log& log, const std::vector<int>& cpuIds);
 		static void	teardown();
+
 		typedef ZQ::common::Pointer<HttpProcessor> Ptr;
 		virtual ~HttpProcessor();
 		bool			beginRecv();
