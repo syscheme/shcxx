@@ -130,7 +130,7 @@ void EventLoop::processEvent( int64 expireAt )
 		Socket::Ptr sock(reinterpret_cast<Socket*>(events[i].data.ptr));
 		if( events[i].events & EPOLLERR )
 		{
-			mLog(ZQ::common::Log::L_ERROR, CLOGFMT(EventLoop, "process get events[%d] client[%p], errno[%d]."), events[i].events, sock._ptr, errno);
+			//mLog(ZQ::common::Log::L_ERROR, CLOGFMT(EventLoop, "process get events[%d] client[%p], errno[%d]."), events[i].events, sock._ptr, errno);
 
 			//if(errno != ENOENT && errno != EBADF &&  sock->mSocket != -1)
 			sock->onSocketError(ERR_EPOLLEXCEPTION);
@@ -148,7 +148,7 @@ void EventLoop::processEvent( int64 expireAt )
 
 		if( !sock->mInEpoll )
 		{
-			 mLog(ZQ::common::Log::L_DEBUG, CLOGFMT(EventLoop, "process event conection event[%d] get client[%p] not in EOPLL."), events[i].events, sock._ptr);
+			 //mLog(ZQ::common::Log::L_DEBUG, CLOGFMT(EventLoop, "process event conection event[%d] get client[%p] not in EOPLL."), events[i].events, sock._ptr);
 			unregisterEvent(sock, sock->mSocketEvetns);
 			continue;
 		}
@@ -164,7 +164,7 @@ void EventLoop::processEvent( int64 expireAt )
 			  sock->onSocketConnected();
 			  continue;
 			  }*/
-			 mLog(ZQ::common::Log::L_DEBUG, CLOGFMT(EventLoop, "process event conection event[%d] come client[%p]."), events[i].events, sock._ptr);
+			 //mLog(ZQ::common::Log::L_DEBUG, CLOGFMT(EventLoop, "process event conection event[%d] come client[%p]."), events[i].events, sock._ptr);
 			int retVal = -1;
 			socklen_t retValLen = sizeof (retVal);
 			if (getsockopt (sock->mSocket, SOL_SOCKET, SO_ERROR, &retVal, &retValLen) >= 0)
@@ -201,7 +201,7 @@ void EventLoop::processEvent( int64 expireAt )
 					//	break;
 					loopAccept ++;
 				}
-				mLog(ZQ::common::Log::L_DEBUG, CLOGFMT(EventLoop, "process event accept event[%d] come client[%p], accept[%d]."), events[i].events, sock._ptr, loopAccept);				
+				//mLog(ZQ::common::Log::L_DEBUG, CLOGFMT(EventLoop, "process event accept event[%d] come client[%p], accept[%d]."), events[i].events, sock._ptr, loopAccept);				
 			}
 			else
 			{
