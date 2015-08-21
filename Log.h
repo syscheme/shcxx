@@ -434,13 +434,13 @@ protected:
 
 #ifndef LOGFMT
 #  ifdef LOGFMT_WITH_LINENO
-#     define LOGFMT(_X)          __FUNCTION__ "  \t[L%03dT%08X] " _X, __LINE__, __THREADID__
-#     define CLOGFMT(_C, _X)     #_C          "  \t[L%03dT%08X] " _X, __LINE__, __THREADID__
-#     define FLOGFMT(_C, _FUNC, _X)  #_C      "  \t[L%03dT%08X] " #_FUNC "() " _X, __LINE__, __THREADID__
+#     define LOGFMT(_X)          __FUNCTION__ "  \t[L%03dT%08u] " _X, __LINE__, __THREADID__
+#     define CLOGFMT(_C, _X)     #_C          "  \t[L%03dT%08u] " _X, __LINE__, __THREADID__
+#     define FLOGFMT(_C, _FUNC, _X)  #_C      "  \t[L%03dT%08u] " #_FUNC "() " _X, __LINE__, __THREADID__
 #  else
 #     define LOGFMT(_X)      _X
-#     define CLOGFMT(_C, _X)         #_C  "  \t[T%08X] " _X, (uint32)(__THREADID__)
-#     define FLOGFMT(_C, _FUNC, _X)  #_C  "  \t[T%08X] " #_FUNC "() " _X, (uint32)(__THREADID__)
+#     define CLOGFMT(_C, _X)         #_C  "  \t[T%08u] " _X, (uint32)(__THREADID__)
+#     define FLOGFMT(_C, _FUNC, _X)  #_C  "  \t[T%08u] " #_FUNC "() " _X, (uint32)(__THREADID__)
 #  endif // 
 #endif //LOGFMT
 
