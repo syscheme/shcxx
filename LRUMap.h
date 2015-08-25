@@ -49,13 +49,15 @@
 
 #include <map>
 #include <string>
+#include <initializer_list>
+
 
 namespace ZQ {
 namespace common {
 
 // Note: thread unsafe
 template< class K, class V >
-class LRUMap : public std::map< K, V > 
+class LRUMap 
 {
 protected:
     typedef std::map< K, V > base_type;
@@ -65,14 +67,44 @@ protected:
 
     KeyToStamp _k2t; // from key to timestamp
     StampToKey _t2k; // from timestamp to key
+	base_type  _realData;
 
     timestamp _stampLast;
     size_t _capacity;
 
 public:
+	typedef typename base_type::iterator iterator;
+	typedef typename base_type::const_iterator const_iterator;
+	typedef typename base_type::value_type value_type;
+
     LRUMap(size_t cap=1000)
         : _stampLast(1), _capacity(cap)
 	{}
+
+	iterator find( const K& k ) {
+		return _realData.find(k);
+	}
+
+	const_iterator find( const K& k ) const {
+		return _realData.find(k);
+	}
+
+	iterator end() {
+		return _realData.end();
+	}
+	const_iterator end() const {
+		return _realData.end();
+	}
+
+	std::pair<iterator,bool> insert( const value_type& x ) {
+		return _realData.insert(x);
+	}
+	
+
+	iterator insert( iterator _pos, const value_type& x ) {
+		return _realData.insert(_pos,x);
+	}
+
  
 	V& operator[](const K& k)
 	{
@@ -88,7 +120,7 @@ public:
 			// simply clear the LRU if _stampLast rounds over
 			_k2t.clear();
 			_t2k.clear();
-			base_type::clear();
+			_realData.clear();
 
 			// recalcuate the new theStamp
 			theStamp = _stampLast++;
@@ -97,10 +129,10 @@ public:
 		_k2t[k] = theStamp;
 		_t2k[theStamp]=k; // update key in _t2k
 
-		V& ret = base_type::operator[](k);
+		V ret = _realData[k];
 
 		// remove the oldest if necessary
-		if (base_type::size() > _capacity)
+		if ( _realData.size() > _capacity)
         {
 			K k = _t2k.begin()->second; // get the eldest key
             erase(k);
@@ -115,7 +147,7 @@ public:
         _t2k.erase(_k2t[k]);
         _k2t.erase(k);
         // then the actual data
-        base_type::erase(k);
+        _realData.erase(k);
     }
 
 	void resize(size_t size)
