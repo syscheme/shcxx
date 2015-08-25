@@ -126,19 +126,18 @@ public:
 			theStamp = _stampLast++;
 		}
 
+	
+		// remove the oldest if necessary
+		if ( _realData.size() + 1 > _capacity && _realData.size() >= 1 )
+        {
+			K kToBeErased = _t2k.begin()->second; // get the eldest key
+            erase(kToBeErased);
+        }
+
 		_k2t[k] = theStamp;
 		_t2k[theStamp]=k; // update key in _t2k
 
-		V ret = _realData[k];
-
-		// remove the oldest if necessary
-		if ( _realData.size() > _capacity)
-        {
-			K k = _t2k.begin()->second; // get the eldest key
-            erase(k);
-        }
-
-        return ret;
+		return _realData[k];
     }
 
 	void erase(const K& k)
