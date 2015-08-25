@@ -92,6 +92,7 @@ public:
 	iterator end() {
 		return _realData.end();
 	}
+
 	const_iterator end() const {
 		return _realData.end();
 	}
@@ -99,7 +100,7 @@ public:
 	std::pair<iterator,bool> insert( const value_type& x ) {
 		return _realData.insert(x);
 	}
-	
+
 
 	iterator insert( iterator _pos, const value_type& x ) {
 		return _realData.insert(_pos,x);
@@ -108,11 +109,15 @@ public:
  
 	V& operator[](const K& k)
 	{
+
 		timestamp theStamp = _k2t[k];
 
 		// if the timestamp already exist, delete it from _t2k
-		if (theStamp)
+		if (theStamp) {
 			_t2k.erase(theStamp);
+			_k2t.erase(k);
+			_realData.erase(k);
+		}
 
 		// update timestamp in _k2t
 		if (0 == (theStamp = _stampLast++))
@@ -126,7 +131,6 @@ public:
 			theStamp = _stampLast++;
 		}
 
-	
 		// remove the oldest if necessary
 		if ( _realData.size() + 1 > _capacity && _realData.size() >= 1 )
         {
