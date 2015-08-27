@@ -101,7 +101,7 @@ public:
 	{
 
 		timestamp theStamp = _k2t[k];
-
+		V v;
 		// if the timestamp already exist, delete it from _t2k
 		if (theStamp) {
 			_t2k.erase(theStamp);
