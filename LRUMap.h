@@ -97,16 +97,6 @@ public:
 		return _realData.end();
 	}
 
-	std::pair<iterator,bool> insert( const value_type& x ) {
-		return _realData.insert(x);
-	}
-
-
-	iterator insert( iterator _pos, const value_type& x ) {
-		return _realData.insert(_pos,x);
-	}
-
- 
 	V& operator[](const K& k)
 	{
 
@@ -116,7 +106,6 @@ public:
 		if (theStamp) {
 			_t2k.erase(theStamp);
 			_k2t.erase(k);
-			_realData.erase(k);
 		}
 
 		// update timestamp in _k2t

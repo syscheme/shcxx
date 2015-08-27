@@ -677,7 +677,7 @@ uint32 SnmpAgent::sendQuery(const ZQ::common::InetHostAddress& serverAddr, int s
 	}
 
 	ZQ::common::MutexGuard g(_awaitLock);
-	MAPSET(AwaitMap, _awaitMap, aq.header.cseq, aq);
+	_awaitMap[aq.header.cseq] = aq;
 
 	if (_soUdp.sendto(msg, msglen, serverAddr, serverPort) <=0)
 	{
