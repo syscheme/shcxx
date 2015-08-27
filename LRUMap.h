@@ -106,17 +106,15 @@ public:
 		return _realData.insert(_pos,x);
 	}
 
- 
 	V& operator[](const K& k)
 	{
 
 		timestamp theStamp = _k2t[k];
-
+		V v;
 		// if the timestamp already exist, delete it from _t2k
 		if (theStamp) {
 			_t2k.erase(theStamp);
 			_k2t.erase(k);
-			_realData.erase(k);
 		}
 
 		// update timestamp in _k2t
