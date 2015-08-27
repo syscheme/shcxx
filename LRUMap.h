@@ -101,7 +101,6 @@ public:
 	{
 
 		timestamp theStamp = _k2t[k];
-		V v;
 		// if the timestamp already exist, delete it from _t2k
 		if (theStamp) {
 			_t2k.erase(theStamp);
@@ -120,18 +119,18 @@ public:
 			theStamp = _stampLast++;
 		}
 
+		_k2t[k] = theStamp;
+		_t2k[theStamp]=k; // update key in _t2k
+		V& v = _realData[k];
+
 		// remove the oldest if necessary
 		if ( _realData.size() + 1 > _capacity && _realData.size() >= 1 )
         {
 			K kToBeErased = _t2k.begin()->second; // get the eldest key
             erase(kToBeErased);
         }
-
-		_k2t[k] = theStamp;
-		_t2k[theStamp]=k; // update key in _t2k
-
-		return _realData[k];
-    }
+		return v;
+	}
 
 	void erase(const K& k)
     {
