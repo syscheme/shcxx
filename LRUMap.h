@@ -132,6 +132,8 @@ public:
 		return v;
 	}
 
+	size_t size(){ return _realData.size() ;}
+
 	void erase(const K& k)
     {
         // erase timestamp <-> key reference
