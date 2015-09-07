@@ -236,13 +236,13 @@ public:
 	void			setVerbosity(int newlevel = L_ERROR);
 
 	///add helper functions
-	Log&			debug( const char* fmt, ... ) PRINTFLIKE(2,3);
-	Log&			info( const char* fmt, ... ) PRINTFLIKE(2,3);
-	Log&			notice( const char* fmt, ... ) PRINTFLIKE(2,3);
-	Log&			warning( const char* fmt, ... ) PRINTFLIKE(2,3);
-	Log&			error( const char* fmt, ... ) PRINTFLIKE(2,3);
-	Log&			crit( const char* fmt, ... ) PRINTFLIKE(2,3);
-	Log&			emerg( const char* fmt, ... ) PRINTFLIKE(2,3);
+	void			debug( const char* fmt, ... ) PRINTFLIKE(2,3);
+	void 			info( const char* fmt, ... ) PRINTFLIKE(2,3);
+	void			notice( const char* fmt, ... ) PRINTFLIKE(2,3);
+	void			warning( const char* fmt, ... ) PRINTFLIKE(2,3);
+	void			error( const char* fmt, ... ) PRINTFLIKE(2,3);
+	void			crit( const char* fmt, ... ) PRINTFLIKE(2,3);
+	void			emerg( const char* fmt, ... ) PRINTFLIKE(2,3);
 	/// full log entry
 	/// @param level   - Log level to write the message
 	/// @param fmt     - format string
@@ -281,6 +281,8 @@ protected:
 		printf("%02x %ls\n",level,msg);
 #endif
 	}
+
+	void formatLogMessage( int level, const char* fmt, va_list args);
 
 private:
 	#define LOG_LEN_PER_LINE (0x200)

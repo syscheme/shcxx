@@ -266,59 +266,55 @@ const char* Log::getVerbosityStr()
 	return getVerbosityStr(_verbosity);
 }
 
-Log& Log::debug( const char* fmt, ... ) {
+void Log::debug( const char* fmt, ... ) {
 	va_list args;
 	va_start(args, fmt);
-	return operator()(Log::L_DEBUG, fmt,args);
+	return formatLogMessage(Log::L_DEBUG, fmt,args);
 }
 
-Log& Log::info( const char* fmt, ... ) {
+void Log::info( const char* fmt, ... ) {
 	va_list args;
 	va_start(args, fmt);
-	return operator()(Log::L_INFO, fmt,args);
+	return formatLogMessage(Log::L_INFO, fmt,args);
 }
 
-Log& Log::notice( const char* fmt, ... ) {
+void Log::notice( const char* fmt, ... ) {
 	va_list args;
 	va_start(args, fmt);
-	return operator()(Log::L_NOTICE, fmt,args);
+	return formatLogMessage(Log::L_NOTICE, fmt,args);
 }
 
-Log& Log::warning( const char* fmt, ... ) {
+void Log::warning( const char* fmt, ... ) {
 	va_list args;
 	va_start(args, fmt);
-	return operator()(Log::L_WARNING, fmt,args);
+	return formatLogMessage(Log::L_WARNING, fmt,args);
 }
 
-Log& Log::error( const char* fmt, ... ) {
+void Log::error( const char* fmt, ... ) {
 	va_list args;
 	va_start(args, fmt);
-	return operator()(Log::L_ERROR, fmt,args);
+	return formatLogMessage(Log::L_ERROR, fmt,args);
 }
 
-Log& Log::crit( const char* fmt, ... ) {
+void Log::crit( const char* fmt, ... ) {
 	va_list args;
 	va_start(args, fmt);
-	return operator()(Log::L_CRIT, fmt,args);
+	return formatLogMessage(Log::L_CRIT, fmt,args);
 }
 
-Log& Log::emerg( const char* fmt, ... ) {
+void Log::emerg( const char* fmt, ... ) {
 	va_list args;
 	va_start(args, fmt);
-	return operator()(Log::L_EMERG, fmt,args);
+	return formatLogMessage(Log::L_EMERG, fmt,args);
 }
 
-Log& Log::operator()(int level, const char *fmt, ...)
-{
+void Log::formatLogMessage( int level, const char* fmt, va_list args) {
 	if ((level & 0xff) > _verbosity)
-		return *this;
+		return;
 
 	char msg[LOG_LINE_MAX_BUF];
-	va_list args;
 
-	va_start(args, fmt);
 	int nCount = _vsnprintf(msg, LOG_LINE_MAX_BUF -8, fmt, args);
-	va_end(args);
 	if(nCount == -1)
 	{
 		msg[0] = '\0';
@@ -333,6 +329,16 @@ Log& Log::operator()(int level, const char *fmt, ...)
 	}
 	catch(...) {}
 
+}
+
+Log& Log::operator()(int level, const char *fmt, ...)
+{
+	if ((level & 0xff) > _verbosity)
+		return *this;
+	va_list args;
+	va_start(args, fmt);
+	formatLogMessage(level, fmt, args);
+	
 	return *this;
 }
 
