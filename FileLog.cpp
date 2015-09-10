@@ -359,6 +359,7 @@ FileLog::FileLog()
 	m_buffMtx = reinterpret_cast<void*>( new boost::mutex());
 	m_semAvail = reinterpret_cast<void*>( new boost::condition_variable());
 	m_semFlush = reinterpret_cast<void*>( new boost::condition_variable());
+	mRunningBuffer = NULL;
 
 	// 创建输出文件流
 	try
@@ -388,6 +389,7 @@ FileLog::FileLog(const char* filename, const int verbosity, int logFileNum, int 
 	m_buffMtx = reinterpret_cast<void*>( new boost::mutex());
 	m_semAvail = reinterpret_cast<void*>( new boost::condition_variable());
 	m_semFlush = reinterpret_cast<void*>( new boost::condition_variable());
+	mRunningBuffer = NULL;
 
 	// 创建输出文件流
 	try
