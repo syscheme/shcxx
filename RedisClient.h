@@ -27,6 +27,11 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/RedisClient.h $
 // 
+// 6     6/10/15 1:53p Hui.shao
+// 
+// 5     5/20/15 11:17a Hui.shao
+// added DEL/KEYS
+// 
 // 4     1/22/15 10:47a Hui.shao
 // 
 // 3     1/21/15 5:57p Hui.shao
@@ -75,11 +80,17 @@ class ZQ_COMMON_API RedisCommand;
 #define REDIS_VERBOSEFLG_TCPTHREADPOOL  FLAG(2)
 #define REDIS_VERBOSEFLG_THREADPOOL     FLAG(3)
 
+#define REDIS_IDENT_LOWEST_CHAR         ('!') // =0x21, the first ASCII char can be used in redis-key
+#define REDIS_IDENT_HIGHEST_CHAR        ('~') // =0x7e, the last ASCII char can be used in redis-key
+
 #ifdef ZQ_OS_MSWIN // should goes into Socket.h
 #define errorno()  WSAGetLastError() // should goes into Socket.h
 #else
 #define errorno()  (errno)
-#endif // 
+#endif //
+
+typedef std::map < std::string, std::string > PropertyMap;
+typedef std::vector < std::string > StringList;
 
 // -----------------------------
 // class RedisSink
@@ -96,6 +107,7 @@ public:
 	{
 		rdeOK                       = 200,
 		rdeClientError              = 400,
+		rdeNil                      = 404,
 		rdeConnectError,
 		rdeSendError,
 		rdeRequestTimeout,
@@ -186,8 +198,8 @@ public:
 	void setClientTimeout(int32 connectTimeout =DEFAULT_CONNECT_TIMEOUT, int32 messageTimeout =DEFAULT_CLIENT_TIMEOUT);
 	void disconnect();
 
-	static int encode(std::string& output, const void* source, int len=-1);
-	static int decode(const char* source, void* target, int maxlen);
+	static int encode(std::string& output, const void* source, size_t len=-1);
+	static int decode(const char* source, void* target, size_t maxlen);
 
 protected:
 
@@ -208,20 +220,30 @@ public: // Redis commands
 	RedisCommand::Ptr sendMONITOR(RedisSink::Ptr reply=NULL);
 	RedisCommand::Ptr sendINFO(RedisSink::Ptr reply=NULL);
 	RedisCommand::Ptr sendSLAVEOF(const char *host, int port, RedisSink::Ptr reply=NULL);
-	RedisCommand::Ptr sendSADD(const char *key, const char *member, int vlen=-1, RedisSink::Ptr reply=NULL);
-	RedisCommand::Ptr sendSREM(const char *key, const char *member, int vlen=-1, RedisSink::Ptr reply=NULL);
+
 	RedisCommand::Ptr sendSET(const char *key, const uint8* val, int vlen =-1, RedisSink::Ptr reply=NULL);
 	RedisCommand::Ptr sendGET(const char *key, RedisSink::Ptr reply=NULL);
 	RedisCommand::Ptr sendGETSET(const char *key, const char *val, int vlen =-1, RedisSink::Ptr reply=NULL);
+	RedisCommand::Ptr sendDEL(const char *key, RedisSink::Ptr reply=NULL);
+
+	RedisCommand::Ptr sendKEYS(const char *pattern, RedisSink::Ptr reply=NULL);
+
+	RedisCommand::Ptr sendSADD(const char *key, const char *member, int vlen=-1, RedisSink::Ptr reply=NULL);
+	RedisCommand::Ptr sendSREM(const char *key, const char *member, int vlen=-1, RedisSink::Ptr reply=NULL);
 	RedisCommand::Ptr sendSMEMBERS(const char *key, RedisSink::Ptr reply=NULL);
 
 	// sync commands with result parsed
 	RedisSink::Error PING();
 	RedisSink::Error INFO(PropertyMap& props);
 	RedisSink::Error SLAVEOF(const std::string& host, int port);
+
 	RedisSink::Error SET(const std::string& key, const uint8 *value, int vlen =-1);
 	RedisSink::Error GET(const std::string& key, uint8* value, uint& vlen);
 	RedisSink::Error GETSET(const char *key, const char *val, int vlen =-1, RedisSink::Ptr reply=NULL);
+	RedisSink::Error DEL(const std::string& key);
+
+	RedisSink::Error KEYS(const std::string& pattern, StringList& keys);
+
 	RedisSink::Error SADD(const std::string& key, const std::string& member);
 	RedisSink::Error SREM(const std::string& key, const std::string& member);
 	RedisSink::Error SMEMBERS(const std::string& key, StringList& members);

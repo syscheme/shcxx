@@ -27,6 +27,8 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/RTSPSession.cpp $
 // 
+// 21    4/30/15 3:02p Hui.shao
+// 
 // 20    2/08/14 7:16p Hui.shao
 // merged from V1.16
 // 
@@ -488,12 +490,15 @@ void RTSPSession::OnServerRequest(RTSPClient& rtspClient, const char* cmdName, c
 
 void RTSPSession::OnRequestError(RTSPClient& rtspClient, RTSPRequest::Ptr& pReq, RequestError errCode, const char* errDesc)
 {
+	if (!pReq)
+		return;
+
 	if (NULL == errDesc || strlen(errDesc) <=0)
 		errDesc = requestErrToStr(errCode);
 
 	char buf[64];
-	_log(Log::L_ERROR, SESSLOGFMT("OnRequestError() request %s(%d) failed: %d %s; %s +%d"),
-		pReq->_commandName.c_str(), pReq->cSeq, errCode, errDesc, TimeUtil::TimeToUTC(pReq->stampCreated, buf, sizeof(buf)-2, true), rtspClient.getTimeout());
+	_log(Log::L_ERROR, SESSLOGFMT("OnRequestError() conn[%s] %s(%d): %d %s; %s +%d"),
+		rtspClient.connDescription(), pReq->_commandName.c_str(), pReq->cSeq, errCode, errDesc, TimeUtil::TimeToUTC(pReq->stampCreated, buf, sizeof(buf)-2, true), rtspClient.getTimeout());
 }
 
 
@@ -908,9 +913,9 @@ void RTSPSession::OnResponse_SETUP(RTSPClient& rtspClient, RTSPRequest::Ptr& pRe
 {
 #pragma message ( __MSGLOC__ "TODO: impl here")
 	_stampSetup = now();
-	_log(Log::L_DEBUG, SESSLOGFMT("OnResponse_SETUP() [%d %s]"), resultCode, resultString);
+	// _log(Log::L_DEBUG, SESSLOGFMT("OnResponse_SETUP() [%d %s]"), resultCode, resultString);
 	_sessMgr->updateIndex(*this);
-	_log(Log::L_DEBUG, SESSLOGFMT("OnResponse_SETUP() [%d %s] session timeout[%d]msec"), resultCode, resultString, _sessTimeout);
+	_log(Log::L_DEBUG, SESSLOGFMT("OnResponse_SETUP() [%d %s] w/ session timeout[%d]msec"), resultCode, resultString, _sessTimeout);
 }
 
 void RTSPSession::OnResponse_TEARDOWN(RTSPClient& rtspClient, RTSPRequest::Ptr& pReq, RTSPMessage::Ptr& pResp, uint resultCode, const char* resultString)

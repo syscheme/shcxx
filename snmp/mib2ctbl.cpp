@@ -624,6 +624,7 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_weiwoo[] = {
 	{".2.1.100.3", "weiwooStat-cPending" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).weiwoo(200).weiwooSvcApp(2).weiwooAttr(1).weiwooStat(100).weiwooStat-cPending(3)
 	{".2.1.100.4", "weiwooStat-BusyThreads" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).weiwoo(200).weiwooSvcApp(2).weiwooAttr(1).weiwooStat(100).weiwooStat-BusyThreads(4)
 	{".2.1.100.5", "weiwooStat-ThreadPoolSize" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).weiwoo(200).weiwooSvcApp(2).weiwooAttr(1).weiwooStat(100).weiwooStat-ThreadPoolSize(5)
+	{".2.1.41", "weiwooDumpSgUsage" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).weiwoo(200).weiwooSvcApp(2).weiwooAttr(1).weiwooDumpSgUsage(41)
 	{ NULL, NULL } };
 
 // -------------------------------------

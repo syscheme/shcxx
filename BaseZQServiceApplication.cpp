@@ -268,6 +268,9 @@ HRESULT BaseZQServiceApplication::init(int argc,char *argv[])
 	MyGlog(ZQ::common::Log::L_INFO,_T("===================== Loading service common interface ======================"));
 	ZQ::common::setGlogger(m_pReporter);
 
+	_strVersion = __STR1__(ZQ_PRODUCT_VER_MAJOR) "." __STR1__(ZQ_PRODUCT_VER_MINOR) "." __STR1__(ZQ_PRODUCT_VER_PATCH) "." __STR1__(ZQ_PRODUCT_VER_BUILD);
+	MyGlog(Log::L_INFO, "========================= Service[%s] starts =========================",_strVersion.c_str());
+
 	// remark the log
 	getConfigValue(_T("KeepAliveIntervals"),&m_dwKeepAliveInterval_ms,m_dwKeepAliveInterval_ms,true,true);
 	getConfigValue(_T("ShutdownWaitTime"),&m_dwShutdownWaitTime,m_dwShutdownWaitTime,true,true);
@@ -300,7 +303,8 @@ HRESULT BaseZQServiceApplication::init(int argc,char *argv[])
     // else
     //    MyGlog(ZQ::common::Log::L_WARNING,"Fail to open SNMP session.");
 
-	ServiceMIB::_flog.open(snmpLogFile, m_dwSnmpLoggingMask &0x0f, 3);
+	if (NULL != snmpLogFile)
+		ServiceMIB::_flog.open(snmpLogFile, m_dwSnmpLoggingMask &0x0f, 3);
 	_pServiceMib = new ServiceMIB(nServiceTypeId, nProcessInstanceId);
 
 	MyGlog.flush();
@@ -330,7 +334,7 @@ HRESULT BaseZQServiceApplication::init(int argc,char *argv[])
     // SNMPManageVariable("LogBufferSize", &m_dwLogBufferSize, ZQSNMP_VARTYPE_INT32, TRUE);
 	// SNMPManageVariable("LogLevel", &m_dwLogLevel, ZQSNMP_VARTYPE_INT32, FALSE);
     
-	MyGlog(ZQ::common::Log::L_INFO,_T("Begin to load configuration xml"));
+	MyGlog(ZQ::common::Log::L_DEBUG, _T("loading configuration xml"));
 	MyGlog.flush();
 
 	m_hCfg=hTempCfgHanlde;

@@ -734,8 +734,8 @@ protected:
 	std::string _bindAddr;
 	uint32      _bindPort;
 
-	uint32      _timeout;
 	uint32      _baseUdpPort;
+	uint32      _timeout;
 
 	ZQ::common::AtomicInt  _lastCSeq;     
 	bool       _bQuit;

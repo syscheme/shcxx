@@ -27,6 +27,10 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/RTSPClient.cpp $
 // 
+// 52    7/06/15 2:28p Hui.shao
+// 
+// 51    4/30/15 3:02p Hui.shao
+// 
 // 50    2/08/14 7:16p Hui.shao
 // merged from V1.16
 // 
@@ -553,6 +557,8 @@ static int errorno()
 #endif
 }
 
+#define ISSUECMD(CMDTYPE, CMDARGS) 		try { CMDTYPE* c=NULL; if (NULL != (c = new CMDTYPE CMDARGS)) c->start(); } catch(...) {}
+
 // -----------------------------
 // class MessageProcessCmd
 // -----------------------------
@@ -562,7 +568,7 @@ public:
 	typedef struct _ReqRespPair
 	{
 		uint cSeq;
-		RTSPMessage::Ptr inMsg;
+		RTSPMessage::Ptr  inMsg;
 		RTSPRequest::Ptr  outReq;
 
 		static bool less(_ReqRespPair i, _ReqRespPair j) { return (i.cSeq<j.cSeq); }
@@ -1031,10 +1037,7 @@ int RTSPClient::sendRequest(RTSPRequest::Ptr pRequest, const RTSPMessage::AttrMa
 					if (!pReq)
 						continue;
 
-					try {
-						(new RequestErrCmd(*this, pReq, RTSPSink::Err_ConnectError))->start();
-					}
-					catch(...) {}
+					ISSUECMD(RequestErrCmd, (*this, pReq, RTSPSink::Err_ConnectError));
 				}
 
 				return pRequest->cSeq;
@@ -1183,7 +1186,7 @@ int RTSPClient::sendRequest(RTSPRequest::Ptr pRequest, const RTSPMessage::AttrMa
 		if (_messageTimeout >0 && stampNow - pRequest->stampCreated > _messageTimeout)
 		{
 			_log(Log::L_ERROR, CLOGFMT(RTSPClient, "sendRequest() %s timeout prior to sending"), reqDesc.c_str());
-			(new RequestErrCmd(*this, pRequest, lastErrCode))->start();
+			ISSUECMD(RequestErrCmd, (*this, pRequest, lastErrCode));
 		}
 		else
 		{
@@ -1238,7 +1241,7 @@ int RTSPClient::sendRequest(RTSPRequest::Ptr pRequest, const RTSPMessage::AttrMa
 	} // end of the dummyLoop
 
 	// An error occurred, so call the response handler immediately (indicating the error)
-	(new RequestErrCmd(*this, pRequest, lastErrCode))->start();
+	ISSUECMD(RequestErrCmd, (*this, pRequest, lastErrCode));
 	pRequest = NULL;
 
 	return -5;
@@ -1382,7 +1385,7 @@ int RTSPClient::sendMessage(RTSPMessage::Ptr pMessage, const RTSPMessage::AttrMa
 
 void RTSPClient::OnConnected()
 {
-	_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnConnected() connected to the peer, new conn: %s"), connDescription());
+	_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnConnected() connected to the peer, new conn[%s]"), connDescription());
 	TCPSocket::setTimeout(_messageTimeout >>1); // half of _messageTimeout to wake up the socket sleep()
 	_inCommingByteSeen =0; // reset _inCommingByteSeen to start from the beginning of the receive buffer
 
@@ -1402,7 +1405,7 @@ void RTSPClient::OnConnected()
 		try {
 			if (pReq->stampCreated + _timeout < stampNow)
 			{
-				(new RequestErrCmd(*this, pReq, RTSPSink::Err_RequestTimeout))->start();
+				ISSUECMD(RequestErrCmd, (*this, pReq, RTSPSink::Err_RequestTimeout));
 				cExpired++;
 				continue;
 			}
@@ -1432,10 +1435,7 @@ void RTSPClient::OnConnected()
 		RTSPRequest::Ptr pReq = pendingRequests.front();
 		pendingRequests.pop();
 
-		try {
-			(new RequestErrCmd(*this, pReq, RTSPSink::Err_SendFailed))->start();
-		}
-		catch(...) {}
+		ISSUECMD(RequestErrCmd, (*this, pReq, RTSPSink::Err_SendFailed));
 	}
 
 	// close the socket per the error
@@ -1725,27 +1725,18 @@ void RTSPClient::OnDataArrived()
 	// the associated response of request
 	for (itStack = pendingResponses.begin(); itStack < pendingResponses.end(); itStack ++)
 	{
-		try {
-			(new MessageProcessCmd(*this, *itStack))->start();
-		}
-		catch(...) {}
+		ISSUECMD(MessageProcessCmd, (*this, *itStack));
 	}
 
 	// the RTSP requests from the peer
 	for (itStack = pendingPeerRequests.begin(); itStack < pendingPeerRequests.end(); itStack ++)
 	{
-		try {
-			(new MessageProcessCmd(*this, *itStack))->start();
-		}
-		catch(...) {}
+		ISSUECMD(MessageProcessCmd, (*this, *itStack));
 	}
 
 	for (itStack = expiredRequests.begin(); itStack < expiredRequests.end(); itStack ++)
 	{
-		try {
-			(new RequestErrCmd(*this, itStack->outReq, Err_RequestTimeout))->start();
-		}
-		catch(...) {}
+		ISSUECMD(RequestErrCmd, (*this, itStack->outReq, Err_RequestTimeout));
 	}
 
 	if (expiredRequests.size() >0)
@@ -1768,10 +1759,7 @@ void RTSPClient::OnError()
 		RTSPRequest::Ptr pReq = _requestsQueueToSend.front();
 		_requestsQueueToSend.pop();
 
-		try {
-			(new RequestErrCmd(*this, pReq, RTSPSink::Err_SendFailed))->start();
-		}
-		catch(...) {}
+		ISSUECMD(RequestErrCmd, (*this, pReq, RTSPSink::Err_SendFailed));
 	}
 }
 
@@ -1820,7 +1808,7 @@ void RTSPClient::_cleanupExpiredAwaitRequests(uint8 multiplyTimeout, char* func)
 
 			_requestsAwaitResponse.erase(pReq->cSeq);
 			_log(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPClient, "%s() conn[%s] %s(%d) as of [%s]"), func?func:"", connDescription(), pReq->_commandName.c_str(), pReq->cSeq, TimeUtil::TimeToUTC(pReq->stampCreated, buf, sizeof(buf)-2, true));
-			(new RequestErrCmd(*this, pReq, RTSPSink::Err_RequestTimeout))->start();
+			ISSUECMD(RequestErrCmd, (*this, pReq, RTSPSink::Err_RequestTimeout));
 		}
 		catch(...) {}
 	}

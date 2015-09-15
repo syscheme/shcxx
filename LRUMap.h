@@ -27,6 +27,12 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/LRUMap.h $
 // 
+// 8     9/10/15 3:42p Hongquan.zhang
+// remove unreferenced header file
+// 
+// 7     9/09/15 3:03p Ketao.zhang
+// check in for LRUmap bug in operator[]
+// 
 // 6     11/20/13 11:43a Hui.shao
 // 
 // 2     11/20/13 11:42a Hui.shao
@@ -49,7 +55,6 @@
 
 #include <map>
 #include <string>
-#include <initializer_list>
 
 
 namespace ZQ {

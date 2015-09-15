@@ -105,7 +105,7 @@ public:
 
 	// join a new piece of buffer in, only allowed when this buffer is reference-only
 	//@return the total size of buffer after join
-	virtual size_t join(uint8* buf, size_t size);
+	virtual size_t join(uint8* buf, size_t size, int payloadLen =-1);
 
 	// fill data into this buffer. 
 	//  - if this buffer is not refrerence only, it may grow if space is not enough to complete the filling

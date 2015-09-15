@@ -282,12 +282,15 @@ size_t BufferList::length() const
 		return len;
 	}
 
-size_t BufferList::join(uint8* buf, size_t size)
+size_t BufferList::join(uint8* buf, size_t size, int payloadLen)
 	{
 		if (!_bReference || NULL == buf || size <=0)
 			return _totalSize;
 
-		return doJoin(buf, size, size);
+		if (payloadLen<0)
+			payloadLen = size;
+
+		return doJoin(buf, size, payloadLen);
 	}
 
 size_t BufferList::fill(uint8* buf, size_t offset, size_t len)

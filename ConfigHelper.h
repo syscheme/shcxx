@@ -301,7 +301,7 @@ private:
         {
             XMLUtil::XmlNodes nodes = XMLUtil::locate(node, it_detail->path);
             if(nodes.size() != 1)
-                throwf<CfgException>(EXFMT(CfgException, "Holder::__readThis() bad xml definition, found %u nodes of path [%s]. root=%s"), (unsigned int)nodes.size(), it_detail->path.c_str(), __m_rootPath.c_str());
+                throwf<CfgException>(EXFMT(CfgException, "Holder::__readThis() bad xml definition, found %u nodes of path [%s]. root=%s"), nodes.size(), it_detail->path.c_str(), __m_rootPath.c_str());
 
             // read the config of this attribute
             XMLUtil::XmlNode target = nodes[0];
@@ -324,7 +324,7 @@ private:
                     else
                     {
                         throwf<CfgException>(EXFMT(CfgException, "Holder::__readThis() insufficient buffer. path [%s], attribute[%s], attribute size [%u], buffer size[%u]. root=%s")
-                            , it_detail->path.c_str(), it_detail->name.c_str(), (unsigned int)str.size(), (unsigned int)CFG_BUFSIZE, __m_rootPath.c_str());
+                            , it_detail->path.c_str(), it_detail->name.c_str(), str.size(), CFG_BUFSIZE, __m_rootPath.c_str());
                     }
                 }
                 value = buf;
@@ -353,7 +353,7 @@ private:
             if(target.size() < it_other->nodeCount.first || it_other->nodeCount.second < target.size())
             {
                 throwf<CfgException>(EXFMT(CfgException, "Holder::__readOthers() bad xml definition, found %u nodes of path [%s], violate the range[%u, %u]. root=%s"),
-                    (unsigned int)target.size(), it_other->path.c_str(), (unsigned int)it_other->nodeCount.first, (unsigned int)it_other->nodeCount.second, __m_rootPath.c_str());
+                    target.size(), it_other->path.c_str(), it_other->nodeCount.first, it_other->nodeCount.second, __m_rootPath.c_str());
             }
             for(XMLUtil::XmlNodes::iterator it_node = target.begin(); it_node != target.end(); ++it_node)
             {
@@ -421,7 +421,7 @@ private:
                 if(strlen(value) < _length)
                     strncpy(&(obj.*(PMem_CharArray)_address), value, _length);
                 else
-                    throwf<CfgException>(EXFMT(CfgException, "Detail::set() value to long, path[%s], name[%s], length limit[%u]. root=%s"), path.c_str(), name.c_str(), (unsigned int)_length, root.c_str());
+                    throwf<CfgException>(EXFMT(CfgException, "Detail::set() value to long, path[%s], name[%s], length limit[%u]. root=%s"), path.c_str(), name.c_str(), _length, root.c_str());
                 break;
             default:
                 throwf<CfgException>(EXFMT(CfgException, "Detail::set() bad data type, type[%d]"), _type);
@@ -627,7 +627,7 @@ public:
 ///         and the second member contains the file name.
 std::pair<std::string, std::string> parseFilePath(const std::string &path);
 
-#define LLOG if(__m_pLog) (*__m_pLog)
+#define LLOG if (__m_pLog) (*__m_pLog)
 
 // -----------------------------
 // class Holder
@@ -674,51 +674,43 @@ public:
             __m_configfolder = pathInfo.first;
             __m_filename = pathInfo.second;
         }
-        if(enablePP) {
-            LLOG(Log::L_DEBUG, "Start loading config [%s], enable preprocess.", path);
-        }
-        else {
-            LLOG(Log::L_DEBUG, "Start loading config [%s], disable preprocess.", path);
-        }
+
+		LLOG(Log::L_DEBUG, CLOGFMT(Loader, "loading config[%s] %s preprocessor"), path, enablePP?"with":"withno");
 
         ZQ::common::XMLPreferenceDocumentEx doc;
         try
         {
-            if(doc.open(path))
+            if(!doc.open(path))
             {
-                LLOG(Log::L_DEBUG, "Opened file [%s] successfully.", path);
-            }
-            else
-            {
-                LLOG(Log::L_ERROR, "Failed to open file [%s].", path);
+                LLOG(Log::L_ERROR, CLOGFMT(Loader, "failed to open file[%s]"), path);
                 return false;
             }
-            XMLUtil::XmlNode root = XMLUtil::toShared(doc.getRootPreference());
-            if(enablePP)
+
+			LLOG(Log::L_DEBUG, CLOGFMT(Loader, "opened file[%s]"), path);
+
+			XMLUtil::XmlNode root = XMLUtil::toShared(doc.getRootPreference());
+            if (enablePP)
             {
-                LLOG(Log::L_DEBUG, "Enable the preprocessor, start initializing. file [%s]", path);
+                LLOG(Log::L_DEBUG, CLOGFMT(Loader, "enabling preprocessor on file[%s]"), path);
                 // initialize the preprocessor
-                if(!XMLUtil::locate(root, "Definitions").empty())
-                {
+                if (XMLUtil::locate(root, "Definitions").empty())
+				{ LLOG(Log::L_WARNING, CLOGFMT(Loader, "no elem <Definitions> found in file[%s]"), path); }
+				else
+				{
                     Holder<MacroDefinition> macroholder("");
                     macroholder.pLog = __m_pLog; // pass the logger
                     macroholder.folder = __m_configfolder;
                     macroholder.read(root);
-                    if(__m_PP.define(macroholder.macros))
-                    {
-                        LLOG(Log::L_DEBUG, "Initialized preprocessor successfully for file [%s]", path);
-                    }
-                    else
+                    if(!__m_PP.define(macroholder.macros))
                     {
                         //failed to initialize the preprocessor.
-                        LLOG(Log::L_ERROR, "Failed to initialize preprocessor's macro definition in file [%s].", path);
+                        LLOG(Log::L_ERROR, CLOGFMT(Loader, "failed to initialize preprocessor on file[%s]."), path);
                         return false;
                     }
+
+					LLOG(Log::L_DEBUG, CLOGFMT(Loader, "initialized preprocessor on file[%s]"), path);
                 }
-                else
-                {
-                    LLOG(Log::L_WARNING, "No <Definitions> node found in file [%s]", path);
-                }
+
                 this->read(root, &__m_PP);
             }
             else
@@ -728,27 +720,29 @@ public:
         }
         catch(XMLException &e)
         {
-            LLOG(Log::L_ERROR, "ZQ::common::XMLExcetion caught during parsing [%s]. desc [%s]", path, e.getString());
+			LLOG(Log::L_ERROR, CLOGFMT(Loader, "XMLExcetion caught when parsing [%s]: %s"), path, e.getString());
             return false;
         }
         catch(CfgException &e)
         {
-            LLOG(Log::L_ERROR, "ZQ::common::CfgException caught during loading config [%s]. desc [%s]", path, e.getString());
+			LLOG(Log::L_ERROR, CLOGFMT(Loader, "CfgException caught when loading [%s]: %s"), path, e.getString());
             return false;
         }
         catch (Exception &e)
         {
-            LLOG(Log::L_ERROR, "ZQ::common::Exception caught during loading config [%s]. desc [%s]", path, e.getString());
+			LLOG(Log::L_ERROR, CLOGFMT(Loader, "Exception caught when loading [%s]: %s"), path, e.getString());
             return false;
         }
         catch(...)
         {
-            LLOG(Log::L_ERROR, "Unknown exception caught during loading config [%s]", path);
+            LLOG(Log::L_ERROR, CLOGFMT(Loader, "exception caught during loading [%s]"), path);
             return false;
         }
-        LLOG(Log::L_INFO, "Successful to load config [%s].", path);
+
+        LLOG(Log::L_INFO, CLOGFMT(Loader, "loaded config[%s]."), path);
         return true;
     }
+
     /// Load config in config folder.
     /// @param[in]  folder the config folder.
     /// @param[in]  enablePP enable/disable the preprocess
@@ -756,19 +750,21 @@ public:
     virtual bool loadInFolder(const char *folder, bool enablePP = true)
     {
         if(NULL == folder || '\0' == (*folder))
-        {
             return false;
-        }
-        LLOG(Log::L_DEBUG, "Start loading config file [%s] in folder [%s]", __m_filename.c_str(), folder);
+
         if(__m_filename.empty())
         {
-            LLOG(Log::L_ERROR, "No config file name setting during loading config in folder [%s].", folder);
+            LLOG(Log::L_ERROR, CLOGFMT(Loader, "empty filename specified when loading config in folder[%s]"), folder);
             return false;
         }
-        // construct the file path
+
+        LLOG(Log::L_DEBUG, CLOGFMT(Loader, "loading config file[%s] in folder[%s]"), __m_filename.c_str(), folder);
+
+		// construct the file path
         std::string filepath = folder;
         if(FNSEPC != filepath[filepath.size() - 1])
             filepath.push_back(FNSEPC);
+
         filepath += __m_filename;
         return load(filepath.c_str(), enablePP);
     }
@@ -791,6 +787,7 @@ public:
     {
         return __m_filepath;
     }
+
 private:
     std::string __m_filename;
     std::string __m_configfolder;
@@ -798,7 +795,7 @@ private:
     Preprocessor __m_PP;
     ZQ::common::Log* __m_pLog;
 };
-} // namespace Config
-} // namespace common
-} // namespace ZQ
-#endif
+
+}}} // namespace ZQ::common::Config
+
+#endif // __ZQ_COMMON_CONFIG_HELPER_H__

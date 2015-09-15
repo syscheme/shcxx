@@ -374,6 +374,8 @@ protected:
 	/*static*/ TCHAR m_logLevelStr[32];
     TCHAR m_sVersion[128];
 
+	std::string _strVersion;
+
 	uint32	m_instanceId;
 
 public:

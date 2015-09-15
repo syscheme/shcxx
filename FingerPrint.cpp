@@ -203,7 +203,7 @@ bool MachineFingerPrint::collectSystemInfo(void)
 		Json::Value cpuInfo;
 		//cpuInfo["architecture"] = sysInfo._cpuArchitecture;
 		cpuInfo["name"] = sysInfo._cpu[i].cpuName;
-		cpuInfo["clockMHZ"] = sysInfo._cpu[i].cpuClockMHZ;
+		//cpuInfo["clockMHZ"] = sysInfo._cpu[i].cpuClockMHZ;
 		cpus.append(cpuInfo);
 	}
 	sysValue["CPU"] = cpus;
