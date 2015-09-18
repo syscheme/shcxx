@@ -70,10 +70,16 @@ class ZQ_COMMON_API SharedObject;
 class AtomicInt
 {
 public:
+#ifdef ZQ_OS_MSWIN
+	typedef LONG atomic_int;
+#else 
+	typedef int atomic_int;
+#endif // ZQ_OS
+
 	AtomicInt() : _v (0) {}
 	
-	void set(uint32 newValue) { _v = newValue; }
-	int get() { return _v; }
+	void set(atomic_int newValue) { _v = newValue; } // this is not thread safe, so do it only at start of AtomicInt instance 
+	int get();
 
 	int inc(void);
 	int dec(void);
@@ -81,11 +87,7 @@ public:
 	int  add(int v);
 
 protected:
-#ifdef ZQ_OS_MSWIN
-	volatile LONG _v;
-#else 
-	volatile int _v;
-#endif // ZQ_OS
+	atomic_int _v;
 };
 
 #ifdef ZQ_OS_MSWIN
@@ -110,49 +112,32 @@ inline int AtomicInt::add(int v)
 	return InterlockedExchangeAdd( &_v , v);
 }
 
+inline int AtomicInt::get() {
+	return InterlockedExchangeAdd(&_v, 0);
+}
 #elif defined ZQ_OS_LINUX
 inline int AtomicInt::inc(void)
 {
-	__asm__ __volatile__(
-		"lock ; incl %0"
-		:"=m" (_v)
-		:"m" (_v)
-		: "memory"
-	);
-
-	return _v;
+	return __sync_add_and_fetch(&_v, 1);
 }
 
 inline int AtomicInt::dec(void)
 {
-	decThenIfZero();
-	return _v;
+	return __sync_sub_and_fetch(&_v, 1);
 }
 
 inline bool AtomicInt::decThenIfZero(void)
 { 
-	unsigned char c;
-	__asm__ __volatile__(
-		"lock ; decl %0; sete %1"
-		:"=m" (_v), "=qm" (c)
-		:"m" (_v) : "memory"
-	);
-	
-	return (c != 0);
+	return 0 == __sync_add_and_fetch( &_v, 0);
 }
 
 inline int AtomicInt::add(int v)
 {
-	int tmp = _v;
+	return __sync_add_and_fetch(&_v, v);
+}
 
-	__asm__ __volatile__(
-		"lock; xadd %1,%0"
-		:"=m"(_v) 
-		:"r"(v)
-		:"memory"
-	);
-
-	return tmp;
+inline int AtomicInt::get() {
+	return __sync_add_and_fetch(&_v, 0);
 }
 
 #else
