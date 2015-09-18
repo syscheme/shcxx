@@ -350,6 +350,19 @@ uint32 NativeThread::waitHandle(timeout_t timeout)
     sprintf(error, str": [%d][%s]", errno, strerror(errno)); \
     throw error; 
 
+
+__thread unsigned int tid = 0; 
+
+void settid()
+{
+	tid = syscall(SYS_gettid);
+}
+
+unsigned int getthreadid()
+{
+	return tid;
+}
+
 NativeThread::NativeThread(int stacksize):_thrdID(0), _status(stDeferred){
 	_flags.B = 0;
 
@@ -419,6 +432,8 @@ void NativeThread::terminate(int code /* = 0 */) {
 }
 
 void* NativeThread::_execute(void *thread) {
+
+	settid();
     pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
 
 	NativeThread *th = (NativeThread *)thread;

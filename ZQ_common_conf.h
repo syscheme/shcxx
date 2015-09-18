@@ -450,7 +450,8 @@ namespace ZQ   {
 /// ZQ common c++ classes
 namespace common  {
 
-
+   ZQ_COMMON_API  void settid();
+   ZQ_COMMON_API  unsigned int getthreadid();
 
 }; // namespace VOD
 }; // namespace ZQ

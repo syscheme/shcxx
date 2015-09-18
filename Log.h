@@ -159,7 +159,6 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/syscall.h>
 
-#define gettid() syscall(SYS_gettid)
 #endif
 }
 
@@ -421,13 +420,11 @@ protected:
 #endif // _DEBUG
 
 
-#ifndef __THREADID__
 #  ifdef ZQ_OS_MSWIN
 #      define __THREADID__  GetCurrentThreadId()
 #   else
-#      define __THREADID__  ( (unsigned int)gettid())
+#      define __THREADID__  ZQ::common::getthreadid()
 #   endif//ZQ_OS_MSWIN
-#endif // __THREADID__
 
 #ifndef __FUNCTION__
 #	define __FUNCTION__ __FILE__
@@ -444,8 +441,8 @@ protected:
 #     define FLOGFMT(_C, _FUNC, _X)  #_C      "  \t[L%03dT%08u] " #_FUNC "() " _X, __LINE__, __THREADID__
 #  else
 #     define LOGFMT(_X)      _X
-#     define CLOGFMT(_C, _X)         #_C  "  \t[T%08u] " _X, (uint32)(__THREADID__)
-#     define FLOGFMT(_C, _FUNC, _X)  #_C  "  \t[T%08u] " #_FUNC "() " _X, (uint32)(__THREADID__)
+#     define CLOGFMT(_C, _X)         #_C  "  \t[T%08u] " _X, __THREADID__
+#     define FLOGFMT(_C, _FUNC, _X)  #_C  "  \t[T%08u] " #_FUNC "() " _X, __THREADID__
 #  endif // 
 #endif //LOGFMT
 
