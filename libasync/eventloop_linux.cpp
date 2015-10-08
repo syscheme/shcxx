@@ -237,6 +237,7 @@ void EventLoop::processEvent( int64 expireAt )
 			continue;
 		}
 	}//for(i = 0; i< res; i++)
+   /*
    int64 loopEnd = currentTime();
    int processWait = 0;
    if( mPreTime != 0 )
@@ -245,7 +246,8 @@ void EventLoop::processEvent( int64 expireAt )
 
    int loopTime = (int) (loopEnd - loopStart);
    mPreTime = loopEnd;
-   mLog(ZQ::common::Log::L_DEBUG, CLOGFMT(EventLoop, "processEvent() loop[%p] processWait[%d] waitTime[%d]us, loopTime[%d]us,events[%d]"), this, processWait, loopWaitTime, loopTime, res); 
+  mLog(ZQ::common::Log::L_DEBUG, CLOGFMT(EventLoop, "processEvent() loop[%p] processWait[%d] waitTime[%d]us, loopTime[%d]us,events[%d]"), this, processWait, loopWaitTime, loopTime, res); 
+  */
 return;
 }
 
