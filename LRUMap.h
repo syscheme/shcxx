@@ -139,10 +139,12 @@ public:
 
 	size_t size(){ return _realData.size() ;}
 	
-	void erase_eldest()
+	V&  erase_eldest()
 	{
 		K kToBeErased = _t2k.begin()->second; // get the eldest key
+		V& v =  _realData[kToBeErased];
 		erase(kToBeErased);
+		return v;
 	}
 
 

@@ -128,7 +128,7 @@ inline int AtomicInt::dec(void)
 
 inline bool AtomicInt::decThenIfZero(void)
 { 
-	return 0 == __sync_add_and_fetch( &_v, 0);
+	return 0 == __sync_sub_and_fetch( &_v, 1);
 }
 
 inline int AtomicInt::add(int v)
