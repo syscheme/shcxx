@@ -138,6 +138,13 @@ public:
 	}
 
 	size_t size(){ return _realData.size() ;}
+	
+	void erase_eldest()
+	{
+		K kToBeErased = _t2k.begin()->second; // get the eldest key
+		erase(kToBeErased);
+	}
+
 
 	void erase(const K& k)
     {
