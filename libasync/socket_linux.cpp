@@ -533,5 +533,69 @@ SEND_DATA:
 		int val = 1;
 		return 0 == setsockopt( mSocket, SOL_TCP, TCP_DEFER_ACCEPT, &val, sizeof(val)) ;
 	}
+	
+	bool Socket::socketShutdown()
+	{
+		//mbAlive = false;
+		if (-1 != mSocket)
+		{
+			if ( -1 == ::shutdown(mSocket, SHUT_WR) )
+				return false;
+		}
+		AsyncBuffer buf;
+		buf.len = 2 * 64 * 1024;
+		buf.base = (char*)malloc(sizeof(char)* buf.len);
+		if ( buf.base == NULL )
+			return false;
+		mLingerRecv.push_back(buf);
+		if( !recv(mLingerRecv) )
+			return false;
+		Socket::Ptr sockPtr = this;
+		mLingerPtr = new LingerTimer(sockPtr);
+		mLingerPtr.updateTimer(mLingerTime);
+		return true;
+	}
 
+	bool Socket::realClose()
+	{
+		Socket::Ptr sockPtr = this;
+		mLoop.unregisterEvent(sockPtr, mSocketEvetns);
+		mbAlive = false;
+		if ( -1 != mSocket)
+		{
+			::close(mSocket);
+			mSocket = -1;
+		}
+		for ( LibAsync::AsyncBufferS::iterator recvIt = mLingerRecv.begin(); recvIt != mLingerRecv.end(); recvIt ++ )
+		{
+			if ( recvIt->base != NULL )
+			{
+				free(recvIt->base);
+				recvIt->base = NULL;
+			}
+		}
+
+		return true;
+	}
+	
+	LingerTimer::LingerTimer(SocketPtr sock)
+	:socketPtr(sock),
+	Timer(sock->getLoop())
+	{
+	}
+
+	LingerTimer::~LingerTimer()
+	{
+		if(NULL != socketPtr)
+			socketPtr = NULL;
+	}
+
+	void  LingerTimer::onTimer()
+	{
+		if (NULL != socketPtr)
+		{
+			socketPtr->realClose();
+			socketPtr = NULL;
+		}
+	}
 }//libAsync

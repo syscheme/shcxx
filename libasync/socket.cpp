@@ -110,7 +110,8 @@ namespace LibAsync{
 	,mSocketEvetns(0),
 	mRecedSize(0),
 	mSentSize(0),
-	mWriteable(false)
+	mWriteable(false),
+	mLingerTime(5000)
 #endif
 	{
 	}
@@ -127,8 +128,8 @@ namespace LibAsync{
 	,mSocketEvetns(0),
 	mRecedSize(0),
 	mSentSize(0),
-	mWriteable(false)
-
+	mWriteable(false),
+    mLingerTime(5000)
 #endif//
 	{
 	}

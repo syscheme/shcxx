@@ -29,8 +29,21 @@
 #include "eventloop.h"
 
 namespace LibAsync {
-
+	
 	class ZQ_COMMON_API Socket;
+	class LingerTimer : public virtual Timer{
+		public:
+			typedef ZQ::common::Pointer<LingerTimer> Ptr;
+			typedef ZQ::common::Pointer<Socket> SocketPtr;
+			~LingerTimer();
+			LingerTimer(SocketPtr sock);
+		public:
+			virtual void  onTimer();
+
+		private:
+			SocketPtr     socketPtr;
+	};
+
 
 	class  Socket : public virtual ZQ::common::SharedObject {
 	protected:
@@ -99,6 +112,11 @@ namespace LibAsync {
         // 向EPOLL中注册写事件，当该socket可写的时，通过回调onWritable通知该socket可发
 		bool 	registerWrite();
 		bool    setDeferAccept();
+		bool    socketShutdown();
+		bool    realClose();
+		inline void    setLingerTime(uint64 time){ 
+			mLingerTime = time;
+		}
 #endif//ZQ_OS
 
 	protected:
@@ -238,6 +256,10 @@ namespace LibAsync {
 		size_t              mSentSize;
 		bool                mWriteable;
 		bool             	mInEpoll;
+
+		LingerTimer::Ptr    mLingerPtr;
+		uint64              mLingerTime;
+		AsyncBufferS        mLingerRecv;
 #else
 #	error "unsupported OS"
 #endif
