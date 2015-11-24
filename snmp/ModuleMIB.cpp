@@ -317,7 +317,8 @@ bool ModuleMIB::addObject(SNMPObject::Ptr obj, const Oid& csubOid)
 		if (subOid.isNil() || subOid[0] != moduleId())
 		{
 			if (0 == (_flags_VERBOSE & VFLG_MUTE_ERRS_MIB))
-				_log(ZQ::common::Log::L_WARNING, CLOGFMT(ModuleMIB, "addObject() subOid[%s] for var[%s] mismatches moduleId[%d], ignore"), subOid.str().c_str(), obj->_varname.c_str(), moduleId());
+				_log(ZQ::common::Log::L_WARNING, CLOGFMT(ModuleMIB, "addObject() subOid[%s] for var[%s] mismatches moduleId[%d], ignore"),
+						subOid.str().c_str(), obj->_varname.c_str(), (int)moduleId());
 			return false;
 		}
 
@@ -342,7 +343,8 @@ bool ModuleMIB::addObject(SNMPObject::Ptr obj, const Oid& csubOid)
 	ZQ::common::MutexGuard g(_lock);
 	MAPSET(ChildrenMap, _childrenMap, subOid, obj); 
 	if (_flags_VERBOSE & VFLG_VERBOSE_MIB)
-		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(ModuleMIB, "addObject() added subOid[%s] for var[%s], moduleId[%d]"), subOid.str().c_str(), obj->_varname.c_str(), moduleId());
+		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(ModuleMIB, "addObject() added subOid[%s] for var[%s], moduleId[%d]"),
+				subOid.str().c_str(), obj->_varname.c_str(), (int)moduleId());
 	return true;
 }
 
@@ -379,7 +381,8 @@ bool ModuleMIB::reserveTable(const std::string& tblname, size_t columns, Oid& su
 		if (subOidTable.isNil() || subOidTable[0] != moduleId())
 		{
 			if (0 == (_flags_VERBOSE & VFLG_MUTE_ERRS_MIB))
-				_log(ZQ::common::Log::L_WARNING, CLOGFMT(ModuleMIB, "reserveTable() subOid[%s] for tbl[%s] mismatches moduleId[%d]"), subOidTable.str().c_str(), tblname.c_str(), moduleId());
+				_log(ZQ::common::Log::L_WARNING, CLOGFMT(ModuleMIB, "reserveTable() subOid[%s] for tbl[%s] mismatches moduleId[%d]"), 
+						subOidTable.str().c_str(), tblname.c_str(), (int)moduleId());
 			return false;
 		}
 
@@ -398,7 +401,7 @@ bool ModuleMIB::reserveTable(const std::string& tblname, size_t columns, Oid& su
 	}
 
 	char buf[32];
-	snprintf(buf, sizeof(buf), TAG_TABLE_NODE ".%d", columns);
+	snprintf(buf, sizeof(buf), TAG_TABLE_NODE ".%d", (int)columns);
 
 	SNMPObject::Ptr var = new SNMPObjectDupValue(tblname, buf);
 
@@ -410,7 +413,7 @@ bool ModuleMIB::reserveTable(const std::string& tblname, size_t columns, Oid& su
 	// the table node
 	MAPSET(ChildrenMap, _childrenMap, subOidTable, var); 
 	if (_flags_VERBOSE & VFLG_VERBOSE_MIB)
-		_log(ZQ::common::Log::L_INFO, CLOGFMT(ModuleMIB, "reserveTable() table[%s] subOid[%s] reserved with %d columns"), tblname.c_str(), subOidTable.str().c_str(), columns);
+		_log(ZQ::common::Log::L_INFO, CLOGFMT(ModuleMIB, "reserveTable() table[%s] subOid[%s] reserved with %d columns"), tblname.c_str(), subOidTable.str().c_str(), (int)columns);
 
 	return true;
 }
@@ -447,7 +450,7 @@ bool ModuleMIB::addTableCell(const Oid& subOidTable, Oid::I_t columnId, Oid::I_t
 	if ((int)columnId > nCols)
 	{
 		if (0 == (_flags_VERBOSE & VFLG_MUTE_ERRS_MIB))
-			_log(ZQ::common::Log::L_WARNING, CLOGFMT(ModuleMIB, "addTableCell() var[%s] column[%d] exceeded reserved size[%d]"), var->_varname.c_str(), columnId, nCols);
+			_log(ZQ::common::Log::L_WARNING, CLOGFMT(ModuleMIB, "addTableCell() var[%s] column[%d] exceeded reserved size[%d]"), var->_varname.c_str(), (int)columnId, (int)nCols);
 		return false;
 	}
 
@@ -463,7 +466,7 @@ bool ModuleMIB::addTableCell(const Oid& subOidTable, Oid::I_t columnId, Oid::I_t
 	char buf[16] ="\0";
 	if (std::string::npos == var->_varname.find('#'))
 	{
-		snprintf(buf, sizeof(buf)-2, "#%d", rowIndex);
+		snprintf(buf, sizeof(buf)-2, "#%d", (int)rowIndex);
 		var->_varname += buf;
 	}
 
@@ -599,7 +602,7 @@ SNMPError ModuleMIB::readVars(SNMPVariable::List& vlist)
 	}
 
 	if (_flags_VERBOSE & VFLG_VERBOSE_MIB)
-		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(ModuleMIB, "readVars() subOid[%s] has been read, requested %d items"), subOidList.c_str(), vlist.size());
+		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(ModuleMIB, "readVars() subOid[%s] has been read, requested %d items"), subOidList.c_str(), (int)vlist.size());
 	return se_NoError;
 }
 
@@ -670,7 +673,7 @@ SNMPError ModuleMIB::writeVars(SNMPVariable::List& vlist)
 		if (fieldId != (Oid::I_t) SNMPObject::vf_Value)
 		{
 			if (0 == (_flags_VERBOSE & VFLG_MUTE_ERRS_MIB))
-				_log(ZQ::common::Log::L_ERROR, CLOGFMT(ModuleMIB, "writeVars() non-value field[%d] of oid[%s] requested to write"), fieldId, vlist[i]->oid().str().c_str());
+				_log(ZQ::common::Log::L_ERROR, CLOGFMT(ModuleMIB, "writeVars() non-value field[%d] of oid[%s] requested to write"), (int)fieldId, vlist[i]->oid().str().c_str());
 			return se_ReadOnly;
 		}
 
@@ -696,7 +699,7 @@ SNMPError ModuleMIB::writeVars(SNMPVariable::List& vlist)
 	}
 
 	if (_flags_VERBOSE & VFLG_VERBOSE_MIB)
-		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(ModuleMIB, "writeVars() subOid[%s] has been written, requested %d items"), subOidList.c_str(), vlist.size());
+		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(ModuleMIB, "writeVars() subOid[%s] has been written, requested %d items"), subOidList.c_str(), (int)vlist.size());
 	return se_NoError;
 }
 

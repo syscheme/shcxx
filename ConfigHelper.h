@@ -301,7 +301,8 @@ private:
         {
             XMLUtil::XmlNodes nodes = XMLUtil::locate(node, it_detail->path);
             if(nodes.size() != 1)
-                throwf<CfgException>(EXFMT(CfgException, "Holder::__readThis() bad xml definition, found %u nodes of path [%s]. root=%s"), nodes.size(), it_detail->path.c_str(), __m_rootPath.c_str());
+                throwf<CfgException>(EXFMT(CfgException, "Holder::__readThis() bad xml definition, found %u nodes of path [%s]. root=%s"), 
+						(unsigned int)nodes.size(), it_detail->path.c_str(), __m_rootPath.c_str());
 
             // read the config of this attribute
             XMLUtil::XmlNode target = nodes[0];
@@ -323,8 +324,8 @@ private:
                     }
                     else
                     {
-                        throwf<CfgException>(EXFMT(CfgException, "Holder::__readThis() insufficient buffer. path [%s], attribute[%s], attribute size [%u], buffer size[%u]. root=%s")
-                            , it_detail->path.c_str(), it_detail->name.c_str(), str.size(), CFG_BUFSIZE, __m_rootPath.c_str());
+                        throwf<CfgException>(EXFMT(CfgException, "Holder::__readThis() insufficient buffer. path [%s], attribute[%s], attribute size [%u], buffer size[%u]. root=%s"),
+								it_detail->path.c_str(), it_detail->name.c_str(), (unsigned int)str.size(), (unsigned int)CFG_BUFSIZE, __m_rootPath.c_str());
                     }
                 }
                 value = buf;
@@ -353,7 +354,7 @@ private:
             if(target.size() < it_other->nodeCount.first || it_other->nodeCount.second < target.size())
             {
                 throwf<CfgException>(EXFMT(CfgException, "Holder::__readOthers() bad xml definition, found %u nodes of path [%s], violate the range[%u, %u]. root=%s"),
-                    target.size(), it_other->path.c_str(), it_other->nodeCount.first, it_other->nodeCount.second, __m_rootPath.c_str());
+                    (unsigned int)target.size(), it_other->path.c_str(), (unsigned int)it_other->nodeCount.first, (unsigned int)it_other->nodeCount.second, __m_rootPath.c_str());
             }
             for(XMLUtil::XmlNodes::iterator it_node = target.begin(); it_node != target.end(); ++it_node)
             {
@@ -387,7 +388,7 @@ private:
             case dtCharArray:
                 return (&(obj.*(PMem_CharArray)_address));
             default:
-                throwf<CfgException>(EXFMT(CfgException, "Detail::get() bad data type, type[%d]"), _type);
+                throwf<CfgException>(EXFMT(CfgException, "Detail::get() bad data type, type[%d]"), (int)_type);
                 return "";
             }
         }
@@ -409,7 +410,8 @@ private:
                     if( (LONG_MAX == lval ||LONG_MIN == lval)
                         && (ERANGE == errno))
                     {
-                        throwf<CfgException>(EXFMT(CfgException, "Detail::set() integer attribute range error, path[%s], name[%s], value[%s]. root=%s"), path.c_str(), name.c_str(), value, root.c_str());
+                        throwf<CfgException>(EXFMT(CfgException, "Detail::set() integer attribute range error, path[%s], name[%s], value[%s]. root=%s"), 
+								path.c_str(), name.c_str(), value, root.c_str());
                     }
                     (obj.*(PMem_Int32)_address) = lval;
                 }
@@ -421,10 +423,11 @@ private:
                 if(strlen(value) < _length)
                     strncpy(&(obj.*(PMem_CharArray)_address), value, _length);
                 else
-                    throwf<CfgException>(EXFMT(CfgException, "Detail::set() value to long, path[%s], name[%s], length limit[%u]. root=%s"), path.c_str(), name.c_str(), _length, root.c_str());
+                    throwf<CfgException>(EXFMT(CfgException, "Detail::set() value to long, path[%s], name[%s], length limit[%u]. root=%s"), 
+							path.c_str(), name.c_str(), (unsigned int)_length, root.c_str());
                 break;
             default:
-                throwf<CfgException>(EXFMT(CfgException, "Detail::set() bad data type, type[%d]"), _type);
+                throwf<CfgException>(EXFMT(CfgException, "Detail::set() bad data type, type[%d]"), (int)_type);
             }
         }
         void setDefault(FragmentT& obj, const std::string& defaultValue)

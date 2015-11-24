@@ -68,19 +68,25 @@
 #include "InetAddr.h"
 
 #ifdef ZQ_OS_MSWIN
-#  include <winsock2.h>
-#  define TIMEOUT_INF ~((timeout_t) 0)
-   typedef int socklen_t;
-#  ifndef ssize_t
-#    define ssize_t int
-#  endif
-#  ifndef timeout_t
-     typedef DWORD   timeout_t;
-#  endif
+	#  include <winsock2.h>
+	#  define TIMEOUT_INF ~((timeout_t) 0)
+	   typedef int socklen_t;
+	#  ifndef ssize_t
+	#    define ssize_t int
+	#  endif
+	#  ifndef timeout_t
+	     typedef DWORD   timeout_t;
+	#  endif
 #else
-#  define SOCKET int
-#  define  INVALID_SOCKET (-1)
-#  define  SOCKET_ERROR	(-1)
+	#ifndef SOCKET
+	#  define SOCKET int
+	#endif
+	#ifndef INVALID_SOCKET
+	#  define  INVALID_SOCKET (-1)
+	#endif
+	#ifndef SOCKET_ERROR
+	#  define  SOCKET_ERROR	(-1)
+	#endif
 #endif
 
 #ifdef ZQ_OS_MSWIN
