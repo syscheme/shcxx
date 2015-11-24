@@ -111,7 +111,8 @@ namespace LibAsync{
 	mRecedSize(0),
 	mSentSize(0),
 	mWriteable(false),
-	mLingerTime(5000)
+	mLingerTime(5000),
+	mShutdown(false)
 #endif
 	{
 	}
@@ -129,7 +130,8 @@ namespace LibAsync{
 	mRecedSize(0),
 	mSentSize(0),
 	mWriteable(false),
-    mLingerTime(5000)
+    mLingerTime(5000),
+	mShutdown(false)
 #endif//
 	{
 	}
@@ -151,7 +153,12 @@ namespace LibAsync{
 	}
 
 	Socket::~Socket(){
+#ifdef ZQ_OS_MSWIN
 		close();
+#else
+		realClose();
+		mLingerPtr = NULL;	
+#endif
 		mLoop.decreateSockCount();
 	}
 

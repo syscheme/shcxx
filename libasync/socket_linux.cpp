@@ -17,15 +17,22 @@ namespace LibAsync {
 
 	void Socket::close()
 	{
+
+
 		//if( mSocket < 0 && !mbAlive)
 		//	return;
 		Socket::Ptr sockPtr = this;
 		mLoop.unregisterEvent(sockPtr, mSocketEvetns);
-		mbAlive = false;
+		/*mbAlive = false;
 		if ( -1 != mSocket)
 		{
 			::close(mSocket);
 			mSocket = -1;
+		}*/
+		if( !socketShutdown() )
+		{
+			realClose();
+			mLingerPtr = NULL;
 		}
 		return ;
 	}
@@ -135,7 +142,7 @@ namespace LibAsync {
 
 	bool Socket::recv( AsyncBufferS& bufs )
 	{
-		if ( !mRecValid || !mbAlive)
+		if ( !mRecValid || !mbAlive || mShutdown )
 			return  false;
 		mRecValid = false;
 		mRecedSize = 0;	
@@ -152,6 +159,34 @@ namespace LibAsync {
 			return false;
 		}
 		return true;
+	}
+
+	bool Socket::recv(bool shutdown)
+	{
+		if ( !mRecValid || !mbAlive )
+			return  false;
+		if(buffer_size(mRecBufs) <= 0 )
+			return false;
+		mRecValid = false;
+		mRecedSize = 0;	
+		for ( LibAsync::AsyncBufferS::iterator recvIt = mRecBufs.begin(); recvIt != mRecBufs.end(); recvIt ++ )
+		{
+			if(recvIt->base != NULL)
+				memset(recvIt->base, '\0', recvIt->len);
+		}
+		//mRecBufs = bufs;
+		//if(recvAction())
+		//	return true;
+		Socket::Ptr sockPtr (this);
+		mSocketEvetns = EPOLLIN ;
+		if( !mLoop.registerEvent(sockPtr, mSocketEvetns) )
+		{
+			//onSocketError(ERR_EPOLLREGISTERFAIL);
+			mRecedSize = 0;
+			mRecValid = true;
+			return false;
+		}
+		return true;	
 	}
 
 	bool Socket::send( const AsyncBufferS& bufs ) {
@@ -309,6 +344,18 @@ namespace LibAsync {
 			iovRecv = NULL;
 			if (ret > 0)
 			{
+				if(mShutdown)
+				{
+					mRecValid = true;
+					if( !recv(mShutdown))
+					{
+						if(NULL != mLingerPtr)
+							mLingerPtr->updateTimer(0);
+						else
+							realClose();
+					}
+					return true;
+				}
 				Socket::Ptr sockPtr (this);
 				mRecedSize += ret;
 				mSocketEvetns = ( mSocketEvetns & (~EPOLLIN) );
@@ -321,6 +368,15 @@ namespace LibAsync {
 			}
 			else if ( 0 == ret)
 			{
+				if(mShutdown)
+				{
+					mRecValid = true;
+					if(NULL != mLingerPtr)
+						mLingerPtr->updateTimer(0);
+					else
+						realClose();
+					return true;
+				}
 				Socket::Ptr sockPtr (this);
 				mLoop.unregisterEvent(sockPtr,mSocketEvetns);
 				mbAlive = false;
@@ -336,6 +392,15 @@ namespace LibAsync {
 				if(errno == EWOULDBLOCK || errno == EAGAIN)
 					return false;
 				//if error then unregisterEvent of EPOLLIN
+				if(mShutdown)
+				{
+					mRecValid = true;
+					if(NULL != mLingerPtr)
+						mLingerPtr->updateTimer(0);
+					else
+						realClose();
+					return true;
+				}
 				Socket::Ptr sockPtr (this);
 				mSocketEvetns = ( mSocketEvetns & (~EPOLLIN) );
 				mLoop.registerEvent(sockPtr, mSocketEvetns);
@@ -449,6 +514,27 @@ namespace LibAsync {
 		return true;
 	}
 
+	void Socket::errorAction(int err)
+	{
+		if(mShutdown)
+		{
+			mRecValid = true;
+			if(NULL != mLingerPtr)
+				mLingerPtr->updateTimer(0);
+			else
+				realClose();
+			return ;
+		}
+		Socket::Ptr sockPtr (this);
+		mLoop.unregisterEvent(sockPtr, mSocketEvetns);
+		mbAlive = false;
+		mSentSize = 0;
+		mSendValid = true;
+		mRecedSize = 0;
+		mRecValid = true;
+		onSocketError(err);
+	}
+
 	int Socket::sendDirect(const AsyncBufferS& bufs)
 	{	
 		if ( !mSendValid || !mbAlive )  
@@ -542,17 +628,21 @@ SEND_DATA:
 			if ( -1 == ::shutdown(mSocket, SHUT_WR) )
 				return false;
 		}
+		mShutdown = true;
 		AsyncBuffer buf;
 		buf.len = 2 * 64 * 1024;
 		buf.base = (char*)malloc(sizeof(char)* buf.len);
 		if ( buf.base == NULL )
 			return false;
 		mLingerRecv.push_back(buf);
-		if( !recv(mLingerRecv) )
-			return false;
 		Socket::Ptr sockPtr = this;
 		mLingerPtr = new LingerTimer(sockPtr);
-		mLingerPtr.updateTimer(mLingerTime);
+		mRecValid = true;
+		mRecBufs = mLingerRecv;
+		if( !recv(mShutdown) )
+			return false;
+		if(mLingerPtr != NULL)
+			mLingerPtr->updateTimer(mLingerTime);
 		return true;
 	}
 
@@ -574,7 +664,6 @@ SEND_DATA:
 				recvIt->base = NULL;
 			}
 		}
-
 		return true;
 	}
 	
@@ -592,6 +681,7 @@ SEND_DATA:
 
 	void  LingerTimer::onTimer()
 	{
+		cancelTimer();
 		if (NULL != socketPtr)
 		{
 			socketPtr->realClose();

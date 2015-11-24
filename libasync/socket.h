@@ -177,6 +177,13 @@ namespace LibAsync {
 		bool    acceptAction(bool firstAccept = false);
 		bool    recvAction();
 		bool    sendAction(bool firstSend = false);
+		void    errorAction(int err);
+		
+		/// 为了解决，socket shutdown之后调用recv的问题。
+		/// 采用private权限保证外部以及子类再shutdown之后无法调用该函数
+		/// 该函数仅供于socket shutdown之后去recv数据时调用
+		bool	recv(bool shutdown);
+
 #elif defined ZQ_OS_MSWIN
 		bool	innerAccept();
 #endif		
@@ -203,6 +210,7 @@ namespace LibAsync {
 #endif //ZQ_OS
 			return NULL;
 		}
+		
 
 	private:
 		friend	class EventLoop;
@@ -260,6 +268,7 @@ namespace LibAsync {
 		LingerTimer::Ptr    mLingerPtr;
 		uint64              mLingerTime;
 		AsyncBufferS        mLingerRecv;
+		bool                mShutdown;
 #else
 #	error "unsupported OS"
 #endif

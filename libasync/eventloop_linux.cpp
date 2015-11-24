@@ -216,6 +216,7 @@ void EventLoop::processEvent( int64 expireAt )
 		}//send data
 		else if( /*(events[i].events & EPOLLRDHUP) ||*/ ( events[i].events & EPOLLHUP)) //peer close
 		{
+			/*
 			unregisterEvent(sock,sock->mSocketEvetns);
 			sock->mbAlive = false;
 			sock->mSentSize = 0;
@@ -223,17 +224,21 @@ void EventLoop::processEvent( int64 expireAt )
 			sock->mRecedSize = 0;
 			sock->mRecValid = true;
 			sock->onSocketError(ERR_EOF);
+			*/
+			sock->errorAction(ERR_EOF);
 			continue;
 		}
 		else
 		{
+			/*
 			unregisterEvent(sock, sock->mSocketEvetns);
 			sock->mbAlive = false;
 			sock->mSentSize = 0;
 			sock->mSendValid = true;
 			sock->mRecedSize = 0;
 			sock->mRecValid = true;
-			sock->onSocketError(ERR_EPOLLEXCEPTION);
+			sock->onSocketError(ERR_EPOLLEXCEPTION);*/
+			sock->errorAction(ERR_EPOLLEXCEPTION);
 			continue;
 		}
 	}//for(i = 0; i< res; i++)

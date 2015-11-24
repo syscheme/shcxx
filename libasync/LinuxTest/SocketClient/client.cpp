@@ -68,10 +68,10 @@ SockClient::SockClient(ZQ::common::Log& log, const std::string& ip, unsigned sho
 	_sendBufs.push_back(sendBuf);
 
 	AsyncBuffer  recvBuf1, recvBuf2;
-	recvBuf1.len = 1024 * 250;
+	recvBuf1.len = 1024 * 64;
 	recvBuf1.base = (char*)malloc(recvBuf1.len * sizeof(char));
 	_recvBufs.push_back(recvBuf1);
-	recvBuf2.len = 1024 * 250;
+	recvBuf2.len = 1024 * 64;
 	recvBuf2.base = (char*)malloc(recvBuf2.len * sizeof(char));
 	_recvBufs.push_back(recvBuf2);
 }

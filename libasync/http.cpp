@@ -1177,7 +1177,11 @@ namespace LibAsync {
 	}
 	void HttpServer::stop() {
 		mbRunning = false;
+#ifdef ZQ_OS_MSWIN
+		::closesocket(mSocket);
+#else
 		::close(mSocket);
+#endif
 		waitHandle(-1);
 	}
 
