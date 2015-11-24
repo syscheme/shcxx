@@ -21,6 +21,7 @@ namespace LibAsync {
 
 		//if( mSocket < 0 && !mbAlive)
 		//	return;
+		//mLoop.getLog()(ZQ::common::Log::L_DEBUG, CLOGFMT(Socket, "clsoe() socket[%p]" ), this);
 		Socket::Ptr sockPtr = this;
 		mLoop.unregisterEvent(sockPtr, mSocketEvetns);
 		/*mbAlive = false;
@@ -61,6 +62,7 @@ namespace LibAsync {
 		bool bOK = setReuseAddr(true);
 		assert(bOK);
 		setNoDelay(true);
+		setSysLinger();
 		mRecBufs.clear();
 		mSendBufs.clear();
 		mSendValid = true;
@@ -119,7 +121,7 @@ namespace LibAsync {
 						close();				 
 						return false;
 					}
-					mLoop.getLog()(ZQ::common::Log::L_DEBUG, CLOGFMT(Socket, "register not connect socket[%p] to epoll" ), this);
+				//mLoop.getLog()(ZQ::common::Log::L_DEBUG, CLOGFMT(Socket, "register not connect socket[%p] to epoll" ), this);
 					return true;
 				} else if ( errno == EADDRNOTAVAIL ) {
 					if( ++retryCount < 8 ) {
@@ -620,6 +622,14 @@ SEND_DATA:
 		return 0 == setsockopt( mSocket, SOL_TCP, TCP_DEFER_ACCEPT, &val, sizeof(val)) ;
 	}
 	
+	bool Socket::setSysLinger()
+	{
+		struct linger sLinger;
+		sLinger.l_onoff = 1;
+		sLinger.l_linger = 0;
+		return 0 == setsockopt( mSocket, SOL_SOCKET, SO_LINGER, (const char*)&sLinger, sizeof(sLinger));
+	}
+
 	bool Socket::socketShutdown()
 	{
 		//mbAlive = false;
@@ -628,6 +638,7 @@ SEND_DATA:
 			if ( -1 == ::shutdown(mSocket, SHUT_WR) )
 				return false;
 		}
+		//mLoop.getLog()(ZQ::common::Log::L_DEBUG, CLOGFMT(Socket, "socketshutdown() socket[%p]" ), this);
 		mShutdown = true;
 		AsyncBuffer buf;
 		buf.len = 2 * 64 * 1024;
@@ -648,6 +659,7 @@ SEND_DATA:
 
 	bool Socket::realClose()
 	{
+		mLoop.getLog()(ZQ::common::Log::L_DEBUG, CLOGFMT(Socket, "realClose() socket[%p]" ), this);
 		Socket::Ptr sockPtr = this;
 		mLoop.unregisterEvent(sockPtr, mSocketEvetns);
 		mbAlive = false;
