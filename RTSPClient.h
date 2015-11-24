@@ -27,6 +27,11 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/RTSPClient.h $
 // 
+// 24    11/10/15 3:10p Hui.shao
+// 
+// 24    11/10/15 3:00p Hui.shao
+// ticket#18316 to protect multiple in comming message of a same session
+// 
 // 23    2/08/14 7:16p Hui.shao
 // merged from V1.16
 // 
@@ -395,10 +400,10 @@ public:
 	virtual const char* sessionDescription(bool generate=false, const char* serverType =NULL);
 	virtual const char* getTransport(bool generate=false, const char* serverType =NULL, bool streamOutgoing =false);
 
-protected:
-	// impl of RTSPSink
+protected: // impl of RTSPSink
 	friend class MessageProcessCmd;
 	friend class RequestErrCmd;
+
 	virtual void OnRequestError(RTSPClient& rtspClient, RTSPRequest::Ptr& pReq, RequestError errCode, const char* errDesc=NULL);
 	// dispatch OnResponse() to OnResponse_XXX() instead, not encourage to overwrite OnResponse()
 	virtual void OnResponse(RTSPClient& rtspClient, RTSPRequest::Ptr& pReq, RTSPMessage::Ptr& pResp, uint resultCode, const char* resultString);
@@ -655,6 +660,8 @@ protected:
 	int32 _sessTimeout; // the session timeout in msec, may be set by SETUP response from the server
 
 private:
+	Mutex        _lockIncomming; // lock for processing incomming message, called by MessageProcessCmd only
+
 	// about the session manager
 	static IRTSPSessionManager* _sessMgr;
 };
@@ -872,9 +879,9 @@ protected:
 	int  sendMessage(RTSPMessage::Ptr pMessage, const RTSPMessage::AttrMap& headerToOverride, const char* msgDesc =NULL);
 
 	RTSPMessage::Ptr _pCurrentMsg;
-	char         _inCommingBuffer[RTSP_MSG_BUF_SIZE];
-	int	     _inCommingByteSeen;
-	Mutex	     _lockInCommingMsg;
+	char             _inCommingBuffer[RTSP_MSG_BUF_SIZE];
+	int	             _inCommingByteSeen;
+	Mutex	         _lockInCommingMsg;
 
 	/// increase last CSeq and then return the new CSeq in the range [1, MAX_CLIENT_CSEQ)
 	uint lastCSeq();

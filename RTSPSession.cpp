@@ -27,7 +27,12 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/RTSPSession.cpp $
 // 
-// 21    4/30/15 3:02p Hui.shao
+// 22    11/10/15 3:10p Hui.shao
+// 
+// 22    11/10/15 3:00p Hui.shao
+// ticket#18316 to protect multiple in comming message of a same session
+// 
+// 21    5/06/15 5:24p Hui.shao
 // 
 // 20    2/08/14 7:16p Hui.shao
 // merged from V1.16
@@ -437,6 +442,7 @@ RTSPSession::RTSPSession(Log& log, NativeThreadPool& thrdpool, const char* strea
 
 RTSPSession::~RTSPSession()
 {
+	ZQ::common::MutexGuard g(_lockIncomming); // to avoid if incomming message is happened processed
 //	if (_sessMgr == &gSessMgr)
 //	{
 //		destroy();
@@ -951,8 +957,8 @@ void RTSPSession::OnResponse_SET_PARAMETER(RTSPClient& rtspClient, RTSPRequest::
 // new overwriteable entries, dispatched from OnServerRequest()
 void RTSPSession::OnANNOUNCE(RTSPClient& rtspClient, RTSPMessage::Ptr& pInMessage)
 {
-#pragma message ( __MSGLOC__ "TODO: impl here")
 	_log(Log::L_DEBUG, SESSLOGFMT("OnANNOUNCE()"));
+
 	if (pInMessage->headers.find("Session") != pInMessage->headers.end())
 	{
 		std::string notice = "";
