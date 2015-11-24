@@ -17,15 +17,23 @@ namespace LibAsync {
 
 	void Socket::close()
 	{
+
+
 		//if( mSocket < 0 && !mbAlive)
 		//	return;
+		//mLoop.getLog()(ZQ::common::Log::L_DEBUG, CLOGFMT(Socket, "clsoe() socket[%p]" ), this);
 		Socket::Ptr sockPtr = this;
 		mLoop.unregisterEvent(sockPtr, mSocketEvetns);
-		mbAlive = false;
+		/*mbAlive = false;
 		if ( -1 != mSocket)
 		{
 			::close(mSocket);
 			mSocket = -1;
+		}*/
+		if( !socketShutdown() )
+		{
+			realClose();
+			mLingerPtr = NULL;
 		}
 		return ;
 	}
@@ -54,6 +62,7 @@ namespace LibAsync {
 		bool bOK = setReuseAddr(true);
 		assert(bOK);
 		setNoDelay(true);
+		setSysLinger();
 		mRecBufs.clear();
 		mSendBufs.clear();
 		mSendValid = true;
@@ -112,7 +121,7 @@ namespace LibAsync {
 						close();				 
 						return false;
 					}
-					mLoop.getLog()(ZQ::common::Log::L_DEBUG, CLOGFMT(Socket, "register not connect socket[%p] to epoll" ), this);
+				//mLoop.getLog()(ZQ::common::Log::L_DEBUG, CLOGFMT(Socket, "register not connect socket[%p] to epoll" ), this);
 					return true;
 				} else if ( errno == EADDRNOTAVAIL ) {
 					if( ++retryCount < 8 ) {
@@ -135,7 +144,7 @@ namespace LibAsync {
 
 	bool Socket::recv( AsyncBufferS& bufs )
 	{
-		if ( !mRecValid || !mbAlive)
+		if ( !mRecValid || !mbAlive || mShutdown )
 			return  false;
 		mRecValid = false;
 		mRecedSize = 0;	
@@ -152,6 +161,34 @@ namespace LibAsync {
 			return false;
 		}
 		return true;
+	}
+
+	bool Socket::recv(bool shutdown)
+	{
+		if ( !mRecValid || !mbAlive )
+			return  false;
+		if(buffer_size(mRecBufs) <= 0 )
+			return false;
+		mRecValid = false;
+		mRecedSize = 0;	
+		for ( LibAsync::AsyncBufferS::iterator recvIt = mRecBufs.begin(); recvIt != mRecBufs.end(); recvIt ++ )
+		{
+			if(recvIt->base != NULL)
+				memset(recvIt->base, '\0', recvIt->len);
+		}
+		//mRecBufs = bufs;
+		//if(recvAction())
+		//	return true;
+		Socket::Ptr sockPtr (this);
+		mSocketEvetns = EPOLLIN ;
+		if( !mLoop.registerEvent(sockPtr, mSocketEvetns) )
+		{
+			//onSocketError(ERR_EPOLLREGISTERFAIL);
+			mRecedSize = 0;
+			mRecValid = true;
+			return false;
+		}
+		return true;	
 	}
 
 	bool Socket::send( const AsyncBufferS& bufs ) {
@@ -309,6 +346,18 @@ namespace LibAsync {
 			iovRecv = NULL;
 			if (ret > 0)
 			{
+				if(mShutdown)
+				{
+					mRecValid = true;
+					if( !recv(mShutdown))
+					{
+						if(NULL != mLingerPtr)
+							mLingerPtr->updateTimer(0);
+						else
+							realClose();
+					}
+					return true;
+				}
 				Socket::Ptr sockPtr (this);
 				mRecedSize += ret;
 				mSocketEvetns = ( mSocketEvetns & (~EPOLLIN) );
@@ -321,6 +370,15 @@ namespace LibAsync {
 			}
 			else if ( 0 == ret)
 			{
+				if(mShutdown)
+				{
+					mRecValid = true;
+					if(NULL != mLingerPtr)
+						mLingerPtr->updateTimer(0);
+					else
+						realClose();
+					return true;
+				}
 				Socket::Ptr sockPtr (this);
 				mLoop.unregisterEvent(sockPtr,mSocketEvetns);
 				mbAlive = false;
@@ -336,6 +394,15 @@ namespace LibAsync {
 				if(errno == EWOULDBLOCK || errno == EAGAIN)
 					return false;
 				//if error then unregisterEvent of EPOLLIN
+				if(mShutdown)
+				{
+					mRecValid = true;
+					if(NULL != mLingerPtr)
+						mLingerPtr->updateTimer(0);
+					else
+						realClose();
+					return true;
+				}
 				Socket::Ptr sockPtr (this);
 				mSocketEvetns = ( mSocketEvetns & (~EPOLLIN) );
 				mLoop.registerEvent(sockPtr, mSocketEvetns);
@@ -449,6 +516,27 @@ namespace LibAsync {
 		return true;
 	}
 
+	void Socket::errorAction(int err)
+	{
+		if(mShutdown)
+		{
+			mRecValid = true;
+			if(NULL != mLingerPtr)
+				mLingerPtr->updateTimer(0);
+			else
+				realClose();
+			return ;
+		}
+		Socket::Ptr sockPtr (this);
+		mLoop.unregisterEvent(sockPtr, mSocketEvetns);
+		mbAlive = false;
+		mSentSize = 0;
+		mSendValid = true;
+		mRecedSize = 0;
+		mRecValid = true;
+		onSocketError(err);
+	}
+
 	int Socket::sendDirect(const AsyncBufferS& bufs)
 	{	
 		if ( !mSendValid || !mbAlive )  
@@ -533,5 +621,83 @@ SEND_DATA:
 		int val = 1;
 		return 0 == setsockopt( mSocket, SOL_TCP, TCP_DEFER_ACCEPT, &val, sizeof(val)) ;
 	}
+	
+	bool Socket::setSysLinger()
+	{
+		struct linger sLinger;
+		sLinger.l_onoff = 1;
+		sLinger.l_linger = 0;
+		return 0 == setsockopt( mSocket, SOL_SOCKET, SO_LINGER, (const char*)&sLinger, sizeof(sLinger));
+	}
 
+	bool Socket::socketShutdown()
+	{
+		//mbAlive = false;
+		if (-1 != mSocket)
+		{
+			if ( -1 == ::shutdown(mSocket, SHUT_WR) )
+				return false;
+		}
+		//mLoop.getLog()(ZQ::common::Log::L_DEBUG, CLOGFMT(Socket, "socketshutdown() socket[%p]" ), this);
+		mShutdown = true;
+		AsyncBuffer buf;
+		buf.len = 2 * 64 * 1024;
+		buf.base = (char*)malloc(sizeof(char)* buf.len);
+		if ( buf.base == NULL )
+			return false;
+		mLingerRecv.push_back(buf);
+		Socket::Ptr sockPtr = this;
+		mLingerPtr = new LingerTimer(sockPtr);
+		mRecValid = true;
+		mRecBufs = mLingerRecv;
+		if( !recv(mShutdown) )
+			return false;
+		if(mLingerPtr != NULL)
+			mLingerPtr->updateTimer(mLingerTime);
+		return true;
+	}
+
+	bool Socket::realClose()
+	{
+		mLoop.getLog()(ZQ::common::Log::L_DEBUG, CLOGFMT(Socket, "realClose() socket[%p]" ), this);
+		Socket::Ptr sockPtr = this;
+		mLoop.unregisterEvent(sockPtr, mSocketEvetns);
+		mbAlive = false;
+		if ( -1 != mSocket)
+		{
+			::close(mSocket);
+			mSocket = -1;
+		}
+		for ( LibAsync::AsyncBufferS::iterator recvIt = mLingerRecv.begin(); recvIt != mLingerRecv.end(); recvIt ++ )
+		{
+			if ( recvIt->base != NULL )
+			{
+				free(recvIt->base);
+				recvIt->base = NULL;
+			}
+		}
+		return true;
+	}
+	
+	LingerTimer::LingerTimer(SocketPtr sock)
+	:socketPtr(sock),
+	Timer(sock->getLoop())
+	{
+	}
+
+	LingerTimer::~LingerTimer()
+	{
+		if(NULL != socketPtr)
+			socketPtr = NULL;
+	}
+
+	void  LingerTimer::onTimer()
+	{
+		cancelTimer();
+		if (NULL != socketPtr)
+		{
+			socketPtr->realClose();
+			socketPtr = NULL;
+		}
+	}
 }//libAsync
