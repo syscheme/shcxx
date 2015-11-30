@@ -27,9 +27,12 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/RTSPClient.cpp $
 // 
-// 52    7/06/15 2:28p Hui.shao
+// 53    11/10/15 3:10p Hui.shao
 // 
-// 51    4/30/15 3:02p Hui.shao
+// 52    11/10/15 3:00p Hui.shao
+// ticket#18316 to protect multiple in comming message of a same session
+// 
+// 51    5/06/15 5:24p Hui.shao
 // 
 // 50    2/08/14 7:16p Hui.shao
 // merged from V1.16
@@ -568,7 +571,7 @@ public:
 	typedef struct _ReqRespPair
 	{
 		uint cSeq;
-		RTSPMessage::Ptr  inMsg;
+		RTSPMessage::Ptr inMsg;
 		RTSPRequest::Ptr  outReq;
 
 		static bool less(_ReqRespPair i, _ReqRespPair j) { return (i.cSeq<j.cSeq); }
@@ -614,6 +617,8 @@ protected:
 
 				if (pSession)
 				{
+					MutexGuard sessg(pSession->_lockIncomming);
+
 					RTSPMessage::AttrMap::iterator itHeader = _pair.inMsg->headers.find("Session");
 					std::string sessId; int timeoutSec=0;
 					if (_pair.inMsg->headers.end() != itHeader)
@@ -709,6 +714,8 @@ protected:
 
 			if (pSession)
 			{
+				MutexGuard sessg(pSession->_lockIncomming);
+
 				pSession->_stampLastMessage = stampNow;
 				pSession->OnServerRequest(_client, cmdName.c_str(), url.c_str(), _pair.inMsg);
 			}

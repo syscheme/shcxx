@@ -29,8 +29,21 @@
 #include "eventloop.h"
 
 namespace LibAsync {
-
+	
 	class ZQ_COMMON_API Socket;
+	class LingerTimer : public virtual Timer{
+		public:
+			typedef ZQ::common::Pointer<LingerTimer> Ptr;
+			typedef ZQ::common::Pointer<Socket> SocketPtr;
+			~LingerTimer();
+			LingerTimer(SocketPtr sock);
+		public:
+			virtual void  onTimer();
+
+		private:
+			SocketPtr     socketPtr;
+	};
+
 
 	class  Socket : public virtual ZQ::common::SharedObject {
 	protected:
@@ -94,11 +107,17 @@ namespace LibAsync {
 		bool	setRecvBufSize( int size );
 
 #ifdef ZQ_OS_LINUX
+		bool    setSysLinger();
 		bool	setNoDelay( bool noDelay );
 		bool	setCork( bool cork );
         // 向EPOLL中注册写事件，当该socket可写的时，通过回调onWritable通知该socket可发
 		bool 	registerWrite();
 		bool    setDeferAccept();
+		bool    socketShutdown();
+		bool    realClose();
+		inline void    setLingerTime(uint64 time){ 
+			mLingerTime = time;
+		}
 #endif//ZQ_OS
 
 	protected:
@@ -159,6 +178,13 @@ namespace LibAsync {
 		bool    acceptAction(bool firstAccept = false);
 		bool    recvAction();
 		bool    sendAction(bool firstSend = false);
+		void    errorAction(int err);
+		
+		/// 为了解决，socket shutdown之后调用recv的问题。
+		/// 采用private权限保证外部以及子类再shutdown之后无法调用该函数
+		/// 该函数仅供于socket shutdown之后去recv数据时调用
+		bool	recv(bool shutdown);
+
 #elif defined ZQ_OS_MSWIN
 		bool	innerAccept();
 #endif		
@@ -185,6 +211,7 @@ namespace LibAsync {
 #endif //ZQ_OS
 			return NULL;
 		}
+		
 
 	private:
 		friend	class EventLoop;
@@ -238,6 +265,11 @@ namespace LibAsync {
 		size_t              mSentSize;
 		bool                mWriteable;
 		bool             	mInEpoll;
+
+		LingerTimer::Ptr    mLingerPtr;
+		uint64              mLingerTime;
+		AsyncBufferS        mLingerRecv;
+		bool                mShutdown;
 #else
 #	error "unsupported OS"
 #endif

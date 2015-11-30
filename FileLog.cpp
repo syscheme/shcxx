@@ -1331,7 +1331,7 @@ void FileLog::RenameAndCreateFile()
 }
 
 int FileLog::run_interval()
-{
+{	
 	flush();
 	flushData();
 	return 0;
