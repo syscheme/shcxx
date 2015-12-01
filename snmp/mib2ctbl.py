@@ -109,7 +109,44 @@ class Mib2CTable:
             fh.write(l)
         fh.write('\t{ 0, NULL, NULL } };\nconst ZQ::SNMP::ModuleMIB::ServiceOidIdx* gMibSvcs = _gMibSvcs; // to export\n\n')
 
-        fh.close();    
+        fh.close();
+        
+    def dupService(self, filename, svcName, maxCount=10) :
+        if (len(filename) <=0) :
+            filename = "../../TianShan/TianShan.MIB"
+        fnOut = '%s.new' % filename
+        fin = open(filename)
+        fout = open(fnOut, "w")
+        svclines = []
+        bInService = 0
+        svcOid =0
+        for line in fin.readlines() :
+            mS = re.match('[\s]*([^\s]*).*::=[\s]*\{[\s]*tianShanService[\s]+([\d]+)[\s]*\}.*', line)
+            mE = re.match('[\s]*END[\s]*.*', line)
+            
+            if (mS) :
+                if mS.groups()[0] == svcName :
+                    svcOid = int(mS.groups()[1])
+                    bInService = 1
+                else :
+                    bInService = 0
+            elif mE and len(svclines)>0:
+                fout.write('\n-- !!!!!!!!!!!!!!! Duplicated Service[%s] Begin !!!!!!!!!!!!!!!\n' %svcName)
+                fout.write(  '-- *********************************************************************\n')
+                for i in range(1, maxCount, 1) :
+                    newSvcDecl = '%s%d  OBJECT IDENTIFIER  ::= { tianShanService %d }' % (svcName, i, int(svcOid/100)*100 +10*i)
+                    fout.write('%s\n' % newSvcDecl)
+                    for sl in svclines :
+                        slnew = sl.replace(svcName, '%s%d' %(svcName, i))
+                        fout.write(slnew)
+                    fout.write('\n')
+            elif bInService and not re.match('[\s]*\--.*', line) :
+                svclines.append(line)
+                
+            fout.write(line)
+        
+        fin.close()
+        fout.close()
 
 def main(argv=None):
     if argv is None:
@@ -117,8 +154,10 @@ def main(argv=None):
 
     #if len(argv) < 2:
     #    usage()
-        
+    
     ca = Mib2CTable()
+    # ca.dupService(filename = "", svcName='nss')
+    
     ca.load(filename = "")
     # ca.list()
     ca.outputCArray()

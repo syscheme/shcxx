@@ -17,8 +17,6 @@ namespace LibAsync {
 
 	void Socket::close()
 	{
-
-
 		//if( mSocket < 0 && !mbAlive)
 		//	return;
 		//mLoop.getLog()(ZQ::common::Log::L_DEBUG, CLOGFMT(Socket, "clsoe() socket[%p]" ), this);

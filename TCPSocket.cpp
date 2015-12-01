@@ -27,6 +27,8 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/TCPSocket.cpp $
 // 
+// 41    11/26/15 2:49p Hui.shao
+// 
 // 40    3/19/15 9:55a Hui.shao
 // 
 // 39    1/22/15 5:06p Hui.shao
@@ -482,7 +484,6 @@ protected:
 						FD_SET(it->first, &fderr);
 						strfde+=buf;
 					}
-
 
 					maxFd = std::max(maxFd, it->first+1);
 				}
@@ -1090,9 +1091,10 @@ bool TCPSocket::disconnect()
 	Socket::_state = stBound;
 	_flagsPending = 0;
 //	_bRecvdDataInPending = false;
-	endSocket();
 	if (_gWatchDog)
 		_gWatchDog->unwatch(*this);
+
+	endSocket();
 	return true;
 }
 
@@ -1221,10 +1223,10 @@ bool TCPServer::listen(int backlog)
 void TCPServer::stopListening()
 {
 	_flagsPending = 0;
-	endSocket();
-
 	if (_gWatchDog)
 		_gWatchDog->unwatch(*this);
+
+	endSocket();
 }
 
 void TCPServer::OnDataArrived()
