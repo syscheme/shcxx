@@ -111,13 +111,13 @@ uint64 currentTime() {
 
 void EventLoop::processEvent( int64 expireAt )
 {
-	int64 processStart = currentTime();
+	//int64 processStart = currentTime();
 	int waitTimeOut = (int)(expireAt - ::ZQ::common::TimeUtil::now());
 	if (waitTimeOut < 0)
 		waitTimeOut = 0;
 	struct epoll_event events[EPOLLEVENTS];
 	int res = ::epoll_wait(mEpollFd, events, EPOLLEVENTS, waitTimeOut);
-	int64 loopStart = currentTime();
+	//int64 loopStart = currentTime();
 	int i;
 	for(i = 0; i< res; i++)
 	{

@@ -143,8 +143,8 @@ namespace LibAsync {
 		
 		//   发起发送数据的请求，user code通过返回值返回， 调用者需要跟句返回值来决定接下来的动作
 		//   发送成功则返回发送的数据大小。
-		int     sendDirect(AsyncBuffer buf);
-		int     sendDirect(const AsyncBufferS& bufs);
+		virtual int     sendDirect(AsyncBuffer buf);
+		virtual int     sendDirect(const AsyncBufferS& bufs);
 		///NOTE:///////////////////////////////////////////
 		///  由于可以在任何一个时间调用close
 		///  所以事先上必须要考虑close以后socket对象是否还被epoll/IOCP引用，这个是一个关键点。
@@ -175,10 +175,10 @@ namespace LibAsync {
 
 		void	mapBufsToIovs(const AsyncBufferS& bufs, struct iovec* iov, int startNum, int pos, int maxNum);
 
-		bool    acceptAction(bool firstAccept = false);
-		bool    recvAction();
-		bool    sendAction(bool firstSend = false);
-		void    errorAction(int err);
+		virtual bool    acceptAction(bool firstAccept = false);
+		virtual bool    recvAction();
+		virtual bool    sendAction(bool firstSend = false);
+		virtual void    errorAction(int err);
 		
 		/// 为了解决，socket shutdown之后调用recv的问题。
 		/// 采用private权限保证外部以及子类再shutdown之后无法调用该函数
@@ -215,6 +215,7 @@ namespace LibAsync {
 
 	private:
 		friend	class EventLoop;
+		friend class UDPSocket;
 
 		EventLoop&			mLoop;
 		int					mLastError;

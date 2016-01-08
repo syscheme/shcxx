@@ -3,20 +3,20 @@
 
 namespace LibAsync{
 
-	SocketAddrHelper::SocketAddrHelper()
+	SocketAddrHelper::SocketAddrHelper(bool bTcp /*= true*/)
 	:mInfo(NULL){
-		init();
+		init(bTcp);
 	}
 
-	SocketAddrHelper::SocketAddrHelper(const std::string& ip, const std::string& service)
+	SocketAddrHelper::SocketAddrHelper(const std::string& ip, const std::string& service, bool bTcp /*= true*/)
 		:mInfo(NULL){
-		init();
+		init(bTcp);
 		parse(ip,service);
 	}
 
-	SocketAddrHelper::SocketAddrHelper(const std::string& ip, unsigned short port)
+	SocketAddrHelper::SocketAddrHelper(const std::string& ip, unsigned short port, bool bTcp /*= true*/)
 		:mInfo(NULL) {
-		init(true);
+		init(bTcp);
 		std::ostringstream oss;oss<<port;
 		parse(ip,oss.str());
 	}
@@ -28,15 +28,15 @@ namespace LibAsync{
 		memset(&mHint,0,sizeof(mHint));
 		mHint.ai_family = AF_UNSPEC;
 		mHint.ai_protocol = bTcp ? IPPROTO_TCP:IPPROTO_UDP;
-		mHint.ai_socktype = bTcp ? SOCK_STREAM: SOCK_DGRAM;
+		mHint.ai_socktype = bTcp ? SOCK_STREAM:SOCK_DGRAM;
 	}
 	
-	bool SocketAddrHelper::parse( const std::string& ip, unsigned short port) {
+	bool SocketAddrHelper::parse( const std::string& ip, unsigned short port, bool bTcp /*= true*/) {
 		std::ostringstream oss;oss<<port;
-		return parse(ip, oss.str());
+		return parse(ip, oss.str(), bTcp);
 	}
 
-	bool SocketAddrHelper::parse(const std::string& ip, const std::string& service){
+	bool SocketAddrHelper::parse(const std::string& ip, const std::string& service, bool bTcp /*= true*/){
 		clear();
 		if(getaddrinfo(ip.c_str(),service.c_str(),&mHint,&mInfo) != 0 ) {
 			mDecodeOk = false;

@@ -44,6 +44,7 @@ namespace LibAsync {
 		ERR_SOCKETVAIN = -11, // the socket can not been send/recv
 		ERR_MEMVAIN = -12,   // the mem malloc err 
 		ERR_BUFFERTOOBIG = -13,
+		ERR_UDPSOCKETNOTALIVE = -14,
 		//linux
 		ERR_EPOLLREGISTERFAIL  = -21,
 		ERR_EPOLLEXCEPTION = - 22,
@@ -59,13 +60,13 @@ namespace LibAsync {
 
 	class ZQ_COMMON_API SocketAddrHelper{
 	public:// inheritance is not allowed
-		SocketAddrHelper();
-		SocketAddrHelper(const std::string& ip, unsigned short port);
-		SocketAddrHelper(const std::string& ip, const std::string& service);
+		SocketAddrHelper(bool bTcp = true);
+		SocketAddrHelper(const std::string& ip, unsigned short port, bool bTcp = true);
+		SocketAddrHelper(const std::string& ip, const std::string& service, bool bTcp = true);
 		~SocketAddrHelper();
 		void					init(bool bTcp = true);
-		bool					parse( const std::string& ip, const std::string& service);
-		bool					parse( const std::string& ip, unsigned short port);
+		bool					parse( const std::string& ip, const std::string& service, bool bTcp = true);
+		bool					parse( const std::string& ip, unsigned short port, bool bTcp = true);
 		const struct addrinfo*	info() const;
 		bool					multicast() const;
 	private:

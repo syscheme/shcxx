@@ -7,38 +7,7 @@
 
 namespace LibAsync {
 	
-	class EventLoopCenter : public LoopCenter {
-	public:
-		EventLoopCenter();
-		virtual ~EventLoopCenter();
-		bool	startCenter(ZQ::common::Log& log, const std::vector<int>& cpuIds );
-		void	stopCenter();
-		
-		///从Center里面获取一个EventLoop，当前的实现版本是roundrobin
-		virtual EventLoop&	getLoop();
-		void				releaseLoop();
-	protected:
-		virtual void	addSocket(int id);
-		virtual void	removeSocket( int id);
-
-	private:
-		struct LoopInfo {
-			EventLoop*	loop;
-			size_t		sockCount;
-			LoopInfo():loop(NULL),
-			sockCount(0) {
-			}
-			bool operator<( const LoopInfo& rhs ) const {
-				return sockCount < rhs.sockCount;
-			}
-		};
-		typedef std::vector<LoopInfo>	LOOPS;
-		size_t				mIdxLoop;
-		LOOPS				mLoops;
-		LOOPS				mTmpLoops;
-		ZQ::common::Mutex	mLocker;
-	};
-
+	
 	EventLoopCenter::EventLoopCenter():mIdxLoop(0){
 	}
 
@@ -108,9 +77,7 @@ namespace LibAsync {
 		return *loop;
 	}
 
-	static EventLoopCenter httpClientCenter;
-	static AsyncBuffer		chunkTail;
-
+	
 	bool HttpProcessor::setup(ZQ::common::Log&log, const std::vector<int>& cpuIds){
 #ifdef ZQ_OS_MSWIN
 		//init WSA env
