@@ -158,7 +158,10 @@ namespace LibAsync {
 		// onHttpDataReceived is only used to notify that the receiving buffer is free and not held by HttpClient any mre
 		virtual void	onHttpDataReceived( size_t size ) { }
 
-		virtual bool	onHttpMessage( const HttpMessagePtr msg) { return false; }
+		virtual bool	onHttpMessage( const HttpMessagePtr msg) { 
+			abort();
+			return false; 
+		}
 
 		virtual bool	onHttpBody( const char* data, size_t size) { return false; }
 

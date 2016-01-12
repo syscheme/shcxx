@@ -455,6 +455,50 @@ namespace common  {
 
 }; // namespace VOD
 }; // namespace ZQ
+
+
+#ifdef _MEMLEAK_DEBUG_
+
+	//add *inline* to avoid multiple function t stdefinition
+	inline void* malloc_dbg( size_t size, const char* file, int line ) {
+		size_t length = 0;
+		if(file && file[0] ) {
+			length = strlen(file);
+		}
+		size += 32;//32 bytes for record file and line
+		void* p = malloc(size);
+		if(!p)
+			return p;
+		if( length > 24 ) {
+			file += (length - 24);
+		}
+		file ++; // think about '\0'
+		strcopy((char*)p, file);
+		memcpy((char*)p + 24, &line, sizeof(line));
+		return p + 32;
+	}
+
+	inline void free_dbg(void* p, const char* file, int line ) {
+		p = (void*)((char*)p - 32);
+		free(p);
+	}
+
+	inline void* operator new( size_t size, const char* file, int line ) {
+		return malloc_dbg(size, file, line);
+	}
+
+	inline void operator delete( void* p, const char* file, int line ) {
+		free_dbg(p, file, line);
+	}
+
+#	define malloc(sz) malloc_dbg((sz), __FILE__, __LINE__ )
+#	define free(p) free_dbg(p, __FILE__, __LINE__ )
+#	define new new(__FILE__, __LINE__)
+//what about delete[] ?
+#	define delete delete(__FILE__, __LINE__)
+
+#endif//_MEMLEAK_DEBUG
+
 #endif // __cplusplus
 
 #endif // __ZQ_COMMON_CONF_H__

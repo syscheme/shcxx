@@ -137,8 +137,9 @@ public:
 	TCPSocket(void);
 
 	// the copier
-	TCPSocket(const TCPSocket &source);
-	TCPSocket(const Socket &source);
+	explicit TCPSocket(const TCPSocket &source);
+	explicit TCPSocket(const Socket &source);
+	explicit TCPSocket( int so );
 	
 	/// Create a TCP socket and bind it to a specific interface and port
 	/// address so that other TCP sockets may find and send TCP messages

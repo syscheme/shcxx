@@ -210,11 +210,10 @@ protected:
 		char buf[128];
 		struct sockaddr_in fromAddress;
 		socklen_t addressSize = sizeof(fromAddress);
-		int ret = recvfrom(_so, (char*) buf, sizeof(buf),	0,  (struct sockaddr*)&fromAddress, &addressSize);
+		int ret = recv(_so, (char*) buf, sizeof(buf),	0);
 
 		if (ret <= 0)
 			disconnect();
-		else send(buf, ret);
 	}
 
 	virtual void OnTimeout() {};
@@ -254,6 +253,10 @@ public:
 	{
 		setTimeout(0);
 	}
+
+	void setConnected() {
+		Socket::_state = stConnected;
+	}
 };
 
 // -----------------------------
@@ -286,9 +289,6 @@ public:
 			_tcpServer->getLocal(&svrport);
 			_dummyClient->setPeer(InetAddress("localhost"), svrport);
 			_dummyClient->connect(1000);
-			if (_dummyClient->isConnected())
-				_dummyClient->setTimeout(0);
-			SYS::sleep(1);
 		}
 
 		return _dummyClient->isConnected();
@@ -338,14 +338,16 @@ protected:
 
 public:
 
-	void watch(TCPSocket& tso)
+	void watch(TCPSocket& tso, bool bShoudlWakeup = true)
 	{
 		MutexGuard g(_lock);
 		if (INVALID_SOCKET == tso.get())
 			return;
 
 		MAPSET(SocketMap, _socketMap, tso.get(), &tso);
-		wakeup();
+		if(bShoudlWakeup) {
+			wakeup();
+		}
 	}
 
 	void unwatch(TCPSocket& tso)
@@ -387,7 +389,7 @@ public:
 
 	void wakeup()
 	{
-		if(_dummyClient)
+		if(_dummyClient && _dummyClient->isConnected() )
 			_dummyClient->send("Hi", 2);
 	}
 
@@ -425,8 +427,8 @@ public:
 	TCPSocket* OnAccepted(TCPSocket& preacceptedConn)
 	{
 		_pDummyConn = new DummyTCPSvrConn(*_tcpServer, preacceptedConn);
-		_tcpServer->stopListening();
-		return _pDummyConn.get();
+		//_tcpServer->stopListening();
+		return NULL;//_pDummyConn.get();
 	};
 
 protected:
@@ -492,10 +494,10 @@ protected:
 			// force to include the dummy connection in the select list
 			if (_dummyClient && _dummyClient->isConnected())
 			{
-				FD_SET(_dummyClient->get(), &fdread);
+				//FD_SET(_dummyClient->get(), &fdread);
 
-				if (_pDummyConn)
-					FD_SET(_pDummyConn->get(), &fdread);
+				//if (_pDummyConn)
+				//	FD_SET(_pDummyConn->get(), &fdread);
 			}
 			else timeout.tv_sec =1;
 
@@ -791,6 +793,10 @@ TCPSocket::TCPSocket(const Socket &source)
 	_lastUpdated = TimeUtil::now();
 	updateConnDesc();
 	refWatchDog();
+}
+
+TCPSocket::TCPSocket(int so )
+:Socket(so),_bBlockEnable(true),_timeout(0),_flagsPending(0){
 }
 
 void TCPSocket::bind()
@@ -1166,7 +1172,7 @@ bool TCPClient::connect(int32 sTimeOut)
 	{
 		Socket::Error err = Socket::connectError();
 #ifdef ZQ_OS_MSWIN
-		if (sTimeOut < 0 || errConnectBusy != err)
+		if (sTimeOut < 0 || errConnectBusy == err)
 #else
 		if (sTimeOut < 0 || errConnectBusy == err)
 #endif
@@ -1235,15 +1241,15 @@ void TCPServer::OnDataArrived()
 	if (INVALID_SOCKET == newConn)
 		return;
 
-	TCPSocket acceptedConn(newConn);
+	TCPSocket *acceptedConn = new TCPSocket(newConn);
 
 	TCPSocket* pCustomizedServerConn;
 	
 	if (_gWatchDog != NULL)
 	{
-		pCustomizedServerConn = _gWatchDog->OnAccepted(acceptedConn);
+		pCustomizedServerConn = _gWatchDog->OnAccepted(*acceptedConn);
 	}
-	else pCustomizedServerConn = OnAccepted(acceptedConn);
+	else pCustomizedServerConn = OnAccepted(*acceptedConn);
 
 	if (NULL != pCustomizedServerConn)
 	{
