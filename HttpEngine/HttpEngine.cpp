@@ -1213,6 +1213,11 @@ bool Dialog::feed(const char* data, size_t len)
 					if(CurrentSession->req.parseRequestLine(line))
 					{ // select a request handler
 						_log(ZQ::common::Log::L_DEBUG, PARSINGLOGFMT("new request arrived:%s"), line);
+						if( strcmp(CurrentSession->req.version(), "1.1") != 0 ) {
+							_log(ZQ::common::Log::L_WARNING, PARSINGLOGFMT("unsupported http version[%s]"),CurrentSession->req.version());
+							CurrentSession->resp.sendDefaultErrorPage(505);
+						}
+
 						CurrentSession->handler = _handlerFac.create(CurrentSession->req.uri());
 						if(CurrentSession->handler)
 						{

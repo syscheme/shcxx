@@ -73,7 +73,15 @@ namespace LibAsync {
 			}
 		};
 		typedef std::map<std::string,std::string,caseInsensativeCmp> HEADERS;
-		//typedef std::map<std::string, std::string> HEADERS;
+
+		inline unsigned int versionMajor() const { return mVerMajor; }
+		inline unsigned int versionMinor() const { return mVerMinor; }
+
+		void setVersion( unsigned int major, unsigned int minor) {
+			mVerMajor = major;
+			mVerMinor = minor;
+		}
+
 	private:
 		friend class HttpParser;
 
@@ -86,10 +94,12 @@ namespace LibAsync {
 		bool				mbChunked;
 		bool				mbKeepAlive;
 		
+		unsigned int		mVerMajor;
+		unsigned int		mVerMinor;
 		HEADERS				mHeaders;
 		std::string			mDummyHeaderValue;
 		int64				mBodyLength;//only valid if mbChunked == false
-		std::string 			mRawMessage;
+		std::string 		mRawMessage;
 	};
 
 	/*

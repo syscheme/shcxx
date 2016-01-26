@@ -1003,6 +1003,12 @@ namespace LibAsync {
 
 	bool HttpServant::onHttpMessage( const HttpMessagePtr msg) {
 		mHeaderComplete = true;
+		if( msg->versionMajor() != 1 && msg->versionMinor() != 1 ) {
+			mLogger(ZQ::common::Log::L_WARNING, CLOGFMT( HttpServant,"onHttpMessage, unsupport http version[%u/%u], reject"),
+					msg->versionMajor(), msg->versionMinor());
+			errorResponse(505);
+			return false;
+		}
 		mHandler = mServer.getHandler( msg->url(), HttpProcessor::Ptr::dynamicCast(this) );
 		if(!mHandler) {
 			//should make a 404 response
