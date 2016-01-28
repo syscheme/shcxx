@@ -218,10 +218,6 @@ namespace LibAsync {
 		return true;
 	}
 
-	//get the sent pos,
-	// completeSizeæ˜¯å·²å®Œæˆçš„size
-	//è¿”å›žä»¥åŠsend/recvçš„bufferä¸ªæ•°ï¼ŒåŒ…è£¹å·²ç»send/recvä¸€éƒ¨åˆ†çš„buffer
-	//int pos æ˜¯è¾“å‡ºå‚æ•°ï¼Œè¾“å‡ºsend/recvä¸€åŠbufferçš„å‘é€é‡
 	int  Socket::getCompletePos(const AsyncBufferS& bufs, int completeSize, int& pos)
 	{
 		AsyncBufferS::const_iterator iterBuf;
@@ -241,10 +237,7 @@ namespace LibAsync {
 		return bufNum;
 	}
 
-	//å®žçŽ°bufså’Œiovecæ•°ç»„çš„è½¬æ?
-	//startNumè¡¨ç¤ºbufséœ€è¦send/recvçš„èµ·å§‹buf
-	//pos è¡¨ç¤ºèµ·å§‹bufå·²ç»send/recvçš„ä½ç½®ï¼Œä¹Ÿå°±æ˜¯æœ¬æ¬¡send/recvçš„èµ·å§‹ä½ç½®ã€?
-	//maxNum æŒ‡å®šiovæ•°ç»„å¤§å°ï¼Œé˜²æ­¢è¶Šç•?
+
 	void Socket::mapBufsToIovs(const AsyncBufferS& bufs, struct iovec* iov, int startNum, int pos, int maxNum)
 	{
 		int iovPos = 0;
@@ -253,7 +246,7 @@ namespace LibAsync {
 		{
 			if (pos != 0 && bufPos == startNum )
 			{
-				/* å¤„ç†å‘é€äº†ä¸€éƒ¨åˆ†çš„ç¬¬ä¸€å—buf */
+
 				iov[iovPos].iov_base = bufs[bufPos].base + pos;
 				iov[iovPos].iov_len = bufs[bufPos].len - pos;
 				iovPos ++ ;
@@ -316,19 +309,19 @@ namespace LibAsync {
 
 	bool Socket::recvAction()
 	{
-		//Èç¹û³öÏÖrecvÊ±±»ÖÐ¶Ï£¬ÔòÐèÒª¸ÄwhileÑ­»·£¬ÆäËûÇé¿öÏÂ²»ÐèÒª
+
 		while( mRecedSize < buffer_size(mRecBufs))
 		{
-			//1,èŽ·å–å½“å‰recvæ•°æ®åœ¨vector::bufsä¸­çš„ä½ç½®
+
 			int recvPos = 0;
 			int recvNum = getCompletePos(mRecBufs, mRecedSize, recvPos);
-			//2ï¼Œåˆ†é…å†…å­˜ï¼Œå®šä¹‰struct iovec
+
 			int iovecSize = mRecBufs.size() - recvNum;
 			struct iovec* iovRecv = (struct iovec*)malloc(sizeof(struct iovec) * iovecSize);
 			if ( NULL == iovRecv )
 				break;
 			memset(iovRecv, 0, sizeof(struct iovec) * iovecSize);
-			//3ï¼Œè½¬æ¢bufså’Œiovs ,å¹¶ç»„ç»‡recvMsgæ•°æ®
+
 			mapBufsToIovs(mRecBufs, iovRecv, recvNum, recvPos, iovecSize);
 			struct msghdr recvMsg;
 			recvMsg.msg_name = NULL;
@@ -338,7 +331,7 @@ namespace LibAsync {
 			recvMsg.msg_control = NULL;
 			recvMsg.msg_controllen = 0;
 			recvMsg.msg_flags = 0;
-			//4,recv æ•°æ®
+
 			int ret = ::recvmsg(mSocket, &recvMsg, MSG_DONTWAIT);
 			free(iovRecv);
 			iovRecv = NULL;
@@ -428,16 +421,16 @@ namespace LibAsync {
 		bool   sendSucc = false;
 		while(mSentSize < buffer_size(mSendBufs))
 		{
-			//1,èŽ·å–å½“å‰å‘é€æ•°æ®åœ¨vector::bufsä¸­çš„ä½ç½®
+
 			int sentPos = 0;
 			int sentNum = getCompletePos(mSendBufs, mSentSize, sentPos);
-			//2ï¼Œåˆ†é…å†…å­˜ï¼Œå®šä¹‰struct iovec
+
 			int iovecSize = mSendBufs.size() - sentNum;
 			struct iovec* iovSend = (struct iovec*)malloc(sizeof(struct iovec) * iovecSize);
 			if ( NULL == iovSend )
 				break;
 			memset(iovSend, 0, sizeof(struct iovec) * iovecSize);
-			//3ï¼Œè½¬æ¢bufså’Œiovs ,å¹¶ç»„ç»‡sendMsgæ•°æ®
+
 			mapBufsToIovs(mSendBufs, iovSend, sentNum, sentPos, iovecSize);
 			struct msghdr sendMsg;
 			sendMsg.msg_name = NULL;
@@ -447,7 +440,7 @@ namespace LibAsync {
 			sendMsg.msg_control = NULL;
 			sendMsg.msg_controllen = 0;
 			sendMsg.msg_flags = 0;
-			//4,å‘é€bufferï¼Œå¹¶å¤„ç†ç»“æžœ
+
 			int ret = ::sendmsg(mSocket, &sendMsg, MSG_DONTWAIT);
 			free(iovSend);
 			iovSend = NULL;
@@ -550,7 +543,6 @@ namespace LibAsync {
 			return ERR_MEMVAIN;
 		}
 		memset(iovSend, 0, sizeof(struct iovec) * iovecSize);
-		//3ï¼Œè½¬æ¢bufså’Œiovs ,å¹¶ç»„ç»‡sendMsgæ•°æ®
 		mapBufsToIovs(bufs, iovSend, 0, 0, iovecSize);
 		struct msghdr sendMsg;
 		sendMsg.msg_name = NULL;
@@ -560,7 +552,6 @@ namespace LibAsync {
 		sendMsg.msg_control = NULL;
 		sendMsg.msg_controllen = 0;
 		sendMsg.msg_flags = 0;
-		//4,å‘é€bufferï¼Œå¹¶å¤„ç†ç»“æžœ
 SEND_DATA:
 		int ret = ::sendmsg(mSocket, &sendMsg, MSG_DONTWAIT);
 		if (ret > 0)

@@ -72,7 +72,7 @@ namespace LibAsync {
 		bool	alive() const;
 
 		/// NOTE///////////////////////////////////
-		/// µ±Ç°Ö»¹Ø×¢client£¬ÄÇÃ´server::acceptµÄÊÂÇéÁôµ½ÒÔºóÔÙËµ
+		/// å½“å‰åªå…³æ³¨clientï¼Œé‚£ä¹ˆserver::acceptçš„äº‹æƒ…ç•™åˆ°ä»¥åå†è¯´
 		///////////////////////////////////////////  
 		/// bind local address
 		bool	bind(const std::string& ip, unsigned short port);
@@ -85,14 +85,14 @@ namespace LibAsync {
 		bool	getLocalAddress(std::string& ip, unsigned short& port) const;
 		bool	getPeerAddress(std::string& ip, unsigned short& port) const;
 
-		/// µ±Ç°ÎÒÃÇÖ»¿¼ÂÇip:portÄ£Ê½£¬ ¶ÔÓÚdomainÖ®ÀàµÄĞèÒªDNS½âÎöµÄ¶«Î÷ÔİÊ±²»¿¼ÂÇ
-		/// NOTE:DNS½âÎöÒ²ÊÇÒ»¸ö×èÈûµ÷ÓÃ£¬²»¹ÜÊÇ¶ÁÈ¡/etc/resolve.conf »¹ÊÇtcp/udp DNS²éÑ¯
-		///      Èç¹ûÒªÖ§³ÖÕâ¸ö¾ÍĞèÒª×öÒ»¸öÒì²½µÄDNS resolver£¬ Õâ¸öÊÇÒÔºóµÄÊÂÇé£¬ÏÖÔÚ²»¿¼ÂÇ
-		/// µ±connectÇëÇó³É¹¦·¢ÆğÒÔºó£¬ÓĞÁ½ÖÖ¿ÉÄÜ
-		///   1. ÕæµÄ¾ÍÁ¢¼´Á¬½Ó³É¹¦ÁË£¬ ÄÇÃ´ĞèÒªÁ¢¼´µ÷ÓÃonConnected
-		///   2. ·µ»ØWOULDBLOCK/EAGAINÖ®ÀàµÄ£¬Õâ¸öÊ±ºò·µ»Ø³É¹¦£¬È»ºóµÈ´ıÁ¬½Ó³É¹¦µÄÊÂ¼ş£¬²¢ÇÒÈ·ÈÏÁ¬½Ó³É¹¦
-		///       ÒÔºóµ÷ÓÃonConnected
-		/// ³öÏÖÈÎºÎ´íÎóµ¼ÖÂÎŞ·¨³É¹¦·¢ÆğÁ¬½ÓÇëÇóµÄÊ±ºò¶¼·µ»Øfalse  
+		/// å½“å‰æˆ‘ä»¬åªè€ƒè™‘ip:portæ¨¡å¼ï¼Œ å¯¹äºdomainä¹‹ç±»çš„éœ€è¦DNSè§£æçš„ä¸œè¥¿æš‚æ—¶ä¸è€ƒè™‘
+		/// NOTE:DNSè§£æä¹Ÿæ˜¯ä¸€ä¸ªé˜»å¡è°ƒç”¨ï¼Œä¸ç®¡æ˜¯è¯»å–/etc/resolve.conf è¿˜æ˜¯tcp/udp DNSæŸ¥è¯¢
+		///      å¦‚æœè¦æ”¯æŒè¿™ä¸ªå°±éœ€è¦åšä¸€ä¸ªå¼‚æ­¥çš„DNS resolverï¼Œ è¿™ä¸ªæ˜¯ä»¥åçš„äº‹æƒ…ï¼Œç°åœ¨ä¸è€ƒè™‘
+		/// å½“connectè¯·æ±‚æˆåŠŸå‘èµ·ä»¥åï¼Œæœ‰ä¸¤ç§å¯èƒ½
+		///   1. çœŸçš„å°±ç«‹å³è¿æ¥æˆåŠŸäº†ï¼Œ é‚£ä¹ˆéœ€è¦ç«‹å³è°ƒç”¨onConnected
+		///   2. è¿”å›WOULDBLOCK/EAGAINä¹‹ç±»çš„ï¼Œè¿™ä¸ªæ—¶å€™è¿”å›æˆåŠŸï¼Œç„¶åç­‰å¾…è¿æ¥æˆåŠŸçš„äº‹ä»¶ï¼Œå¹¶ä¸”ç¡®è®¤è¿æ¥æˆåŠŸ
+		///       ä»¥åè°ƒç”¨onConnected
+		/// å‡ºç°ä»»ä½•é”™è¯¯å¯¼è‡´æ— æ³•æˆåŠŸå‘èµ·è¿æ¥è¯·æ±‚çš„æ—¶å€™éƒ½è¿”å›false  
 		bool	connect( const std::string& ip, unsigned short port );
 
 		///after server side socket created, ListenSocket should invoke this method 
@@ -110,7 +110,7 @@ namespace LibAsync {
 		bool    setSysLinger();
 		bool	setNoDelay( bool noDelay );
 		bool	setCork( bool cork );
-        // ÏòEPOLLÖĞ×¢²áĞ´ÊÂ¼ş£¬µ±¸Ãsocket¿ÉĞ´µÄÊ±£¬Í¨¹ı»Øµ÷onWritableÍ¨Öª¸Ãsocket¿É·¢
+        // å‘EPOLLä¸­æ³¨å†Œå†™äº‹ä»¶ï¼Œå½“è¯¥socketå¯å†™çš„æ—¶ï¼Œé€šè¿‡å›è°ƒonWritableé€šçŸ¥è¯¥socketå¯å‘
 		bool 	registerWrite();
 		bool    setDeferAccept();
 		bool    socketShutdown();
@@ -123,32 +123,32 @@ namespace LibAsync {
 	protected:
 
 		
-		/// ·¢Æğ½ÓÊÕÊı¾İµÄÇëÇó£¬user code±ØĞë±£Ö¤ÔÚonError»òÕßonRecved±»µ÷ÓÃÖ®Ç°buf¿ÉÓÃ£¬·ñÔò½«»áÓĞÎ´Öª´íÎó·¢Éú
-		/// ³É¹¦·¢Æğrecv¶¯×÷ÒÔºó£¬Èç¹ûÕæµÄÊÕµ½ÁËÊı¾İ£¬ÄÇÃ´ĞèÒªÖ±½Óµ÷ÓÃonRecved
-		/// ·ñÔòÖ±½Ó·µ»Øtrue£¬ È»ºóµÈ´ıÊÂ¼ş·¢Éú£¬²¢ÇÒµ÷ÓÃonRecved
-		/// ÈÎºÎµ¼ÖÂÎŞ·¨³É¹¦·¢Æğrecv¶¯×÷µÄÇé¿ö¶¼·µ»Øfalse
-		/// recvµÄÓïÒåÊÇreceive_some£¬Ò²¾ÍÊÇËµÈç¹ûÄãÌá¹©µÄbuffer´óĞ¡ÊÇ10¸ö×Ö½Ú£¬ÄÇÃ´½ÓÊÕµ½[1,10]´óĞ¡µÄÊı¾İ¶¼»á·µ»Ø    
+		/// å‘èµ·æ¥æ”¶æ•°æ®çš„è¯·æ±‚ï¼Œuser codeå¿…é¡»ä¿è¯åœ¨onErroræˆ–è€…onRecvedè¢«è°ƒç”¨ä¹‹å‰bufå¯ç”¨ï¼Œå¦åˆ™å°†ä¼šæœ‰æœªçŸ¥é”™è¯¯å‘ç”Ÿ
+		/// æˆåŠŸå‘èµ·recvåŠ¨ä½œä»¥åï¼Œå¦‚æœçœŸçš„æ”¶åˆ°äº†æ•°æ®ï¼Œé‚£ä¹ˆéœ€è¦ç›´æ¥è°ƒç”¨onRecved
+		/// å¦åˆ™ç›´æ¥è¿”å›trueï¼Œ ç„¶åç­‰å¾…äº‹ä»¶å‘ç”Ÿï¼Œå¹¶ä¸”è°ƒç”¨onRecved
+		/// ä»»ä½•å¯¼è‡´æ— æ³•æˆåŠŸå‘èµ·recvåŠ¨ä½œçš„æƒ…å†µéƒ½è¿”å›false
+		/// recvçš„è¯­ä¹‰æ˜¯receive_someï¼Œä¹Ÿå°±æ˜¯è¯´å¦‚æœä½ æä¾›çš„bufferå¤§å°æ˜¯10ä¸ªå­—èŠ‚ï¼Œé‚£ä¹ˆæ¥æ”¶åˆ°[1,10]å¤§å°çš„æ•°æ®éƒ½ä¼šè¿”å›    
 		bool	recv( AsyncBuffer buf );
 		bool	recv( AsyncBufferS& bufs );
 
-		/// ·¢Æğ·¢ËÍÊı¾İµÄÇëÇó£¬ user code±ØĞë±£Ö¤ÔÚonError»òÕßonSent±»µ÷ÓÃÖ®Ç°buf¿ÉÓÃ£¬·ñÔò½«»áÓĞÎ´Öª´íÎó·¢Éú
-		/// linuxºÍwindows¶ÔÓÚÕâ¸öÊµÏÖ²îÒìºÜ´ó£¬ ÄÇÃ´
-		/// ÔÚlinuxÏÂÃæ£¬Ê×ÏÈÖ±½Ó·¢ËÍÊı¾İ£¬ Èç¹û·¢ËÍÊ§°Ü£¬ÄÇÃ´»áµÃµ½Ò»¸öEAGAINÖ®ÀàµÄ´íÎó
-		/// µÃµ½Õâ¸ö´íÎóÒÔºó£¬°Ñµ±Ç°ĞèÒª·¢ËÍµÄÊı¾İ¼ÇÂ¼ÏÂÀ´£¬µÈ´ı¿ÉÒÔ·¢ËÍµÄÊÂ¼şµ½À´£¬È»ºó·¢ËÍÄÄĞ©Î´·¢ËÍµÄÊı¾İ¡£
-		/// ËùÓĞµÄÊı¾İ·¢ËÍÍê±ÏÒÔºóµ÷ÓÃonSent
-		/// ÔÚwindowsÉÏÃæ£¬Õâ¸ö¾Í¼òµ¥ÁË£¬µ÷ÓÃWSASendÈ»ºóµÈ´ıÊÂ¼ş·¢Éú¾Í¿ÉÒÔÁË
-		/// sendµÄÓïÒåÊÇsend_all,Ò²¾ÍÊÇËµ±ØĞëÊÇËùÓĞµÄÊı¾İ¶¼·¢ËÍÍê±ÏÒÔºó²ÅÄÜµ÷ÓÃonSent.ÖĞÍ¾³ö´íµÄ»°¾Íµ÷ÓÃonError
+		/// å‘èµ·å‘é€æ•°æ®çš„è¯·æ±‚ï¼Œ user codeå¿…é¡»ä¿è¯åœ¨onErroræˆ–è€…onSentè¢«è°ƒç”¨ä¹‹å‰bufå¯ç”¨ï¼Œå¦åˆ™å°†ä¼šæœ‰æœªçŸ¥é”™è¯¯å‘ç”Ÿ
+		/// linuxå’Œwindowså¯¹äºè¿™ä¸ªå®ç°å·®å¼‚å¾ˆå¤§ï¼Œ é‚£ä¹ˆ
+		/// åœ¨linuxä¸‹é¢ï¼Œé¦–å…ˆç›´æ¥å‘é€æ•°æ®ï¼Œ å¦‚æœå‘é€å¤±è´¥ï¼Œé‚£ä¹ˆä¼šå¾—åˆ°ä¸€ä¸ªEAGAINä¹‹ç±»çš„é”™è¯¯
+		/// å¾—åˆ°è¿™ä¸ªé”™è¯¯ä»¥åï¼ŒæŠŠå½“å‰éœ€è¦å‘é€çš„æ•°æ®è®°å½•ä¸‹æ¥ï¼Œç­‰å¾…å¯ä»¥å‘é€çš„äº‹ä»¶åˆ°æ¥ï¼Œç„¶åå‘é€å“ªäº›æœªå‘é€çš„æ•°æ®ã€‚
+		/// æ‰€æœ‰çš„æ•°æ®å‘é€å®Œæ¯•ä»¥åè°ƒç”¨onSent
+		/// åœ¨windowsä¸Šé¢ï¼Œè¿™ä¸ªå°±ç®€å•äº†ï¼Œè°ƒç”¨WSASendç„¶åç­‰å¾…äº‹ä»¶å‘ç”Ÿå°±å¯ä»¥äº†
+		/// sendçš„è¯­ä¹‰æ˜¯send_all,ä¹Ÿå°±æ˜¯è¯´å¿…é¡»æ˜¯æ‰€æœ‰çš„æ•°æ®éƒ½å‘é€å®Œæ¯•ä»¥åæ‰èƒ½è°ƒç”¨onSent.ä¸­é€”å‡ºé”™çš„è¯å°±è°ƒç”¨onError
 		bool	send( AsyncBuffer buf );
 		bool	send( const AsyncBufferS& bufs );
 		
-		//   ·¢Æğ·¢ËÍÊı¾İµÄÇëÇó£¬user codeÍ¨¹ı·µ»ØÖµ·µ»Ø£¬ µ÷ÓÃÕßĞèÒª¸ú¾ä·µ»ØÖµÀ´¾ö¶¨½ÓÏÂÀ´µÄ¶¯×÷
-		//   ·¢ËÍ³É¹¦Ôò·µ»Ø·¢ËÍµÄÊı¾İ´óĞ¡¡£
+		//   å‘èµ·å‘é€æ•°æ®çš„è¯·æ±‚ï¼Œuser codeé€šè¿‡è¿”å›å€¼è¿”å›ï¼Œ è°ƒç”¨è€…éœ€è¦è·Ÿå¥è¿”å›å€¼æ¥å†³å®šæ¥ä¸‹æ¥çš„åŠ¨ä½œ
+		//   å‘é€æˆåŠŸåˆ™è¿”å›å‘é€çš„æ•°æ®å¤§å°ã€‚
 		virtual int     sendDirect(AsyncBuffer buf);
 		virtual int     sendDirect(const AsyncBufferS& bufs);
 		///NOTE:///////////////////////////////////////////
-		///  ÓÉÓÚ¿ÉÒÔÔÚÈÎºÎÒ»¸öÊ±¼äµ÷ÓÃclose
-		///  ËùÒÔÊÂÏÈÉÏ±ØĞëÒª¿¼ÂÇcloseÒÔºósocket¶ÔÏóÊÇ·ñ»¹±»epoll/IOCPÒıÓÃ£¬Õâ¸öÊÇÒ»¸ö¹Ø¼üµã¡£
-		///  ·ñÔò¾ÍÊÇ±éµØµÄcrash dump  
+		///  ç”±äºå¯ä»¥åœ¨ä»»ä½•ä¸€ä¸ªæ—¶é—´è°ƒç”¨close
+		///  æ‰€ä»¥äº‹å…ˆä¸Šå¿…é¡»è¦è€ƒè™‘closeä»¥åsocketå¯¹è±¡æ˜¯å¦è¿˜è¢«epoll/IOCPå¼•ç”¨ï¼Œè¿™ä¸ªæ˜¯ä¸€ä¸ªå…³é”®ç‚¹ã€‚
+		///  å¦åˆ™å°±æ˜¯éåœ°çš„crash dump  
 		void	close();
 
 		int		lastError() const;
@@ -161,17 +161,17 @@ namespace LibAsync {
 		bool	getNameInfo( bool local, std::string& ip, unsigned short& port ) const;
 #ifdef ZQ_OS_LINUX
 		//get the sent pos,
-		// completeSizeæ_¯å·²å®_æ__ç__size
-		//è¿_å__ä»¥å__send/recvç__bufferä¸ªæ_°ï¼_å__è£¹å·²ç»_send/recvä¸_é_¨å__ç__buffer
-		//int pos æ_¯è¾_å_ºå__æ_°ï¼_è¾_å_ºsend/recvä¸_å__bufferç__å__é__é__
+		// completeSize_å‡¡ç€¹_____size
+		//æ©___æµ ãƒ¥__send/recv__bufferæ¶“_å¸®___ç‘ç‘°å‡¡ç¼_send/recvæ¶“__ã„¥____buffer
+		//int pos ___å“„___å¸®_æˆ__send/recvæ¶“___buffer________
 		int  getCompletePos(const AsyncBufferS& bufs, int completeSize, int& pos);
 
-		//å®_ç_°bufså__iovecæ_°ç»_ç__è½¬æ_?
+		//ç€¹__bufs__iovec_æ‰®___æ_?
 
 
-		//startNumè¡¨ç¤ºbufsé__è¦_send/recvç__èµ·å§_buf
-		//pos è¡¨ç¤ºèµ·å§_bufå·²ç»_send/recvç__ä½_ç½®ï¼_ä¹_å°±æ_¯æ_¬æ¬¡send/recvç__èµ·å§_ä½_ç½®ã__	
-		//maxNum æ__å®_iovæ_°ç»_å¤§å°_ï¼_é_²æ­¢è¶_ç__
+		//startNumç›ã„§ãšbufs__ç‘•_send/recv__ç’§å³°_buf
+		//pos ç›ã„§ãšç’§å³°_bufå®¸èŒ¬_send/recv__æµ£_ç¼ƒ_æ¶”_çè¾¨__send/recv__ç’§å³°_æµ£_ç¼ƒ__	
+		//maxNum __ç€¹_iov_æ‰®_æ¾¶Ñƒ_é”›__å‰ç“’___
 
 		void	mapBufsToIovs(const AsyncBufferS& bufs, struct iovec* iov, int startNum, int pos, int maxNum);
 
@@ -180,17 +180,17 @@ namespace LibAsync {
 		virtual bool    sendAction(bool firstSend = false);
 		virtual void    errorAction(int err);
 		
-		/// ÎªÁË½â¾ö£¬socket shutdownÖ®ºóµ÷ÓÃrecvµÄÎÊÌâ¡£
-		/// ²ÉÓÃprivateÈ¨ÏŞ±£Ö¤Íâ²¿ÒÔ¼°×ÓÀàÔÙshutdownÖ®ºóÎŞ·¨µ÷ÓÃ¸Ãº¯Êı
-		/// ¸Ãº¯Êı½ö¹©ÓÚsocket shutdownÖ®ºóÈ¥recvÊı¾İÊ±µ÷ÓÃ
+		/// ä¸ºäº†è§£å†³ï¼Œsocket shutdownä¹‹åè°ƒç”¨recvçš„é—®é¢˜ã€‚
+		/// é‡‡ç”¨privateæƒé™ä¿è¯å¤–éƒ¨ä»¥åŠå­ç±»å†shutdownä¹‹åæ— æ³•è°ƒç”¨è¯¥å‡½æ•°
+		/// è¯¥å‡½æ•°ä»…ä¾›äºsocket shutdownä¹‹åå»recvæ•°æ®æ—¶è°ƒç”¨
 		bool	recv(bool shutdown);
 
 #elif defined ZQ_OS_MSWIN
 		bool	innerAccept();
 #endif		
 	protected:
-		/// ÔÚÈÎºÎÊ±ºò·¢Éú´íÎó£¬ onError¶¼¿ÉÄÜ»á±»µ÷ÓÃµ½¡£
-		/// ÀıÈçÔÚsendµÄÊ±ºò³ö´í£¬ onSent²»»á±»µ÷ÓÃµ½£¬¶øÊÇonError»á±»µ÷ÓÃµ½  
+		/// åœ¨ä»»ä½•æ—¶å€™å‘ç”Ÿé”™è¯¯ï¼Œ onErroréƒ½å¯èƒ½ä¼šè¢«è°ƒç”¨åˆ°ã€‚
+		/// ä¾‹å¦‚åœ¨sendçš„æ—¶å€™å‡ºé”™ï¼Œ onSentä¸ä¼šè¢«è°ƒç”¨åˆ°ï¼Œè€Œæ˜¯onErrorä¼šè¢«è°ƒç”¨åˆ°  
 		virtual	void	onSocketError(int err){
 			close();
 		}
@@ -278,4 +278,4 @@ namespace LibAsync {
 }//namespace LibAsync
 
 #endif//__asynchttp_socket_header_file__
-//vim: ts=4:sw=4:autoindent:fileencodings=gb2312
+//vim: ts=4:sw=4:autoindent
