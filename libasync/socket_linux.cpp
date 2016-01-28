@@ -694,7 +694,8 @@ SEND_DATA:
 		cancelTimer();
 		if (NULL != socketPtr)
 		{
-			socketPtr->realClose();
+			if( socketPtr->socketShutdownStaus())
+				socketPtr->realClose();
 			socketPtr = NULL;
 		}
 	}
