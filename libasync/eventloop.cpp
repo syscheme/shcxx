@@ -280,6 +280,11 @@ namespace LibAsync {
 		}
 	}
 
+	void Timer::bindCB( FUNC_ONTIMER cb ) {
+		mFuncCB = cb;
+	}
+	
+
 	
 
 }//namespace LibAsync
