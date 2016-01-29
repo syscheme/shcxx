@@ -156,6 +156,8 @@ namespace LibAsync{
 #ifdef ZQ_OS_MSWIN
 		close();
 #else
+		if(mShutdown && mbAlive == true)
+			assert(false);
 		realClose();
 		mLingerPtr = NULL;	
 #endif

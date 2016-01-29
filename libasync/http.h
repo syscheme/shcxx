@@ -45,7 +45,7 @@ namespace LibAsync {
 	static EventLoopCenter httpClientCenter;
 	static AsyncBuffer		chunkTail;
 
-	class ZQ_COMMON_API HttpProcessor : public Socket, public ParserCallback{
+	class ZQ_COMMON_API HttpProcessor : virtual public Socket, public ParserCallback{
 	public:
 		//////////////////////////////////////////////////////////////////////////		
 		static bool	setup(ZQ::common::Log& log, const std::vector<int>& cpuIds);

@@ -655,9 +655,11 @@ SEND_DATA:
 		return true;
 	}
 
-	bool Socket::realClose()
+	bool Socket::realClose(int type/*=0*/)
 	{
-		mLoop.getLog()(ZQ::common::Log::L_DEBUG, CLOGFMT(Socket, "realClose() socket[%p]" ), this);
+		mLoop.getLog()(ZQ::common::Log::L_DEBUG, CLOGFMT(Socket, "realClose() socket[%p] type[%d]" ), this, type);
+		if(type == 1 && mShutdown == false)
+			assert(false);
 		Socket::Ptr sockPtr = this;
 		mLoop.unregisterEvent(sockPtr, mSocketEvetns);
 		mbAlive = false;
@@ -695,7 +697,7 @@ SEND_DATA:
 		if (NULL != socketPtr)
 		{
 			if( socketPtr->socketShutdownStaus())
-				socketPtr->realClose();
+				socketPtr->realClose(1);
 			socketPtr = NULL;
 		}
 	}

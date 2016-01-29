@@ -666,7 +666,8 @@ namespace LibAsync {
 	}
 
 	HttpClient::HttpClient( )
-		:HttpProcessor(true){
+	:Socket(httpClientCenter.getLoop()),
+	HttpProcessor(true){
 	}
 
 	HttpClient::~HttpClient(){
@@ -813,7 +814,8 @@ namespace LibAsync {
 	//////////////////////////////////////////////////////////////////////////
 	//SimpleHttpClient
 	SimpleHttpClient::SimpleHttpClient()
-	:mBodySent(false){
+	:Socket(httpClientCenter.getLoop()),
+	 mBodySent(false){
 		mBodyBuffer.len = 8192;
 		mBodyBuffer.base = (char*)malloc(sizeof(char) * mBodyBuffer.len);		
 		mResponseComplete = false;
@@ -884,7 +886,8 @@ namespace LibAsync {
 	//////////////////////////////////////////////////////////////////////////
 	
 	HttpServant::HttpServant( HttpServer& server, SOCKET socket, ZQ::common::Log& logger)
-	:HttpProcessor(false,socket),
+	:Socket(httpClientCenter.getLoop()),
+	HttpProcessor(false,socket),
 	Timer(Socket::getLoop()),
 	mServer(server),
 	mHandler(0),
