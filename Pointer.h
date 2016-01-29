@@ -325,6 +325,10 @@ protected:
 	void throwNullObjectHandleException(const char *, int) const;
 };
 
+template<class T> T * get_pointer(Pointer<T> const& p ) {
+	return p.get();
+}
+
 // -----------------------------
 // impl of Pointer
 // -----------------------------

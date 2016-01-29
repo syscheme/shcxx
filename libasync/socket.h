@@ -31,6 +31,7 @@
 namespace LibAsync {
 	
 	class ZQ_COMMON_API Socket;
+	/*
 	class LingerTimer : public virtual Timer{
 		public:
 			typedef ZQ::common::Pointer<LingerTimer> Ptr;
@@ -43,6 +44,7 @@ namespace LibAsync {
 		private:
 			SocketPtr     socketPtr;
 	};
+	*/
 
 
 	class  Socket : public virtual ZQ::common::SharedObject {
@@ -267,7 +269,8 @@ namespace LibAsync {
 		bool                mWriteable;
 		bool             	mInEpoll;
 
-		LingerTimer::Ptr    mLingerPtr;
+		//LingerTimer::Ptr    mLingerPtr;
+		Timer::Ptr			mLingerPtr;
 		uint64              mLingerTime;
 		AsyncBufferS        mLingerRecv;
 		bool                mShutdown;

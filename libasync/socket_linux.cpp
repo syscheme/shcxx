@@ -8,7 +8,14 @@
 
 #include "socket.h"
 
+
 namespace LibAsync {
+
+	/*
+	Socket* get_pointer(ZQ::common::Pointer<Socket> const& p) {
+		return  p.get();
+	}
+	*/
 
 	bool Socket::isOpened() const
 	{
@@ -636,7 +643,8 @@ SEND_DATA:
 			return false;
 		mLingerRecv.push_back(buf);
 		Socket::Ptr sockPtr = this;
-		mLingerPtr = new LingerTimer(sockPtr);
+		mLingerPtr = Timer::create(mLoop);
+		mLingerPtr->bindCB(boost::bind(&Socket::realClose, sockPtr));
 		mRecValid = true;
 		mRecBufs = mLingerRecv;
 		if( !recv(mShutdown) )
@@ -668,6 +676,7 @@ SEND_DATA:
 		return true;
 	}
 	
+	/*
 	LingerTimer::LingerTimer(SocketPtr sock)
 	:socketPtr(sock),
 	Timer(sock->getLoop())
@@ -689,4 +698,5 @@ SEND_DATA:
 			socketPtr = NULL;
 		}
 	}
+	*/
 }//libAsync
