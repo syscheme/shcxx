@@ -202,7 +202,7 @@ namespace LibAsync {
 			}
 			std::vector<Timer::Ptr>::iterator itExpired = expiredTimers.begin();
 			while( itExpired != expiredTimers.end()) {
-				(*itExpired)->onTimer();
+				(*itExpired)->onTimerEvent();
 				itExpired++;
 			}
 			expiredTimers.clear();
@@ -270,6 +270,14 @@ namespace LibAsync {
 	void Timer::cancel() {
 		mLoop.removeTimer(this);
 		mTarget = 0;
+	}
+
+	void Timer::onTimerEvent() {
+		if(mFuncCB) {
+			mFuncCB();
+		} else {
+			onTimer();
+		}
 	}
 
 	

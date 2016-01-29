@@ -1,6 +1,8 @@
 #ifndef __asynchttp_eventloop_header_file__
 #define __asynchttp_eventloop_header_file__
 
+#include <boost/bind.hpp>
+#include <boost/function.hpp>
 #include <ZQ_common_conf.h>
 #include <Locks.h>
 #include <NativeThread.h>
@@ -26,6 +28,7 @@
 #include <vector>
 #include <list>
 #include <Pointer.h> //for smart pointer
+
 
 namespace LibAsync {
 
@@ -57,7 +60,11 @@ namespace LibAsync {
     class Socket;
     //	typedef SocketPtr;
     typedef ZQ::common::Pointer<Socket>		SocketPtr;
+} //namespace LibAsync
 
+
+
+namespace LibAsync {
 	class ZQ_COMMON_API SocketAddrHelper{
 	public:// inheritance is not allowed
 		SocketAddrHelper(bool bTcp = true);
@@ -163,6 +170,7 @@ namespace LibAsync {
 	class Timer: public virtual ZQ::common::SharedObject {
 	public:	
 		typedef ZQ::common::Pointer<Timer> Ptr;
+		typedef boost::function<void()> 	FUNC_ONTIMER;
 
 		virtual ~Timer();
 
@@ -185,6 +193,8 @@ namespace LibAsync {
 			cancel();
 		}
 
+		void				bindCB( FUNC_ONTIMER cb );
+
 	protected:
 		Timer(EventLoop& loop);
 
@@ -195,11 +205,13 @@ namespace LibAsync {
 
 	protected:
 		friend class EventLoop;
+		void				onTimerEvent();
 		/// 如果你想要收到timer时间，请override这个函数
 		virtual	void		onTimer( ) { }
 	private:
 		EventLoop&			mLoop;
 		uint64				mTarget;
+		FUNC_ONTIMER		mFuncCB;
 	};
 
 	/**
