@@ -240,9 +240,20 @@ namespace LibAsync {
 
 	void AsyncWork::onWorkExecute( ) {
 		mWorkQueued = false;
-		onAsyncWork();
+		if(mFuncCB) {
+			mFuncCB();
+		} else {
+			onAsyncWork();
+		}
 	}
 
+	void AsyncWork::bindCB( FUNC_ONASYNCWORK cb ) {
+		mFuncCB = cb;
+	}
+
+	AsyncWork::Ptr AsyncWork::create(EventLoop& loop) {
+		return new AsyncWork(loop);
+	}
 	//////////////////////////////////////////////////////
 	/// Timer
 	Timer::Timer(EventLoop& loop)

@@ -220,11 +220,16 @@ namespace LibAsync {
 	class ZQ_COMMON_API AsyncWork : public virtual ZQ::common::SharedObject {
 	public:
 		typedef ZQ::common::Pointer<AsyncWork>	Ptr;
+		typedef boost::function<void()> FUNC_ONASYNCWORK;
 		virtual ~AsyncWork();
+
+		static AsyncWork::Ptr create(EventLoop& loop);
 
 		/// queueWork will wakeup event loop and let it have an oppotunity to proceed.
 		/// every single queueWork will lead to one onAsyncWork callback
 		void	queueWork();
+
+		void	bindCB( FUNC_ONASYNCWORK cb );
 
 	protected:
 		friend class EventLoop;
@@ -241,6 +246,7 @@ namespace LibAsync {
 	private:
 		EventLoop&		mLoop;
 		bool			mWorkQueued;
+		FUNC_ONASYNCWORK mFuncCB;
 	};
 
 	/**
