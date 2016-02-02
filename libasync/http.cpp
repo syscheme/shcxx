@@ -886,7 +886,7 @@ namespace LibAsync {
 	//////////////////////////////////////////////////////////////////////////
 	
 	HttpServant::HttpServant( HttpServer& server, SOCKET socket, ZQ::common::Log& logger)
-	:Socket(httpClientCenter.getLoop()),
+	:Socket(httpClientCenter.getLoop(), socket),
 	HttpProcessor(false,socket),
 	Timer(Socket::getLoop()),
 	mServer(server),
@@ -899,7 +899,7 @@ namespace LibAsync {
 
 	HttpServant::~HttpServant() {
 		int64 tsStart = ZQ::common::now();
-		Socket::close();
+		//Socket::close();
 		int64 delta = ZQ::common::now() - tsStart;
 		mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServant, "took [%ld]ms to close socket"), delta);
 	}
