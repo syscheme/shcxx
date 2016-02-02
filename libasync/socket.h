@@ -96,6 +96,12 @@ namespace LibAsync {
 		///       以后调用onConnected
 		/// 出现任何错误导致无法成功发起连接请求的时候都返回false  
 		bool	connect( const std::string& ip, unsigned short port );
+		
+		///NOTE:///////////////////////////////////////////
+		///  由于可以在任何一个时间调用close
+		///  所以事先上必须要考虑close以后socket对象是否还被epoll/IOCP引用，这个是一个关键点。
+		///  否则就是遍地的crash dump  
+		void	close();
 
 		///after server side socket created, ListenSocket should invoke this method 
 		///to make a onSocketConnected callback
@@ -148,12 +154,7 @@ namespace LibAsync {
 		//   发送成功则返回发送的数据大小。
 		virtual int     sendDirect(AsyncBuffer buf);
 		virtual int     sendDirect(const AsyncBufferS& bufs);
-		///NOTE:///////////////////////////////////////////
-		///  由于可以在任何一个时间调用close
-		///  所以事先上必须要考虑close以后socket对象是否还被epoll/IOCP引用，这个是一个关键点。
-		///  否则就是遍地的crash dump  
-		void	close();
-
+		
 		int		lastError() const;
 
 	private:
