@@ -7,7 +7,17 @@
 
 namespace LibAsync {
 	
-	
+	static EventLoopCenter httpClientCenter;
+	static AsyncBuffer		chunkTail;
+
+	EventLoopCenter& getLoopCenter() {
+		return httpClientCenter;
+	}
+
+	const AsyncBuffer& getBufForChunkTail() {
+		return chunkTail;
+	}
+
 	EventLoopCenter::EventLoopCenter():mIdxLoop(0){
 	}
 
@@ -76,7 +86,6 @@ namespace LibAsync {
 		loop->increateSockCount();
 		return *loop;
 	}
-
 	
 	bool HttpProcessor::setup(ZQ::common::Log&log, const std::vector<int>& cpuIds){
 #ifdef ZQ_OS_MSWIN

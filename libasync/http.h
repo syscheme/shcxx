@@ -20,6 +20,7 @@ namespace LibAsync {
 		///从Center里面获取一个EventLoop，当前的实现版本是roundrobin
 		virtual EventLoop&	getLoop();
 		void				releaseLoop();
+		static bool initLoops();
 	protected:
 		virtual void	addSocket(int id);
 		virtual void	removeSocket(int id);
@@ -42,8 +43,8 @@ namespace LibAsync {
 		ZQ::common::Mutex	mLocker;
 	};
 
-	static EventLoopCenter httpClientCenter;
-	static AsyncBuffer		chunkTail;
+	EventLoopCenter& getLoopCenter();
+	const AsyncBuffer& getBufForChunkTail();
 
 	class ZQ_COMMON_API HttpProcessor : virtual public Socket, public ParserCallback{
 	public:
