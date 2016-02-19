@@ -71,7 +71,7 @@ namespace LibAsync {
 	void    UDPSocket::peer(const std::string& ip, unsigned short port)
 	{
 		mPeerAddr = ip;
-		mPeerAddr = port;
+		mPeerPort = port;
 	}
 
 	void UDPSocket::local(const std::string& ip, unsigned short port)
@@ -97,7 +97,7 @@ namespace LibAsync {
 	bool UDPSocket::recvfrom(const std::string& ip, unsigned short port, AsyncBuffer buf)
 	{
 		mPeerAddr = ip;
-		mPeerAddr = port;
+		mPeerPort = port;
 		return recvfrom(buf);
 	}
 

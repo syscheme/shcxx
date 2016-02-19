@@ -24,7 +24,7 @@ namespace LibAsync {
 		bool	bind(const std::string& ip, unsigned short port);
 		void    peer(const std::string& ip, unsigned short port);
 		void    local(const std::string& ip, unsigned short port);
-
+		EventLoop&  getLoop() const  { return Socket::getLoop(); }
 		bool    sendto(const std::string& ip, unsigned short port, AsyncBuffer buf);
 		bool    sendto(AsyncBuffer);
 
