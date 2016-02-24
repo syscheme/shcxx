@@ -43,6 +43,7 @@ public:
 class IResponse
 {
 public:
+
     virtual ~IResponse(){}
     virtual void setStatus(int statusCode, const char* reasonPhrase = NULL) = 0;
     // set a NULL value to clear the header
@@ -62,6 +63,14 @@ public:
 
     virtual void sendDefaultErrorPage(int statusCode) = 0;
     virtual const char* getLastError() const = 0;
+
+	enum {
+		rspflg_SkipZeroChunk  =(1<<0), // true if no 0-chunk as the end-of-transferring before connection close
+	};
+
+	//@param flags combination of rspflg_XXX
+	//@retrun the final flags after changes
+	virtual uint32 setFlags(uint32 flags, bool enable=true) =0;
 };
 
 struct PostDataFrag
@@ -81,11 +90,11 @@ struct PostDataFrag
     }
 };
 
-#define ZQHttp_OPT_NoDelay  1 // Bool
-#define ZQHttp_OPT_HoldOn   2 // Bool
-#define ZQHttp_OPT_WriteBufSize 3 // Size
-#define ZQHttp_OPT_ReadBufSize  4 // Size
-#define ZQHttp_OPT_sendTimeo 5 //send timeout in milliseond
+#define ZQHttp_OPT_NoDelay        1 // Bool
+#define ZQHttp_OPT_HoldOn         2 // Bool
+#define ZQHttp_OPT_WriteBufSize   3 // Size
+#define ZQHttp_OPT_ReadBufSize    4 // Size
+#define ZQHttp_OPT_sendTimeo      5 // send timeout in milliseond
 
 class IConnection
 {
