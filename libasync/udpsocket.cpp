@@ -143,6 +143,7 @@ namespace LibAsync {
 
 	bool UDPSocket::setgroup()
 	{
+		/*
 		SocketAddrHelper helper(false);
 		if (!helper.parse(mLocalAddr, mLocalPort))
 			return false;
@@ -151,8 +152,8 @@ namespace LibAsync {
 		if (!isOpened()) {
 			if (!open(info->ai_family, info->ai_socktype, info->ai_protocol))
 				return false;
-		}
-		struct hostent *hostEnt = gethostbyname( mLocalAddr.c_str() );
+		}*/
+		struct hostent *hostEnt = gethostbyname( mPeerAddr.c_str() );
 		if (NULL == hostEnt)
 			return false;
 		struct in_addr ia;
@@ -161,6 +162,10 @@ namespace LibAsync {
 		memset((void*)&myaddr, '0', sizeof(struct sockaddr_in));
 		socklen_t addr_len = sizeof(myaddr);
 		getsockname(mSocket, (struct sockaddr*)&myaddr, &addr_len);
+		int loop_key = 1;
+		setsockopt(mSocket, IPPROTO_IP, IP_MULTICAST_LOOP, &loop_key, 1);
+		unsigned char ttl=254;  
+		setsockopt(mSocket, IPPROTO_IP,IP_MULTICAST_TTL,&ttl,sizeof(ttl)); 
 		struct ip_mreq group;
 		memcpy((void*)&group.imr_multiaddr.s_addr, (void*)&ia, sizeof(struct in_addr));
 		memcpy(&group.imr_interface, &(myaddr.sin_addr), sizeof(group.imr_interface));
