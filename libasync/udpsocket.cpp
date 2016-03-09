@@ -76,8 +76,12 @@ namespace LibAsync {
 
 	void UDPSocket::local(const std::string& ip, unsigned short port)
 	{
-		mLocalAddr = ip;
+		if( ip.empty())
+			mLocalAddr = "0.0.0.0";
+		else
+			mLocalAddr = ip;
 		mLocalPort = port;
+		bind(mLocalAddr, port);
 	}
 
 	bool UDPSocket::setbroadcast(bool enable/*=true*/)
