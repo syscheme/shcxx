@@ -1,9 +1,9 @@
 /*
 -------------------------------------------------------------
  $Id: ExpatMap.h,v 1.5 2003/03/20 04:18:51 shao Exp $
- $Author: Admin $
- $Revision: 1 $
- $Date: 10-11-12 15:56 $
+ $Author: Dejian.fei $
+ $Revision: 2 $
+ $Date: 1/11/16 4:49p $
 ------------------------------------------------------------
 
 Copyright (C) 2002-2003 Infraworks Corp.
@@ -34,15 +34,14 @@ Public License for more details.
 #endif
 
 #include <assert.h>
-#include <fstream>
 #include <iostream>
 #include <map>
 #include <stack>
 #include <string>
 #include <vector>
+//#include <fstream>
 
 #include "expatxxx.h"
-
 namespace ZQ {
 namespace common {
 
@@ -217,6 +216,8 @@ class ExpatMapNesting
 -------------------------------------------------------------
  Revision history since 2003/03/20:
  $Log: /ZQProjs/Common/ExpatMap.h $
+// 
+// 2     1/11/16 4:49p Dejian.fei
 // 
 // 1     10-11-12 15:56 Admin
 // Created.

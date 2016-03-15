@@ -27,6 +27,22 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/TCPSocket.cpp $
 // 
+// 43    3/09/16 12:09p Hongquan.zhang
+// 
+// 45    12/23/15 5:31p Hongquan.zhang
+// temp solution for ticket 18557
+// dummy connection is bad for waking up selector
+// 
+// 44    12/21/15 12:21p Hongquan.zhang
+// 
+// 43    12/21/15 12:05p Hongquan.zhang
+// 
+// 42    12/21/15 11:51a Hongquan.zhang
+// ticket 18557
+// DO NOT USE recvfrom for tcp connection
+// 
+// 41    11/26/15 2:50p Hui.shao
+// 
 // 41    11/26/15 2:49p Hui.shao
 // 
 // 40    3/19/15 9:55a Hui.shao
@@ -195,8 +211,13 @@ class DummyTCPSvrConn : public TCPSocket, virtual public SharedObject
 public:
 	typedef Pointer < DummyTCPSvrConn > Ptr;
 
-	DummyTCPSvrConn(TCPServer& server, TCPSocket& source): TCPSocket(source), _server(server) { setTimeout(0); }
+	DummyTCPSvrConn(TCPServer& server, TCPSocket& source): TCPSocket(source), _server(server) {
+		setTimeout(0); 
+		mLastError = 0;
+	}
 	DummyTCPSvrConn(TCPServer& server): TCPSocket(), _server(server) { setTimeout(0); }
+
+	int		lastError() const { return mLastError; }
 
 protected:
 	virtual void OnConnected()
@@ -210,15 +231,26 @@ protected:
 		char buf[128];
 		struct sockaddr_in fromAddress;
 		socklen_t addressSize = sizeof(fromAddress);
-		int ret = recv(_so, (char*) buf, sizeof(buf),	0);
+		//int ret = recvfrom(_so, (char*) buf, sizeof(buf),	0,  (struct sockaddr*)&fromAddress, &addressSize);
+		int ret = 0;
+		do {
+			ret = ::recv(_so,(char*)buf,sizeof(buf),0);
+		}while(ret == EINTR);
 
-		if (ret <= 0)
+		if (ret <= 0) {
+			mLastError = (int)SYS::getLastErr(SYS::SOCK);
 			disconnect();
+		} else {
+			mLastError = 0;
+			::send(_so,buf,ret,0);
+		}
 	}
 
 	virtual void OnTimeout() {};
 
 	TCPServer& _server;
+private:
+	int mLastError;
 };
 
 class DummyServer : public TCPServer, virtual public SharedObject
@@ -246,16 +278,12 @@ public:
 		char buf[128];
 		struct sockaddr_in fromAddress;
 		socklen_t addressSize = sizeof(fromAddress);
-		recvfrom(_so, (char*) buf, sizeof(buf), 0, (struct sockaddr*)&fromAddress, &addressSize);
+		recv(_so, (char*) buf, sizeof(buf), 0);
 	}
 
 	virtual void OnConnected()
 	{
 		setTimeout(0);
-	}
-
-	void setConnected() {
-		Socket::_state = stConnected;
 	}
 };
 
@@ -289,6 +317,9 @@ public:
 			_tcpServer->getLocal(&svrport);
 			_dummyClient->setPeer(InetAddress("localhost"), svrport);
 			_dummyClient->connect(1000);
+			if (_dummyClient->isConnected())
+				_dummyClient->setTimeout(0);
+			SYS::sleep(1);
 		}
 
 		return _dummyClient->isConnected();
@@ -338,16 +369,14 @@ protected:
 
 public:
 
-	void watch(TCPSocket& tso, bool bShoudlWakeup = true)
+	void watch(TCPSocket& tso)
 	{
 		MutexGuard g(_lock);
 		if (INVALID_SOCKET == tso.get())
 			return;
 
 		MAPSET(SocketMap, _socketMap, tso.get(), &tso);
-		if(bShoudlWakeup) {
-			wakeup();
-		}
+		wakeup();
 	}
 
 	void unwatch(TCPSocket& tso)
@@ -389,7 +418,7 @@ public:
 
 	void wakeup()
 	{
-		if(_dummyClient && _dummyClient->isConnected() )
+		if(_dummyClient && _dummyClient->isConnected())
 			_dummyClient->send("Hi", 2);
 	}
 
@@ -428,7 +457,7 @@ public:
 	{
 		_pDummyConn = new DummyTCPSvrConn(*_tcpServer, preacceptedConn);
 		//_tcpServer->stopListening();
-		return NULL;//_pDummyConn.get();
+		return _pDummyConn.get();
 	};
 
 protected:
@@ -493,11 +522,18 @@ protected:
 
 			// force to include the dummy connection in the select list
 			if (_dummyClient && _dummyClient->isConnected())
-			{
-				//FD_SET(_dummyClient->get(), &fdread);
-
-				//if (_pDummyConn)
-				//	FD_SET(_pDummyConn->get(), &fdread);
+			{				
+				char buf[32];
+				snprintf(buf, sizeof(buf)-2, "%d,", _dummyClient->get());
+				FD_SET(_dummyClient->get(), &fdread);
+				strfdr += buf;
+				maxFd = std::max(maxFd, _dummyClient->get()+1);
+				if (_pDummyConn) {
+					snprintf(buf, sizeof(buf)-2, "%d,", _pDummyConn->get());
+					FD_SET(_pDummyConn->get(), &fdread);
+					strfdr += buf;
+					maxFd = std::max(maxFd, _pDummyConn->get()+1);
+				}				
 			}
 			else timeout.tv_sec =1;
 
@@ -520,8 +556,14 @@ protected:
 					if (errcode != lastErrcode || cContinuousErr > (10*24*3600*6))
 						cContinuousErr =0;
 					lastErrcode = errcode;
-					if (cContinuousErr++ < 3)
-						glog(Log::L_ERROR, CLOGFMT(TcpSocketWatchDog, "max[%d]/FD_SETSIZE[%d] select() %dms error[%d]: fdread[%s], fdwrite[%s], fderr[%s]"), maxFd, FD_SETSIZE, nextSleep, errcode, strfdr.c_str(), strfdw.c_str(), strfde.c_str());
+					if (cContinuousErr++ < 3) {
+						int dummyLastError = 0;
+						if(_pDummyConn) {
+							dummyLastError = _pDummyConn->lastError();
+						}
+						glog(Log::L_ERROR, CLOGFMT(TcpSocketWatchDog, "max[%d]/FD_SETSIZE[%d] select() %dms error[%d]: fdread[%s], fdwrite[%s], fderr[%s], dummyConnet lastError[%d]"), 
+							maxFd, FD_SETSIZE, nextSleep, errcode, strfdr.c_str(), strfdw.c_str(), strfde.c_str(), dummyLastError);
+					}
 				}
 				catch(...) {}
 
@@ -787,16 +829,16 @@ TCPSocket::TCPSocket(const TCPSocket &source)
 	refWatchDog();
 }
 
+TCPSocket::TCPSocket( int so )
+:Socket(so),_bBlockEnable(true),_timeout(0),_flagsPending(0) {
+}
+
 TCPSocket::TCPSocket(const Socket &source)
 : Socket(source), _bBlockEnable(true), _timeout(0), _flagsPending(0)
 {
 	_lastUpdated = TimeUtil::now();
 	updateConnDesc();
 	refWatchDog();
-}
-
-TCPSocket::TCPSocket(int so )
-:Socket(so),_bBlockEnable(true),_timeout(0),_flagsPending(0){
 }
 
 void TCPSocket::bind()
@@ -1127,21 +1169,17 @@ const char* TCPSocket::connDescription()
 bool TCPClient::connect(int32 sTimeOut)
 {
 	createSocket();
+	if( Socket::_state != stAvailable ) {
+		return false;
+	}
 
 	//set the default time out
 	Socket::_state = stConnecting;
-	if (sTimeOut < 0)
-#ifdef ZQ_OS_MSWIN
-		privateSetBlock(true);
-#else
+	if (sTimeOut < 0) {
 		setCompletion(true);
-#endif
-	else
-#ifdef ZQ_OS_MSWIN
-		privateSetBlock(false);
-#else
+	} else {
 		setCompletion(false);
-#endif
+	}
 
 	int rc;
 
@@ -1171,11 +1209,7 @@ bool TCPClient::connect(int32 sTimeOut)
 #endif
 	{
 		Socket::Error err = Socket::connectError();
-#ifdef ZQ_OS_MSWIN
 		if (sTimeOut < 0 || errConnectBusy == err)
-#else
-		if (sTimeOut < 0 || errConnectBusy == err)
-#endif
 		{
 			// if it is busy at connecting, let the watchdog wake up later thru entry OnConnect()
 			if (_gWatchDog)

@@ -309,7 +309,7 @@ protected:
 	bool	m_bReportInitialized;
 
 	ServiceMIB::Ptr _pServiceMib;
-	ZQ::SNMP::Subagent* _pSnmpSA;
+	ZQ::SNMP::SubAgent* _pSnmpSA;
 
     // argument
     int m_argc;

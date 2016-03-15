@@ -27,6 +27,11 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/ZQ_common_conf.h $
 // 
+// 14    3/11/16 10:04a Dejian.fei
+// NDK android
+// 
+// 13    9/25/15 2:23p Ketao.zhang
+// 
 // 12    3/26/15 1:24p Zhiqiang.niu
 // 
 // 8     1/22/15 2:04p Build
@@ -147,7 +152,7 @@
 #elif defined (__linux) || defined (__linux__)
 #  define ZQ_OS_LINUX
 #else
-#  error unsupported operating system
+# error unsupported operating system
 #endif
 
 // check multithreading
@@ -200,7 +205,9 @@ extern "C" {
 #endif // __cplusplus
 #   include <unistd.h>
 #   include <sys/types.h>
+#ifndef ZQ_COMMON_ANDROID
 #   include <error.h>
+#endif
 #   include <pthread.h>
 #   include <string.h>
 #ifdef __cplusplus
@@ -455,50 +462,6 @@ namespace common  {
 
 }; // namespace VOD
 }; // namespace ZQ
-
-
-#ifdef _MEMLEAK_DEBUG_
-
-	//add *inline* to avoid multiple function t stdefinition
-	inline void* malloc_dbg( size_t size, const char* file, int line ) {
-		size_t length = 0;
-		if(file && file[0] ) {
-			length = strlen(file);
-		}
-		size += 32;//32 bytes for record file and line
-		void* p = malloc(size);
-		if(!p)
-			return p;
-		if( length > 24 ) {
-			file += (length - 24);
-		}
-		file ++; // think about '\0'
-		strcopy((char*)p, file);
-		memcpy((char*)p + 24, &line, sizeof(line));
-		return p + 32;
-	}
-
-	inline void free_dbg(void* p, const char* file, int line ) {
-		p = (void*)((char*)p - 32);
-		free(p);
-	}
-
-	inline void* operator new( size_t size, const char* file, int line ) {
-		return malloc_dbg(size, file, line);
-	}
-
-	inline void operator delete( void* p, const char* file, int line ) {
-		free_dbg(p, file, line);
-	}
-
-#	define malloc(sz) malloc_dbg((sz), __FILE__, __LINE__ )
-#	define free(p) free_dbg(p, __FILE__, __LINE__ )
-#	define new new(__FILE__, __LINE__)
-//what about delete[] ?
-#	define delete delete(__FILE__, __LINE__)
-
-#endif//_MEMLEAK_DEBUG
-
 #endif // __cplusplus
 
 #endif // __ZQ_COMMON_CONF_H__

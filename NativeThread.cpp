@@ -21,8 +21,13 @@
 // Desc  : impl a native objected thread
 // --------------------------------------------------------------------------------------------
 // Revision History: 
-// $Header: /ZQProjs/Common/NativeThread.cpp 1     10-11-12 15:56 Admin $
+// $Header: /ZQProjs/Common/NativeThread.cpp 3     3/11/16 9:52a Dejian.fei $
 // $Log: /ZQProjs/Common/NativeThread.cpp $
+// 
+// 3     3/11/16 9:52a Dejian.fei
+// NDK  android
+// 
+// 2     9/25/15 2:23p Ketao.zhang
 // 
 // 1     10-11-12 15:56 Admin
 // Created.
@@ -355,7 +360,11 @@ __thread unsigned int tid = 0;
 
 void settid()
 {
+#ifndef ZQ_COMMON_ANDROID
 	tid = syscall(SYS_gettid);
+#else
+	tid = pthread_self();
+#endif
 }
 
 unsigned int getthreadid()
@@ -434,7 +443,9 @@ void NativeThread::terminate(int code /* = 0 */) {
 void* NativeThread::_execute(void *thread) {
 
 	settid();
+#ifndef ZQ_COMMON_ANDROID
     pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
+#endif
 
 	NativeThread *th = (NativeThread *)thread;
 

@@ -111,7 +111,7 @@ protected:
 	int _logLevel;
 	int _snmpLoggingMask;
 	uint32	_instanceId;
-	ZQ::SNMP::Subagent* _pSnmpSA;
+	ZQ::SNMP::SubAgent* _pSnmpSA;
 	uint32 m_dwKeepAliveInterval_ms;// wait time out option in start()
 	uint32 m_dwShutdownWaitTime; //shutdownWaitTime
 	std::string _configDir;

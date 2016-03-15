@@ -1,7 +1,8 @@
 #include "ZQ_common_conf.h"
-#include "XMLPreferenceEx.h"
+#ifndef ZQ_COMMON_ANDROID
+	#include "XMLPreferenceEx.h"
+#endif
 #include "strHelper.h"
-
 #include <fcntl.h>
 #include <sstream>
 #include <sys/types.h>
@@ -10,11 +11,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 using namespace ZQ::common;
 
 #define LONG_LEN 64
 
+#ifndef ZQ_COMMON_ANDROID
 XMLPreferenceEx* getPreferenceNode(
                     const std::string& path, 
                     XMLPreferenceDocumentEx& config) {
@@ -187,7 +190,7 @@ op:
 	
 	return true;
 }
-
+#endif
 char* itoa(int value, char*  str, int radix)
 {
     int  rem = 0;
@@ -252,14 +255,21 @@ char* strrev(char* szT)
     return szT;
 }
 
+#ifdef ANDROID
+	int wctomb(char *s, wchar_t wc) { return wcrtomb(s,wc,NULL); }
+	int mbtowc(wchar_t *pwc, const char *s, size_t n) { return mbrtowc(pwc, s, n, NULL); }
+#endif
 long watol(wchar_t* wch)
 {
 	if(wch == NULL)
 		return 0;
 
 	char chdes[LONG_LEN] = {0};
+#ifndef ZQ_COMMON_ANDROID
 	int res = wctomb(chdes,*wch);
-
+#else
+	int res = wcrtomb(chdes,*wch,NULL);
+#endif
 	long lval = 0;
 	if(res > 0)
 		lval = atol(chdes);

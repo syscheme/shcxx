@@ -359,7 +359,7 @@ bool BaseZQServiceApplication::OnStart() {
 
 	if (NULL != _pServiceMib)
 	{
-		_pSnmpSA = new ZQ::SNMP::Subagent(_pServiceMib->_flog, *_pServiceMib, DEFAULT_COMM_TIMEOUT);
+		_pSnmpSA = new ZQ::SNMP::SubAgent(_pServiceMib->_flog, *_pServiceMib, DEFAULT_COMM_TIMEOUT);
 		if (_pSnmpSA)
 			_pSnmpSA->start();
 	}

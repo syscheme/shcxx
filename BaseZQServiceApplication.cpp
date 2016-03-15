@@ -621,7 +621,7 @@ HRESULT BaseZQServiceApplication::OnStart(void)
 	logEvent(_T("Service Process is running"),Log::L_INFO);
 	if (NULL != _pServiceMib)
 	{
-		_pSnmpSA = new ZQ::SNMP::Subagent(_pServiceMib->_flog, *_pServiceMib, DEFAULT_COMM_TIMEOUT);
+		_pSnmpSA = new ZQ::SNMP::SubAgent(_pServiceMib->_flog, *_pServiceMib, DEFAULT_COMM_TIMEOUT);
 		_pSnmpSA->start();
 	}
 

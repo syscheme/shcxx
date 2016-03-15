@@ -27,6 +27,9 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/RedisClient.cpp $
 // 
+// 7     11/30/15 4:58p Hui.shao
+// compile warning
+// 
 // 6     6/10/15 1:53p Hui.shao
 // 
 // 5     5/20/15 11:17a Hui.shao
@@ -356,7 +359,7 @@ int RedisClient::encode(std::string& output, const void* source, size_t len)
 
 	const int8 *sptr=(const int8 *)source;
 
-	for (int i=0; i<len; i++)
+	for (size_t i=0; i<len; i++)
 	{
 		// The ASCII characters digits or letters, and ".", "-", "*", "_"
 		// remain the same
@@ -386,13 +389,13 @@ int RedisClient::encode(std::string& output, const void* source, size_t len)
 
 int RedisClient::decode(const char* source, void* target, size_t maxlen)
 {
-	int slen=strlen(source);
+	size_t slen = strlen(source);
 	uint8 *targ = (uint8 *)target;
 
 	if (targ ==NULL)
 		return 0;
 	
-	int s, t;
+	size_t s, t;
 	for (s=0, t=0; s<slen && (t<maxlen || maxlen<0); s++, t++)
 	{
 		// the 3-character string "%xy", where xy is the
@@ -917,7 +920,7 @@ RedisCommand::Ptr RedisClient::sendDEL(const char *key, RedisSink::Ptr reply)
 	return sendCommand(cmdstr.c_str(), REDIS_LEADINGCH_INLINE, reply);
 }
 
-RedisCommand::Ptr RedisClient::sendGETSET(const char *key, const char *val, int vlen, RedisSink::Ptr reply)
+RedisCommand::Ptr RedisClient::sendGETSET(const char *key, const uint8* val, int vlen, RedisSink::Ptr reply)
 {
 	std::string cmdstr;
 	encode(cmdstr, val, vlen);

@@ -27,6 +27,9 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/RTSPSession.cpp $
 // 
+// 24    3/11/16 9:56a Dejian.fei
+// NDK android
+// 
 // 22    11/10/15 3:10p Hui.shao
 // 
 // 22    11/10/15 3:00p Hui.shao
@@ -124,7 +127,9 @@
 #include "RTSPClient.h"
 #include "urlstr.h"
 #include "TimeUtil.h"
-#include "Guid.h"
+#ifndef ZQ_COMMON_ANDROID
+	#include "Guid.h"
+#endif
 #include "Locks.h"
 #include "SystemUtils.h"
 #include <algorithm>
@@ -223,11 +228,35 @@ void RTSPSessionManager::add(RTSPSession& sess)
 {
 	if (sess._sessGuid.empty())
 	{
+		char buf[80];
+#ifndef ZQ_COMMON_ANDROID
 		// un-assigned user's session id, generate one
 		Guid guid;
 		guid.create();
-		char buf[80];
 		guid.toCompactIdstr(buf, sizeof(buf) -2);
+#else
+		uint64 Q64 = 0;
+		for (int i =0; i< sizeof(Q64) /sizeof(uint); i++)
+		{
+			Q64 <<=4;
+			Q64 |= (uint) rand();
+		}
+
+		static const char idchars[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+		static const int  nchars = sizeof(idchars) -1;
+
+		char *p = buf + sizeof(buf) -1, *q= buf;
+		for(*p-- ='\0'; Q64 >0 && p>=buf; p--)
+		{
+			*p = idchars[(int) (Q64 % nchars)];
+			Q64 /= nchars;
+		}
+
+		for (p++; '\0' != *p; p++, q++)
+			*q = *p;
+
+		*q= '\0';
+#endif
 		sess._sessGuid = buf;
 	}
 	MutexGuard g(_lockSessMap);
@@ -423,17 +452,17 @@ void RTSPSession::updateIndex(RTSPSession* sess)
 RTSPSession::RTSPSession(Log& log, NativeThreadPool& thrdpool, const char* streamDestUrl, const char* filePath, Log::loglevel_t verbosityLevel, int timeout, const char* sessGuid)
 : _thrdpool(thrdpool), _tpType(tpt_UNKNOWN), _log(log, verbosityLevel), _stampSetup(0), _stampLastMessage(0), _filePath(trim(filePath)), _sessTimeout(timeout)
 {
-	if (NULL == sessGuid || strlen(sessGuid) <=0)
-	{
-		// un-assigned user's session id, generate one
-		char buf[80];
-		Guid guid;
-		guid.create();
-		guid.toCompactIdstr(buf, sizeof(buf) -2);
-		_sessGuid = buf;
-	}
-	else
+	if (NULL != sessGuid && strlen(sessGuid) >0)
 		_sessGuid = sessGuid;
+	//else // let _sessMgr->add() to generate new GUID
+	//{
+	//	// un-assigned user's session id, generate one
+	//	char buf[80];
+	//	Guid guid;
+	//	guid.create();
+	//	guid.toCompactIdstr(buf, sizeof(buf) -2);
+	//	_sessGuid = buf;
+	//}
 
 	setStreamDestination(streamDestUrl, false);
 

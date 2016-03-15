@@ -27,6 +27,10 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/InetAddr.cpp $
 // 
+// 2     3/11/16 9:54a Dejian.fei
+// NDK android : cannot find enterMutex/leaveMutex,maybe 
+//  is wrong 
+// 
 // 1     10-11-12 15:56 Admin
 // Created.
 // 
@@ -584,9 +588,9 @@ bool InetAddress::setAddress(const char *host)
 #elif (defined(__osf__) || defined(ZQ_OS_MSWIN))
 		hp = gethostbyname(host);
 #else
-		mutex.enterMutex();
+		mutex.enter();
 		hp = gethostbyname(host);
-		mutex.leaveMutex();
+		mutex.leave();
 #endif
 		if(!hp)
 		{
@@ -687,9 +691,9 @@ const char *InetAddress::getHostname(void) const
 #elif defined(__osf__) || defined(ZQ_OS_MSWIN)
 	hp = gethostbyaddr((char *)&_ipaddr[0], sizeof(addr0), AF_INET);
 #else
-	mutex.enterMutex();
+	mutex.enter();
 	hp = gethostbyaddr((char *)&_ipaddr[0], sizeof(addr0), AF_INET);
-	mutex.leaveMutex();
+	mutex.leave();
 #endif
 	if(hp)
 		return hp->h_name;

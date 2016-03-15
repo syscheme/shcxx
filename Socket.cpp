@@ -27,6 +27,8 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/Socket.cpp $
 // 
+// 5     3/09/16 12:09p Hongquan.zhang
+// 
 // 4     5/30/12 5:31p Hui.shao
 // 
 // 4     5/30/12 5:30p Hui.shao
@@ -343,6 +345,7 @@ Socket::Error Socket::connectError(void)
 	{
 	case WSAENETDOWN:
 		return error(errResourceFailure);
+	case WSAEWOULDBLOCK://fall through
 	case WSAEINPROGRESS:
 		return error(errConnectBusy);
 	case WSAEADDRNOTAVAIL:

@@ -27,7 +27,14 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/RTSPClient.h $
 // 
-// 24    11/10/15 3:10p Hui.shao
+// 29    2/29/16 3:11p Hui.shao
+// 
+// 28    2/29/16 2:34p Hui.shao
+// 
+// 27    2/25/16 6:09p Hui.shao
+// 
+// 25    2/25/16 4:23p Hui.shao
+// added RTSPClient_sync
 // 
 // 24    11/10/15 3:00p Hui.shao
 // ticket#18316 to protect multiple in comming message of a same session
@@ -164,6 +171,7 @@ class ZQ_COMMON_API RTSPClient;
 class ZQ_COMMON_API RTSPSink;
 class ZQ_COMMON_API RTSPMessage;
 class ZQ_COMMON_API RTSPRequest;
+class ZQ_COMMON_API RTSPClient_sync;
 
 #define RTSP_MSG_BUF_SIZE (8*1024)
 
@@ -174,6 +182,7 @@ class ZQ_COMMON_API RTSPRequest;
 // -----------------------------
 // class RTSPMessage
 // -----------------------------
+/// basic RTSP message
 class RTSPMessage : public virtual SharedObject
 {
 public:
@@ -203,6 +212,7 @@ public:
 // -----------------------------
 // class RTSPRequest
 // -----------------------------
+/// RTSPRequest defines an outgoing request to the server or the ANNOUNCE received from the server 
 class RTSPRequest : public RTSPMessage
 {
 public:
@@ -212,6 +222,8 @@ public:
 	RTSPRequest(RTSPClient& client, uint cseq, const char* commandName, RTSPSession* pSession =NULL,
 		        uint32 flags =0, double start =-1.0f, double end =-1.0f, float scale =1.0f, const char* contentStr =NULL, void* pUserExtData=NULL);
 
+	void close();
+
 	RTSPClient& _client;
 	std::string _commandName;
 	std::string _sessGuid;
@@ -219,11 +231,14 @@ public:
 	double      _startPos, _endPos;
 	float       _scale;
 	void*       _pUserExtData; // the inherited child derived from RTSPClient may borrow this to make the RTSP message as sync calls
+
+	int64       _stampResponsed;
 };
 
 // -----------------------------
 // class RTSPSink
 // -----------------------------
+/// the callbacks sinking the events during the communication
 class RTSPSink
 {
 public:
@@ -297,21 +312,27 @@ public:
 		Err_RequestTimeout,
 	} RequestError;
 
-	// A function that is called in response to a RTSP command.  The parameters are as follows:
-	//     "rtspClient": The "RTSPClient" object on which the original command was issued.
-	//     "resultCode": If zero, then the command completed successfully.  If non-zero, then the command did not complete
-	//         successfully, and "resultCode" indicates the error, as follows:
-	//             A positive "resultCode" is a RTSP error code (for example, 404 means "not found")
-	//             A negative "resultCode" indicates a socket/network error; 0-"resultCode" is the standard "errno" code.
-	//     "resultString": A ('\0'-terminated) string returned along with the response, or else NULL.
-	//         In particular:
-	//             "resultString" for a successful "DESCRIBE" command will be the media session's SDP description.
-	//             "resultString" for a successful "OPTIONS" command will be a list of allowed commands.
-	//             Note that this string can be present (i.e., not NULL) even if "resultCode" is non-zero - i.e., an error message.
-	//            Note also that this string is dynamically allocated, and must be freed by the handler (or the caller)
-	//             - using "delete[]".
+	/// Callback when the out-going request is failed to issue:
+	///@rtspClient  The "RTSPClient" object on which the original request was issued.
+	///@pReq        The request
+	///@errCode     the case of failure, see RequestError
+	///@errDesc     a string description of the failure
 	virtual void OnRequestError(RTSPClient& rtspClient, RTSPRequest::Ptr& pReq, RequestError errCode, const char* errDesc=NULL) =0;
+
+	/// Callback when response arrived to a RTSP request:
+	///@rtspClient  The "RTSPClient" object on which the original command was issued.
+	///@resultCode If zero, then the command completed successfully.  If non-zero, then the command did not complete
+	///         successfully, and "resultCode" indicates the error, as follows:
+	///             A positive "resultCode" is a RTSP error code (for example, 404 means "not found")
+	///             A negative "resultCode" indicates a socket/network error; 0-"resultCode" is the standard "errno" code.
+	///@resultString  A ('\0'-terminated) string returned along with the response, or else NULL.
 	virtual void OnResponse(RTSPClient& rtspClient, RTSPRequest::Ptr& pReq, RTSPMessage::Ptr& pResp, uint resultCode, const char* resultString) =0;
+
+	/// Callback when an ANNOUNCE is recieved from the server
+	///@rtspClient  The "RTSPClient" object on which the original request was issued.
+	///@cmdName     ANNOUNCE
+	///@url         the url of the ANNOUNCE
+	///@pInMessage  the message
 	virtual void OnServerRequest(RTSPClient& rtspClient, const char* cmdName, const char* url, RTSPMessage::Ptr& pInMessage) =0;
 
 public:
@@ -336,6 +357,11 @@ public:
 // -----------------------------
 // class RTSPSession
 // -----------------------------
+/// RTSPSession on client-side is a stub mapping to the running session on the server-side
+/// it is defined as a context about the session, you should define your own extension about the session context
+/// by inheriting RTSPSession.
+/// RTSPSession also sinks the session-oriented events, such as the arriable of the response of session operation
+/// request and ANNOUNCE
 class RTSPSession : public RTSPSink, virtual public SharedObject
 {
 	friend class RTSPClient;
@@ -343,6 +369,9 @@ public:
 	typedef Pointer < RTSPSession > Ptr;
 	typedef std::vector < Ptr > List;
 	
+	/// RTSPSessionManager is an aggregator of sessions in the case that the client-side has multiple alive RTSPSessions
+	/// it provides a way to index the session instance by userSessId, a unique key to this client-side
+	/// the built-in RTSPSessionManager also can do PING automation to keep all managed session alive on the server-side
 	class IRTSPSessionManager
 	{
 	public:
@@ -363,12 +392,17 @@ public:
 	static void updateIndex(RTSPSession* sess);
 
 protected:
-	// the constructor only accessible by child classes
+	/// the constructor only accessible by child classes
 	RTSPSession(Log& log, NativeThreadPool& thrdpool, Log::loglevel_t verbosityLevel=Log::L_WARNING)
 		:_log(log, verbosityLevel), _thrdpool(thrdpool)
 	{}
 
 public:
+
+	/// constructor
+	///@log the logger where the verbose information of the class will be written into
+	///@thrdpool thread pool that the RTSPSession may issue background processes into
+	///@filePath the uri that appends the url of the RTSPClient to order
 	RTSPSession(Log& log, NativeThreadPool& thrdpool, const char* streamDestUrl, const char* filePath=NULL, Log::loglevel_t verbosityLevel=Log::L_WARNING, int timeout=600000, const char* sessGuid=NULL);
 
 	// an RTSPSession must take destroy to delete
@@ -378,17 +412,26 @@ public:
 	virtual void destroy();
 
 //	static Ptr newSession(Log& log, NativeThreadPool& thpool, const char* streamDestinationURL, Log::loglevel_t verbosityLevel=Log::L_WARNING, const char* sessGuid=NULL);
+
+	// lookupBySessionId will redirect to the SessionManager
 	static List lookupBySessionId(const char* sessionId);
+	
+	// lookupBySessionId will redirect to the SessionManager
 	static Ptr lookupBySessionGuid(const char* userSessionId);
 
+	/// set the destination where the stream should be pumped to
+	///@destUrl the URL sepecifies the destination to pump to
 	bool setStreamDestination(const char* destUrl, bool validate=true);
 
+	/// reserved
 	void getSessionRange(double& startTime, double& endTime) const
 		{ startTime = _maxPlayStartTime; endTime = _maxPlayEndTime; }
 
+	/// reserved
 	void setSessionRange(double startTime, double endTime)
 		{ _maxPlayStartTime =startTime; _maxPlayEndTime =endTime; }
 
+	///@ return the scale of session
 	float& scale() { return _scale; }
 
 	//const char* mediaSessionType() const { return _mediaSessionType.c_str(); }
@@ -404,9 +447,18 @@ protected: // impl of RTSPSink
 	friend class MessageProcessCmd;
 	friend class RequestErrCmd;
 
+	/// event of per-session request failed to issue, see RTSPSink for more details about the parameters
+	/// see RTSPClient for non-session requests
 	virtual void OnRequestError(RTSPClient& rtspClient, RTSPRequest::Ptr& pReq, RequestError errCode, const char* errDesc=NULL);
 	// dispatch OnResponse() to OnResponse_XXX() instead, not encourage to overwrite OnResponse()
+
+	/// event of response received of per-session request, see RTSPSink for more details about the parameters
+	/// see RTSPClient for non-session responses
+	///@note if not override, the reponses will be dispatched to OnResponse_XXXXX() according the method type
 	virtual void OnResponse(RTSPClient& rtspClient, RTSPRequest::Ptr& pReq, RTSPMessage::Ptr& pResp, uint resultCode, const char* resultString);
+
+	/// event of per-session ANNOUNCE received from the server, see RTSPSink for more details about the parameters
+	/// see RTSPClient for non-session ANNOUNCE
 	virtual void OnServerRequest(RTSPClient& rtspClient, const char* cmdName, const char* url, RTSPMessage::Ptr& pInMessage);
 
 	// callback from the session timer
@@ -427,7 +479,7 @@ protected: // impl of RTSPSink
 
 
 
-/////////////////////////////////////////////////////////////////////////
+////////////NOT TESTED, DO NOT USE/////////////////////////////////
 //	2010-10-29	Chuan.li Add: a list to contain all parsed result
 //#ifdef USING_SDP
 
@@ -521,7 +573,7 @@ public:
 	std::string								getSDPValue_a_pair(::std::string strKey);	// To get the value of a key\value pair
 	std::vector<MediaPropertyData>&			getSDPValue_m();
 
-//	2010-11-1	Chuan.li Add
+//END OF	2010-11-1	Chuan.li Add
 protected:
 	// parse v=
 	std::string _protocolVersion;
@@ -677,10 +729,16 @@ private:
 // -----------------------------
 // class RTSPClient
 // -----------------------------
-// represent a tcp connection to the RTSP server, may be shared by multiple RTSPSessions
+/// represent a tcp connection to the RTSP server, may be shared by multiple RTSPSessions
+/// RTSPClient connects to the server once an outgoing request is posted, it as a built-in automation to reconnect
+/// the server if the connection is lost but there is pending request to send. 
+/// All the requests of RTSPClient is handled asynchronously, which means you should override the relatived callback 
+/// methods OnXXXX of RTSPClient or RTSPSession to handle the response and/or ANNOUNCE
 class RTSPClient : protected RTSPSink, public TCPClient
 {
 	friend class RTSPRequest;
+	friend class RTSPSession;
+
 public:
 	RTSPClient(Log& log, NativeThreadPool& thrdpool, InetHostAddress& bindAddress, const std::string& baseURL, const char* userAgent = NULL, Log::loglevel_t verbosityLevel =Log::L_WARNING, tpport_t bindPort=0);
 	virtual ~RTSPClient();
@@ -691,14 +749,32 @@ protected:
 	// impl of RTSPSink
 	friend class MessageProcessCmd;
 	friend class RequestErrCmd;
-	virtual void OnResponse(RTSPClient& rtspClient, RTSPRequest::Ptr& pReq, RTSPMessage::Ptr& pResp, uint resultCode, const char* resultString);
-	virtual void OnServerRequest(RTSPClient& rtspClient, const char* cmdName, const char* url, RTSPMessage::Ptr& pInMessage);
+
+	/// event of non-session request failed to issue, see RTSPSink for more details about the parameters
+	/// see RTSPClient for per-session requests
 	virtual void OnRequestError(RTSPClient& rtspClient, RTSPRequest::Ptr& pReq, RequestError errCode, const char* errDesc=NULL);
+	// dispatch OnResponse() to OnResponse_XXX() instead, not encourage to overwrite OnResponse()
+
+	/// event of response received of non-session request, see RTSPSink for more details about the parameters
+	/// see RTSPClient for per-session responses
+	///@note if not override, the reponses will be dispatched to OnResponse_XXXXX() according the method type
+	virtual void OnResponse(RTSPClient& rtspClient, RTSPRequest::Ptr& pReq, RTSPMessage::Ptr& pResp, uint resultCode, const char* resultString);
+
+	/// event of non-session ANNOUNCE received from the server, see RTSPSink for more details about the parameters
+	/// see RTSPClient for per-session ANNOUNCE
+	virtual void OnServerRequest(RTSPClient& rtspClient, const char* cmdName, const char* url, RTSPMessage::Ptr& pInMessage);
 
 	// overridding of TCPSocket
+	/// event when the tcp connection is established or reconnected
 	virtual void OnConnected();
+
+	/// event when the tcp connection has error or lost
 	virtual void OnError();
+
+	/// event when the data received thru the tcp connection
 	virtual void OnDataArrived();
+
+	/// event if the connection is idle for long
 	virtual void OnTimeout();
 
 	// new  callbacks
@@ -839,6 +915,9 @@ public: // RTSP commands
 	///        otherwise a negative return value indicates the invocation failed
 	int sendGET_PARAMETER(RTSPSession& session, const RTSPRequest::AttrList& parameterNames, Authenticator* authenticator =NULL, const RTSPMessage::AttrMap& headerToOverride =RTSPMessage::AttrMap());
 
+	/// to specify timeouts
+	///@connectTimeout timeout before establish the tcp connection
+	///@messageTimeout timeout counted from when the request is being sent and when its response is received
 	void setClientTimeout(int32 connectTimeout =DEFAULT_CONNECT_TIMEOUT, int32 messageTimeout =DEFAULT_CLIENT_TIMEOUT);
 
 protected:
@@ -890,6 +969,61 @@ private:
 	void _cleanupExpiredAwaitRequests(uint8 multiplyTimeout=1, char* func=""); // private use
 	static uint16 _verboseFlags;
 };
+
+// -----------------------------
+// class RTSPClient_sync
+// -----------------------------
+/// RTSPClient_sync inherits from asynchronous RTSPClient by adding a way to wait for response
+/// see new API waitForResponse()
+/// if specify non-zero _disconnectByTimeouts, the connection will be re-established after continuous messaging timeouts is encountered
+class RTSPClient_sync : public RTSPClient
+{
+public:
+
+	RTSPClient_sync(Log& log, NativeThreadPool& thrdpool, InetHostAddress& bindAddress, const std::string& baseURL, const char* userAgent =NULL, Log::loglevel_t verbosityLevel =Log::L_WARNING, tpport_t bindPort =0);
+	virtual ~RTSPClient_sync() {}
+
+	bool waitForResponse(uint32 cseq);
+
+protected:
+
+	// it is recommend to execute base RTSPClient::OnXXXX() in the impl when override the following events
+	//	virtual void OnResponse(RTSPClient& rtspClient, RTSPRequest::Ptr& pReq, RTSPMessage::Ptr& pResp, uint resultCode, const char* resultString);
+	//	virtual void OnServerRequest(RTSPClient& rtspClient, const char* cmdName, const char* url, RTSPMessage::Ptr& pInMessage);
+	//	virtual void OnRequestError(RTSPClient& rtspClient, RTSPRequest::Ptr& pReq, RequestError errCode, const char* errDesc=NULL);
+
+	virtual int  OnRequestPrepare(RTSPRequest::Ptr& pReq);
+	virtual void OnRequestClean(RTSPRequest& req);
+
+	void wakeupByCSeq(uint32 cseq, bool success=true);
+
+protected:
+	class Event : public SharedObject
+	{
+	public: 
+		typedef Pointer < Event > Ptr;
+
+		Event(): _bSuccess(false) {}
+
+		SYS::SingleObject::STATE wait(timeout_t timeout=TIMEOUT_INF) { return _so.wait(timeout); }
+		void signal(bool success=true) { if (!_bSuccess) _bSuccess = success; _so.signal(); }
+		bool isSuccess() const { return _bSuccess; }
+
+	protected:
+		SYS::SingleObject _so;
+		bool _bSuccess;
+	};
+
+	typedef std::map<uint32, Event::Ptr> EventMap;
+	EventMap          _eventMap;
+	ZQ::common::Mutex _lkEventMap;
+
+	uint			  _disconnectByTimeouts;
+	uint			  _cContinuousTimeoutInConn;
+	uint			  _cContinuousTimeout;
+	int64             _stampLastRespInTime;
+};
+
 
 #ifndef MAPSET
 #  define MAPSET(_MAPTYPE, _MAP, _KEY, _VAL) if (_MAP.end() ==_MAP.find(_KEY)) _MAP.insert(_MAPTYPE::value_type(_KEY, _VAL)); else _MAP[_KEY] = _VAL
