@@ -122,7 +122,7 @@ namespace LibAsync {
 		bool 	registerWrite();
 		bool    setDeferAccept();
 		bool    socketShutdown();
-		bool   	socketShutdownStaus(){ return mLingerTime; }
+		bool   	socketShutdownStaus(){ return mShutdown; }
 		bool    realClose();
 		inline void    setLingerTime(uint64 time){ 
 			mLingerTime = time;

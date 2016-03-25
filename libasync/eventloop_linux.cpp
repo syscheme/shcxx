@@ -133,8 +133,16 @@ void EventLoop::processEvent( int64 expireAt )
 			//mLog(ZQ::common::Log::L_ERROR, CLOGFMT(EventLoop, "process get events[%d] client[%p], errno[%d]."), events[i].events, sock._ptr, errno);
 
 			//if(errno != ENOENT && errno != EBADF &&  sock->mSocket != -1)
-			sock->onSocketError(ERR_EPOLLEXCEPTION);
+			
 			unregisterEvent(sock, sock->mSocketEvetns);
+			if( !sock->socketShutdownStaus() )
+			{
+				sock->onSocketError(ERR_EPOLLEXCEPTION);
+			}
+			else
+			{
+				sock->realClose();
+			}
 			continue;
 		}
 
@@ -182,7 +190,16 @@ void EventLoop::processEvent( int64 expireAt )
 			if ( errno == EINTR || errno == EINPROGRESS )
 				continue;
 			unregisterEvent(sock, sock->mSocketEvetns);
-			sock->onSocketError(ERR_CONNREFUSED);
+			
+			if( !sock->socketShutdownStaus() )
+			{
+				sock->onSocketError(ERR_EPOLLEXCEPTION);
+			}
+			else
+			{
+				sock->realClose();
+			}
+			//sock->onSocketError(ERR_CONNREFUSED);
 			continue;
 		}
 		if ( !sock->alive())
@@ -225,7 +242,15 @@ void EventLoop::processEvent( int64 expireAt )
 			sock->mRecValid = true;
 			sock->onSocketError(ERR_EOF);
 			*/
-			sock->errorAction(ERR_EOF);
+			if( !sock->socketShutdownStaus() )
+			{
+				sock->errorAction(ERR_EOF);
+			}
+			else
+			{
+				sock->realClose();
+			}
+			//sock->errorAction(ERR_EOF);
 			continue;
 		}
 		else
@@ -238,7 +263,15 @@ void EventLoop::processEvent( int64 expireAt )
 			sock->mRecedSize = 0;
 			sock->mRecValid = true;
 			sock->onSocketError(ERR_EPOLLEXCEPTION);*/
-			sock->errorAction(ERR_EPOLLEXCEPTION);
+			if( !sock->socketShutdownStaus() )
+			{
+				sock->errorAction(ERR_EPOLLEXCEPTION);
+			}
+			else
+			{
+				sock->realClose();
+			}
+			//sock->errorAction(ERR_EPOLLEXCEPTION);
 			continue;
 		}
 	}//for(i = 0; i< res; i++)
