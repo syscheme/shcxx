@@ -415,6 +415,14 @@ namespace LibAsync {
 
 	bool Socket::sendAction(bool firstSend/* = false*/)
 	{
+		if( mShutdown )
+		{
+			Socket::Ptr sockPtr (this);
+			mSocketEvetns = ( mSocketEvetns & (~EPOLLOUT) );
+			mLoop.registerEvent(sockPtr, mSocketEvetns);
+			return false;
+		}
+
 		if (mWriteable)
 		{
 			mWriteable = false;
