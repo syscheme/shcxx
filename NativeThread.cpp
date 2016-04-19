@@ -369,6 +369,10 @@ void settid()
 
 unsigned int getthreadid()
 {
+    if (tid == 0)
+    {
+        settid();
+    }
 	return tid;
 }
 
