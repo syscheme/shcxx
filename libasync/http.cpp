@@ -43,7 +43,6 @@ namespace LibAsync {
 			info.loop = l;
 			mLoops.push_back(info);
 		}
-		mTmpLoops.reserve( mLoops.size() );
 
 #ifdef ZQ_OS_MSWIN
         if (!Socket::getAcceptEx() || !Socket::getConnectEx()){

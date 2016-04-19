@@ -157,7 +157,12 @@ namespace LibAsync {
 			if (!open(info->ai_family, info->ai_socktype, info->ai_protocol))
 				return false;
 		}*/
-		struct hostent *hostEnt = gethostbyname( mPeerAddr.c_str() );
+        int err = 0;
+        char buf[1024];
+        struct hostent ret, *hostEnt;
+        if (gethostbyname_r(mPeerAddr.c_str(), &ret, buf, sizeof(buf), &hostEnt, &err)!=0){
+            return false;
+        }
 		if (NULL == hostEnt)
 			return false;
 		struct in_addr ia;
