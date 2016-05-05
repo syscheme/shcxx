@@ -39,7 +39,6 @@ namespace LibAsync {
 		typedef std::vector<LoopInfo>	LOOPS;
 		size_t				mIdxLoop;
 		LOOPS				mLoops;
-		LOOPS				mTmpLoops;
 		ZQ::common::Mutex	mLocker;
 	};
 

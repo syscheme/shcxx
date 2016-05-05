@@ -153,20 +153,9 @@ namespace LibAsync {
 		if (buf.len <= 0)
 			return 0;
 		mSendValid = false;
-		if (vaildatemulticast(mPeerAddr))
-			setgroup();
-		SocketAddrHelper sendHelper(false);
-		if (!sendHelper.parse(mPeerAddr, mPeerPort))
-			return ERR_ERROR;
-		const struct addrinfo* info = sendHelper.info();
-		assert(info != NULL && "should never be false");
-		struct sockaddr_in  sendAddr;
-		bzero(&sendAddr, sizeof(sendAddr));
-		sendAddr.sin_family = info->ai_family;
-		sendAddr.sin_port = htons(mPeerPort);
-		inet_pton(info->ai_family, mPeerAddr.c_str(), &sendAddr.sin_addr);
 	SEND_DATA:
-		int ret = ::sendto(mSocket, buf.base, buf.len, MSG_DONTWAIT, (const struct sockaddr*)&sendAddr, sizeof(sendAddr));
+		const struct addrinfo* peer = mPeerInfo.info();
+		int ret = ::sendto(mSocket, buf.base, buf.len, MSG_DONTWAIT, peer->ai_addr, peer->ai_addrlen );
 		if (ret > 0)
 		{
 			mSendValid = true;

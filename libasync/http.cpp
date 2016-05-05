@@ -42,8 +42,7 @@ namespace LibAsync {
 			LoopInfo info;
 			info.loop = l;
 			mLoops.push_back(info);
-		}
-		mTmpLoops.reserve( mLoops.size() );
+		}		
 
 #ifdef ZQ_OS_MSWIN
         if (!Socket::getAcceptEx() || !Socket::getConnectEx()){
@@ -76,13 +75,14 @@ namespace LibAsync {
 
 	///从Center里面获取一个EventLoop，当前的实现版本是roundrobin
 	EventLoop& EventLoopCenter::getLoop(){
+		LOOPS				tmpLoops;
 		assert(mLoops.size() > 0);
 		{
 			ZQ::common::MutexGuard gd(mLocker);
-			mTmpLoops = mLoops;
+			tmpLoops = mLoops;
 		}
-		std::sort( mTmpLoops.begin(), mTmpLoops.end());
-		EventLoop* loop = mTmpLoops[0].loop;
+		std::sort( tmpLoops.begin(), tmpLoops.end());
+		EventLoop* loop = tmpLoops[0].loop;
 		loop->increateSockCount();
 		return *loop;
 	}

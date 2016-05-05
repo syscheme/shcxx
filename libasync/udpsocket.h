@@ -34,6 +34,7 @@ namespace LibAsync {
 		bool    setbroadcast(bool enable = true);
 		bool    setgroup(const std::string& ip, unsigned short port);
 		bool    setgroup();
+		bool	setPeer( const std::string& ip, unsigned short port );
 		//fun to validates multicast addresses
 		bool    vaildatemulticast(const std::string& ip);
 #ifdef ZQ_OS_LINUX
@@ -46,7 +47,9 @@ namespace LibAsync {
 	protected:
 		virtual	void	onSocketRecved(size_t size, std::string ip, unsigned short port) { }
 
+
 	protected:
+		SocketAddrHelper			mPeerInfo;
 		std::string                 mLocalAddr;
 		unsigned  short             mLocalPort;
 		std::string                 mPeerAddr;

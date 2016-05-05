@@ -70,8 +70,7 @@ namespace LibAsync {
 
 	void    UDPSocket::peer(const std::string& ip, unsigned short port)
 	{
-		mPeerAddr = ip;
-		mPeerPort = port;
+		setPeer(ip, port);
 	}
 
 	void UDPSocket::local(const std::string& ip, unsigned short port)
@@ -116,12 +115,21 @@ namespace LibAsync {
 		return recv(bufs);
 	}
 
+	bool UDPSocket::setPeer( const std::string& ip, unsigned short port) {
+		mPeerAddr = ip;
+		mPeerPort = port;
+		if(vaildatemulticast(ip)) {
+			return setgroup(ip, port);
+		} else {
+			return mPeerInfo.parse(mPeerAddr, mPeerPort);
+		}
+	}
+
 	bool UDPSocket::sendto(const std::string& ip, unsigned short port, AsyncBuffer buf)
 	{
 		if (buf.len <= 0)
 			return false;
-		mPeerAddr = ip;
-		mPeerPort = port;
+		setPeer(ip, port);
 		return sendto(buf);
 	}
 
