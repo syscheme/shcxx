@@ -119,10 +119,10 @@ namespace LibAsync {
 		mPeerAddr = ip;
 		mPeerPort = port;
 		if(vaildatemulticast(ip)) {
-			return setgroup(ip, port);
-		} else {
-			return mPeerInfo.parse(mPeerAddr, mPeerPort);
+			if(!setgroup(ip, port))
+				return false;
 		}
+		return mPeerInfo.parse(mPeerAddr, mPeerPort);
 	}
 
 	bool UDPSocket::sendto(const std::string& ip, unsigned short port, AsyncBuffer buf)
