@@ -118,10 +118,6 @@ namespace LibAsync {
 	bool UDPSocket::setPeer( const std::string& ip, unsigned short port) {
 		mPeerAddr = ip;
 		mPeerPort = port;
-		if(vaildatemulticast(ip)) {
-			if(!setgroup(ip, port))
-				return false;
-		}
 		return mPeerInfo.parse(mPeerAddr, mPeerPort);
 	}
 
