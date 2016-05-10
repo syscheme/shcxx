@@ -68,19 +68,19 @@ namespace LibAsync {
 		return true;
 	}
 
-	void    UDPSocket::peer(const std::string& ip, unsigned short port)
+	bool UDPSocket::peer(const std::string& ip, unsigned short port)
 	{
-		setPeer(ip, port);
+		return setPeer(ip, port);
 	}
 
-	void UDPSocket::local(const std::string& ip, unsigned short port)
+	bool UDPSocket::local(const std::string& ip, unsigned short port)
 	{
 		if( ip.empty())
 			mLocalAddr = "0.0.0.0";
 		else
 			mLocalAddr = ip;
 		mLocalPort = port;
-		bind(mLocalAddr, port);
+		return bind(mLocalAddr, port);
 	}
 
 	bool UDPSocket::setbroadcast(bool enable/*=true*/)
