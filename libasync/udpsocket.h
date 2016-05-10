@@ -34,6 +34,8 @@ namespace LibAsync {
 		bool    setbroadcast(bool enable = true);
 		bool    setgroup(const std::string& ip, unsigned short port);
 		bool    setgroup();
+		bool    setTTL(int ttl);
+		bool    setSendBufSize(int size);
 		bool	setPeer( const std::string& ip, unsigned short port );
 		//fun to validates multicast addresses
 		bool    vaildatemulticast(const std::string& ip);

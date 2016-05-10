@@ -194,4 +194,13 @@ namespace LibAsync {
 			return false;
 		return true;
 	}
+	bool UDPSocket::setTTL(int ttl)
+    {
+        return 0 == setsockopt(mSocket, SOL_SOCKET, IP_TTL, (char*)&ttl, sizeof(ttl));
+    }
+	bool UDPSocket::setSendBufSize(int size)
+    {
+        return 0 == setsockopt( mSocket, SOL_SOCKET, SO_SNDBUFFORCE, (const char*)&size, sizeof(size));
+    }
+	
 }
