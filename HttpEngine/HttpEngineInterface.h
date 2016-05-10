@@ -95,6 +95,7 @@ struct PostDataFrag
 #define ZQHttp_OPT_WriteBufSize   3 // Size
 #define ZQHttp_OPT_ReadBufSize    4 // Size
 #define ZQHttp_OPT_sendTimeo      5 // send timeout in milliseond
+#define ZQHttp_OPT_TTL            6 // set udp ttl
 
 class IConnection
 {
