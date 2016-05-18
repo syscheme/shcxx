@@ -611,6 +611,7 @@ namespace LibAsync {
 		if( expectSize == (size_t)res) {
 			mSendingChunkState = SENDING_CHUNK_NULL;
 			mLastUnsentBytes = 0;
+			onHttpEndSent(mbOutgoingKeepAlive);
 			return res;
 		} else {
 			mLastUnsentBytes = expectSize - (size_t)res;
