@@ -194,13 +194,22 @@ namespace LibAsync {
 			return false;
 		return true;
 	}
+
 	bool UDPSocket::setTTL(int ttl)
     {
         return 0 == setsockopt(mSocket, SOL_SOCKET, IP_TTL, (char*)&ttl, sizeof(ttl));
     }
-	bool UDPSocket::setSendBufSize(int size)
+
+	int UDPSocket::setSendBufSize(int size)
     {
-        return 0 == setsockopt( mSocket, SOL_SOCKET, SO_SNDBUFFORCE, (const char*)&size, sizeof(size));
+        if (0 != setsockopt( mSocket, SOL_SOCKET, SO_SNDBUFFORCE, (const char*)&size, sizeof(size))) {
+			return -1;
+		}
+		socklen_t optSize = sizeof(size);
+		if(0 != getsockopt( mSocket, SOL_SOCKET, SO_SNDBUF, &size, &optSize)) {
+			return -1;
+		}
+		return size;
     }
 	
 }
