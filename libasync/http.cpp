@@ -310,6 +310,10 @@ namespace LibAsync {
             assert(false && "invalid state");
             return false;
         }
+		BufferHelper bh(bufs);
+		if(bh.size() ==0) {
+			return 0; // do nothing if no data is being sent
+		}
         if(!mOutgoingMsg->hasContentBody() ) {
             assert( false && "http message do not have a content body");
             return false;
@@ -319,7 +323,6 @@ namespace LibAsync {
 			return sendDirect( bufs);
 		}
 
-		BufferHelper bh(bufs);
 		size_t sentSize = 0;
 		int rc = 0;
 		while (bh.size() > 0) {
