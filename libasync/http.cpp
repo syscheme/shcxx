@@ -1153,7 +1153,7 @@ namespace LibAsync {
 		struct sockaddr_storage addr;
 		while( mbRunning ) {
 			socklen_t size= (socklen_t)sizeof( addr );
-			int sock = ::accept( mSocket, (struct sockaddr*)&addr, &size);
+			int sock = ::accept4( mSocket, (struct sockaddr*)&addr, &size, SOCK_NONBLOCK);
 			if( sock < 0 )
 				break;
 			Socket::Ptr newSock = onSocketAccepted( sock );

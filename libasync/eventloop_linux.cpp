@@ -17,22 +17,23 @@ void EventLoop::createLoop()
 	 //mEpollFd = ::epoll_create1(EPOLL_CLOEXEC);
 	  if ( mEpollFd == -1)
 			::abort();
-	
+	  /*
 	  int flags = fcntl(mEpollFd, F_GETFL, 0);
 	  if (flags == -1)
 		::abort();
 
 	  if( fcntl(mEpollFd, F_SETFL, flags | O_NONBLOCK) == -1)
 	  	::abort();
+	  */
 	
 	  bool eventfdCreate = mDummyEventFd.create();
 	  assert(eventfdCreate && "create DummyEventFd falled.");
 	  struct epoll_event ev;
 	  ev.events = EPOLLIN;
 	  ev.data.fd = mDummyEventFd.fd();
-	  if( ::epoll_ctl(mEpollFd, EPOLL_CTL_ADD, mDummyEventFd.fd(), &ev) != 0)
+	  if( ::epoll_ctl(mEpollFd, EPOLL_CTL_ADD, mDummyEventFd.fd(), &ev) != 0) {
 	  	assert(false && "add DummyEventFd to epoll failed.");
-
+	  }
 }
 
 void EventLoop::destroyLoop()
@@ -361,7 +362,7 @@ static bool createDummyPipe( int* sockpair ) {
 	sockpair[1] =  sock;
 
 	addrlen = sizeof(bindaddr);
-	sockpair[0] =  accept(sockpair[0],(struct sockaddr*)&bindaddr,&addrlen);
+	sockpair[0] =  accept4(sockpair[0], (struct sockaddr*)&bindaddr, &addrlen, SOCK_NONBLOCK);
 	return sockpair[0] >= 0;
 }
 
