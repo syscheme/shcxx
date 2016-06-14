@@ -901,7 +901,6 @@ namespace LibAsync {
 	HttpServant::HttpServant( HttpServer& server, SOCKET socket, ZQ::common::Log& logger)
 	:Socket(httpClientCenter.getLoop(), socket),
 	HttpProcessor(false,socket),
-	Timer(Socket::getLoop()),
 	mServer(server),
 	mHandler(0),
 	mLastTouch(0),
@@ -1065,11 +1064,6 @@ namespace LibAsync {
 			return;
 		mHandler->onHttpComplete();
 	}
-
-	void HttpServant::onTimer() {
-
-	}
-
 
 	///Http Server part
 	HttpServer::HttpServer( const HttpServerConfig& conf, ZQ::common::Log& logger )
