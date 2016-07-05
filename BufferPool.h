@@ -105,13 +105,15 @@ public:
 
 	// join a new piece of buffer in, only allowed when this buffer is reference-only
 	//@return the total size of buffer after join
-	virtual size_t join(uint8* buf, size_t size);
+	virtual size_t join(uint8* buf, size_t size, int payloadLen =-1);
 
 	// fill data into this buffer. 
 	//  - if this buffer is not refrerence only, it may grow if space is not enough to complete the filling
 	//  - otherwise, the filling stops when the space in buffer is run out
 	// return the bytes has been filled into this BufferList
 	virtual size_t fill(uint8* buf, size_t offset, size_t len);
+
+	virtual size_t fill_2(uint8* buf, size_t offset, size_t len , std::vector<int>& useTime);
 
 	// read data out from this buffer. 
 	// return the bytes has been read from this BufferList

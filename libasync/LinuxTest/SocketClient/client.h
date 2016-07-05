@@ -42,7 +42,7 @@ public:
 	void addSendBuf( AsyncBuffer buf );
 	bool sendBuf();
 	bool recvBuf(); 
-
+	bool status();
 	static LoopCenter _lopCenter;
 protected:
 		virtual	void	onSocketConnected();
@@ -66,8 +66,10 @@ private:
 */
 	std::string         _fileName;
 	//SockClientPtr       _thisPtr;
-
+    int64                _startRecv;
+	int64                _endRecv;
 	writeThread::Ptr      _writePtr;
+	bool                 _recvOK;
 };
 
 

@@ -175,7 +175,7 @@ int SlaveThread::run(void)
 		}
 #endif
 
-		try {
+		//try {
 			if (_pReq->init() && !_bQuit)
 			{
 				MutexGuard guard(*_pReq);
@@ -185,8 +185,8 @@ int SlaveThread::run(void)
 			
 			_pReq->_status = stDisabled;
 			_pReq->final(ret);
-		}
-		catch(...) {}
+		//}
+		//catch(...) {}
 
 		_bActive = false;
 #ifdef ZQ_OS_MSWIN

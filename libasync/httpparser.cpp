@@ -56,6 +56,7 @@ namespace LibAsync{
 		mMessage->chunked((mParser.flags & F_CHUNKED) != 0 );
 		mMessage->code((int)mParser.status_code);
 		mMessage->method((http_method)mParser.method);
+		mMessage->setVersion(mParser.http_major, mParser.http_minor);
 		mParserState = STATE_BODY;
 		if(mParser.http_errno == 0) {
 			if(!mCallback->onHttpMessage(mMessage))
@@ -259,6 +260,8 @@ namespace LibAsync{
 		mCode(0),
 		mbChunked(false),
 		mbKeepAlive(false),
+		mVerMajor(0),
+		mVerMinor(0),
 		mBodyLength(0){
 
 	}

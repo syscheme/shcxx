@@ -75,17 +75,9 @@ uint64 getTickCount() {
     static long milliPerTick = 1000/sysconf(_SC_CLK_TCK);
     return times(0)*milliPerTick;
 }
-
+#ifndef ZQ_COMMON_ANDROID
 void* getProcAddr(void* handle, const char* routine) {
     return dlsym(handle, routine);
-}
-
-uint32 getCurrentThreadID(void){
-	return (uint32)gettid();
-}
-
-uint32 getLastErr(const ERRTYPE type) {
-    return errno;
 }
 
 std::string getErrorMessage(const ERRTYPE type) {
@@ -97,6 +89,20 @@ std::string getErrorMessage(const ERRTYPE type) {
 	strerror_r(errno, msg, 1024);
 	return msg;
 }
+#endif
+
+uint32 getCurrentThreadID(void){
+#ifndef ZQ_COMMON_ANDROID
+	return (uint32)gettid();
+#else
+	return (uint32)pthread_self();
+#endif
+}
+
+uint32 getLastErr(const ERRTYPE type) {
+    return errno;
+}
+
 
 #endif
 

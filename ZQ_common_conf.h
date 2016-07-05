@@ -27,6 +27,11 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/ZQ_common_conf.h $
 // 
+// 14    3/11/16 10:04a Dejian.fei
+// NDK android
+// 
+// 13    9/25/15 2:23p Ketao.zhang
+// 
 // 12    3/26/15 1:24p Zhiqiang.niu
 // 
 // 8     1/22/15 2:04p Build
@@ -147,7 +152,7 @@
 #elif defined (__linux) || defined (__linux__)
 #  define ZQ_OS_LINUX
 #else
-#  error unsupported operating system
+# error unsupported operating system
 #endif
 
 // check multithreading
@@ -200,7 +205,9 @@ extern "C" {
 #endif // __cplusplus
 #   include <unistd.h>
 #   include <sys/types.h>
+#ifndef ZQ_COMMON_ANDROID
 #   include <error.h>
+#endif
 #   include <pthread.h>
 #   include <string.h>
 #ifdef __cplusplus
@@ -450,7 +457,8 @@ namespace ZQ   {
 /// ZQ common c++ classes
 namespace common  {
 
-
+   ZQ_COMMON_API  void settid();
+   ZQ_COMMON_API  unsigned int getthreadid();
 
 }; // namespace VOD
 }; // namespace ZQ

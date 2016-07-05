@@ -1,9 +1,9 @@
 /*
 -------------------------------------------------------------
  $Id: ExpatMap.cpp,v 1.5 2003/03/20 04:18:51 shao Exp $
- $Author: Hui.shao $
- $Revision: 2 $
- $Date: 3/19/15 9:59a $
+ $Author: Dejian.fei $
+ $Revision: 3 $
+ $Date: 1/11/16 4:48p $
 ------------------------------------------------------------
 
 Copyright (C) 2002-2003 Infraworks Corp.
@@ -26,6 +26,7 @@ Public License for more details.
 // ===========================================================================
 
 #include "ExpatMap.h"
+#include <fstream>
 
 namespace ZQ {
 namespace common {
@@ -505,6 +506,8 @@ void ExpatMapNesting::charData(const XML_Char* strData, int len)
 -------------------------------------------------------------
  Revision history since 2003/03/20:
  $Log: /ZQProjs/Common/ExpatMap.cpp $
+// 
+// 3     1/11/16 4:48p Dejian.fei
 // 
 // 2     3/19/15 9:59a Hui.shao
 // x64 compile warnings

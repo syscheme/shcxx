@@ -27,6 +27,9 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/Log.cpp $
 // 
+// 8     7/01/15 4:41p Zhiqiang.niu
+// sync with git
+// 
 // 7     3/19/15 11:08a Hui.shao
 // 
 // 6     3/19/15 10:53a Hui.shao
@@ -266,17 +269,55 @@ const char* Log::getVerbosityStr()
 	return getVerbosityStr(_verbosity);
 }
 
-Log& Log::operator()(int level, const char *fmt, ...)
-{
+void Log::debug( const char* fmt, ... ) {
+	va_list args;
+	va_start(args, fmt);
+	return formatLogMessage(Log::L_DEBUG, fmt,args);
+}
+
+void Log::info( const char* fmt, ... ) {
+	va_list args;
+	va_start(args, fmt);
+	return formatLogMessage(Log::L_INFO, fmt,args);
+}
+
+void Log::notice( const char* fmt, ... ) {
+	va_list args;
+	va_start(args, fmt);
+	return formatLogMessage(Log::L_NOTICE, fmt,args);
+}
+
+void Log::warning( const char* fmt, ... ) {
+	va_list args;
+	va_start(args, fmt);
+	return formatLogMessage(Log::L_WARNING, fmt,args);
+}
+
+void Log::error( const char* fmt, ... ) {
+	va_list args;
+	va_start(args, fmt);
+	return formatLogMessage(Log::L_ERROR, fmt,args);
+}
+
+void Log::crit( const char* fmt, ... ) {
+	va_list args;
+	va_start(args, fmt);
+	return formatLogMessage(Log::L_CRIT, fmt,args);
+}
+
+void Log::emerg( const char* fmt, ... ) {
+	va_list args;
+	va_start(args, fmt);
+	return formatLogMessage(Log::L_EMERG, fmt,args);
+}
+
+void Log::formatLogMessage( int level, const char* fmt, va_list args) {
 	if ((level & 0xff) > _verbosity)
-		return *this;
+		return;
 
 	char msg[LOG_LINE_MAX_BUF];
-	va_list args;
 
-	va_start(args, fmt);
 	int nCount = _vsnprintf(msg, LOG_LINE_MAX_BUF -8, fmt, args);
-	va_end(args);
 	if(nCount == -1)
 	{
 		msg[0] = '\0';
@@ -291,6 +332,16 @@ Log& Log::operator()(int level, const char *fmt, ...)
 	}
 	catch(...) {}
 
+}
+
+Log& Log::operator()(int level, const char *fmt, ...)
+{
+	if ((level & 0xff) > _verbosity)
+		return *this;
+	va_list args;
+	va_start(args, fmt);
+	formatLogMessage(level, fmt, args);
+	
 	return *this;
 }
 

@@ -3,6 +3,8 @@
 #include <ZQ_common_conf.h>
 #include <string>
 #include <map>
+#include <Pointer.h>
+#include "../libasync/eventloop.h"
 
 namespace ZQHttp
 {
@@ -27,21 +29,48 @@ public:
     virtual const char* queryArgument(const char* q) const = 0;
     virtual std::map<std::string, std::string> queryArguments() const = 0;
     virtual const char* header(const char* h) const = 0;
+
+	virtual LibAsync::EventLoop* getLoop() const { return NULL; }
+};
+
+class IChannelWritable : public ZQ::common::SharedObject {
+public:
+	typedef ZQ::common::Pointer<IChannelWritable> Ptr;
+	virtual ~IChannelWritable(){}
+	virtual void onWritable() = 0;
 };
 
 class IResponse
 {
 public:
+
     virtual ~IResponse(){}
     virtual void setStatus(int statusCode, const char* reasonPhrase = NULL) = 0;
     // set a NULL value to clear the header
     virtual void setHeader(const char* hdr, const char* val) = 0;
     virtual bool headerPrepared() = 0;
     virtual bool addContent(const char* data, size_t len) = 0;
+
+	/// new method addBody does the same thing as addContent
+	/// but here's some different between them
+	/// 1. addBody do not guarantee the whole data will be transfered. if not, error code retuned
+	virtual int addBody( const char* data, size_t len) { return 0; }
+	/// register an event for writing data
+	/// return false if failed to register
+	virtual bool registerWrite( IChannelWritable::Ptr cb ) { return false; }
+
     virtual bool complete() = 0;
 
     virtual void sendDefaultErrorPage(int statusCode) = 0;
     virtual const char* getLastError() const = 0;
+
+	enum {
+		rspflg_SkipZeroChunk  =(1<<0), // true if no 0-chunk as the end-of-transferring before connection close
+	};
+
+	//@param flags combination of rspflg_XXX
+	//@retrun the final flags after changes
+	virtual uint32 setFlags(uint32 flags, bool enable=true) =0;
 };
 
 struct PostDataFrag
@@ -61,11 +90,11 @@ struct PostDataFrag
     }
 };
 
-#define ZQHttp_OPT_NoDelay  1 // Bool
-#define ZQHttp_OPT_HoldOn   2 // Bool
-#define ZQHttp_OPT_WriteBufSize 3 // Size
-#define ZQHttp_OPT_ReadBufSize  4 // Size
-#define ZQHttp_OPT_sendTimeo 5 //send timeout in milliseond
+#define ZQHttp_OPT_NoDelay        1 // Bool
+#define ZQHttp_OPT_HoldOn         2 // Bool
+#define ZQHttp_OPT_WriteBufSize   3 // Size
+#define ZQHttp_OPT_ReadBufSize    4 // Size
+#define ZQHttp_OPT_sendTimeo      5 // send timeout in milliseond
 
 class IConnection
 {

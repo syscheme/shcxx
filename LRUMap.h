@@ -27,6 +27,12 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/LRUMap.h $
 // 
+// 8     9/10/15 3:42p Hongquan.zhang
+// remove unreferenced header file
+// 
+// 7     9/09/15 3:03p Ketao.zhang
+// check in for LRUmap bug in operator[]
+// 
 // 6     11/20/13 11:43a Hui.shao
 // 
 // 2     11/20/13 11:42a Hui.shao
@@ -50,12 +56,13 @@
 #include <map>
 #include <string>
 
+
 namespace ZQ {
 namespace common {
 
 // Note: thread unsafe
 template< class K, class V >
-class LRUMap : public std::map< K, V > 
+class LRUMap 
 {
 protected:
     typedef std::map< K, V > base_type;
@@ -65,22 +72,45 @@ protected:
 
     KeyToStamp _k2t; // from key to timestamp
     StampToKey _t2k; // from timestamp to key
+	base_type  _realData;
 
     timestamp _stampLast;
     size_t _capacity;
 
 public:
+	typedef typename base_type::iterator iterator;
+	typedef typename base_type::const_iterator const_iterator;
+	typedef typename base_type::value_type value_type;
+
     LRUMap(size_t cap=1000)
         : _stampLast(1), _capacity(cap)
 	{}
- 
+
+	iterator find( const K& k ) {
+		return _realData.find(k);
+	}
+
+	const_iterator find( const K& k ) const {
+		return _realData.find(k);
+	}
+
+	iterator end() {
+		return _realData.end();
+	}
+
+	const_iterator end() const {
+		return _realData.end();
+	}
+
 	V& operator[](const K& k)
 	{
-		timestamp theStamp = _k2t[k];
 
+		timestamp theStamp = _k2t[k];
 		// if the timestamp already exist, delete it from _t2k
-		if (theStamp)
+		if (theStamp) {
 			_t2k.erase(theStamp);
+			_k2t.erase(k);
+		}
 
 		// update timestamp in _k2t
 		if (0 == (theStamp = _stampLast++))
@@ -88,7 +118,7 @@ public:
 			// simply clear the LRU if _stampLast rounds over
 			_k2t.clear();
 			_t2k.clear();
-			base_type::clear();
+			_realData.clear();
 
 			// recalcuate the new theStamp
 			theStamp = _stampLast++;
@@ -96,18 +126,28 @@ public:
 
 		_k2t[k] = theStamp;
 		_t2k[theStamp]=k; // update key in _t2k
-
-		V& ret = base_type::operator[](k);
+		V& v = _realData[k];
 
 		// remove the oldest if necessary
-		if (base_type::size() > _capacity)
+		if ( _realData.size() + 1 > _capacity && _realData.size() >= 1 )
         {
-			K k = _t2k.begin()->second; // get the eldest key
-            erase(k);
+			K kToBeErased = _t2k.begin()->second; // get the eldest key
+            erase(kToBeErased);
         }
+		return v;
+	}
 
-        return ret;
-    }
+	size_t size(){ return _realData.size() ;}
+	
+	void  erase_eldest()
+	{
+		if(_realData.size() <= 0 )
+			return;
+		K kToBeErased = _t2k.begin()->second; // get the eldest key
+		//V& v =  _realData[kToBeErased];
+		erase(kToBeErased);
+	}
+
 
 	void erase(const K& k)
     {
@@ -115,7 +155,7 @@ public:
         _t2k.erase(_k2t[k]);
         _k2t.erase(k);
         // then the actual data
-        base_type::erase(k);
+        _realData.erase(k);
     }
 
 	void resize(size_t size)

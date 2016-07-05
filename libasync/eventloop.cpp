@@ -5,6 +5,64 @@
 
 namespace LibAsync {
 
+	const char* ErrorCodeToStr( ErrorCode c ) {
+		switch( c ) {
+		case ERR_ERROR:		return "Generic Error";
+		case ERR_EOF:		return "EOF";
+		case ERR_INVAID:	return "Invalid Paramater";
+		case ERR_ADDRINUSE:	return "Address In Use";
+		case ERR_TIMEOUT:	return "Timed Out";
+		case ERR_CONNREFUSED:	return "Connection Refused";
+		case ERR_RECVFAIL:	return "Recv Failed";
+		case ERR_SENDFAIL:	return "Send Fail";
+		case ERR_EAGAIN:	return "Work In Progress";
+		case ERR_SOCKETVAIN:	return "Socket Closed/Operation In Progress";
+		case ERR_MEMVAIN:	return "Not Enough Memory";
+		case ERR_EPOLLREGISTERFAIL:	return "EPOLL Error";
+		case ERR_EPOLLEXCEPTION:		return "EPOLL Exception";
+		case ERR_EOF2:		return "EOF2";
+		case ERR_EOF3:		return "EOF3";
+		default:			return "Unknown Error";
+		}
+	}
+
+    void BufferHelper::adjust(size_t sentSize)
+    {
+		assert(sentSize <= _dataSize);
+		_dataSize -= sentSize;
+		AsyncBufferS::iterator it = _bufs.begin();
+		for( ; it != _bufs.end() ; it ++ ) {
+			if( sentSize < it->len) {
+				it->len -= sentSize;
+				it->base += sentSize;
+				break;
+			}
+			sentSize -= it->len;
+		}
+		_bufs.erase(_bufs.begin(), it );
+    }
+
+	AsyncBufferS BufferHelper::getAt(size_t size) {
+		AsyncBufferS ret;
+		AsyncBufferS::const_iterator it = _bufs.begin();
+		for (; size > 0 && it != _bufs.end(); it++) {
+			if (size < it->len) {
+				AsyncBuffer buf = *it;
+				buf.len = size;
+				ret.push_back(buf);
+				break;
+			}
+			ret.push_back(*it);
+		}
+		return ret;
+	}
+
+
+    bool BufferHelper::isEOF( ) const
+    {
+        return _dataSize == 0;
+    }
+
 	size_t buffer_size( const AsyncBufferS& bufs) {
 		size_t size = 0;
 		AsyncBufferS::const_iterator it = bufs.begin();
@@ -15,8 +73,12 @@ namespace LibAsync {
 		return size;
 	}
 
-	EventLoop::EventLoop( int cpuid )
-		:mCpuId(cpuid)
+	EventLoop::EventLoop( ZQ::common::Log&log, int cpuid, LoopCenter* center, int loopId )
+		:mCpuId(cpuid),
+		mLog(log),
+		mPreTime(0),
+		mLoopCenter(center),
+		mLoopId(loopId)
 	{
 		createLoop();
 	}
@@ -31,7 +93,7 @@ namespace LibAsync {
 		bool bPosted = false;
 		{
 			ZQ::common::MutexGuard gd(mLocker);
-			mAsyncWorks.insert(work);
+			mAsyncWorks.push_back(work);
 			bPosted = mbAsyncWorkMessagePosted;
 		}
 		if(!bPosted)
@@ -79,6 +141,13 @@ namespace LibAsync {
 	int EventLoop::run() {
 		if( mCpuId >= 0 ) {
 #ifdef ZQ_OS_LINUX
+			int policy;
+			struct sched_param param;
+
+			pthread_getschedparam(pthread_self(), &policy, &param);
+			param.sched_priority = sched_get_priority_max(policy);
+			pthread_setschedparam(pthread_self(), policy, &param);
+
 			cpu_set_t cpuset;
 			pthread_t thread = pthread_self();
 			CPU_ZERO(&cpuset);
@@ -110,6 +179,7 @@ namespace LibAsync {
 				onTimer，这样可以防止在onTimer的实现中调用updateTimer(0)之类的值，
 				导致该Timer不断被执行
 				*/
+				ZQ::common::MutexGuard gd(mLocker);
 				while(true) {
 					if(mTimers.empty()) {
 						mNextWakeup = ZQ::common::now() + 10 * 1000;//configurable ?
@@ -132,24 +202,26 @@ namespace LibAsync {
 			}
 			std::vector<Timer::Ptr>::iterator itExpired = expiredTimers.begin();
 			while( itExpired != expiredTimers.end()) {
-				(*itExpired)->onTimer();
+				(*itExpired)->onTimerEvent();
 				itExpired++;
 			}
 			expiredTimers.clear();
 
 			// process one-shot async works
-			std::set<AsyncWork::Ptr> asyncWorks;
+			std::list<AsyncWork::Ptr> asyncWorks;
 			{
 				ZQ::common::MutexGuard gd(mLocker);
 				asyncWorks.swap(mAsyncWorks);
 			}
-			std::set<AsyncWork::Ptr>::const_iterator itAsyncWork = asyncWorks.begin();
+			std::list<AsyncWork::Ptr>::const_iterator itAsyncWork = asyncWorks.begin();
 			for( ; itAsyncWork != asyncWorks.end(); itAsyncWork++ ) {
 				AsyncWork::Ptr work = *itAsyncWork;
 				work->onWorkExecute();
 			}
 			asyncWorks.clear();
 		}
+		mAsyncWorks.clear();
+		mTimers.clear();
 		return 0;
 	}
 
@@ -168,9 +240,20 @@ namespace LibAsync {
 
 	void AsyncWork::onWorkExecute( ) {
 		mWorkQueued = false;
-		onAsyncWork();
+		if(mFuncCB) {
+			mFuncCB();
+		} else {
+			onAsyncWork();
+		}
 	}
 
+	void AsyncWork::bindCB( FUNC_ONASYNCWORK cb ) {
+		mFuncCB = cb;
+	}
+
+	AsyncWork::Ptr AsyncWork::create(EventLoop& loop) {
+		return new AsyncWork(loop);
+	}
 	//////////////////////////////////////////////////////
 	/// Timer
 	Timer::Timer(EventLoop& loop)
@@ -199,6 +282,19 @@ namespace LibAsync {
 		mLoop.removeTimer(this);
 		mTarget = 0;
 	}
+
+	void Timer::onTimerEvent() {
+		if(mFuncCB) {
+			mFuncCB();
+		} else {
+			onTimer();
+		}
+	}
+
+	void Timer::bindCB( FUNC_ONTIMER cb ) {
+		mFuncCB = cb;
+	}
+	
 
 	
 

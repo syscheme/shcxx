@@ -1,5 +1,5 @@
 #include "SocketServer.h"
-#include <NativeThreadPool.h>
+//#include <NativeThreadPool.h>
 #include "DoSocket.h"
 #include <sys/resource.h>
 
@@ -58,7 +58,7 @@ LoopCenter SocketServer::_lopCenter;
 SocketServer::SocketServer(EventLoop& loop, const std::string ip, const unsigned int port, ZQ::common::Log& log)
 : _serverIP(ip), _port(port), _log(log), _error(false), _connectionNum(0), Socket(loop)
 {
-	_pThreadPool = new ZQ::common::NativeThreadPool(20);
+//	_pThreadPool = new ZQ::common::NativeThreadPool(20);
 	struct rlimit  rl;
 	rl.rlim_cur = 64 * 1024;
 	rl.rlim_max = 640 * 1024;
@@ -76,11 +76,11 @@ SocketServer::SocketServer(EventLoop& loop, const std::string ip, const unsigned
 SocketServer::~SocketServer()
 {
 	_log(ZQ::common::Log::L_DEBUG, CLOGFMT(SocketServer, "~SocketServer() entry."));	
-	if (_pThreadPool != NULL)
+	/*if (_pThreadPool != NULL)
 	{
 		delete _pThreadPool;
 		_pThreadPool = NULL;
-	}
+	}*/
 }
 
 bool SocketServer::startServer(int backlog)
@@ -104,7 +104,7 @@ Socket::Ptr SocketServer::onSocketAccepted( SOCKET sock )
 {
 	_connectionNum ++;
 	_log(ZQ::common::Log::L_DEBUG, CLOGFMT(SocketServer, "onSocketAccepted() enter with [%d] connections."), _connectionNum);
-	DoSocketPtr doPtr = new DoSocket(_lopCenter.getLoop(), sock, _log, *_pThreadPool);
+	DoSocketPtr doPtr = new DoSocket(_lopCenter.getLoop(), sock, _log);
 	//doPtr->onSocketConnected();
 	doPtr->initialServerSocket();
 	return doPtr;

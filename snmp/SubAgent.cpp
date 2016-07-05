@@ -27,6 +27,8 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/snmp/SubAgent.cpp $
 // 
+// 26    9/10/15 4:00p Hongquan.zhang
+// 
 // 25    3/27/15 2:51p Build
 // 
 // 24    3/27/15 10:49a Hui.shao
@@ -677,7 +679,7 @@ uint32 SnmpAgent::sendQuery(const ZQ::common::InetHostAddress& serverAddr, int s
 	}
 
 	ZQ::common::MutexGuard g(_awaitLock);
-	MAPSET(AwaitMap, _awaitMap, aq.header.cseq, aq);
+	_awaitMap[aq.header.cseq] = aq;
 
 	if (_soUdp.sendto(msg, msglen, serverAddr, serverPort) <=0)
 	{

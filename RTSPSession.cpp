@@ -27,6 +27,16 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/RTSPSession.cpp $
 // 
+// 24    3/11/16 9:56a Dejian.fei
+// NDK android
+// 
+// 22    11/10/15 3:10p Hui.shao
+// 
+// 22    11/10/15 3:00p Hui.shao
+// ticket#18316 to protect multiple in comming message of a same session
+// 
+// 21    5/06/15 5:24p Hui.shao
+// 
 // 20    2/08/14 7:16p Hui.shao
 // merged from V1.16
 // 
@@ -117,7 +127,9 @@
 #include "RTSPClient.h"
 #include "urlstr.h"
 #include "TimeUtil.h"
-#include "Guid.h"
+#ifndef ZQ_COMMON_ANDROID
+	#include "Guid.h"
+#endif
 #include "Locks.h"
 #include "SystemUtils.h"
 #include <algorithm>
@@ -216,11 +228,35 @@ void RTSPSessionManager::add(RTSPSession& sess)
 {
 	if (sess._sessGuid.empty())
 	{
+		char buf[80];
+#ifndef ZQ_COMMON_ANDROID
 		// un-assigned user's session id, generate one
 		Guid guid;
 		guid.create();
-		char buf[80];
 		guid.toCompactIdstr(buf, sizeof(buf) -2);
+#else
+		uint64 Q64 = 0;
+		for (int i =0; i< sizeof(Q64) /sizeof(uint); i++)
+		{
+			Q64 <<=4;
+			Q64 |= (uint) rand();
+		}
+
+		static const char idchars[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+		static const int  nchars = sizeof(idchars) -1;
+
+		char *p = buf + sizeof(buf) -1, *q= buf;
+		for(*p-- ='\0'; Q64 >0 && p>=buf; p--)
+		{
+			*p = idchars[(int) (Q64 % nchars)];
+			Q64 /= nchars;
+		}
+
+		for (p++; '\0' != *p; p++, q++)
+			*q = *p;
+
+		*q= '\0';
+#endif
 		sess._sessGuid = buf;
 	}
 	MutexGuard g(_lockSessMap);
@@ -416,17 +452,17 @@ void RTSPSession::updateIndex(RTSPSession* sess)
 RTSPSession::RTSPSession(Log& log, NativeThreadPool& thrdpool, const char* streamDestUrl, const char* filePath, Log::loglevel_t verbosityLevel, int timeout, const char* sessGuid)
 : _thrdpool(thrdpool), _tpType(tpt_UNKNOWN), _log(log, verbosityLevel), _stampSetup(0), _stampLastMessage(0), _filePath(trim(filePath)), _sessTimeout(timeout)
 {
-	if (NULL == sessGuid || strlen(sessGuid) <=0)
-	{
-		// un-assigned user's session id, generate one
-		char buf[80];
-		Guid guid;
-		guid.create();
-		guid.toCompactIdstr(buf, sizeof(buf) -2);
-		_sessGuid = buf;
-	}
-	else
+	if (NULL != sessGuid && strlen(sessGuid) >0)
 		_sessGuid = sessGuid;
+	//else // let _sessMgr->add() to generate new GUID
+	//{
+	//	// un-assigned user's session id, generate one
+	//	char buf[80];
+	//	Guid guid;
+	//	guid.create();
+	//	guid.toCompactIdstr(buf, sizeof(buf) -2);
+	//	_sessGuid = buf;
+	//}
 
 	setStreamDestination(streamDestUrl, false);
 
@@ -435,6 +471,7 @@ RTSPSession::RTSPSession(Log& log, NativeThreadPool& thrdpool, const char* strea
 
 RTSPSession::~RTSPSession()
 {
+	ZQ::common::MutexGuard g(_lockIncomming); // to avoid if incomming message is happened processed
 //	if (_sessMgr == &gSessMgr)
 //	{
 //		destroy();
@@ -488,12 +525,15 @@ void RTSPSession::OnServerRequest(RTSPClient& rtspClient, const char* cmdName, c
 
 void RTSPSession::OnRequestError(RTSPClient& rtspClient, RTSPRequest::Ptr& pReq, RequestError errCode, const char* errDesc)
 {
+	if (!pReq)
+		return;
+
 	if (NULL == errDesc || strlen(errDesc) <=0)
 		errDesc = requestErrToStr(errCode);
 
 	char buf[64];
-	_log(Log::L_ERROR, SESSLOGFMT("OnRequestError() request %s(%d) failed: %d %s; %s +%d"),
-		pReq->_commandName.c_str(), pReq->cSeq, errCode, errDesc, TimeUtil::TimeToUTC(pReq->stampCreated, buf, sizeof(buf)-2, true), rtspClient.getTimeout());
+	_log(Log::L_ERROR, SESSLOGFMT("OnRequestError() conn[%s] %s(%d): %d %s; %s +%d"),
+		rtspClient.connDescription(), pReq->_commandName.c_str(), pReq->cSeq, errCode, errDesc, TimeUtil::TimeToUTC(pReq->stampCreated, buf, sizeof(buf)-2, true), rtspClient.getTimeout());
 }
 
 
@@ -908,9 +948,9 @@ void RTSPSession::OnResponse_SETUP(RTSPClient& rtspClient, RTSPRequest::Ptr& pRe
 {
 #pragma message ( __MSGLOC__ "TODO: impl here")
 	_stampSetup = now();
-	_log(Log::L_DEBUG, SESSLOGFMT("OnResponse_SETUP() [%d %s]"), resultCode, resultString);
+	// _log(Log::L_DEBUG, SESSLOGFMT("OnResponse_SETUP() [%d %s]"), resultCode, resultString);
 	_sessMgr->updateIndex(*this);
-	_log(Log::L_DEBUG, SESSLOGFMT("OnResponse_SETUP() [%d %s] session timeout[%d]msec"), resultCode, resultString, _sessTimeout);
+	_log(Log::L_DEBUG, SESSLOGFMT("OnResponse_SETUP() [%d %s] w/ session timeout[%d]msec"), resultCode, resultString, _sessTimeout);
 }
 
 void RTSPSession::OnResponse_TEARDOWN(RTSPClient& rtspClient, RTSPRequest::Ptr& pReq, RTSPMessage::Ptr& pResp, uint resultCode, const char* resultString)
@@ -946,8 +986,8 @@ void RTSPSession::OnResponse_SET_PARAMETER(RTSPClient& rtspClient, RTSPRequest::
 // new overwriteable entries, dispatched from OnServerRequest()
 void RTSPSession::OnANNOUNCE(RTSPClient& rtspClient, RTSPMessage::Ptr& pInMessage)
 {
-#pragma message ( __MSGLOC__ "TODO: impl here")
 	_log(Log::L_DEBUG, SESSLOGFMT("OnANNOUNCE()"));
+
 	if (pInMessage->headers.find("Session") != pInMessage->headers.end())
 	{
 		std::string notice = "";

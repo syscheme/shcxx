@@ -1,4 +1,5 @@
 #include "BufferPool.h"
+#include "TimeUtil.h"
 namespace ZQ {
 namespace common {
 
@@ -282,12 +283,86 @@ size_t BufferList::length() const
 		return len;
 	}
 
-size_t BufferList::join(uint8* buf, size_t size)
+size_t BufferList::join(uint8* buf, size_t size, int payloadLen)
 	{
 		if (!_bReference || NULL == buf || size <=0)
 			return _totalSize;
 
-		return doJoin(buf, size, size);
+		if (payloadLen<0)
+			payloadLen = size;
+
+		return doJoin(buf, size, payloadLen);
+	}
+
+uint mcopy(void* dest, void* src, uint size)
+{
+	uint n = size / sizeof(uint);
+	uint* idest = (uint*)dest, * isrc = (uint*)src;
+	while(n--)
+		*idest++ = *isrc++;
+	n = size % sizeof(uint);
+	while(n--)
+		*(((uint8*)idest) +n) = *(((uint8*)isrc) +n);
+}
+
+
+size_t BufferList::fill_2(uint8* buf, size_t offset, size_t len, std::vector<int>& useTime)
+	{
+		// step 1. seek to the right bd per offset
+		int64 temp1 = now();
+		size_t offsetInBuffer =0, offsetInBD =0;
+		BDList::iterator itBD = _bdlist.begin();
+		for (; itBD < _bdlist.end(); itBD++)
+		{
+			if ((offsetInBuffer+itBD->size) < offset)
+			{
+				offsetInBuffer += itBD->size;
+				continue;
+			}
+
+			offsetInBD = offset - offsetInBuffer;
+			break;
+		}
+		int64  temp2 = now();
+		int a = (int)(temp2 - temp1);
+		useTime.push_back(a);
+		size_t nLeft = len;	
+		int count = 0;
+		for (; nLeft >0 && itBD < _bdlist.end(); itBD++, offsetInBD=0)
+		{
+			size_t nBytes = itBD->size - offsetInBD;
+			if (nBytes > nLeft)
+				nBytes = nLeft;
+			count ++;
+			if (nBytes >0)
+			{
+				mcopy(itBD->data + offsetInBD, buf + len -nLeft, nBytes);
+				nLeft -= nBytes;
+				//count ++;
+				itBD->len = offsetInBD + nBytes;
+			}
+		}
+	  	int64 temp3 = now();
+		int b = (int)(temp3 - temp2);
+		useTime.push_back(b);
+
+		while (!_bReference && nLeft >0) // reached the BDList end but not yet filled completed
+		{
+			uint8* pNewBuf = new uint8[BUFFLIST_PAGE_SIZE];
+			if (NULL == pNewBuf)
+				break;
+
+			size_t nBytes = (nLeft > BUFFLIST_PAGE_SIZE) ? BUFFLIST_PAGE_SIZE : nLeft;
+			doJoin(pNewBuf, BUFFLIST_PAGE_SIZE, nBytes);
+
+			mcopy(pNewBuf, buf + len -nLeft, nBytes);
+			nLeft -= nBytes;
+		}
+		int64 temp4 = now();
+		int c = (int)(temp4 - temp3);
+		useTime.push_back(c);
+		useTime.push_back(count);
+		return (len -nLeft);
 	}
 
 size_t BufferList::fill(uint8* buf, size_t offset, size_t len)

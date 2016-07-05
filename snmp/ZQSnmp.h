@@ -504,7 +504,8 @@ public:
 	typedef void (OBJT::*MethodSet)(const BaseT&);
 
 	SNMPObjectByAPI(const std::string& varname, ObjectType& obj, AsnType vtype, MethodGet methodGet, MethodSet methodSet=NULL)
-		: SNMPObject(varname, NULL, vtype, methodSet?false:true), _obj(obj), _methodGet(methodGet), _methodSet(methodSet)
+		: SNMPObject(varname, NULL, vtype, methodSet?false:true), 
+		_methodGet(methodGet), _methodSet(methodSet), _obj(obj)
 	{
 	}
 
@@ -685,8 +686,9 @@ class BaseAgent : public ZQ::common::NativeThread
 public:
 
 	BaseAgent(ZQ::common::Log& log)
-		: _log(log), _timeout(DEFAULT_COMM_TIMEOUT), _baseUdpPort(DEFAULT_BASE_UDP_PORT),
-		_bindAddr("127.0.0.1"), _bindPort(0), _bQuit(false)
+		: _log(log), _bindAddr("127.0.0.1"), _bindPort(0), 
+		_timeout(DEFAULT_COMM_TIMEOUT), _baseUdpPort(DEFAULT_BASE_UDP_PORT),
+		_bQuit(false)
 	{}
 
 	virtual ~BaseAgent() {}
@@ -731,11 +733,12 @@ protected:
 	ZQ::common::Log& _log;
 	ZQ::common::UDPSocket _soUdp;
 
+
 	std::string _bindAddr;
 	uint32      _bindPort;
 
-	uint32      _baseUdpPort;
 	uint32      _timeout;
+	uint32      _baseUdpPort;
 
 	ZQ::common::AtomicInt  _lastCSeq;     
 	bool       _bQuit;
@@ -808,7 +811,7 @@ protected:
 // class Subagent
 // -----------------------------
 // Subagent on the application/service-side that process the message communication with SnmpAgent
-#pragma message ( __MSGLOC__ "TODO: should inherit from BaseAgent when the communication is replaced")
+//#pragma message ( __MSGLOC__ "TODO: should inherit from BaseAgent when the communication is replaced")
 class Subagent: public ZQ::common::NativeThread
 {
 public:
@@ -839,7 +842,7 @@ public:
 
 	virtual bool processMessage(const uint8* request, int len, std::string& responseMsg); // TODO be removed
 
-#pragma message ( __MSGLOC__ "TODO: should call BaseAgent's encode/decodeMessage()")
+//pragma message ( __MSGLOC__ "TODO: should call BaseAgent's encode/decodeMessage()")
 	static bool decodeMessage(const uint8* request, int len, SNMPVariable::List& vlist, uint8& pduType, uint32& err);
 	static size_t encodeMessage(uint8* stream, size_t maxlen, uint8 pduType, uint32 err, SNMPVariable::List& vlist);
 

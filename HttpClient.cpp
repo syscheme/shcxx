@@ -27,6 +27,11 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/HttpClient.cpp $
 // 
+// 17    1/12/16 2:44p Hui.shao
+// 
+// 16    1/12/16 2:40p Hui.shao
+// logging
+// 
 // 14    1/26/15 11:33a Zhiqiang.niu
 // add http proxy supported
 // 
@@ -263,7 +268,7 @@ void HttpClient::init(int iomode)
 	{ 
 		ssl_init();
 		DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Initializing OpenSSL, version=%ld\n", (long)OPENSSL_VERSION_NUMBER));
-		HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Initializing OpenSSL, version=%ld"),(long)OPENSSL_VERSION_NUMBER);
+		HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"Initializing OpenSSL, version=%ld"),(long)OPENSSL_VERSION_NUMBER);
 	}
 	fsslauth = ssl_auth_init;
 	fsslverify = ssl_verify_callback;
@@ -278,13 +283,13 @@ void HttpClient::init(int iomode)
 #endif
 	
 	begin();
-	HLOG(ZQ::common::FileLog::L_DEBUG, CLOGFMT(HttpClient,"HttpClient init"));
+	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient, "HttpClient init"));
 }
 
 /******************************************************************************/
 void HttpClient::uninit()
 {
-//	HLOG(ZQ::common::FileLog::L_DEBUG, CLOGFMT(HttpClient,"HttpClient uninit"));
+//	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"HttpClient uninit"));
 	
 	if(_headmap.size())
 		_headmap.clear();
@@ -298,13 +303,13 @@ bool HttpClient::getContent(char* _buf, size_t bufLen )
 {
 	if(_buf == NULL || bufLen < _strContent.length())
 	{
-		HLOG(FileLog::L_ERROR, CLOGFMT(HttpClient,"Http getContent() buffer is NULL"));
+		HLOG(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient, "getContent() buffer is NULL"));
 		return false;
 	}
 
 	//memset(_buf,0,bufLen);
 	memcpy(_buf,_strContent.c_str(),_strContent.length());
-	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http getContent() copy the received content to the buffer"));
+	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient, "getContent() copied the received content to the buffer"));
 
 	_strContent = "";
 	return true;
@@ -313,13 +318,13 @@ bool HttpClient::getContent(char* _buf, size_t bufLen )
 size_t HttpClient::getBodyData( char* buf, size_t bufLen ) {
 	if( buf == NULL || bufLen == 0)
 	{
-		HLOG(FileLog::L_ERROR, CLOGFMT(HttpClient,"Http getContent() buffer is NULL"));
+		HLOG(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient, "getBodyData() buffer is NULL"));
 		return 0;
 	}
 
 	bufLen = bufLen < _strContent.length() ? bufLen:_strContent.length();
 	memcpy(buf,_strContent.c_str(),bufLen);
-	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http getContent() copy the received content to the buffer"));
+	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"getBodyData() copied the received content to the buffer"));
 
 	return bufLen;
 }
@@ -350,7 +355,7 @@ void HttpClient::getContent(std::string& strContent)
 /******************************************************************************/
 size_t HttpClient::getContentLength()
 {
-	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http get content length: %d bytes"),_strContent.length());
+	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"getContentLength() %d bytes"),_strContent.length());
 	return _strContent.length();
 }
 
@@ -363,21 +368,21 @@ int HttpClient::getStatusCode()
 /******************************************************************************/
 void HttpClient::setConnectTimeout(int timeout)
 {
-	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http set connect timeout: %d"),timeout);
+	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"set connect timeout: %d"),timeout);
 	this->_connect_timeout = timeout;
 }
 
 /******************************************************************************/
 void HttpClient::setSendTimeout(int timeout)
 { 
-	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http set send timeout: %d"),timeout);
+	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"set send timeout: %d"),timeout);
 	this->_send_timeout = timeout;
 }
 
 /******************************************************************************/
 void HttpClient::setRecvTimeout(int timeout)
 { 
-	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http set receive timeout: %d"),timeout);
+	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"set receive timeout: %d"),timeout);
 	this->_recv_timeout = timeout;
 }
 
@@ -387,12 +392,12 @@ void HttpClient::setKeepAlive(bool bKeep)
 	if(bKeep)
 	{
 		_mode |= HTTP_IO_KEEPALIVE;			
-		HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http set connection keep alive"));
+		HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"set connection=keep alive"));
 	}
 	else
 	{
 		_mode &= ~HTTP_IO_KEEPALIVE;
-		HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http set connection close"));
+		HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"set connection=close"));
 	}
 }
 
@@ -463,7 +468,7 @@ bool HttpClient::setRangeHeader(int nBegin, int nEnd)
 		sprintf(chRan,"bytes=%d-%d",nBegin,nEnd);
 	
 	setHeader("Range",chRan);
-	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http set header Range: %s"),chRan);
+	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"set header Range: %s"),chRan);
 	return true;	
 }
 
@@ -501,8 +506,8 @@ void HttpClient::done()
 	if(check_state(this))
 		return;
 
-	DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Done with context\n"));
-//	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Done with HttpClient"));
+	DBGLOG(TEST, HTTP_MESSAGE(fdebug, "done with context\n"));
+//	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient, "Done with HttpClient"));
 	_keep_alive = 0; // to force close the socket 
 	httpCloseSock();
 	
@@ -576,7 +581,7 @@ int HttpClient::httpBeginRecv()
 	int32 c;
 	DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Initializing for input\n"));
 //	if(!_bContinue)
-//		HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"HttpClient begin receive"));
+//		HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient, "begin receiving"));
 	this->_error = HTTP_OK;
 
 	if ((this->_imode & HTTP_IO) == HTTP_IO_CHUNK)
@@ -700,7 +705,7 @@ int HttpClient::httpBeginRecv()
 /******************************************************************************/
 int HttpClient::httpContinueRecv()
 {
-//	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"HttpClient continue receive"));
+//	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"continue receiving"));
 	_bContinue = true;
 
 	if((this->_mode & HTTP_IO) == HTTP_IO_CHUNK)
@@ -717,7 +722,7 @@ int HttpClient::httpSendContent(const char *content, size_t contentLen)
 {
 	if(content == NULL || contentLen == 0)
 	{
-		HLOG(FileLog::L_ERROR, CLOGFMT(HttpClient,"Send content is NULL or content _length is 0"));
+		HLOG(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient,"send content is NULL or content _length is 0"));
 		return HTTP_ERR;
 	}
 	_send_msg = "";
@@ -726,7 +731,7 @@ int HttpClient::httpSendContent(const char *content, size_t contentLen)
 	size_t compLen = 0;
 	if(this->_error = httpDeflate((char*)content,contentLen,&compLen))
 	{
-		HLOG(FileLog::L_ERROR, CLOGFMT(HttpClient,"HttpDeflate is _error,_error code is %d"),this->_error);
+		HLOG(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient,"HttpDeflate is _error,_error code is %d"),this->_error);
 		return this->_error;
 	}
 
@@ -753,7 +758,7 @@ int HttpClient::sendRaw(const char *s, size_t n)
 //		_pHttpLog->hexDump(ZQ::common::Log::L_DEBUG, s, n);
 	if (!n)
 		return HTTP_OK;
-	for(int i = 0; i < n ; i++)
+	for (size_t i = 0; i < n ; i++)
 	{
 		if(s[i] == '\r' || s[i] == '\n')
 			_send_msg += '.';
@@ -812,7 +817,7 @@ int HttpClient::httpCloseSock()
 int HttpClient::tcpCloseSocket(HTTP_SOCKET fd)
 { 
 	DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Close socket %d\n", (int)fd));
-//	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http close socket %d"),(int)fd);
+//	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"close socket %d"),(int)fd);
 	return http_closesocket(fd);
 }
 
@@ -864,7 +869,7 @@ int HttpClient::tcpDisconnect()
 						{ 
 							this->_errnum = 0;
 							DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Connection lost...\n"));
-							HLOG(FileLog::L_WARNING, CLOGFMT(HttpClient,"http connection lost ..."));
+							HLOG(ZQ::common::Log::L_WARNING, CLOGFMT(HttpClient,"connection lost ..."));
 							tcpCloseSocket(this->_sock);
 							this->_sock = HTTP_INVALID_SOCKET;
 							SSL_free(this->_ssl);
@@ -885,7 +890,7 @@ int HttpClient::tcpDisconnect()
 			if (s)
 			{ 
 				DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Shutdown failed: %d\n", SSL_get_error(this->_ssl, r)));
-				HLOG(FileLog::L_ERROR, CLOGFMT(HttpClient,"Http shutdown failed: %d"),SSL_get_error(this->_ssl, r));
+				HLOG(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient,"shutdown failed: %d"),SSL_get_error(this->_ssl, r));
 				if (valid_socket(this->_sock) && !(this->_omode & HTTP_IO_UDP))
 				{ 
 					tcpCloseSocket(this->_sock);
@@ -926,7 +931,7 @@ int HttpClient::tcpShutDownSocket(HTTP_SOCKET fd, int how)
 		nBindPort = ntohs(sin.sin_port); 
 		bindIp = inet_ntoa(sin.sin_addr);
 	}
-	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"socket[%d]localhost[%s:%d]=>peer[%d] closed with reason:%d"),(int)fd, bindIp.c_str(), nBindPort, (int)_recvfd, how);
+	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"socket[%d,%s:%d]=>peer[%d] closed, reason:%d"), (int)fd, bindIp.c_str(), nBindPort, (int)_recvfd, how);
 	return shutdown(fd, how);
 }
 
@@ -1091,7 +1096,7 @@ int HttpClient::fSend(const char *s, size_t n)
 					if (!r)
 					{
 						setSenderError("Send timeout", NULL,HTTP_TCP_ERROR);
-						HLOG(FileLog::L_WARNING, CLOGFMT(HttpClient,"Http send timeout"));
+						HLOG(ZQ::common::Log::L_WARNING, CLOGFMT(HttpClient,"send timeout"));
 						this->_errnum = 0;
 						return HTTP_EOF;
 					}
@@ -1206,7 +1211,7 @@ int HttpClient::fSend(const char *s, size_t n)
 #endif
 			if (r < 0 && (r = socket_errno(this->_sock)) != HTTP_EINTR)
 			{
-				HLOG(FileLog::L_WARNING, CLOGFMT(HttpClient,"Http send time out"));
+				HLOG(ZQ::common::Log::L_WARNING, CLOGFMT(HttpClient,"send time out"));
 				this->_errnum = r;
 				return HTTP_EOF;
 			}
@@ -1285,8 +1290,8 @@ size_t HttpClient::fRecv(char *s, size_t n)
 						int64 timeLeft = stampExp - ZQ::common::now();
 						if (timeLeft < 1)
 							timeLeft = 1;
-						timeout.tv_sec = timeLeft / 1000;
-						timeout.tv_usec = (timeLeft %1000) *1000;
+						timeout.tv_sec = (long) (timeLeft / 1000);
+						timeout.tv_usec = (long) (timeLeft %1000) *1000;
 					}
 
 					FD_ZERO(&fdRead);
@@ -1300,7 +1305,7 @@ size_t HttpClient::fRecv(char *s, size_t n)
 						r = socket_errno(this->_sock);
 						if (r != HTTP_EINTR && r != HTTP_EAGAIN && r != HTTP_EWOULDBLOCK)
 						{ 
-							HLOG(FileLog::L_ERROR, CLOGFMT(HttpClient,"Http socket error, errorcode = %d"),r);
+							HLOG(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient,"socket error, errorcode=%d"),r);
 							this->_errnum = r;
 							return 0;
 						}
@@ -1311,7 +1316,7 @@ size_t HttpClient::fRecv(char *s, size_t n)
 						{
 							r = socket_errno(this->_sock);
 							setReceiverError("Receive timeout", NULL,HTTP_TCP_ERROR);
-							HLOG(FileLog::L_WARNING, CLOGFMT(HttpClient,"recv timeout (%d)"), r);
+							HLOG(ZQ::common::Log::L_WARNING, CLOGFMT(HttpClient, "recv timeout (%d)"), r);
 							this->_errnum = 0;
 							return 0;
 						}
@@ -1617,7 +1622,7 @@ void HttpClient::httpDealloc( void *p)
 		return;
 	if (p)
 	{
-//		HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http free all httpMalloc data"));
+//		HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"free all httpMalloc data"));
 		register char **q;
 		for (q = (char**)&this->_alist; *q; q = *(char***)q)
 		{ 
@@ -1642,7 +1647,7 @@ void HttpClient::httpDealloc( void *p)
 	{ 
 		register char *q;
 		DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Free all httpMalloc() data\n"));
-//		HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http free all httpMalloc data"));
+//		HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient, "free all httpMalloc data"));
 		while (this->_alist)
 		{ 
 			q = (char*)this->_alist;
@@ -1757,11 +1762,11 @@ int HttpClient::httpConnect(const char *endpoint, int command)
 	_bContinue = false;
 	if(endpoint == NULL || *endpoint == '\0')
 	{
-		HLOG(FileLog::L_ERROR, CLOGFMT(HttpClient,"Http httpConnect() error,endpoint is NULL"));
+		HLOG(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient,"httpConnect() error, endpoint is NULL"));
 		setError("Endpoint is NULL",NULL,HTTP_ERR);
 		return HTTP_ERR;
 	}
-	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http connect endpoint %s,method id = %d"),endpoint,command);
+	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"connecting endpoint %s, method id=%d"), endpoint, command);
 	return connectCommand(command, endpoint);
 }
 
@@ -1786,8 +1791,8 @@ int HttpClient::connectCommand(int http_command, const char *endpoint)
 			this->_keep_alive = 0; // to force close 
 			this->_omode &= ~HTTP_IO_UDP; // to force close 
 			httpCloseSock();
-			DBGLOG(TEST,HTTP_MESSAGE(fdebug, "Connect/reconnect to host='%s' path='%s' port=%d\n", this->_host, this->_path, this->_port));
-//			HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http Connect/reconnect to host=%s, path=%s, port=%d"),this->_host, this->_path, this->_port);
+			DBGLOG(TEST,HTTP_MESSAGE(fdebug, "connect/reconnecting to host='%s' path='%s' port=%d\n", this->_host, this->_path, this->_port));
+//			HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"connect/reconnecting to host=%s, path=%s, port=%d"),this->_host, this->_path, this->_port);
 
 			this->_sock = tcpConnect(endpoint,this->_host,this->_port);
 			if (this->_error)
@@ -1952,8 +1957,8 @@ int HttpClient::poll()
 	}
 	else
 		this->_errnum = 0;
-	DBGLOG(TEST,HTTP_MESSAGE(fdebug, "Polling: other end down on socket=%d select=%d\n", this->_sock, r));
-	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http poll socket=%d select=%d end down"),this->_sock, r);
+	DBGLOG(TEST,HTTP_MESSAGE(fdebug, "polling: reset by peer on socket=%d select=%d\n", this->_sock, r));
+	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"poll socket=%d select=%d, reset by peer"),this->_sock, r);
 	return HTTP_EOF;
 #else
 	return HTTP_OK;
@@ -2050,37 +2055,34 @@ again:
 		int rc = getaddrinfo( _strLocalIP.c_str() , chport , &hints , &pAddrInfo);
 		if(rc != 0)
 		{
-			HLOG(FileLog::L_ERROR, CLOGFMT(HttpClient,"getaddrinfo failed code[%d] string[%s] localIP[%s] port[%d]"), rc, gai_strerror(rc), _strLocalIP.c_str(), _nLocalPort);
+			HLOG(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient, "getaddrinfo() failed code[%d] string[%s] localIP[%s] port[%d]"), rc, gai_strerror(rc), _strLocalIP.c_str(), _nLocalPort);
 			tcpCloseSocket(fd);
 			this->_errnum = rc;
-			setSenderError( tcpError(), "failed getaddrinfo", HTTP_TCP_ERROR);
+			setSenderError( tcpError(), "getaddrinfo() failed", HTTP_TCP_ERROR);
 			return HTTP_INVALID_SOCKET;
 		}
-		else
-		{
-			//bind address
-			rc = bind( fd, pAddrInfo->ai_addr ,(int)pAddrInfo->ai_addrlen);
-			if(rc != 0)
-			{
-				HLOG(FileLog::L_ERROR, CLOGFMT(HttpClient,"bind failed code[%d] string[%s] localIP[%s] port[%d]"), SYS::getLastErr(), SYS::getErrorMessage().c_str(), _strLocalIP.c_str(), _nLocalPort);
-				tcpCloseSocket(fd);
-				freeaddrinfo(pAddrInfo);
-				this->_errnum = SYS::getLastErr();
-				setSenderError( tcpError(), "socket failed bind", HTTP_TCP_ERROR);
-				return HTTP_INVALID_SOCKET;
-			}
-		   else
-			{
-				struct sockaddr_in sin; 
-				socklen_t len = sizeof(sin); 
-				int nBindPort = _nLocalPort;
-				if (getsockname(fd, (struct sockaddr *)&sin, &len) != -1)   
-					nBindPort = ntohs(sin.sin_port); 
 
-				HLOG(FileLog::L_INFO, CLOGFMT(HttpClient,"socket[%d]bind localIP[%s] port[%d]successful"),fd,  _strLocalIP.c_str(), nBindPort);
-			}
+		//bind address
+		rc = bind( fd, pAddrInfo->ai_addr ,(int)pAddrInfo->ai_addrlen);
+		if(rc != 0)
+		{
+			HLOG(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient,"bind failed code[%d] string[%s] localIP[%s] port[%d]"), SYS::getLastErr(), SYS::getErrorMessage().c_str(), _strLocalIP.c_str(), _nLocalPort);
+			tcpCloseSocket(fd);
 			freeaddrinfo(pAddrInfo);
+			this->_errnum = SYS::getLastErr();
+			setSenderError( tcpError(), "socket failed bind", HTTP_TCP_ERROR);
+			return HTTP_INVALID_SOCKET;
 		}
+
+		struct sockaddr_in sin; 
+		socklen_t len = sizeof(sin); 
+		int nBindPort = _nLocalPort;
+		if (getsockname(fd, (struct sockaddr *)&sin, &len) != -1)   
+			nBindPort = ntohs(sin.sin_port); 
+
+		HLOG(ZQ::common::Log::L_INFO, CLOGFMT(HttpClient,"socket[%d]bind localIP[%s] port[%d]successful"),fd,  _strLocalIP.c_str(), nBindPort);
+
+		freeaddrinfo(pAddrInfo);
 	}
 
 #ifdef SOCKET_CLOSE_ON_EXEC
@@ -2123,6 +2125,7 @@ again:
             return HTTP_INVALID_SOCKET;
         }
     }
+
 	if (this->_connect_flags == SO_LINGER)
 	{ 
 		struct linger linger;
@@ -2230,7 +2233,7 @@ again:
 #endif
 #endif
 	DBGLOG(TEST,HTTP_MESSAGE(fdebug, "Opening socket %d to host='%s' port=%d\n", fd, host, port));
-	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Opening socket[%d] to peer[%s:%d]"),fd,host,port);
+	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"Opening socket[%d] to peer[%s:%d]"),fd,host,port);
 #ifndef WITH_IPV6
 	this->_peerlen = sizeof(this->_peer);
 	memset((void*)&this->_peer, 0, sizeof(this->_peer));
@@ -2332,7 +2335,7 @@ again:
 					{ 
 						this->_errnum = 0;
 						DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Connect timeout\n"));
-						HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http connect time out"));
+						HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"Http connect time out"));
 						setSenderError("Connect Timeout", "connect failed in tcpConnect()", HTTP_TCP_ERROR);
 						tcpCloseSocket(fd);
 #ifdef WITH_IPV6
@@ -2345,7 +2348,7 @@ again:
 					{ 
 						this->_errnum = r;
 						DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Could not connect to host\n"));
-						HLOG(FileLog::L_ERROR, CLOGFMT(HttpClient,"Http could not connect to host: %s"),host);
+						HLOG(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient,"Http could not connect to host: %s"),host);
 						setSenderError(tcpError(), "connect failed in tcpConnect()", HTTP_TCP_ERROR);
 						tcpCloseSocket(fd);
 #ifdef WITH_IPV6
@@ -2358,7 +2361,7 @@ again:
 				if (!getsockopt(fd, SOL_SOCKET, SO_ERROR, (char*)&this->_errnum, &k) && !this->_errnum)	// portability note: see HTTP_SOCKLEN_T
 					break;
 				DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Could not connect to host\n"));
-				HLOG(FileLog::L_ERROR, CLOGFMT(HttpClient,"Http could not connect to host: %s"),host);
+				HLOG(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient,"Http could not connect to host: %s"),host);
 				if (!this->_errnum)
 					this->_errnum = socket_errno(fd);
 				setSenderError( tcpError(), "connect failed in tcpConnect()", HTTP_TCP_ERROR);
@@ -2381,7 +2384,7 @@ again:
 		{ 
 			this->_errnum = err;
 			DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Could not connect to host\n"));  
-			HLOG(FileLog::L_ERROR, CLOGFMT(HttpClient,"Http could not connect to host: %s"),host);
+			HLOG(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient,"Http could not connect to host: %s"),host);
 			setSenderError(tcpError(), "connect failed in tcpConnect()", HTTP_TCP_ERROR);
 			tcpCloseSocket(fd);
 #ifdef WITH_IPV6
@@ -2419,7 +2422,7 @@ again:
 			this->_omode &= ~HTTP_ENC; // mask IO and ENC 
 			this->_omode |= HTTP_IO_BUFFER;
 			DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Connecting to %s proxy server\n", this->proxy_http_version));
-			HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http connect to %s proxy server"),this->proxy_http_version);
+			HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"Http connect to %s proxy server"),this->proxy_http_version);
 			sprintf(this->_tmpbuf, "CONNECT %s:%d HTTP/%s", host, port, this->proxy_http_version);
 
 			if (beginSend()
@@ -2546,7 +2549,7 @@ again:
 					{ 
 						this->_errnum = 0;
 						DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Connect timeout\n"));
-						HLOG(FileLog::L_ERROR, CLOGFMT(HttpClient,"Http connect timeout"));
+						HLOG(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient,"Http connect timeout"));
 						setSenderError( "Connect Timeout", "connect failed in tcpConnect()", HTTP_TCP_ERROR);
 						tcpCloseSocket(fd);
 						return HTTP_INVALID_SOCKET;
@@ -2690,7 +2693,8 @@ again:
 			nBindPort = ntohs(sin.sin_port); 
 			bindIp = inet_ntoa(sin.sin_addr);
 		}
-		HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"socket[%d]localhost[%s:%d]=>peer[%s:%d] connected for endpoint[%s]"),fd, bindIp.c_str(),nBindPort, host,port, endpoint);
+
+		HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"socket[%d,%s:%d]=>peer[%s:%d] connected for endpoint[%s]"),fd, bindIp.c_str(),nBindPort, host,port, endpoint);
 	}
 	return fd;
 }
@@ -2699,7 +2703,7 @@ again:
 int HttpClient::beginSend()
 { 
 	DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Initializing for output\n"));
-//	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http initializing for output"));
+//	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"Http initializing for output"));
 	this->_error = HTTP_OK;
 	this->_mode = this->_omode | (this->_mode & (HTTP_IO_LENGTH | HTTP_ENC_DIME));
 
@@ -2741,8 +2745,8 @@ int HttpClient::beginSend()
 	}
 	this->_chunksize = 0;
 
-	DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Begin send phase (socket=%d mode=0x%x)\n", this->_sock, this->_mode));
-//	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http begin send phase (socket=%d mode=0x%x)"),this->_sock, this->_mode);
+	DBGLOG(TEST, HTTP_MESSAGE(fdebug, "beginSend() socket[%d] mode=0x%x\n", this->_sock, this->_mode));
+//	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"beginSend() socket[%d] mode=0x%x"),this->_sock, this->_mode);
 	return HTTP_OK;
 }
 
@@ -2773,9 +2777,9 @@ int HttpClient::httpEndSend()
 			nBindPort = ntohs(sin.sin_port); 
 			bindIp = inet_ntoa(sin.sin_addr);
 		}
-		HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"socket[%d]localhost[%s:%d] end send:%s"),this->_sock, bindIp.c_str(), nBindPort, _send_msg.c_str());
+		HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"socket[%d,%s:%d] sent: %s"),this->_sock, bindIp.c_str(), nBindPort, _send_msg.c_str());
 	}
-//	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http end send"));
+//	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"Http end send"));
 	_send_msg = "";
 	if (this->_mode & HTTP_IO) // need to flush the remaining data in buffer 
 	{  
@@ -2800,8 +2804,8 @@ int HttpClient::httpEndSend()
 		this->fshutdownsocket( this->_sock, 1); // Send TCP FIN 
 #endif
 #endif
-	DBGLOG(TEST, HTTP_MESSAGE(fdebug, "End of send phase (contentcount=%lu)\n",this->_count));
-	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"socket[%d] end send(contentcount=%lu)"),this->_sock, this->_count);
+	DBGLOG(TEST, HTTP_MESSAGE(fdebug, "httpEndSend() contentcount=%lu\n",this->_count));
+	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"socket[%d] sent contentcount=%lu"),this->_sock, this->_count);
 	DBGMSG(SENT, "\n\n", 2);
 	this->_count = 0;
 	return HTTP_OK;
@@ -2813,8 +2817,8 @@ int HttpClient::httpEndRecv()
 	_bContinue = false;
 	_needrecv = 0;
 	this->_count = 0;
-//	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http end of receive message, Read %u bytes from socket %d in all"), (unsigned int)this->_totalLenth, this->_sock);
-	DBGLOG(TEST,HTTP_MESSAGE(fdebug, "End of receive message ok\n"));
+//	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"Http end of receive message, Read %u bytes from socket %d in all"), (unsigned int)this->_totalLenth, this->_sock);
+	DBGLOG(TEST,HTTP_MESSAGE(fdebug, "httpEndRecv()\n"));
 	DBGMSG(RECV, "\n\n", 2);
 
 	this->_totalLenth = 0;
@@ -2853,9 +2857,9 @@ int32 HttpClient::getChunkChar()
 		return this->_buf[this->_bufidx++];
 	this->_bufidx = 0;
 	this->_count = this->_buflen = fRecv(this->_buf, HTTP_BUFLEN-1);
-	DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Read %u bytes from socket %d\n", (unsigned int)this->_buflen, this->_sock));
+	DBGLOG(TEST, HTTP_MESSAGE(fdebug, "getChunkChar() read %u bytes from socket %d\n", (unsigned int)this->_buflen, this->_sock));
 	DBGMSG(RECV, this->_buf, this->_buflen);
-//	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http read %u bytes from socket %d"),(unsigned int)this->_buflen, this->_sock);
+//	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient, "getChunkChar() read %u bytes from socket %d"),(unsigned int)this->_buflen, this->_sock);
 	if (this->_buflen)
 	{
 		this->_totalLenth += (unsigned int)this->_buflen;
@@ -3051,7 +3055,7 @@ int HttpClient::tcpGetHost(const char *addr, struct in_addr *inaddr)
 	if (!host)
 	{ 
 		DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Host name not found\n"));
-		HLOG(FileLog::L_ERROR, CLOGFMT(HttpClient,"Http host name not found"));
+		HLOG(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient,"Http host name not found"));
 		return HTTP_ERR;
 	}
 
@@ -3067,8 +3071,8 @@ int HttpClient::httpParse()
 	std::string dumpString = "";
 	char header[HTTP_HDRLEN], *s;
 	unsigned short httpcmd = 0, nstatus = 0, k = 0;
-	DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Waiting for HTTP request/response...\n"));
-//	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http client begin parse header"));
+	DBGLOG(TEST, HTTP_MESSAGE(fdebug, "waiting for HTTP request/response...\n"));
+//	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"client begin parse header"));
 	*this->_endpoint = '\0';
 	this->_length = (size_t)-1;
 	this->_userid = NULL;
@@ -3088,8 +3092,8 @@ int HttpClient::httpParse()
 				return HTTP_EOF;
 			return this->_error = 414;
 		}
-		DBGLOG(TEST,HTTP_MESSAGE(fdebug, "HTTP status: %s\n", this->_msgbuf));
-//		HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http status: %s"),this->_msgbuf);
+		DBGLOG(TEST,HTTP_MESSAGE(fdebug, "httpParse() status: %s\n", this->_msgbuf));
+//		HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient, "httpParse() status: %s"),this->_msgbuf);
 		dumpString += this->_msgbuf  + std::string("  ");
 		for (;;)
 		{
@@ -3098,8 +3102,8 @@ int HttpClient::httpParse()
 				if (this->_error == HTTP_EOF)
 				{ 
 					this->_error = HTTP_OK;
-					DBGLOG(TEST,HTTP_MESSAGE(fdebug, "EOF in HTTP header, continue anyway\n"));
-					HLOG(FileLog::L_WARNING, CLOGFMT(HttpClient,"EOF in Http header,continue parse"));
+					DBGLOG(TEST,HTTP_MESSAGE(fdebug, "httpParse() EOF in HTTP header, continue anyway\n"));
+					HLOG(ZQ::common::Log::L_WARNING, CLOGFMT(HttpClient, "httpParse() EOF in Http header,continue parse"));
 					break;
 				}
 				return this->_error;
@@ -3107,8 +3111,8 @@ int HttpClient::httpParse()
 
 			if (!*header)
 				break;
-			DBGLOG(TEST,HTTP_MESSAGE(fdebug, "HTTP header: %s\n", header));
-//			HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http header: %s"),header);
+			DBGLOG(TEST,HTTP_MESSAGE(fdebug, "httpParse() header: %s\n", header));
+//			HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient, "httpParse() header: %s"),header);
 			dumpString += header  + std::string("  ");
 			s = strchr(header, ':');
 			if (s)
@@ -3146,13 +3150,14 @@ int HttpClient::httpParse()
 	}
 	catch (...)
 	{
-		DBGLOG(TEST,HTTP_MESSAGE(fdebug, "failed to parse HTTP header caught unknow exception(%s)\n", SYS::getErrorMessage().c_str()));
-		HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"failed to parse HTTP header caught unknow exception(%s)"), SYS::getErrorMessage().c_str());
+		DBGLOG(TEST,HTTP_MESSAGE(fdebug, "httpParse() failed to parse HTTP header, caught exception(%s)\n", SYS::getErrorMessage().c_str()));
+		HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"httpParse() failed to parse HTTP header, caught exception(%s)"), SYS::getErrorMessage().c_str());
 		this->_error = HTTP_ERR;
 		return HTTP_ERR;
 	}
-	DBGLOG(TEST,HTTP_MESSAGE(fdebug, "Finished HTTP header parsing, status = %d\n", k));
-//	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http finished parse header, status = %d"),k);
+
+	DBGLOG(TEST,HTTP_MESSAGE(fdebug, "httpParse() finished header parsing, status = %d\n", k));
+//	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"httpParse() finished parse header, status = %d"),k);
 	if(_pHttpLog)
 		(*_pHttpLog).flush();
 	s = strstr(this->_msgbuf, "HTTP/");
@@ -3168,8 +3173,8 @@ int HttpClient::httpParse()
 	}
 	if (this->_keep_alive < 0)
 		this->_keep_alive = 1;
-	DBGLOG(TEST,HTTP_MESSAGE(fdebug, "Keep alive connection = %d\n", this->_keep_alive));
-//	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http keep alive connection = %d"),this->_keep_alive);
+	DBGLOG(TEST,HTTP_MESSAGE(fdebug, "httpParse() keep alive connection = %d\n", this->_keep_alive));
+//	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"Http keep alive connection = %d"),this->_keep_alive);
 	if (k == 0)
 	{ 
 		size_t l = 0;
@@ -3197,8 +3202,8 @@ int HttpClient::httpParse()
 			strncpy(this->_path, this->_msgbuf + l, n - m);
 			this->_path[n - m] = '\0';
 			strcat(this->_endpoint, this->_path);
-			DBGLOG(TEST,HTTP_MESSAGE(fdebug, "Target endpoint='%s'\n", this->_endpoint));
-			HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http target endpoint = %s"),this->_endpoint);
+			DBGLOG(TEST,HTTP_MESSAGE(fdebug, "httpParse() target endpoint='%s'\n", this->_endpoint));
+			HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"httpParse() target endpoint = %s"),this->_endpoint);
 			if (httpcmd > 1)
 			{ 
 				switch (httpcmd)
@@ -3237,7 +3242,7 @@ int HttpClient::httpParse()
 //	if ((k == 400 || k == 500) && (this->_http_content || this->_keep_alive == 0))
 //		return HTTP_OK;
 //	DBGLOG(TEST,HTTP_MESSAGE(fdebug, "HTTP error %d\n", k));
-//	HLOG(FileLog::L_ERROR, CLOGFMT(HttpClient,"Http error %d"),k);
+//	HLOG(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient,"Http error %d"),k);
 
 //	return setReceiverError("HTTP Error", this->_msgbuf, k);
 	//Http not attention the return state(200,300,400,...)
@@ -3251,7 +3256,8 @@ int HttpClient::httpParse()
 		nBindPort = ntohs(sin.sin_port); 
 		bindIp = inet_ntoa(sin.sin_addr);
 	}
-	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"socket[%d]localhost[%s:%d]Received[%d]bytes [%s]"), this->_sock, bindIp.c_str(), nBindPort, (unsigned int)this->_totalLenth, dumpString.c_str());
+
+	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"httpParse() socket[%d,%s:%d] received[%d]bytes: %s"), this->_sock, bindIp.c_str(), nBindPort, (unsigned int)this->_totalLenth, dumpString.c_str());
 	return HTTP_OK;
 }
 
@@ -3470,8 +3476,8 @@ int HttpClient::recvRaw()
 	this->_bufidx = 0;
 	this->_buflen = ret = fRecv(this->_buf, HTTP_BUFLEN-1);
 	this->_totalLenth += ret;
-	DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Read %u bytes from socket %d\n", (unsigned int)ret, this->_sock));
-//	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http read %u bytes from socket %d"),(unsigned int)this->_buflen, this->_sock);
+	DBGLOG(TEST, HTTP_MESSAGE(fdebug, "recvRaw() read %u bytes from socket %d\n", (unsigned int)ret, this->_sock));
+//	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"recvRaw() read %u bytes from socket %d"),(unsigned int)this->_buflen, this->_sock);
 	DBGMSG(RECV, this->_buf, ret);
 	
 	this->_count = ret;
@@ -3489,12 +3495,12 @@ int HttpClient::setError(const char *faultstring, const char *faultdetailXML, in
 {
 	if(faultstring != NULL)
 	{
-		HLOG(FileLog::L_ERROR, CLOGFMT(HttpClient,"Http error string = %s code = %d"),faultstring,nerrornum);
+		HLOG(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient,"setError() %s code = %d"),faultstring,nerrornum);
 		this->_errorstr = faultstring;
 	}
 	else
 	{
-		HLOG(FileLog::L_ERROR, CLOGFMT(HttpClient,"Http error string = %s conde = %d"), faultdetailXML, nerrornum);
+		HLOG(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient, "setError() %s conde = %d"), faultdetailXML, nerrornum);
 		this->_errorstr = faultdetailXML;
 	}
 	
@@ -3696,7 +3702,7 @@ int HttpClient::httpDeflate(char* content, size_t len, size_t* compLen)
 		if (deflateInit(this->_d_stream, this->_z_level) != Z_OK)
 			return this->_error = HTTP_ZLIB_ERROR;
 		DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Deflate initialized\n"));
-		HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http deflate initialize"));
+		HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"Http deflate initialize"));
 		this->_zlib_state = HTTP_ZLIB_DEFLATE;
 	}
 
@@ -3709,12 +3715,12 @@ int HttpClient::httpDeflate(char* content, size_t len, size_t* compLen)
 #endif
 		do
 		{ 
-			DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Deflating %u bytes\n", this->_d_stream->avail_in));
-			HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http deflating %u bytes"), this->_d_stream->avail_in);
+			DBGLOG(TEST, HTTP_MESSAGE(fdebug, "httpDeflate() %u bytes\n", this->_d_stream->avail_in));
+			HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"httpDeflate() %u bytes"), this->_d_stream->avail_in);
 			if (deflate(this->_d_stream, Z_NO_FLUSH) != Z_OK)
 			{ 
-				DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Unable to deflate: %s\n", this->_d_stream->msg?this->_d_stream->msg:""));
-				HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http unable to deflate msg:%s"),this->_d_stream->msg?this->_d_stream->msg:"");
+				DBGLOG(TEST, HTTP_MESSAGE(fdebug, "httpDeflate() unable to deflate: %s\n", this->_d_stream->msg?this->_d_stream->msg:""));
+				HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"httpDeflate() unable to deflate msg:%s"),this->_d_stream->msg?this->_d_stream->msg:"");
 				return this->_error = HTTP_ZLIB_ERROR;
 			}
 			if (!this->_d_stream->avail_out)
@@ -3731,7 +3737,7 @@ int HttpClient::httpDeflate(char* content, size_t len, size_t* compLen)
 		do
 		{
 			DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Deflating remainder\n"));
-			HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http deflating remainder"));
+			HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"Http deflating remainder"));
 			r = deflate(this->_d_stream, Z_FINISH);
 			if (this->_d_stream->avail_out != _z_buflen)
 			{ 
@@ -3739,13 +3745,13 @@ int HttpClient::httpDeflate(char* content, size_t len, size_t* compLen)
 			}
 		} while (r == Z_OK);
 		DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Deflated total %lu->%lu bytes\n", this->_d_stream->total_in, this->_d_stream->total_out));
-		HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http deflated total %lu -> %lu bytes"), this->_d_stream->total_in, this->_d_stream->total_out);
+		HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"Http deflated total %lu -> %lu bytes"), this->_d_stream->total_in, this->_d_stream->total_out);
 		this->_mode &= ~HTTP_ENC_ZLIB;
 		this->_zlib_state = HTTP_ZLIB_NONE;
 		if (deflateEnd(this->_d_stream) != Z_OK || r != Z_STREAM_END)
 		{ 
 			DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Unable to end deflate: %s\n", this->_d_stream->msg?this->_d_stream->msg:""));
-			HLOG(FileLog::L_ERROR, CLOGFMT(HttpClient,"Http unable to end deflate: %s"), this->_d_stream->msg?this->_d_stream->msg:"");
+			HLOG(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient,"Http unable to end deflate: %s"), this->_d_stream->msg?this->_d_stream->msg:"");
 			return this->_error = HTTP_ZLIB_ERROR;
 		}
 #ifdef WITH_GZIP
@@ -3765,10 +3771,10 @@ int HttpClient::httpDeflate(char* content, size_t len, size_t* compLen)
 			*compLen += 8;
 
 			DBGLOG(TEST, HTTP_MESSAGE(fdebug, "gzip crc32=%lu\n", (unsigned long)this->_z_crc));
-			HLOG(FileLog::L_DEBUG,  CLOGFMT(HttpClient,"Http gzip crc=%lu"), (unsigned long)this->_z_crc);
+			HLOG(ZQ::common::Log::L_DEBUG,  CLOGFMT(HttpClient,"httpDeflate() gzip crc=%lu"), (unsigned long)this->_z_crc);
 		}
 #endif
-		HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http deflate end"));
+		HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"httpDeflate() ends"));
 	}
 	
 	return HTTP_OK;
@@ -3806,7 +3812,7 @@ int HttpClient::httpInflate(char* content, size_t len)
 					return this->_error = HTTP_ZLIB_ERROR;
 				this->_z_crc = crc32(0L, NULL, 0);
 				DBGLOG(TEST, HTTP_MESSAGE(fdebug, "gzip initialized\n"));
-				HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http inflate gzip initialize"));
+				HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"httpInflate() inflate gzip initialize"));
 			}
 			else
 			{ 
@@ -3821,7 +3827,7 @@ int HttpClient::httpInflate(char* content, size_t len)
 			return this->_error = HTTP_ZLIB_ERROR;
 		this->_zlib_state = HTTP_ZLIB_INFLATE;
 		DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Inflate initialized\n"));
-		HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http inflate initialized"));
+		HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"httpInflate() initialized"));
 		this->_mode |= HTTP_ENC_ZLIB;
 		if (!this->_z_buf)
 			this->_z_buf = (char*)HTTP_MALLOC( _z_buflen);
@@ -3854,8 +3860,8 @@ int HttpClient::httpInflate(char* content, size_t len)
 					this->_z_crc = crc32(this->_z_crc, (Byte*)this->_z_buf, (unsigned int)ret);
 				if (r == Z_STREAM_END)
 				{ 
-					DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Inflated %lu->%lu bytes\n", this->_d_stream->total_in, this->_d_stream->total_out));
-					HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http inflated %lu -> %lu bytes"),this->_d_stream->total_in, this->_d_stream->total_out);
+					DBGLOG(TEST, HTTP_MESSAGE(fdebug, "httpInflate() inflated %lu->%lu bytes\n", this->_d_stream->total_in, this->_d_stream->total_out));
+					HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"httpInflate() inflated %lu -> %lu bytes"),this->_d_stream->total_in, this->_d_stream->total_out);
 					this->_d_stream->next_out = Z_NULL;
 				}
 				if (ret)
@@ -3869,8 +3875,8 @@ int HttpClient::httpInflate(char* content, size_t len)
 			}
 			else if (r != Z_BUF_ERROR)
 			{ 
-				DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Inflate error: %s\n", this->_d_stream->msg?this->_d_stream->msg:""));
-				HLOG(FileLog::L_ERROR, CLOGFMT(HttpClient,"Http inflate error msg: %s"), this->_d_stream->msg?this->_d_stream->msg:"");
+				DBGLOG(TEST, HTTP_MESSAGE(fdebug, "inflate error: %s\n", this->_d_stream->msg?this->_d_stream->msg:""));
+				HLOG(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient,"httpInflate() error msg: %s"), this->_d_stream->msg?this->_d_stream->msg:"");
 				this->_d_stream->next_out = Z_NULL;
 				this->_error = HTTP_ZLIB_ERROR;
 				return EOF;
@@ -3888,7 +3894,7 @@ int HttpClient::httpInflate(char* content, size_t len)
 		this->_zlib_state = HTTP_ZLIB_NONE;
 		if (inflateEnd(this->_d_stream) != Z_OK)
 			return this->_error = HTTP_ZLIB_ERROR;
-		DBGLOG(TEST,HTTP_MESSAGE(fdebug, "Inflate end ok\n"));		
+		DBGLOG(TEST,HTTP_MESSAGE(fdebug, "httpInflate() end ok\n"));		
 #ifdef WITH_GZIP
 		char gEnd[9] = {0};
 		memcpy(gEnd,content+this->_bufidx,8);
@@ -3896,7 +3902,7 @@ int HttpClient::httpInflate(char* content, size_t len)
 		{
 			int32 c;
 			short i;
-			DBGLOG(TEST,HTTP_MESSAGE(fdebug, "Inflate gzip crc check\n"));
+			DBGLOG(TEST,HTTP_MESSAGE(fdebug, "httpInflate() gzip crc check\n"));
 			for (i = 0; i < 8; i++)
 			{ 
 
@@ -3905,20 +3911,20 @@ int HttpClient::httpInflate(char* content, size_t len)
 			}
 			if (this->_z_crc != ((uLong)(unsigned char)gEnd[0] | ((uLong)(unsigned char)gEnd[1] << 8) | ((uLong)(unsigned char)gEnd[2] << 16) | ((uLong)(unsigned char)gEnd[3] << 24)))
 			{ 
-				DBGLOG(TEST,HTTP_MESSAGE(fdebug, "Gzip error: crc check failed, message corrupted? (crc32=%lu)\n", (unsigned long)this->_z_crc));
-				HLOG(FileLog::L_ERROR, CLOGFMT(HttpClient,"Http gzip error crc check failed,message corrupted(rcr = %lu)"),(unsigned long)this->_z_crc);
+				DBGLOG(TEST,HTTP_MESSAGE(fdebug, "gzip error: crc check failed, message corrupted? (crc32=%lu)\n", (unsigned long)this->_z_crc));
+				HLOG(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient,"httpInflate() gzip error crc check failed,message corrupted(rcr = %lu)"),(unsigned long)this->_z_crc);
 				return this->_error = HTTP_ZLIB_ERROR;
 			}
 			if (this->_d_stream->total_out != ((uLong)(unsigned char)gEnd[4] | ((uLong)(unsigned char)gEnd[5] << 8) | ((uLong)(unsigned char)gEnd[6] << 16) | ((uLong)(unsigned char)gEnd[7] << 24)))
 			{ 
-				DBGLOG(TEST,HTTP_MESSAGE(fdebug, "Gzip error: incorrect message _length\n"));
-				HLOG(FileLog::L_ERROR, CLOGFMT(HttpClient,"Http gzip error, incorrect message _length"));
+				DBGLOG(TEST,HTTP_MESSAGE(fdebug, "gzip error: incorrect message _length\n"));
+				HLOG(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient,"httpInflate() gzip error, incorrect message _length"));
 				return this->_error = HTTP_ZLIB_ERROR;
 			}
 		}
 		this->_zlib_in = HTTP_ZLIB_NONE;
 #endif
-		HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http inflate end"));
+		HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"httpInflate() inflate end"));
 		_strContent = std::string(this->_z_buf,ret);
 	}	
 
@@ -3935,7 +3941,7 @@ int HttpClient::getGzipHeader(char* gziphdr)
 	int32 c = 0, f = 0;
 	int nidx = 0;
 	DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Get gzip header\n"));
-	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http get gzip header"));
+	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"getGzipHeader()"));
 	for (i = 0; i < 9; i++)
 	{
 		if((int)(c = (unsigned char)gziphdr[nidx++]) == EOF)
@@ -3978,7 +3984,7 @@ int HttpClient::getGzipHeader(char* gziphdr)
 int HttpClient::recvChunk()
 {
 	_needrecv = 1;
-//	HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http receive chunk packet"));
+//	HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"Http receive chunk packet"));
 	if ((this->_mode & HTTP_IO) == HTTP_IO_CHUNK) // read HTTP chunked transfer 
 	{ 
 //		for (;;)
@@ -4002,15 +4008,15 @@ int HttpClient::recvChunk()
 			if ((int)c == EOF)
 				return this->_ahead = EOF;
 			*t = '\0';
-			DBGLOG(TEST, HTTP_MESSAGE(fdebug, "Chunk size = %s (hex)\n", tmp));
+			DBGLOG(TEST, HTTP_MESSAGE(fdebug, "chunk size = %s (hex)\n", tmp));
 			this->_chunksize = strtoul(tmp, &t, 16);
 			this->_totalChunkSize += (int64)this->_chunksize;
-//			HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http chunk size = [%s](hex) or [%d] (dec)"), tmp, this->_chunksize);
+//			HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"recvChunk() chunk size = [%s](hex) or [%d] (dec)"), tmp, this->_chunksize);
 			if (!this->_chunksize)
 			{ 
 				DBGLOG(TEST, HTTP_MESSAGE(fdebug, "End of chunked message\n"));
-				HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http total chunk size = [%lld]"), this->_totalChunkSize);
-				HLOG(FileLog::L_DEBUG, CLOGFMT(HttpClient,"Http end of chunk message"));
+				HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"recvChunk() total chunk size = [%lld]"), this->_totalChunkSize);
+				HLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient,"recvChunk() end of chunk message"));
 				while ((int)c != EOF && c != '\n')
 					c = getChunkChar();
 				_needrecv = 0;

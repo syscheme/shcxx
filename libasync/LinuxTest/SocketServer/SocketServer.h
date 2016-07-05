@@ -46,7 +46,7 @@ private:
 	unsigned  int         _port;
 	ZQ::common::Log&       _log;
 
-	ZQ::common::NativeThreadPool* _pThreadPool;
+	//ZQ::common::NativeThreadPool* _pThreadPool;
 	int                           _connectionNum;
 	bool                         _error;
 

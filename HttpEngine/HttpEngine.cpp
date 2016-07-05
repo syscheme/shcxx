@@ -219,8 +219,10 @@ private:
 class Response: public IResponse
 {
 public:
+	uint32 _flags;
+
 	Response(ZQ::common::Log &log, DialogPtr dialog,Request& req, const std::string& svr = "ZQHttpE")
-		:_log(log), _dialog(dialog), _svr(svr), _blocked(true),_req(req)
+		:_log(log), _dialog(dialog), _svr(svr), _blocked(true),_req(req), _flags(0)
 	{
 		reset();
 		enableMessageDump(true, false, "");
@@ -228,6 +230,7 @@ public:
 		_timeHeaderPrepared = 0;
 		_timeBodyFlushed = 0;
 	}
+
 	bool init(ZQ::DataPostHouse::IDataCommunicatorPtr comm)
 	{
 		ZQ::common::MutexGuard guard(_lock);
@@ -373,6 +376,17 @@ public:
 		_dumpOutgoingMessage = outgoingMessage;
 		_outgoingMessageDumpHint = dumpHint;
 	}
+
+	virtual uint32 setFlags(uint32 flags, bool enable)
+	{
+		if (enable)
+			_flags |= flags;
+		else
+			_flags &= ~flags;
+
+		return _flags;
+	}
+
 
 private:
 	// the unlock version of flush
@@ -799,6 +813,7 @@ public:
 	virtual int64 getId() const {
 		return _id;
 	}
+
 	virtual bool setCommOption(int opt, int val)
 	{
 		switch(opt)
@@ -1055,18 +1070,24 @@ private:
 
 bool Response::complete()
 {
+	bool bSent = false;
 	ZQ::common::MutexGuard guard(_lock);
 	if(!_buf.empty()) { // send out the header first
-		bool bSent = sendData(_buf.data(), _buf.size());
-		if (bSent) {
+		bSent = sendData(_buf.data(), _buf.size());
+		//if (bSent) {
 			//mConnSetting.nodelay(true);//flush the data to client
 			resetBuffer(); // clear the buffer
-		} else {
-			return false;
-		}
+		//} else {
+			//connection may be broken,
+			// set _completed to true to let later procedure delete resources it gotten
+			// do not return here, take failure as success
+			//return false;
+		//}
+	} else {
+		bSent = true;
 	}
 	_completed = true;
-	if(_contentLen < 0) // chunked
+	if(_contentLen < 0 &&  0 == (rspflg_SkipZeroChunk & _flags) && bSent) // chunked
 	{ // append last chunk
 #define LAST_CHUNK "0" CRLF CRLF
 #define LAST_CHUNK_LEN 5
@@ -1078,7 +1099,7 @@ bool Response::complete()
 	getEngineStatistics().addCounter(_req.method(), _statusCode, 
 		_timeHeaderPrepared-_timeCreation,
 		_timeBodyFlushed-_timeCreation);
-	return true;
+	return bSent;
 }
 
 // data is ready
@@ -1213,6 +1234,11 @@ bool Dialog::feed(const char* data, size_t len)
 					if(CurrentSession->req.parseRequestLine(line))
 					{ // select a request handler
 						_log(ZQ::common::Log::L_DEBUG, PARSINGLOGFMT("new request arrived:%s"), line);
+						if( strcmp(CurrentSession->req.version(), "1.1") != 0 ) {
+							_log(ZQ::common::Log::L_WARNING, PARSINGLOGFMT("unsupported http version[%s]"),CurrentSession->req.version());
+							CurrentSession->resp.sendDefaultErrorPage(505);
+						}
+
 						CurrentSession->handler = _handlerFac.create(CurrentSession->req.uri());
 						if(CurrentSession->handler)
 						{
@@ -1539,6 +1565,7 @@ public:
 		dialog->enableMessageDump(_textDumpMode, _dumpIncomingMesage, _dumpOutgoingMessage);
 		return dialog;
 	}
+
 	virtual void onReleaseDataDialog(ZQ::DataPostHouse::IDataDialogPtr dialog, ZQ::DataPostHouse::IDataCommunicatorPtr communicator)
 	{
 		if( communicator)

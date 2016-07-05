@@ -3,20 +3,20 @@
 
 namespace LibAsync{
 
-	SocketAddrHelper::SocketAddrHelper()
+	SocketAddrHelper::SocketAddrHelper(bool bTcp /*= true*/)
 	:mInfo(NULL){
-		init();
+		init(bTcp);
 	}
 
-	SocketAddrHelper::SocketAddrHelper(const std::string& ip, const std::string& service)
+	SocketAddrHelper::SocketAddrHelper(const std::string& ip, const std::string& service, bool bTcp /*= true*/)
 		:mInfo(NULL){
-		init();
+		init(bTcp);
 		parse(ip,service);
 	}
 
-	SocketAddrHelper::SocketAddrHelper(const std::string& ip, unsigned short port)
+	SocketAddrHelper::SocketAddrHelper(const std::string& ip, unsigned short port, bool bTcp /*= true*/)
 		:mInfo(NULL) {
-		init(true);
+		init(bTcp);
 		std::ostringstream oss;oss<<port;
 		parse(ip,oss.str());
 	}
@@ -28,15 +28,15 @@ namespace LibAsync{
 		memset(&mHint,0,sizeof(mHint));
 		mHint.ai_family = AF_UNSPEC;
 		mHint.ai_protocol = bTcp ? IPPROTO_TCP:IPPROTO_UDP;
-		mHint.ai_socktype = bTcp ? SOCK_STREAM: SOCK_DGRAM;
+		mHint.ai_socktype = bTcp ? SOCK_STREAM:SOCK_DGRAM;
 	}
 	
-	bool SocketAddrHelper::parse( const std::string& ip, unsigned short port) {
+	bool SocketAddrHelper::parse( const std::string& ip, unsigned short port, bool bTcp /*= true*/) {
 		std::ostringstream oss;oss<<port;
-		return parse(ip, oss.str());
+		return parse(ip, oss.str(), bTcp);
 	}
 
-	bool SocketAddrHelper::parse(const std::string& ip, const std::string& service){
+	bool SocketAddrHelper::parse(const std::string& ip, const std::string& service, bool bTcp /*= true*/){
 		clear();
 		if(getaddrinfo(ip.c_str(),service.c_str(),&mHint,&mInfo) != 0 ) {
 			mDecodeOk = false;
@@ -109,7 +109,10 @@ namespace LibAsync{
 #ifdef ZQ_OS_LINUX
 	,mSocketEvetns(0),
 	mRecedSize(0),
-	mSentSize(0)
+	mSentSize(0),
+	mWriteable(false),
+	mLingerTime(5000),
+	mShutdown(false)
 #endif
 	{
 	}
@@ -125,7 +128,10 @@ namespace LibAsync{
 #ifdef ZQ_OS_LINUX
 	,mSocketEvetns(0),
 	mRecedSize(0),
-	mSentSize(0)
+	mSentSize(0),
+	mWriteable(false),
+    mLingerTime(5000),
+	mShutdown(false)
 #endif//
 	{
 	}
@@ -147,7 +153,15 @@ namespace LibAsync{
 	}
 
 	Socket::~Socket(){
+#ifdef ZQ_OS_MSWIN
 		close();
+#else
+		if(mShutdown && mbAlive == true)
+			assert(false);
+		realClose();
+		mLingerPtr = NULL;	
+#endif
+		mLoop.decreateSockCount();
 	}
 
 	Socket::Ptr Socket::create(EventLoop& loop) {
@@ -179,14 +193,10 @@ namespace LibAsync{
 	}
 
 	bool Socket::getLocalAddress(std::string& ip, unsigned short& port) const {
-		if(!mbAlive)
-			return false;
 		return getNameInfo(true, ip, port);
 	}
 
 	bool Socket::getPeerAddress(std::string& ip, unsigned short& port) const {
-		if(!mbAlive)
-			return false;
 		return getNameInfo(false, ip, port);
 	}
 
@@ -197,19 +207,22 @@ namespace LibAsync{
 #endif
 		socklen_t addrSize = sizeof(addr);
 		if( local ) {
-			if(getsockname(mSocket,(struct sockaddr*)&addr, &addrSize) != 0)
+			if(getsockname(mSocket,(struct sockaddr*)&addr, &addrSize) != 0) {
 				return false;
+			}
 		} else {
-			if(getpeername(mSocket,(struct sockaddr*)&addr, &addrSize) != 0)
+			if(getpeername(mSocket,(struct sockaddr*)&addr, &addrSize) != 0) {
 				return false;
+			}
 		}
 		char strIp[32] = {0};
 		char strPort[16] = {0};
 		if( getnameinfo((const struct sockaddr*)&addr, addrSize, 
 			strIp,sizeof(strIp)-1,
 			strPort, sizeof(strPort)-1 ,
-			NI_NUMERICHOST|NI_NUMERICSERV ) !=0 )
+			NI_NUMERICHOST|NI_NUMERICSERV ) !=0 ) {
 			return false;
+		}
 		ip = strIp;
 		port = (unsigned short)atoi(strPort);
 		return true;
@@ -226,15 +239,32 @@ namespace LibAsync{
 		  return send(bufs);
 	}
 
+	int Socket::sendDirect( AsyncBuffer buf )
+	{
+		AsyncBufferS bufs;bufs.push_back(buf);
+		return sendDirect(bufs);
+	}
+
 	bool Socket::setReuseAddr( bool reuse ) {
 		int reuse_value = reuse ? 1 : 0;
 		return setsockopt(mSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse_value, sizeof(reuse_value)) == 0;
-
 	}
 
 	bool Socket::setSendBufSize( int size ) {
-		return 0 == setsockopt( mSocket, SOL_SOCKET, SO_SNDBUF, (const char*)&size, sizeof(size));
+#ifdef ZQ_OS_LINUX
+        return 0 == setsockopt( mSocket, SOL_SOCKET, SO_SNDBUFFORCE, (const char*)&size, sizeof(size));
+#else
+        return 0 == setsockopt( mSocket, SOL_SOCKET, SO_SNDBUF, (const char*)&size, sizeof(size));
+#endif
+	}
+
+	bool Socket::setRecvBufSize( int size ) {
+#ifdef ZQ_OS_LINUX
+        return 0 == setsockopt( mSocket, SOL_SOCKET, SO_RCVBUFFORCE, (const char*)&size, sizeof(size));
+#else
+        return 0 == setsockopt( mSocket, SOL_SOCKET, SO_RCVBUF, (const char*)&size, sizeof(size));
+#endif
 	}
 
 }//namespace LibAsync
-//vim: ts=4:sw=4:autoindent:fileencodings=gb2312
+//vim: ts=4:sw=4:autoindent

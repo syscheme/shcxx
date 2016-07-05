@@ -27,6 +27,9 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/Log.h $
 // 
+// 12    7/01/15 4:41p Zhiqiang.niu
+// sync with git
+// 
 // 11    3/27/15 10:50a Hui.shao
 // 
 // 10    1/26/15 3:07p Ketao.zhang
@@ -156,7 +159,6 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/syscall.h>
 
-#define gettid() syscall(SYS_gettid)
 #endif
 }
 
@@ -234,7 +236,15 @@ public:
 	
 	/// set the default verbosity log level
 	void			setVerbosity(int newlevel = L_ERROR);
-	
+
+	///add helper functions
+	void			debug( const char* fmt, ... ) PRINTFLIKE(2,3);
+	void 			info( const char* fmt, ... ) PRINTFLIKE(2,3);
+	void			notice( const char* fmt, ... ) PRINTFLIKE(2,3);
+	void			warning( const char* fmt, ... ) PRINTFLIKE(2,3);
+	void			error( const char* fmt, ... ) PRINTFLIKE(2,3);
+	void			crit( const char* fmt, ... ) PRINTFLIKE(2,3);
+	void			emerg( const char* fmt, ... ) PRINTFLIKE(2,3);
 	/// full log entry
 	/// @param level   - Log level to write the message
 	/// @param fmt     - format string
@@ -273,6 +283,8 @@ protected:
 		printf("%02x %ls\n",level,msg);
 #endif
 	}
+
+	void formatLogMessage( int level, const char* fmt, va_list args);
 
 private:
 	#define LOG_LEN_PER_LINE (0x200)
@@ -408,13 +420,11 @@ protected:
 #endif // _DEBUG
 
 
-#ifndef __THREADID__
 #  ifdef ZQ_OS_MSWIN
 #      define __THREADID__  GetCurrentThreadId()
 #   else
-#      define __THREADID__  ( (unsigned int)gettid())
+#      define __THREADID__  ZQ::common::getthreadid()
 #   endif//ZQ_OS_MSWIN
-#endif // __THREADID__
 
 #ifndef __FUNCTION__
 #	define __FUNCTION__ __FILE__
@@ -426,13 +436,13 @@ protected:
 
 #ifndef LOGFMT
 #  ifdef LOGFMT_WITH_LINENO
-#     define LOGFMT(_X)          __FUNCTION__ "  \t[L%03dT%08X] " _X, __LINE__, __THREADID__
-#     define CLOGFMT(_C, _X)     #_C          "  \t[L%03dT%08X] " _X, __LINE__, __THREADID__
-#     define FLOGFMT(_C, _FUNC, _X)  #_C      "  \t[L%03dT%08X] " #_FUNC "() " _X, __LINE__, __THREADID__
+#     define LOGFMT(_X)          __FUNCTION__ "  \t[L%03dT%08u] " _X, __LINE__, __THREADID__
+#     define CLOGFMT(_C, _X)     #_C          "  \t[L%03dT%08u] " _X, __LINE__, __THREADID__
+#     define FLOGFMT(_C, _FUNC, _X)  #_C      "  \t[L%03dT%08u] " #_FUNC "() " _X, __LINE__, __THREADID__
 #  else
 #     define LOGFMT(_X)      _X
-#     define CLOGFMT(_C, _X)         #_C  "  \t[T%08X] " _X, (uint32)(__THREADID__)
-#     define FLOGFMT(_C, _FUNC, _X)  #_C  "  \t[T%08X] " #_FUNC "() " _X, (uint32)(__THREADID__)
+#     define CLOGFMT(_C, _X)         #_C  "  \t[T%08u] " _X, __THREADID__
+#     define FLOGFMT(_C, _FUNC, _X)  #_C  "  \t[T%08u] " #_FUNC "() " _X, __THREADID__
 #  endif // 
 #endif //LOGFMT
 

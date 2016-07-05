@@ -9,13 +9,48 @@
 #include "socket.h"
 #include "httpparser.h"
 
-namespace LibAsync{
+namespace LibAsync {
+	class EventLoopCenter : public LoopCenter {
+	public:
+		EventLoopCenter();
+		virtual ~EventLoopCenter();
+		bool	startCenter(ZQ::common::Log& log, const std::vector<int>& cpuIds);
+		void	stopCenter();
 
-	class ZQ_COMMON_API HttpProcessor : public ParserCallback, public Socket {
+		///从Center里面获取一个EventLoop，当前的实现版本是roundrobin
+		virtual EventLoop&	getLoop();
+		void				releaseLoop();
+		static bool initLoops();
+	protected:
+		virtual void	addSocket(int id);
+		virtual void	removeSocket(int id);
+
+	private:
+		struct LoopInfo {
+			EventLoop*	loop;
+			size_t		sockCount;
+			LoopInfo() :loop(NULL),
+				sockCount(0) {
+			}
+			bool operator<(const LoopInfo& rhs) const {
+				return sockCount < rhs.sockCount;
+			}
+		};
+		typedef std::vector<LoopInfo>	LOOPS;
+		size_t				mIdxLoop;
+		LOOPS				mLoops;
+		ZQ::common::Mutex	mLocker;
+	};
+
+	EventLoopCenter& getLoopCenter();
+	const AsyncBuffer& getBufForChunkTail();
+
+	class ZQ_COMMON_API HttpProcessor : virtual public Socket, public ParserCallback{
 	public:
 		//////////////////////////////////////////////////////////////////////////		
-		static bool	setup(size_t loopCount);
+		static bool	setup(ZQ::common::Log& log, const std::vector<int>& cpuIds);
 		static void	teardown();
+
 		typedef ZQ::common::Pointer<HttpProcessor> Ptr;
 		virtual ~HttpProcessor();
 		bool			beginRecv();
@@ -26,10 +61,20 @@ namespace LibAsync{
 		bool			sendBody( const AsyncBuffer& buf );
 		bool			sendBody( const AsyncBufferS& bufs);
 		bool			endSend( );
+#ifdef ZQ_OS_LINUX
+        int			beginSend_direct( HttpMessagePtr msg );
+        int			sendBody_direct( const AsyncBuffer& buf );
+        int			sendBody_direct( const AsyncBufferS& bufs);
+        int			endSend_direct( );
+#endif
+
+		void			resetHttp( ); // reset current all pending flag
+
 	protected:
 		HttpProcessor( bool clientSide );
 		HttpProcessor( bool clientSide, SOCKET socket);
 		void			reset( ParserCallback* callback = NULL );
+		int 			sendChunk( BufferHelper& bh);
 	private:
 		HttpProcessor( const HttpProcessor&);
 		HttpProcessor& operator=( const HttpProcessor&);
@@ -58,16 +103,34 @@ namespace LibAsync{
 	private:
 		http_parser_type		mParseType;
 		HttpParser				mHttpParser;
+		
 		HttpMessagePtr			mIncomingMsg;
 		HttpMessagePtr			mOutgoingMsg;
+
 		AsyncBufferS			mReadingBufs;
+		AsyncBuffer				mHeadersBuf;
+	
+		enum ChunkSendingState {
+			SENDING_CHUNK_NULL,
+			SENDING_CHUNK_HEADER,
+			SENDING_CHUNK_BODY,
+			SENDING_CHUNK_TAIL,
+			SENDING_CHUNK_ZERO
+		};
 		AsyncBufferS			mWritingBufs;
 		AsyncBuffer				mChunkHeader;
-		AsyncBuffer				mHeadersBuf;
+		ChunkSendingState		mSendingChunkState;
+		size_t					mLastUnsentBytes;
+		size_t					mLastUnsentBodyBytes;
+		bool					mbResentZeroChunk;
+
 		std::string				mOutgoingHeadersTemp;
 		bool					mbRecving;
 		bool					mbSending;
 		bool					mbOutgoingKeepAlive;
+#define HEADER_BUF_LEN	4096
+#define CHUNKHEADER_BUF_LEN 32
+		char					mTempBuffer[ HEADER_BUF_LEN + CHUNKHEADER_BUF_LEN ];
 	};
 
 	class ZQ_COMMON_API HttpClient;
@@ -129,7 +192,10 @@ namespace LibAsync{
 		// onHttpDataReceived is only used to notify that the receiving buffer is free and not held by HttpClient any mre
 		virtual void	onHttpDataReceived( size_t size ) { }
 
-		virtual bool	onHttpMessage( const HttpMessagePtr msg) { return false; }
+		virtual bool	onHttpMessage( const HttpMessagePtr msg) { 
+			abort();
+			return false; 
+		}
 
 		virtual bool	onHttpBody( const char* data, size_t size) { return false; }
 
@@ -218,6 +284,8 @@ namespace LibAsync{
 		virtual void	onHttpDataSent( size_t size) = 0;
 
 		virtual void	onHttpDataReceived( size_t size ) = 0;
+
+        virtual void 	onWritable() = 0;
 	};
 
 	class HttpServer;
@@ -235,7 +303,7 @@ namespace LibAsync{
 	 * 	      因为这个时候, 我们还没有拿到任何user code的实例, 所以看起来需要在
 	 * 	      HttpServer里面加上一个接口来专门处理这种情况b1.add(8);?
 	 * */
-	class HttpServant : public virtual HttpProcessor, public virtual Timer  {
+	class HttpServant : public virtual HttpProcessor, public virtual Timer {
 	public:
 		HttpServant( HttpServer& server, SOCKET socket, ZQ::common::Log& logger );
 		virtual ~HttpServant();
@@ -246,9 +314,15 @@ namespace LibAsync{
 
 		void	reset( IHttpHandler::Ptr handler );
 
+		void	initHint();
+
+		const std::string& hint() const { return mHint; }
+
 	private:
 
 		virtual void	onHttpError( int err );
+
+        virtual void    onWritable();
 
 		virtual void	onHttpDataSent( size_t size);
 
@@ -280,6 +354,8 @@ namespace LibAsync{
 		int							mOutstandingRequests;
 		ZQ::common::Log&			mLogger;
 		bool						mHeaderComplete;
+
+		std::string					mHint;
 	};
 
 	struct HttpServerConfig {
@@ -298,7 +374,7 @@ namespace LibAsync{
 		uint64		maxConns;
 	};
 
-	class ZQ_COMMON_API HttpServer : public Socket {
+	class ZQ_COMMON_API HttpServer : public Socket, public ZQ::common::NativeThread {
 	protected:
 		HttpServer( const HttpServerConfig& conf, ZQ::common::Log& logger );
 	public:	
@@ -317,10 +393,17 @@ namespace LibAsync{
 		bool	startAt( const std::string& ip, unsigned short port);
 		bool	startAt( const std::string& ip, const std::string& port);
 
+		void	stop( );
+
 		HttpMessagePtr makeSimpleResponse( int code ) const;
 
 		const HttpServerConfig&	config() const { return mConfig; }
+
+
 	private:
+		bool					startAt( const SocketAddrHelper& addr );
+
+		int						run( );
 		
 		virtual	void			onSocketError(int err);
 
@@ -337,6 +420,8 @@ namespace LibAsync{
 		std::set<HttpServant::Ptr> mServants;
 		ZQ::common::Mutex		mLocker;
 		ZQ::common::Log&		mLogger;
+		int						mSocket;
+		bool					mbRunning;
 	};
 
 }//namespace LibAsync

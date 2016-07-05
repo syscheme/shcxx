@@ -217,7 +217,7 @@ bool BaseZQServiceApplication::init(int argc, char* argv[])
 	//_strVersion = std::string(ZQ_INTERNAL_FILE_NAME) + " v" __STR1__(ZQ_PRODUCT_VER_MAJOR) "." __STR1__(ZQ_PRODUCT_VER_MINOR) "." __STR1__(ZQ_PRODUCT_VER_PATCH) "." __STR1__(ZQ_PRODUCT_VER_BUILD);
 	_strVersion = __STR1__(ZQ_PRODUCT_VER_MAJOR) "." __STR1__(ZQ_PRODUCT_VER_MINOR) "." __STR1__(ZQ_PRODUCT_VER_PATCH) "." __STR1__(ZQ_PRODUCT_VER_BUILD);
 
-	(*_logger)(Log::L_INFO, "=============== Service[%s] starts =================", _strVersion.c_str());
+	(*_logger)(Log::L_INFO, "========================= Service[%s] starts =========================",_strVersion.c_str());
 	ZQ::common::setGlogger(_logger);
 
 	//unsigned int svcInstanceId = getInstanceId();
@@ -359,7 +359,7 @@ bool BaseZQServiceApplication::OnStart() {
 
 	if (NULL != _pServiceMib)
 	{
-		_pSnmpSA = new ZQ::SNMP::Subagent(_pServiceMib->_flog, *_pServiceMib, DEFAULT_COMM_TIMEOUT);
+		_pSnmpSA = new ZQ::SNMP::SubAgent(_pServiceMib->_flog, *_pServiceMib, DEFAULT_COMM_TIMEOUT);
 		if (_pSnmpSA)
 			_pSnmpSA->start();
 	}
@@ -369,7 +369,7 @@ bool BaseZQServiceApplication::OnStart() {
 }
 
 bool BaseZQServiceApplication::OnStop() {
-	(*_logger)(Log::L_INFO, "service[%s] is requested to stop, ", _serviceName.c_str());
+	(*_logger)(Log::L_INFO, "Recieve Stop message from service shell. ");
 	if (_pSnmpSA)
 		delete _pSnmpSA;
 	_pSnmpSA = NULL;

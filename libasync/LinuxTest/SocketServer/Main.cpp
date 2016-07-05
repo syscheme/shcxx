@@ -5,10 +5,10 @@ using namespace LibAsync;
 
 int main()
 {
-	SocketServer::_lopCenter.startCenter(4);
+	SocketServer::_lopCenter.startCenter(10);
 
 	ZQ::common::FileLog   serverlog("./log/server.log", 7);
-	SocketServerPtr server = new SocketServer(SocketServer::_lopCenter.getLoop(), "10.15.10.50", 12345, serverlog);
+	SocketServerPtr server = new SocketServer(SocketServer::_lopCenter.getLoop(), "10.6.6.190", 12345, serverlog);
 	
 	if (server->startServer(10000) )
 	{

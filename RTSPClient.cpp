@@ -27,6 +27,19 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/RTSPClient.cpp $
 // 
+// 56    3/11/16 9:55a Dejian.fei
+// NDK android
+// 
+// 55    2/25/16 4:38p Hui.shao
+// 
+// 54    2/25/16 4:23p Hui.shao
+// added RTSPClient_sync
+// 
+// 52    11/10/15 3:00p Hui.shao
+// ticket#18316 to protect multiple in comming message of a same session
+// 
+// 51    5/06/15 5:24p Hui.shao
+// 
 // 50    2/08/14 7:16p Hui.shao
 // merged from V1.16
 // 
@@ -230,7 +243,7 @@ namespace common{
 RTSPRequest::RTSPRequest(RTSPClient& client, uint cseq, const char* commandName, RTSPSession* pSession,
 	                    uint32 flags, double start, double end, float scale, const char* contentStr, void* pUserExtData)
 	: RTSPMessage(cseq), _client(client), _commandName(commandName), _pUserExtData(pUserExtData),
-	 _flags(flags), _startPos(start), _endPos(end), _scale(scale)
+	 _flags(flags), _startPos(start), _endPos(end), _scale(scale), _stampResponsed(0)
 {
 	if (NULL != pSession)
 		_sessGuid = pSession->guid();
@@ -239,9 +252,17 @@ RTSPRequest::RTSPRequest(RTSPClient& client, uint cseq, const char* commandName,
 		contentBody = contentStr;
 }
 
+void RTSPRequest::close()
+{
+	if (cSeq >0)
+		_client.OnRequestClean(*this);
+
+	cSeq =0;
+}
+
 RTSPRequest::~RTSPRequest()
 {
-	_client.OnRequestClean(*this);
+	close();
 }
 
 // -----------------------------
@@ -553,6 +574,8 @@ static int errorno()
 #endif
 }
 
+#define ISSUECMD(CMDTYPE, CMDARGS) 		try { CMDTYPE* c=NULL; if (NULL != (c = new CMDTYPE CMDARGS)) c->start(); } catch(...) {}
+
 // -----------------------------
 // class MessageProcessCmd
 // -----------------------------
@@ -601,6 +624,8 @@ protected:
 					return -2;
 				}
 
+				_pair.outReq->_stampResponsed = _pair.inMsg->stampCreated;
+
 #ifdef _DEBUG
 				_client._log(Log::L_DEBUG, CLOGFMT(MessageProcessCmd, "dispatching response of %s(%d): %s"), _pair.outReq->_commandName.c_str(), _pair.cSeq, _pair.inMsg->startLine.c_str());
 #endif // _DEBUG
@@ -608,6 +633,8 @@ protected:
 
 				if (pSession)
 				{
+					MutexGuard sessg(pSession->_lockIncomming);
+
 					RTSPMessage::AttrMap::iterator itHeader = _pair.inMsg->headers.find("Session");
 					std::string sessId; int timeoutSec=0;
 					if (_pair.inMsg->headers.end() != itHeader)
@@ -649,6 +676,8 @@ protected:
 				}
 				else
 					_client.OnResponse(_client, _pair.outReq, _pair.inMsg, resultCode, resultStr.c_str());
+
+				_pair.outReq->close();
 
 				long latencyMessage =(long) (_pair.inMsg->stampCreated - _pair.outReq->stampCreated);
 				long latencyDispatch =(long) (stampNow - _pair.inMsg->stampCreated);
@@ -703,6 +732,8 @@ protected:
 
 			if (pSession)
 			{
+				MutexGuard sessg(pSession->_lockIncomming);
+
 				pSession->_stampLastMessage = stampNow;
 				pSession->OnServerRequest(_client, cmdName.c_str(), url.c_str(), _pair.inMsg);
 			}
@@ -755,6 +786,11 @@ protected:
 				pSession->OnRequestError(_client, _req, _errCode, _errDesc.c_str());
 			else
 				_client.OnRequestError(_client, _req, _errCode, _errDesc.c_str());
+		}
+		catch(...) {}
+
+		try {
+			_req->close();
 		}
 		catch(...) {}
 
@@ -1031,10 +1067,7 @@ int RTSPClient::sendRequest(RTSPRequest::Ptr pRequest, const RTSPMessage::AttrMa
 					if (!pReq)
 						continue;
 
-					try {
-						(new RequestErrCmd(*this, pReq, RTSPSink::Err_ConnectError))->start();
-					}
-					catch(...) {}
+					ISSUECMD(RequestErrCmd, (*this, pReq, RTSPSink::Err_ConnectError));
 				}
 
 				return pRequest->cSeq;
@@ -1183,7 +1216,7 @@ int RTSPClient::sendRequest(RTSPRequest::Ptr pRequest, const RTSPMessage::AttrMa
 		if (_messageTimeout >0 && stampNow - pRequest->stampCreated > _messageTimeout)
 		{
 			_log(Log::L_ERROR, CLOGFMT(RTSPClient, "sendRequest() %s timeout prior to sending"), reqDesc.c_str());
-			(new RequestErrCmd(*this, pRequest, lastErrCode))->start();
+			ISSUECMD(RequestErrCmd, (*this, pRequest, lastErrCode));
 		}
 		else
 		{
@@ -1238,7 +1271,7 @@ int RTSPClient::sendRequest(RTSPRequest::Ptr pRequest, const RTSPMessage::AttrMa
 	} // end of the dummyLoop
 
 	// An error occurred, so call the response handler immediately (indicating the error)
-	(new RequestErrCmd(*this, pRequest, lastErrCode))->start();
+	ISSUECMD(RequestErrCmd, (*this, pRequest, lastErrCode));
 	pRequest = NULL;
 
 	return -5;
@@ -1326,10 +1359,11 @@ int RTSPClient::sendMessage(RTSPMessage::Ptr pMessage, const RTSPMessage::AttrMa
 		if (ret == SOCKET_ERROR)
 		{
 			int errnum = SYS::getLastErr(SYS::SOCK);
+#ifndef ZQ_COMMON_ANDROID
 			std::string errMsg = SYS::getErrorMessage(SYS::SOCK);
 			_log(Log::L_ERROR, CLOGFMT(RTSPClient, "sendRequest() %s caught socket-err(%d)%s"),
 				msgDesc? msgDesc: "", errnum, errMsg.c_str());
-
+#endif
 #ifdef ZQ_OS_MSWIN
 			if (errnum == WSAEWOULDBLOCK)// retry send until reach 5
 #else
@@ -1382,7 +1416,7 @@ int RTSPClient::sendMessage(RTSPMessage::Ptr pMessage, const RTSPMessage::AttrMa
 
 void RTSPClient::OnConnected()
 {
-	_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnConnected() connected to the peer, new conn: %s"), connDescription());
+	_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnConnected() connected to the peer, new conn[%s]"), connDescription());
 	TCPSocket::setTimeout(_messageTimeout >>1); // half of _messageTimeout to wake up the socket sleep()
 	_inCommingByteSeen =0; // reset _inCommingByteSeen to start from the beginning of the receive buffer
 
@@ -1402,7 +1436,7 @@ void RTSPClient::OnConnected()
 		try {
 			if (pReq->stampCreated + _timeout < stampNow)
 			{
-				(new RequestErrCmd(*this, pReq, RTSPSink::Err_RequestTimeout))->start();
+				ISSUECMD(RequestErrCmd, (*this, pReq, RTSPSink::Err_RequestTimeout));
 				cExpired++;
 				continue;
 			}
@@ -1432,10 +1466,7 @@ void RTSPClient::OnConnected()
 		RTSPRequest::Ptr pReq = pendingRequests.front();
 		pendingRequests.pop();
 
-		try {
-			(new RequestErrCmd(*this, pReq, RTSPSink::Err_SendFailed))->start();
-		}
-		catch(...) {}
+		ISSUECMD(RequestErrCmd, (*this, pReq, RTSPSink::Err_SendFailed));
 	}
 
 	// close the socket per the error
@@ -1725,27 +1756,18 @@ void RTSPClient::OnDataArrived()
 	// the associated response of request
 	for (itStack = pendingResponses.begin(); itStack < pendingResponses.end(); itStack ++)
 	{
-		try {
-			(new MessageProcessCmd(*this, *itStack))->start();
-		}
-		catch(...) {}
+		ISSUECMD(MessageProcessCmd, (*this, *itStack));
 	}
 
 	// the RTSP requests from the peer
 	for (itStack = pendingPeerRequests.begin(); itStack < pendingPeerRequests.end(); itStack ++)
 	{
-		try {
-			(new MessageProcessCmd(*this, *itStack))->start();
-		}
-		catch(...) {}
+		ISSUECMD(MessageProcessCmd, (*this, *itStack));
 	}
 
 	for (itStack = expiredRequests.begin(); itStack < expiredRequests.end(); itStack ++)
 	{
-		try {
-			(new RequestErrCmd(*this, itStack->outReq, Err_RequestTimeout))->start();
-		}
-		catch(...) {}
+		ISSUECMD(RequestErrCmd, (*this, itStack->outReq, Err_RequestTimeout));
 	}
 
 	if (expiredRequests.size() >0)
@@ -1768,10 +1790,7 @@ void RTSPClient::OnError()
 		RTSPRequest::Ptr pReq = _requestsQueueToSend.front();
 		_requestsQueueToSend.pop();
 
-		try {
-			(new RequestErrCmd(*this, pReq, RTSPSink::Err_SendFailed))->start();
-		}
-		catch(...) {}
+		ISSUECMD(RequestErrCmd, (*this, pReq, RTSPSink::Err_SendFailed));
 	}
 }
 
@@ -1820,7 +1839,7 @@ void RTSPClient::_cleanupExpiredAwaitRequests(uint8 multiplyTimeout, char* func)
 
 			_requestsAwaitResponse.erase(pReq->cSeq);
 			_log(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPClient, "%s() conn[%s] %s(%d) as of [%s]"), func?func:"", connDescription(), pReq->_commandName.c_str(), pReq->cSeq, TimeUtil::TimeToUTC(pReq->stampCreated, buf, sizeof(buf)-2, true));
-			(new RequestErrCmd(*this, pReq, RTSPSink::Err_RequestTimeout))->start();
+			ISSUECMD(RequestErrCmd, (*this, pReq, RTSPSink::Err_RequestTimeout));
 		}
 		catch(...) {}
 	}
@@ -1870,6 +1889,101 @@ void RTSPClient::OnRequestError(RTSPClient& rtspClient, RTSPRequest::Ptr& pReq, 
 		 connDescription(), pReq->_commandName.c_str(), pReq->cSeq, errCode, errDesc, TimeUtil::TimeToUTC(pReq->stampCreated, buf, sizeof(buf)-2, true), _timeout);
 }
 
+// -----------------------------
+// class RTSPClient_sync
+// -----------------------------
+RTSPClient_sync::RTSPClient_sync(Log& log, NativeThreadPool& thrdpool, InetHostAddress& bindAddress, const std::string& baseURL, const char* userAgent, Log::loglevel_t verbosityLevel, tpport_t bindPort)
+: RTSPClient(log, thrdpool, bindAddress, baseURL, userAgent, verbosityLevel, bindPort),
+ _disconnectByTimeouts(0), _cContinuousTimeoutInConn(0), _cContinuousTimeout(0), _stampLastRespInTime(0)
+{
+}
+
+bool RTSPClient_sync::waitForResponse(uint32 cseq)
+{
+	Event::Ptr pEvent =NULL;
+
+	{
+		ZQ::common::MutexGuard g(_lkEventMap);
+		EventMap::iterator it = _eventMap.find(cseq);
+		if (_eventMap.end() != it)
+			pEvent = it->second;
+	}
+
+	if (!pEvent)
+		return false;
+
+	_log(Log::L_DEBUG, CLOGFMT(RTSPClient_sync, "waitForResponse() conn[%s](%d): waiting for syncEvent[%p] timeout[%d]"),
+		connDescription(), cseq, pEvent.get(), _messageTimeout);
+
+	if (SYS::SingleObject::SIGNALED == pEvent->wait(_messageTimeout) && pEvent->isSuccess() )
+	{
+		_stampLastRespInTime      = ZQ::common::now();
+		_cContinuousTimeoutInConn =0;
+		_cContinuousTimeout       =0;
+		return true;
+	}
+
+	_cContinuousTimeout++;
+	_log(Log::L_DEBUG, CLOGFMT(RTSPClient_sync, "waitForResponse() conn[%s] encounted [%d/%d] timeouts in the past [%d]msec"),
+		connDescription(), _cContinuousTimeoutInConn, _cContinuousTimeout, (int)(ZQ::common::now() - _stampLastRespInTime));
+
+	if (_disconnectByTimeouts > 1 && isConnected() && ++_cContinuousTimeoutInConn >= (uint)_disconnectByTimeouts)
+	{
+		_log(Log::L_WARNING, CLOGFMT(RTSPClient_sync, "waitForResponse() conn[%s]: encounted timeout[%d]msec continously for [%d/%d]times but limitation[%d], give it up and reconnecting"),
+			connDescription(), _messageTimeout, _cContinuousTimeoutInConn, _cContinuousTimeout, _disconnectByTimeouts);
+
+		disconnect();
+		_cContinuousTimeoutInConn =0;
+	}
+
+	return false;
+}
+
+int RTSPClient_sync::OnRequestPrepare(RTSPRequest::Ptr& pReq)
+{
+	if (!pReq)
+		return -1;
+	ZQ::common::MutexGuard g(_lkEventMap);
+	if (pReq->cSeq<=0 || _eventMap.end() != _eventMap.find(pReq->cSeq))
+		return -2;
+
+	Event::Ptr pEvent = new Event();
+	if (!pEvent)
+		return -3;
+
+	MAPSET(EventMap, _eventMap, pReq->cSeq, pEvent);
+	return 0;
+}
+
+void RTSPClient_sync::OnRequestClean(RTSPRequest& req)
+{
+	wakeupByCSeq(req.cSeq, req._stampResponsed >0);
+
+	ZQ::common::MutexGuard g(_lkEventMap);
+	EventMap::iterator it = _eventMap.find(req.cSeq);
+	if (_eventMap.end() == it)
+		return;
+
+	_eventMap.erase(it);
+	req.cSeq =0;
+}
+
+void RTSPClient_sync::wakeupByCSeq(uint32 cseq, bool success)
+{
+	Event::Ptr pEvent =NULL;
+
+	{
+		ZQ::common::MutexGuard g(_lkEventMap);
+		EventMap::iterator it = _eventMap.find(cseq);
+		if (_eventMap.end() != it)
+			pEvent = it->second;
+	}
+
+	if (!pEvent)
+		return;
+
+	pEvent->signal(success);
+}
 
 }}//endof namespace
 

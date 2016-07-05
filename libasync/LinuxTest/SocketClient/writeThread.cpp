@@ -42,7 +42,7 @@ void writeThread::addData(const std::string& fileName, const std::string& data)
 
 bool writeThread::popData(std::string& fileName, std::string& data)
 {
-	_log(ZQ::common::Log::L_DEBUG, CLOGFMT(writeThread, "popData() entry."));
+	//_log(ZQ::common::Log::L_DEBUG, CLOGFMT(writeThread, "popData() entry."));
 	DATA da;
 	{
 		ZQ::common::MutexGuard gd(_dataMapLocker);
@@ -61,7 +61,7 @@ int writeThread::run()
 	_log(ZQ::common::Log::L_DEBUG, CLOGFMT(writeThread, "run() entry."));
 	while(_looprun)
 	{
-		SYS::SingleObject::STATE sigState = _wakeup.wait(1000);
+		SYS::SingleObject::STATE sigState = _wakeup.wait(10000000);
 		std::string fileName = "";
 		std::string data = "";
 		while( popData(fileName, data) )

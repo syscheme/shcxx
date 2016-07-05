@@ -1,27 +1,22 @@
 #include <assert.h>
 #include <vector>
 #include <Locks.h>
+#include <TimeUtil.h>
 #include <urlstr.h>
 #include "http.h"
 
 namespace LibAsync {
 	
-	class EventLoopCenter {
-	public:
-		EventLoopCenter();
-		virtual ~EventLoopCenter();
-		bool	startCenter( size_t count);
-		void	stopCenter();
-		
-		///从Center里面获取一个EventLoop，当前的实现版本是roundrobin
-		virtual EventLoop&	getLoop();
+	static EventLoopCenter httpClientCenter;
+	static AsyncBuffer		chunkTail;
 
-	private:
-		typedef std::vector<EventLoop*>	LOOPS;
-		size_t				mIdxLoop;
-		LOOPS				mLoops;
-		ZQ::common::Mutex	mLocker;
-	};
+	EventLoopCenter& getLoopCenter() {
+		return httpClientCenter;
+	}
+
+	const AsyncBuffer& getBufForChunkTail() {
+		return chunkTail;
+	}
 
 	EventLoopCenter::EventLoopCenter():mIdxLoop(0){
 	}
@@ -30,19 +25,23 @@ namespace LibAsync {
 		stopCenter();
 	}
 
-	bool EventLoopCenter::startCenter( size_t count) {
-		if( count <= 0)
-			count =	1;
+	bool EventLoopCenter::startCenter( ZQ::common::Log& log, const std::vector<int>& cpuIds) {
+		if( cpuIds.size() <= 0) {
+			return false;
+		}
 		ZQ::common::MutexGuard gd(mLocker);
 		if( mLoops.size() > 0 )
 			return true;
-		for( size_t i = 0; i < count; i ++ ) {
-			EventLoop* l = new EventLoop(i);
+		for( size_t i = 0; i < cpuIds.size(); i ++ ) {
+			log(ZQ::common::Log::L_INFO, CLOGFMT(EventLoopCenter,"start event loop at cpu core[%d]"), cpuIds[i]);
+			EventLoop* l = new EventLoop(log, cpuIds[i], this, cpuIds[i]);
 			if(!l->start()){
 				delete l;
 				return false;
 			}
-			mLoops.push_back(l);
+			LoopInfo info;
+			info.loop = l;
+			mLoops.push_back(info);
 		}
 
 #ifdef ZQ_OS_MSWIN
@@ -58,29 +57,37 @@ namespace LibAsync {
 		if( mLoops.size() == 0 )
 			return;
 		for( size_t i = 0 ; i < mLoops.size(); i ++ ) {
-			mLoops[i]->stop();
-			delete mLoops[i];
+			mLoops[i].loop->stop();
+			delete mLoops[i].loop;
 		}
 		mLoops.clear();
 	}
 
-	///从Center里面获取一个EventLoop，当前的实现版本是roundrobin
-	EventLoop& EventLoopCenter::getLoop(){
-		size_t idx = 0;
-		{
-			ZQ::common::MutexGuard gd(mLocker);
-			assert(mLoops.size() > 0);
-			idx = mIdxLoop++;
-			if(mIdxLoop >= mLoops.size())
-				mIdxLoop = 0;
-		}
-		return *mLoops[idx];
+	void EventLoopCenter::addSocket(int id) {
+		ZQ::common::MutexGuard gd(mLocker);
+		mLoops[id].sockCount ++;
 	}
 
-	static EventLoopCenter httpClientCenter;
-	static AsyncBuffer		chunkTail;
+	void EventLoopCenter::removeSocket( int id ) {
+		ZQ::common::MutexGuard gd(mLocker);
+		mLoops[id].sockCount --;
+	}
 
-	bool HttpProcessor::setup(size_t loopCount){
+	///从Center里面获取一个EventLoop，当前的实现版本是roundrobin
+	EventLoop& EventLoopCenter::getLoop(){
+		LOOPS				tmpLoops;
+		assert(mLoops.size() > 0);
+		{
+			ZQ::common::MutexGuard gd(mLocker);
+			tmpLoops = mLoops;
+		}
+		std::sort( tmpLoops.begin(), tmpLoops.end());
+		EventLoop* loop = tmpLoops[0].loop;
+		loop->increateSockCount();
+		return *loop;
+	}
+	
+	bool HttpProcessor::setup(ZQ::common::Log&log, const std::vector<int>& cpuIds){
 #ifdef ZQ_OS_MSWIN
 		//init WSA env
 		WSADATA	wsaData;
@@ -92,7 +99,7 @@ namespace LibAsync {
 		chunkTail.base = (char*)malloc( sizeof(char)*2);
 		chunkTail.len = 2;
 		memcpy(chunkTail.base,"\r\n",2);
-		return httpClientCenter.startCenter(loopCount);
+		return httpClientCenter.startCenter(log, cpuIds);
 	}
 
 	void HttpProcessor::teardown() {
@@ -110,32 +117,55 @@ namespace LibAsync {
 	:Socket(httpClientCenter.getLoop()),
 	mParseType(clientSide?HTTP_RESPONSE:HTTP_REQUEST),
 	mHttpParser(mParseType),
+	mSendingChunkState(SENDING_CHUNK_NULL),
+	mLastUnsentBytes(0),
+	mLastUnsentBodyBytes(0),
+	mbResentZeroChunk(false),
 	mbRecving(false),
 	mbSending(false), 
 	mbOutgoingKeepAlive(false) {
-		mChunkHeader.len = 32;
-		mChunkHeader.base = (char*)malloc(mChunkHeader.len);
-		mHeadersBuf.len = 4096;
-		mHeadersBuf.base = (char*)malloc(mHeadersBuf.len);
+		mChunkHeader.len = CHUNKHEADER_BUF_LEN;
+		mChunkHeader.base = mTempBuffer + HEADER_BUF_LEN;
+		mHeadersBuf.len = HEADER_BUF_LEN;
+		mHeadersBuf.base = mTempBuffer;
 		reset();
 	}
 	HttpProcessor::HttpProcessor( bool clientSide, SOCKET socket )
 		:Socket(httpClientCenter.getLoop(),socket),
 		mParseType(clientSide?HTTP_RESPONSE:HTTP_REQUEST),
 		mHttpParser(mParseType),
+		mSendingChunkState(SENDING_CHUNK_NULL),
+		mLastUnsentBytes(0),
+		mLastUnsentBodyBytes(0),
+		mbResentZeroChunk(false),
 		mbRecving(false),
 		mbSending(false),
 		mbOutgoingKeepAlive(false) {
-			mChunkHeader.len = 32;
-			mChunkHeader.base = (char*)malloc(mChunkHeader.len);
-			mHeadersBuf.len = 4096;
-			mHeadersBuf.base = (char*)malloc(mHeadersBuf.len);
+			mChunkHeader.len = CHUNKHEADER_BUF_LEN;
+			mChunkHeader.base = mTempBuffer + HEADER_BUF_LEN;
+			mHeadersBuf.len = HEADER_BUF_LEN;
+			mHeadersBuf.base = mTempBuffer;
 			reset();
 	}
 
 	HttpProcessor::~HttpProcessor() {
-		free(mChunkHeader.base);
-		free(mHeadersBuf.base);
+	}
+
+	void HttpProcessor::resetHttp( ) {
+		Socket::close();
+		reset(NULL);
+		mbRecving = mbSending = false;
+		mbOutgoingKeepAlive = false;
+		
+		mLastUnsentBytes = 0;
+		mLastUnsentBodyBytes = 0;
+		mbResentZeroChunk = false;
+		mSendingChunkState = SENDING_CHUNK_NULL;
+		mOutgoingHeadersTemp.clear();
+		mReadingBufs.clear();
+		mWritingBufs.clear();
+		mIncomingMsg = NULL;
+		mOutgoingMsg = NULL;
 	}
 
 	void HttpProcessor::reset(ParserCallback* p ) {
@@ -247,6 +277,349 @@ namespace LibAsync {
 		mbSending = true;
 		return send(mWritingBufs);
 	}
+
+#ifdef ZQ_OS_LINUX
+    int HttpProcessor::beginSend_direct(LibAsync::HttpMessagePtr msg) {
+        if(!canSendHeader()) {
+            assert(false&&"invalid state");
+            return false;
+        }
+        mOutgoingMsg = msg;
+        assert(msg != NULL && "msg can not be NULL");
+        mOutgoingHeadersTemp = mOutgoingMsg->toRaw();
+        assert(!mOutgoingHeadersTemp.empty());
+        AsyncBuffer buf;
+        buf.base = const_cast<char*>(mOutgoingHeadersTemp.c_str());
+        buf.len = mOutgoingHeadersTemp.length();
+        mbSending = true;
+        mbOutgoingKeepAlive = msg->keepAlive();
+       
+        int res = sendDirect(buf);
+        mbSending = false;
+
+        return res;
+    }
+
+    int HttpProcessor::sendBody_direct(const LibAsync::AsyncBuffer &buf) {
+        LibAsync::AsyncBufferS bufs(1,buf);
+        return sendBody_direct( bufs );
+    }
+
+    int HttpProcessor::sendBody_direct(const LibAsync::AsyncBufferS &bufs) {
+        if(!canSendBody()) {
+            assert(false && "invalid state");
+            return false;
+        }
+        if(!mOutgoingMsg->hasContentBody() ) {
+            assert( false && "http message do not have a content body");
+            return false;
+        }
+
+		if( !mOutgoingMsg->chunked() ) {
+			return sendDirect( bufs);
+		}
+
+		BufferHelper bh(bufs);
+		size_t sentSize = 0;
+		int rc = 0;
+		while (bh.size() > 0) {
+			rc = sendChunk(bh);
+			if (rc < 0) {
+				break;
+			}
+			sentSize += (size_t)rc;
+		}
+		if (sentSize == 0)
+			return rc;
+		else
+			return (int)sentSize;
+	}
+
+	size_t findPosInBufferS(const AsyncBufferS& bufs, size_t& size) {
+		size_t idx = 0;
+		for (; idx < bufs.size(); idx++) {
+			if (size < bufs[idx].len)
+				break;
+			size -= bufs[idx].len;
+		}
+		return idx;
+	}
+
+	int HttpProcessor::sendChunk( BufferHelper& bh ) {
+		AsyncBufferS bufs = bh.getBuffers();
+		mWritingBufs.clear();
+
+		switch (mSendingChunkState) {
+			case SENDING_CHUNK_NULL:
+				//fallthrough
+			case SENDING_CHUNK_HEADER:
+				{		
+					if (mLastUnsentBytes == 0) {
+						mWritingBufs = bh.getBuffers();
+						mChunkHeader.len = sprintf(mChunkHeader.base, "%x\r\n", (unsigned int)bh.size());
+						mWritingBufs.insert(mWritingBufs.begin(), mChunkHeader);
+						mWritingBufs.push_back(chunkTail);
+						mLastUnsentBodyBytes = bh.size();
+					} else {
+						AsyncBuffer chunkHeader(mChunkHeader);
+						assert(mLastUnsentBytes <= chunkHeader.len);
+						chunkHeader.base += (chunkHeader.len - mLastUnsentBytes);
+						chunkHeader.len = mLastUnsentBytes;
+						mWritingBufs.insert(mWritingBufs.begin(), chunkHeader);
+						if (mLastUnsentBodyBytes <= bh.size()) {
+							AsyncBufferS bodyBufs = bh.getAt(mLastUnsentBodyBytes);
+							mWritingBufs.insert(mWritingBufs.end(), bodyBufs.begin(), bodyBufs.end());
+							mWritingBufs.push_back(chunkTail);
+						} else {
+							mWritingBufs.insert(mWritingBufs.end(), bufs.begin(), bufs.end());
+						}
+					}
+					break;
+				}
+
+			case SENDING_CHUNK_BODY:
+				{
+					assert(mLastUnsentBodyBytes != 0);
+					assert(mLastUnsentBodyBytes == mLastUnsentBytes);
+					if (mLastUnsentBodyBytes <= bh.size()) {
+						mWritingBufs = bh.getAt(mLastUnsentBodyBytes);
+						mWritingBufs.push_back(chunkTail);
+					} else {
+						mWritingBufs = bufs;
+					}
+					break;
+				}
+
+			case SENDING_CHUNK_TAIL:
+				{
+					assert(mLastUnsentBodyBytes == 0);
+					assert(mLastUnsentBytes != 0 && mLastUnsentBytes <= chunkTail.len);
+					AsyncBuffer bufTail(chunkTail);
+					bufTail.base += (bufTail.len - mLastUnsentBytes);
+					bufTail.len = mLastUnsentBytes;
+					mWritingBufs.push_back(bufTail);
+					break;
+				}
+			default:
+				{
+					assert(false && "bad logic");
+					break;
+				}
+		}
+
+		mbSending = true;
+		int rc = sendDirect(mWritingBufs);
+		mbSending = false;
+
+		if (rc < 0) {
+			return rc;
+		} else if (rc == 0 )  {
+			return ERR_BUFFERTOOBIG;
+		}
+
+		size_t res = (size_t)rc;
+		size_t idx = findPosInBufferS(mWritingBufs, res);
+
+		switch (mSendingChunkState) 
+		{
+			case SENDING_CHUNK_NULL:
+			case SENDING_CHUNK_HEADER:
+				{
+					// size of mWritingBufs should be 2 or 3
+					switch (idx)
+					{
+						case 0:
+							{
+								assert(res < mWritingBufs[0].len);
+								mLastUnsentBytes = mWritingBufs[0].len - res;
+								mSendingChunkState = SENDING_CHUNK_HEADER;
+								rc = 0;
+								break;
+							}
+						case 1:
+							{
+								if (res > 0) {
+									assert(res < mWritingBufs[1].len);
+									assert(mLastUnsentBodyBytes >= mWritingBufs[1].len);
+								}
+								mLastUnsentBodyBytes -= res;
+								mLastUnsentBytes = mLastUnsentBodyBytes;
+								mSendingChunkState = SENDING_CHUNK_BODY;
+								rc -= (int)mWritingBufs[0].len;
+								break;
+							}
+						case 2:
+							{
+								if (res > 0) {
+									assert(res < mWritingBufs[2].len);
+									assert(mLastUnsentBodyBytes == mWritingBufs[1].len);
+								}
+								mLastUnsentBodyBytes = 0;
+								mLastUnsentBytes = mWritingBufs[2].len - res;
+								mSendingChunkState = SENDING_CHUNK_TAIL;
+								rc = (int)mWritingBufs[1].len;//body length
+								break;
+							}
+						case 3:
+							{
+								assert(res == 0);
+								mLastUnsentBodyBytes = 0;
+								mLastUnsentBytes = 0;
+								mSendingChunkState = SENDING_CHUNK_NULL;
+								rc = (int)mWritingBufs[1].len;
+								break;
+							}
+						default:
+							assert(false && "bad logic");
+					}
+					break;
+				}
+			case SENDING_CHUNK_BODY: 
+				{
+					// size of mWritingBufs should be 1 or 2
+					switch (idx) 
+					{
+						case 0: 
+							{
+								assert(mLastUnsentBodyBytes > res);
+								mLastUnsentBodyBytes -= res;
+								mLastUnsentBytes = mLastUnsentBodyBytes;
+								mSendingChunkState = SENDING_CHUNK_BODY;
+								rc = (int)res;
+								break;
+							}
+						case 1:
+							{
+								if (res > 0) {
+									assert(res < mWritingBufs[1].len);
+									mLastUnsentBytes = mWritingBufs[1].len - res;
+								} else {
+									mLastUnsentBytes = chunkTail.len;
+								}			
+								mLastUnsentBodyBytes = 0;
+								mSendingChunkState = SENDING_CHUNK_TAIL;
+								rc = (int)mWritingBufs[0].len;
+								break;
+							}
+						case 2: 
+							{
+								assert(res == 0);
+								mLastUnsentBodyBytes = 0;
+								mLastUnsentBytes = 0;
+								mSendingChunkState = SENDING_CHUNK_NULL;
+								rc = (int)mWritingBufs[0].len;
+								break;
+							}
+						default:
+							{
+								assert(false && "bad logic");
+							}
+					}
+					break;
+				}
+			case SENDING_CHUNK_TAIL: 
+				{
+					// size of mWritingBufs should be 1
+					switch (idx) 
+					{
+						case 0:
+							{
+								assert(mWritingBufs[0].len > res);
+								mLastUnsentBytes = mWritingBufs[0].len - res;
+								mLastUnsentBodyBytes = 0;
+								mSendingChunkState = SENDING_CHUNK_TAIL;
+								rc = 0;
+								break;
+							}
+						case 1:
+							{
+								assert(res == 0);
+								mLastUnsentBodyBytes = 0;
+								mLastUnsentBytes = 0;
+								mSendingChunkState = SENDING_CHUNK_NULL;
+								rc = 0;
+								break;
+							}
+						default:
+							{
+								assert(false && "bad logic");
+								break;
+							}
+					}
+					break;
+
+				}
+			default:
+				{
+					assert(false && "bad logic");
+					break;
+				}
+		}
+		if (rc > 0)
+			bh.adjust(rc);
+		return rc;
+	}
+
+    int HttpProcessor::endSend_direct() {
+        if( !canSendBody() ) {
+            assert( false && "invalid state");
+            return ERR_ERROR;
+        }
+        if(!mOutgoingMsg->chunked()) {
+            //TODO: invoking callback here
+            onHttpDataSent(0);
+            mOutgoingMsg = NULL;
+            onHttpEndSent(mbOutgoingKeepAlive);
+            return 0;
+        }
+
+		mWritingBufs.clear();
+		switch(mSendingChunkState) {
+			case SENDING_CHUNK_TAIL: {
+				assert(mLastUnsentBytes <= 2);//must <= size of chunktail data
+				mChunkHeader.len = sprintf(mChunkHeader.base ,"\r\n0\r\n");
+				AsyncBuffer bufHeader(mChunkHeader);
+				bufHeader.base += 2-mLastUnsentBytes;
+				bufHeader.len -= (2-mLastUnsentBytes);
+				mWritingBufs.push_back(bufHeader);
+				mWritingBufs.push_back(chunkTail);
+				break;
+			 }
+			case SENDING_CHUNK_NULL:
+				assert( mLastUnsentBytes == 0 );
+			case SENDING_CHUNK_ZERO: {
+				if(mLastUnsentBytes == 0 ) {
+					mChunkHeader.len = sprintf(mChunkHeader.base,"0\r\n");
+					mWritingBufs.push_back(mChunkHeader);
+					mWritingBufs.push_back(chunkTail);
+				} 
+				break;
+			 }
+			default:
+				 return ERR_ERROR;
+				break;
+		}
+		size_t expectSize = buffer_size(mWritingBufs);
+        mbSending = true;
+        int res = sendDirect(mWritingBufs);
+        mbSending =  false;
+		if( res < 0 )
+			return res;
+		else if (res == 0 )
+			return ERR_BUFFERTOOBIG;
+		assert( expectSize >= (size_t)res);
+		if( expectSize == (size_t)res) {
+			mSendingChunkState = SENDING_CHUNK_NULL;
+			mLastUnsentBytes = 0;
+			return res;
+		} else {
+			mLastUnsentBytes = expectSize - (size_t)res;
+			mSendingChunkState = SENDING_CHUNK_ZERO;
+			res = ERR_EAGAIN;
+		}
+        return res;
+    }
+#endif
 	
 	void HttpProcessor::onSocketError(int err) {
 		mbSending = mbRecving = false; // Is this OK ?
@@ -301,9 +674,9 @@ namespace LibAsync {
 		}
 	}
 
-
 	HttpClient::HttpClient( )
-		:HttpProcessor(true){
+	:Socket(httpClientCenter.getLoop()),
+	HttpProcessor(true){
 	}
 
 	HttpClient::~HttpClient(){
@@ -419,11 +792,11 @@ namespace LibAsync {
 	}
 
 	bool HttpClient::sendReqBody( const AsyncBufferS& bufs ) {
-		return sendBody(bufs);
+        return sendBody(bufs);
 	}
 
 	bool HttpClient::endRequest( ) {
-		return endSend();
+        return endSend();
 	}
 
 	bool HttpClient::getResponse( ) {
@@ -444,12 +817,14 @@ namespace LibAsync {
 			return;
 		HttpMessagePtr msg = mRequest;
 		mRequest = NULL;
-		beginSend(msg);
+        beginSend(msg);
 	}
+
 	//////////////////////////////////////////////////////////////////////////
 	//SimpleHttpClient
 	SimpleHttpClient::SimpleHttpClient()
-	:mBodySent(false){
+	:Socket(httpClientCenter.getLoop()),
+	 mBodySent(false){
 		mBodyBuffer.len = 8192;
 		mBodyBuffer.base = (char*)malloc(sizeof(char) * mBodyBuffer.len);		
 		mResponseComplete = false;
@@ -520,7 +895,8 @@ namespace LibAsync {
 	//////////////////////////////////////////////////////////////////////////
 	
 	HttpServant::HttpServant( HttpServer& server, SOCKET socket, ZQ::common::Log& logger)
-	:HttpProcessor(false,socket),
+	:Socket(httpClientCenter.getLoop(), socket),
+	HttpProcessor(false,socket),
 	Timer(Socket::getLoop()),
 	mServer(server),
 	mHandler(0),
@@ -531,7 +907,10 @@ namespace LibAsync {
 	}
 
 	HttpServant::~HttpServant() {
-		Socket::close();
+		int64 tsStart = ZQ::common::now();
+		//Socket::close();
+		int64 delta = ZQ::common::now() - tsStart;
+		mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServant, "took [%ld]ms to close socket"), delta);
 	}
 
 	void HttpServant::reset( IHttpHandler::Ptr	handler) {
@@ -545,6 +924,15 @@ namespace LibAsync {
 		// Socket::close();
 	}
 
+	void HttpServant::initHint() {
+		std::string ip;
+		unsigned short port = 0;
+		getPeerAddress(ip,port);
+		std::ostringstream oss;
+		oss<<"["<<ip<<":"<<port<<"]";
+		mHint = oss.str();
+	}
+
 	bool HttpServant::start( ) {
 		if(!beginRecv())
 			return false;
@@ -553,29 +941,59 @@ namespace LibAsync {
 	
 	void HttpServant::onSocketConnected() {
 		if(!start() ) {
+			mLogger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpServant,"%s failed to start receiving data"), mHint.c_str());
 			return;
 		}
+		mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServant,"%s start to receive data"),mHint.c_str());
 		mServer.updateServant(this);
 	}
 
 	void HttpServant::errorResponse( int code ) {
 		mLogger(ZQ::common::Log::L_DEBUG,CLOGFMT(HttpServant,"errorResponse, code %d"), code);
 		HttpMessagePtr msg = mServer.makeSimpleResponse(code);
-		beginSend( msg );
+#ifdef ZQ_OS_LINUX
+        beginSend_direct(msg);
+#else
+        beginSend( msg );
+#endif
 		Socket::close();
 	}
 	
 	void HttpServant::onHttpError( int err ) {
-		mLogger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServant,"onHttpError, got an error[%d]"), err );
+		std::string locip="";
+		unsigned short locport=0;
+		getLocalAddress(locip, locport);
+		std::string peerip="";
+		unsigned short  peerport=0;
+		getPeerAddress(peerip, peerport);
+        mLogger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServant, "onHttpError [%p] [%s:%hu => %s:%hu], error[%s]"), 
+				this, locip.c_str(), locport, peerip.c_str(), peerport, ErrorCodeToStr((ErrorCode)err));
 		if(mHandler)
 			mHandler->onHttpError(err);
 		clear();
 	}
 
+    void HttpServant::onWritable()
+    {
+        if(!mHandler) {			
+            return;
+        }
+
+        mHandler->onWritable();
+    }
+
 	void HttpServant::onHttpDataSent( size_t size) {
 		if(!mHandler) {			
 			return;
 		}
+		std::string locip="";
+		unsigned short locport=0;
+		getLocalAddress(locip, locport);
+		std::string peerip="";
+		unsigned short  peerport=0;
+		getPeerAddress(peerip, peerport);
+        mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServant, "onHttpDataSent [%p] [%s:%hu==>%s:%hu] size[%d]."), this, locip.c_str(), locport, peerip.c_str(), peerport, (int)size);
+
 		mHandler->onHttpDataSent(size);
 	}
 
@@ -597,6 +1015,12 @@ namespace LibAsync {
 
 	bool HttpServant::onHttpMessage( const HttpMessagePtr msg) {
 		mHeaderComplete = true;
+		if( msg->versionMajor() != 1 && msg->versionMinor() != 1 ) {
+			mLogger(ZQ::common::Log::L_WARNING, CLOGFMT( HttpServant,"onHttpMessage, unsupport http version[%u/%u], reject"),
+					msg->versionMajor(), msg->versionMinor());
+			errorResponse(505);
+			return false;
+		}
 		mHandler = mServer.getHandler( msg->url(), HttpProcessor::Ptr::dynamicCast(this) );
 		if(!mHandler) {
 			//should make a 404 response
@@ -647,10 +1071,13 @@ namespace LibAsync {
 	HttpServer::HttpServer( const HttpServerConfig& conf, ZQ::common::Log& logger )
 	:Socket(httpClientCenter.getLoop()),
 	mConfig(conf),
-	mLogger(logger) {
+	mLogger(logger),
+	mSocket(-1),
+	mbRunning(false){
 	}
 
 	HttpServer::~HttpServer() {
+		stop();
 	}
 
 	HttpServer::Ptr	HttpServer::create( const HttpServerConfig& conf, ZQ::common::Log& logger ) {
@@ -687,6 +1114,64 @@ namespace LibAsync {
 		return factory->create(conn );
 	}
 
+	bool HttpServer::startAt( const std::string& ip, unsigned short port ) {
+		SocketAddrHelper addr(ip,port);
+		return startAt( addr );
+	}
+
+	bool HttpServer::startAt( const std::string& ip, const std::string& port ) {
+		SocketAddrHelper addr(ip,port);
+		return startAt( addr );
+	}
+
+	bool HttpServer::startAt( const SocketAddrHelper& addr ) {
+		const struct addrinfo * info = addr.info();
+		if(!info)
+			return false;
+		mSocket = ::socket(info->ai_family, info->ai_socktype, info->ai_protocol);
+
+		int reuse_value = 1;
+		if( setsockopt(mSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse_value, sizeof(reuse_value)) != 0 )
+			return false;
+
+		if( mSocket < 0 )
+			return false;
+		if( 0 != ::bind( mSocket, info->ai_addr, info->ai_addrlen) )
+			return false;
+		if(0 != ::listen(mSocket,10000) )
+			return false;
+		mbRunning = true;
+		return ZQ::common::NativeThread::start();
+	}
+
+	int HttpServer::run( ) {
+		mLogger(ZQ::common::Log::L_INFO, CLOGFMT(HttpServer,"server start"));
+		struct sockaddr_storage addr;
+		while( mbRunning ) {
+			socklen_t size= (socklen_t)sizeof( addr );
+			int sock = ::accept( mSocket, (struct sockaddr*)&addr, &size);
+			if( sock < 0 )
+				break;
+			Socket::Ptr newSock = onSocketAccepted( sock );
+			if( newSock ) {
+				newSock->initialServerSocket();
+			}
+		}
+		mLogger(ZQ::common::Log::L_INFO, CLOGFMT(HttpServer,"server quit"));
+		return 0;
+	}
+	void HttpServer::stop() {
+		mbRunning = false;
+#ifdef ZQ_OS_MSWIN
+		::closesocket(mSocket);
+#else
+		::close(mSocket);
+#endif
+		waitHandle(-1);
+	}
+
+
+	/**
 	bool HttpServer::startAt( const std::string& ip, unsigned short port) {
 		if(!bind(ip,port)) {
 			mLogger(ZQ::common::Log::L_ERROR,CLOGFMT(HttpServer,"failed to start server at[%s:%hu]"),
@@ -703,6 +1188,7 @@ namespace LibAsync {
 		sscanf(port.c_str(),"%hu", &usport);
 		return startAt(ip,usport);
 	}
+	*/
 	
 	void HttpServer::onSocketError(int err) {
 		// should I ignore this ?
@@ -720,8 +1206,10 @@ namespace LibAsync {
 	}
 
 	Socket::Ptr HttpServer::onSocketAccepted( SOCKET sock ) {
-		mLogger(ZQ::common::Log::L_DEBUG,CLOGFMT(HttpServer,"got a new socket"));
-		return new HttpServant(*this, sock, mLogger);
+		HttpServant::Ptr s = new HttpServant(*this, sock, mLogger);
+		s->initHint();
+		mLogger(ZQ::common::Log::L_INFO, CLOGFMT(httpServer,"comes a new connection from [%s]"),s->hint().c_str());
+		return s;
 	}
 	
 	void HttpServer::updateServant( HttpServant::Ptr servant ) {

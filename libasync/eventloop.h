@@ -1,6 +1,8 @@
 #ifndef __asynchttp_eventloop_header_file__
 #define __asynchttp_eventloop_header_file__
 
+#include <boost/bind.hpp>
+#include <boost/function.hpp>
 #include <ZQ_common_conf.h>
 #include <Locks.h>
 #include <NativeThread.h>
@@ -15,7 +17,7 @@
 #	include <netdb.h>
 //#include <sys/eventfd.h>
 
-#define EPOLLEVENTS 10000
+#define EPOLLEVENTS 	128
 #define BUFFERSIZE		1024
 #else
 #error "unsupported OS"
@@ -24,7 +26,9 @@
 #include <map>
 #include <set>
 #include <vector>
+#include <list>
 #include <Pointer.h> //for smart pointer
+
 
 namespace LibAsync {
 
@@ -39,26 +43,37 @@ namespace LibAsync {
 		ERR_CONNREFUSED		= -7,	//connection refused
 		ERR_RECVFAIL    = -8, //revc return false
 		ERR_SENDFAIL    = -9, //send return false
-
+		ERR_EAGAIN      = -10,
+		ERR_SOCKETVAIN = -11, // the socket can not been send/recv
+		ERR_MEMVAIN = -12,   // the mem malloc err 
+		ERR_BUFFERTOOBIG = -13,
+		ERR_UDPSOCKETNOTALIVE = -14,
 		//linux
 		ERR_EPOLLREGISTERFAIL  = -21,
-		ERR_EPOLLEXCEPTION = - 22
-
+		ERR_EPOLLEXCEPTION = - 22,
+		ERR_EOF2           = -23,
+		ERR_EOF3           = -24
 	}ErrorCode;
+
+	const char* ErrorCodeToStr( ErrorCode c );
 
     class Socket;
     //	typedef SocketPtr;
     typedef ZQ::common::Pointer<Socket>		SocketPtr;
+} //namespace LibAsync
 
+
+
+namespace LibAsync {
 	class ZQ_COMMON_API SocketAddrHelper{
 	public:// inheritance is not allowed
-		SocketAddrHelper();
-		SocketAddrHelper(const std::string& ip, unsigned short port);
-		SocketAddrHelper(const std::string& ip, const std::string& service);
+		SocketAddrHelper(bool bTcp = true);
+		SocketAddrHelper(const std::string& ip, unsigned short port, bool bTcp = true);
+		SocketAddrHelper(const std::string& ip, const std::string& service, bool bTcp = true);
 		~SocketAddrHelper();
 		void					init(bool bTcp = true);
-		bool					parse( const std::string& ip, const std::string& service);
-		bool					parse( const std::string& ip, unsigned short port);
+		bool					parse( const std::string& ip, const std::string& service, bool bTcp = true);
+		bool					parse( const std::string& ip, unsigned short port, bool bTcp = true);
 		const struct addrinfo*	info() const;
 		bool					multicast() const;
 	private:
@@ -109,11 +124,41 @@ namespace LibAsync {
 		char*		base;
 		size_t		len;
 		AsyncBuffer():base(NULL),len(0){}
-		AsyncBuffer( char* a, size_t l):base(a),len(l){}		
+		AsyncBuffer( char* a, size_t l):base(a),len(l){}
+		void reset() { base = NULL; len = 0; }
 	};
 	typedef std::vector<AsyncBuffer>	AsyncBufferS;
 
 	size_t buffer_size( const AsyncBufferS& bufs);
+
+    class ZQ_COMMON_API BufferHelper
+    {
+    public:
+        BufferHelper(const AsyncBuffer& buf)
+			:_bufs(1,buf) { 
+			_dataSize = buffer_size(_bufs);
+		}
+        BufferHelper(const AsyncBufferS& bufs)
+			: _bufs(bufs) { 
+			_dataSize = buffer_size(_bufs);
+		}
+        virtual ~BufferHelper() {}
+
+        void	adjust( size_t sentSize);
+
+        bool 	isEOF() const;
+
+        AsyncBufferS getBuffers() const {return _bufs;}
+
+		AsyncBufferS getAt( size_t expectSize );
+
+		inline size_t	size() const { return _dataSize; }
+
+    private:
+        AsyncBufferS 	_bufs;
+		size_t			_dataSize;
+	};
+
 
 	class EventLoop;
 
@@ -125,6 +170,7 @@ namespace LibAsync {
 	class Timer: public virtual ZQ::common::SharedObject {
 	public:	
 		typedef ZQ::common::Pointer<Timer> Ptr;
+		typedef boost::function<void()> 	FUNC_ONTIMER;
 
 		virtual ~Timer();
 
@@ -147,6 +193,8 @@ namespace LibAsync {
 			cancel();
 		}
 
+		void				bindCB( FUNC_ONTIMER cb );
+
 	protected:
 		Timer(EventLoop& loop);
 
@@ -157,11 +205,13 @@ namespace LibAsync {
 
 	protected:
 		friend class EventLoop;
+		void				onTimerEvent();
 		/// 如果你想要收到timer时间，请override这个函数
 		virtual	void		onTimer( ) { }
 	private:
 		EventLoop&			mLoop;
 		uint64				mTarget;
+		FUNC_ONTIMER		mFuncCB;
 	};
 
 	/**
@@ -170,12 +220,16 @@ namespace LibAsync {
 	class ZQ_COMMON_API AsyncWork : public virtual ZQ::common::SharedObject {
 	public:
 		typedef ZQ::common::Pointer<AsyncWork>	Ptr;
+		typedef boost::function<void()> FUNC_ONASYNCWORK;
 		virtual ~AsyncWork();
 
+		static AsyncWork::Ptr create(EventLoop& loop);
+
 		/// queueWork will wakeup event loop and let it have an oppotunity to proceed.
-		/// NOTE: please use a mutex to guard your data if you invoke Socket::queueWork beyond EventLoop Context
-		/// NOTE: this is not cancellable
+		/// every single queueWork will lead to one onAsyncWork callback
 		void	queueWork();
+
+		void	bindCB( FUNC_ONASYNCWORK cb );
 
 	protected:
 		friend class EventLoop;
@@ -192,6 +246,7 @@ namespace LibAsync {
 	private:
 		EventLoop&		mLoop;
 		bool			mWorkQueued;
+		FUNC_ONASYNCWORK mFuncCB;
 	};
 
 	/**
@@ -202,10 +257,19 @@ namespace LibAsync {
 	同时EventLoop还需要为我们提供Timer事件通知，这个其实就是一个timer事件记录表。
 	*/
 
+	class LoopCenter {
+	public:
+		virtual ~LoopCenter() {};
+		virtual void	addSocket( int id ) = 0;
+		virtual void	removeSocket( int id ) = 0;
+	};
+
 	class ZQ_COMMON_API EventLoop : public ZQ::common::NativeThread {
 	public:
-		EventLoop(int cpuid = -1 );
+		EventLoop(ZQ::common::Log& log, int cpuid = -1, LoopCenter* center = NULL, int mId = 0 );
+		//EventLoop(int cpuid = -1);
 		virtual ~EventLoop();
+		ZQ::common::Log&  getLog(){ return mLog;}
 	public:
 		/// 启动thread，运行eventloop
 		/// 对于windows来说是运行GetQueuedCompletionStatus
@@ -228,6 +292,16 @@ namespace LibAsync {
 		bool	unregisterEvent(SocketPtr sock, int event);
 		void  ignoreSigpipe();
 #endif
+
+		inline void increateSockCount() { 
+			if(mLoopCenter)
+				mLoopCenter->addSocket(mLoopId);
+		}
+
+		inline void decreateSockCount() {
+			if( mLoopCenter)
+				mLoopCenter->removeSocket( mLoopId );
+		}
 
 	private:
 		int			run();
@@ -281,10 +355,14 @@ namespace LibAsync {
 	  int          mEpollFd;	  
 	  DummyEventFd mDummyEventFd;
 #endif
-	  std::set<AsyncWork::Ptr>	mAsyncWorks;
+	  std::list<AsyncWork::Ptr>	mAsyncWorks;
 	  bool						mbAsyncWorkMessagePosted;
 
 	  int					mCpuId;
+	  ZQ::common::Log&       mLog;
+	  int64                  mPreTime;
+	  LoopCenter*			mLoopCenter;
+	  int					mLoopId;
 	};
 
 }//namespace LibAsync

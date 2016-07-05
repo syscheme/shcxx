@@ -21,8 +21,11 @@
 // Desc  : impl URL string
 // --------------------------------------------------------------------------------------------
 // Revision History: 
-// $Header: /ZQProjs/Common/urlstr.cpp 8     3/31/15 5:16p Li.huang $
+// $Header: /ZQProjs/Common/urlstr.cpp 9     10/22/15 12:27p Hui.shao $
 // $Log: /ZQProjs/Common/urlstr.cpp $
+// 
+// 9     10/22/15 12:27p Hui.shao
+// convert space to %20 instead of +
 // 
 // 8     3/31/15 5:16p Li.huang
 // rollback
@@ -125,7 +128,7 @@ bool URLStr::encode(const void* source, char* target, int outlen, int len/*=-1*/
 		// The space character ' ' is converted into a plus	sign '+'
 		if (sptr[i]==' ')
 		{
-			ret += '+';
+			ret += "%20"; // ret += '+';
 			continue;
 		}
 		

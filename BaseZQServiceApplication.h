@@ -309,7 +309,7 @@ protected:
 	bool	m_bReportInitialized;
 
 	ServiceMIB::Ptr _pServiceMib;
-	ZQ::SNMP::Subagent* _pSnmpSA;
+	ZQ::SNMP::SubAgent* _pSnmpSA;
 
     // argument
     int m_argc;
@@ -373,6 +373,8 @@ protected:
 	/*static*/ TCHAR m_wsTypeStr[32];
 	/*static*/ TCHAR m_logLevelStr[32];
     TCHAR m_sVersion[128];
+
+	std::string _strVersion;
 
 	uint32	m_instanceId;
 

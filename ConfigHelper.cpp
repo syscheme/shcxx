@@ -96,27 +96,28 @@ bool Preprocessor::define(const std::string &macroName, const std::string &macro
     if(fixup(macroValue))
     {
         _variables[macro] = macroValue;
-        PPLOG(Log::L_DEBUG, "Defined macro [%s] with value [%s]", macroName.c_str(), macroValue.c_str());
+        PPLOG(Log::L_DEBUG, CLOGFMT(Preprocessor, "associated macro[%s]=value[%s]"), macroName.c_str(), macroValue.c_str());
         return true;
     }
-    else
-    {
-        PPLOG(Log::L_ERROR, "Failed to expand macro definition [%s]", macroDef.c_str());
-        return false;
-    }
+
+	PPLOG(Log::L_ERROR, CLOGFMT(Preprocessor, "failed to associate macro[%s]=exp[%s]"), macroName.c_str(), macroDef.c_str());
+	return false;
 }
+
 bool Preprocessor::define(const Macros& macros)
 {
     for(Macros::const_iterator it = macros.begin(); it != macros.end(); ++it)
     {
         if(!define(it->first, it->second))
         {
-            PPLOG(Log::L_ERROR, "Failed to define macro [%s] with definition [%s]", it->first.c_str(), it->second.c_str());
+            PPLOG(Log::L_ERROR, CLOGFMT(Preprocessor, "failed to associate macro[%s] with exp[%s]"), it->first.c_str(), it->second.c_str());
             return false;
         }
     }
+
     return true;
 }
+
 bool Preprocessor::fixup(std::string &str) const
 {
     size_t nResolved = 0;
@@ -127,7 +128,7 @@ bool Preprocessor::fixup(std::string &str) const
         std::string::size_type pos_macro_end = str.find_first_of('}', pos_macro_begin);
         if(std::string::npos == pos_macro_end) // not a valid macro reference
         {
-            PPLOG(ZQ::common::Log::L_WARNING, "Invalid macro reference in [%s]. Need an end Curly-bracket.", str.c_str());
+            PPLOG(ZQ::common::Log::L_WARNING, CLOGFMT(Preprocessor, "unpaired brackets in macro[%s]"), str.c_str());
             return false;
         }
 
@@ -135,22 +136,22 @@ bool Preprocessor::fixup(std::string &str) const
         
         // try to fixup the macro
         std::map< std::string, std::string >::const_iterator cit_macro = _variables.find(macro);
-        if(cit_macro != _variables.end())
+        if(cit_macro == _variables.end())
         {
-            str.replace(pos_macro_begin, macro.size(), cit_macro->second);
-        }
-        else
-        {
-            PPLOG(ZQ::common::Log::L_WARNING, "Unknown macro [%s] found.", macro.c_str());
+            PPLOG(ZQ::common::Log::L_WARNING, CLOGFMT(Preprocessor, "unassociated macro[%s] referenced"), macro.c_str());
             return false;
         }
+
+		str.replace(pos_macro_begin, macro.size(), cit_macro->second);
+
         if((++nResolved) > 256)
         {
-            PPLOG(ZQ::common::Log::L_ERROR, "The string were too complicated or macro definition nested too deep.[%s]", str.c_str());
-            throwf<PreprocessException>(EXFMT(PreprocessException, "The string were too complicated or macro definition nested too deep.[%s]"), str.c_str());
+            PPLOG(ZQ::common::Log::L_ERROR, CLOGFMT(Preprocessor, "macro[%s] nested too much"), str.c_str());
+            throwf<PreprocessException>(EXFMT(PreprocessException, "macro[%s] nested too much"), str.c_str());
             return false;
         }
     }
+
     return true;
 }
 

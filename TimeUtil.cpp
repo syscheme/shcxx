@@ -21,8 +21,11 @@
 // Desc  : define a time conversion utility
 // --------------------------------------------------------------------------------------------
 // Revision History: 
-// $Header: /ZQProjs/Common/TimeUtil.cpp 9     1/27/15 9:54a Zhiqiang.niu $
+// $Header: /ZQProjs/Common/TimeUtil.cpp 10    3/11/16 9:52a Dejian.fei $
 // $Log: /ZQProjs/Common/TimeUtil.cpp $
+// 
+// 10    3/11/16 9:52a Dejian.fei
+// NDK android
 // 
 // 9     1/27/15 9:54a Zhiqiang.niu
 // unfreeze  year must less than 2100
@@ -583,9 +586,31 @@ bool TimeUtil::Iso2Local(const char* UTC_datetime, char* LOCAL_datetime, int len
 }
 
 #else
+#ifdef ZQ_COMMON_ANDROID
+time_t my_timegm(struct tm *tm)
+{
+    time_t ret;
+    char *tz;
+
+   tz = getenv("TZ");
+    setenv("TZ", "", 1);
+    tzset();
+    ret = mktime(tm);
+    if (tz)
+        setenv("TZ", tz, 1);
+    else
+        unsetenv("TZ");
+    tzset();
+    return ret;
+}
+#endif
 time_t TimeUtil::Tmtime2Time(struct tm& st_utc)
 {
+#ifndef ZQ_COMMON_ANDROID
 	return timegm(&st_utc);
+#else
+	return my_timegm(&st_utc);
+#endif
 /*
 	struct timeval val;
 	struct timezone zon;
@@ -781,7 +806,9 @@ bool TimeUtil::Time2Iso(struct timeval& tmval, char* UTC_datetime, int length, b
     
     if(local) {
         localtime_r(&t, &atm);
-
+#ifdef ZQ_COMMON_ANDROID
+        long timezone;
+#endif
         char sym = (timezone > 0 ? '-' : '+');
         int hour = abs(timezone)/3600;
         int min = abs(timezone)%3600/60;

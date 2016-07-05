@@ -100,8 +100,8 @@ namespace LibAsync {
 
 				if (INVALID_SOCKET == sockPtr->mSocket)
 				{
-					sockPtr->mLastError = ErrorCode::ERR_EOF;
-					sockPtr->onSocketError(ErrorCode::ERR_EOF);
+                    sockPtr->mLastError = LibAsync::ERR_EOF;
+					sockPtr->onSocketError(LibAsync::ERR_EOF);
 
 					goto err;
 				}
@@ -138,12 +138,12 @@ namespace LibAsync {
                     if ( iResult != NO_ERROR ) {
                         //connect failure
                         sockPtr->mbAlive = false;
-                        sockPtr->onSocketError(ErrorCode::ERR_CONNREFUSED);
+                        sockPtr->onSocketError(LibAsync::ERR_CONNREFUSED);
                     }
                     else {
                         if (seconds == 0xFFFFFFFF)	//connect failure
                         {
-                            sockPtr->onSocketError(ErrorCode::ERR_CONNREFUSED);
+                            sockPtr->onSocketError(LibAsync::ERR_CONNREFUSED);
                         }
                         else{
                             sockPtr->mbAlive = true;
@@ -169,12 +169,12 @@ namespace LibAsync {
                         //connect failure
                         int err = WSAGetLastError();
                         sockPtr->mbAlive = false;
-                        sockPtr->onSocketError(ErrorCode::ERR_CONNREFUSED);
+                        sockPtr->onSocketError(LibAsync::ERR_CONNREFUSED);
                     }
                     else {
                         if (seconds == 0xFFFFFFFF)	//connect failure
                         {
-                            sockPtr->onSocketError(ErrorCode::ERR_CONNREFUSED);
+                            sockPtr->onSocketError(LibAsync::ERR_CONNREFUSED);
                         }
                         else{
                             sockPtr->mbAlive = true;
@@ -183,7 +183,7 @@ namespace LibAsync {
                             SocketPtr acceptPtr = sockPtr->onSocketAccepted(acceptSock);
                             acceptPtr->initialServerSocket();
                             if (!sockPtr->innerAccept()){
-                                sockPtr->onSocketError(ErrorCode::ERR_ERROR);
+                                sockPtr->onSocketError(LibAsync::ERR_ERROR);
                             }						
                         }
                     }

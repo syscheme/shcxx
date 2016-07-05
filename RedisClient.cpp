@@ -27,6 +27,14 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/RedisClient.cpp $
 // 
+// 7     11/30/15 4:58p Hui.shao
+// compile warning
+// 
+// 6     6/10/15 1:53p Hui.shao
+// 
+// 5     5/20/15 11:17a Hui.shao
+// added DEL/KEYS
+// 
 // 4     1/22/15 5:06p Hui.shao
 // tested 1million multibulks
 // 
@@ -43,7 +51,7 @@
 #include "RedisClient.h"
 #include "SystemUtils.h"
 
-#define REDIS_NEWLINE "\r\n"
+#define REDIS_NEWLINE              "\r\n"
 #define REDIS_LEADINGCH_ERROR      '-'
 #define REDIS_LEADINGCH_INLINE     '+'
 #define REDIS_LEADINGCH_BULK       '$'
@@ -336,8 +344,10 @@ RedisCommand::Ptr RedisClient::sendCommand(RedisCommand::Ptr pCmd)
 	return NULL;
 }
 
+#define _ISPRINT(_CH) (_CH>=0x20 && _CH<0x7F)
+
 // this encode is copied from URL by enlarging the allowed characters to all printables except " and %
-int RedisClient::encode(std::string& output, const void* source, int len)
+int RedisClient::encode(std::string& output, const void* source, size_t len)
 {
 	output = "";
 
@@ -349,11 +359,11 @@ int RedisClient::encode(std::string& output, const void* source, int len)
 
 	const int8 *sptr=(const int8 *)source;
 
-	for (int i=0; i<len; i++)
+	for (size_t i=0; i<len; i++)
 	{
 		// The ASCII characters digits or letters, and ".", "-", "*", "_"
 		// remain the same
-		if ('"'!=sptr[i] && '%'!=sptr[i] && isprint(sptr[i]))
+		if ('"'!=sptr[i] && '%'!=sptr[i] && _ISPRINT(sptr[i]))
 		{
 			output += (char) sptr[i];
 			continue;
@@ -377,15 +387,15 @@ int RedisClient::encode(std::string& output, const void* source, int len)
 	return output.size();
 }
 
-int RedisClient::decode(const char* source, void* target, int maxlen)
+int RedisClient::decode(const char* source, void* target, size_t maxlen)
 {
-	int slen=strlen(source);
+	size_t slen = strlen(source);
 	uint8 *targ = (uint8 *)target;
 
 	if (targ ==NULL)
 		return 0;
 	
-	int s, t;
+	size_t s, t;
 	for (s=0, t=0; s<slen && (t<maxlen || maxlen<0); s++, t++)
 	{
 		// the 3-character string "%xy", where xy is the
@@ -721,7 +731,7 @@ void RedisClient::OnDataArrived()
 			}
 
 			int len = strlen(line);
-			pProcessed += len +2;
+			pProcessed += len + sizeof(REDIS_NEWLINE)-1;
 			if (len <=0) // ignore empty line
 				continue;
 
@@ -866,6 +876,9 @@ void RedisClient::OnDataArrived()
 	_log(cReply ? Log::L_INFO: Log::L_DEBUG, CLOGFMT(RedisClient, "OnDataArrived() conn[%s] dispatched, took %dmsec: %d Replies"), connDescription(), (int)(TimeUtil::now() -stampNow), cReply);
 }
 
+// async sending RedisCommands
+// -----------------------------
+
 RedisCommand::Ptr RedisClient::sendMONITOR(RedisSink::Ptr reply)
 {
 	return sendCommand("MONITOR", REDIS_LEADINGCH_INLINE, reply);
@@ -901,7 +914,13 @@ RedisCommand::Ptr RedisClient::sendSET(const char *key, const uint8* val, int vl
 	return sendCommand(cmdstr.c_str(), REDIS_LEADINGCH_INLINE, reply);
 }
 
-RedisCommand::Ptr RedisClient::sendGETSET(const char *key, const char *val, int vlen, RedisSink::Ptr reply)
+RedisCommand::Ptr RedisClient::sendDEL(const char *key, RedisSink::Ptr reply)
+{
+	std::string cmdstr = std::string("DEL ") + key;
+	return sendCommand(cmdstr.c_str(), REDIS_LEADINGCH_INLINE, reply);
+}
+
+RedisCommand::Ptr RedisClient::sendGETSET(const char *key, const uint8* val, int vlen, RedisSink::Ptr reply)
 {
 	std::string cmdstr;
 	encode(cmdstr, val, vlen);
@@ -943,6 +962,13 @@ RedisCommand::Ptr RedisClient::sendSMEMBERS(const char *key, RedisSink::Ptr repl
 	return sendMultikeyBulkCmd("SMEMBERS", keys, reply);
 }
 
+RedisCommand::Ptr RedisClient::sendKEYS(const char *pattern, RedisSink::Ptr reply)
+{
+	std::vector<std::string> keys;
+	keys.push_back(pattern);
+	return sendMultikeyBulkCmd("KEYS", keys, reply);
+}
+
 RedisCommand::Ptr RedisClient::sendMultikeyBulkCmd(const char *cmd, std::vector<std::string>& keys, RedisSink::Ptr reply)
 {
 	std::string cmdstr = cmd;
@@ -951,6 +977,8 @@ RedisCommand::Ptr RedisClient::sendMultikeyBulkCmd(const char *cmd, std::vector<
 	return sendCommand(cmdstr.c_str(), REDIS_LEADINGCH_MULTIBULK, reply);
 }
 
+// sync Redis executions
+// -----------------------------
 #define SYNC_WAIT_ASSET_RET() 	if (!pCmd) return RedisSink::rdeClientError; \
 	if (!pCmd->wait(_messageTimeout)) return RedisSink::rdeRequestTimeout; \
 	if (REDIS_LEADINGCH_ERROR == pCmd->_replyCtx.data.type)	return RedisSink::rdeServerReturnedError;
@@ -967,8 +995,20 @@ RedisSink::Error RedisClient::GET(const std::string& key, uint8* value, uint& vl
 	RedisCommand::Ptr pCmd = sendGET(key.c_str(), NULL);
 	SYNC_WAIT_ASSET_RET();
 
-	if (pCmd->_replyCtx.data.bulks.size() >0)
-		vlen = decode(pCmd->_replyCtx.data.bulks[0].c_str(), value, vlen);
+	if (pCmd->_replyCtx.data.bulks.size() <=0)
+	{
+		vlen =0;
+		return RedisSink::rdeNil;
+	}
+
+	vlen = decode(pCmd->_replyCtx.data.bulks[0].c_str(), value, vlen);
+	return RedisSink::rdeOK;
+}
+
+RedisSink::Error RedisClient::DEL(const std::string& key)
+{
+	RedisCommand::Ptr pCmd = sendDEL(key.c_str(), NULL);
+	SYNC_WAIT_ASSET_RET();
 	return RedisSink::rdeOK;
 }
 
@@ -996,7 +1036,7 @@ RedisSink::Error RedisClient::SMEMBERS(const std::string& key, StringList& membe
 	members.clear();
 	uint8 buf[2048];
 	int vlen;
-	for (int i=0; i< pCmd->_replyCtx.data.bulks.size(); i++)
+	for (size_t i=0; i< pCmd->_replyCtx.data.bulks.size(); i++)
 	{
 		vlen = sizeof(buf)-2;
 		vlen = decode(pCmd->_replyCtx.data.bulks[i].c_str(), buf, vlen);
@@ -1005,7 +1045,23 @@ RedisSink::Error RedisClient::SMEMBERS(const std::string& key, StringList& membe
 	return RedisSink::rdeOK;
 }
 
+RedisSink::Error RedisClient::KEYS(const std::string& pattern, StringList& keys)
+{
+	RedisCommand::Ptr pCmd = sendKEYS(pattern.c_str());
+	SYNC_WAIT_ASSET_RET();
 
+	keys.clear();
+	uint8 buf[2048];
+	int vlen;
+	for (size_t i=0; i< pCmd->_replyCtx.data.bulks.size(); i++)
+	{
+		vlen = sizeof(buf)-2;
+		vlen = decode(pCmd->_replyCtx.data.bulks[i].c_str(), buf, vlen);
+		keys.push_back(std::string((char*)buf, vlen));
+	}
+
+	return RedisSink::rdeOK;
+}
 
 }} // namespaces
 

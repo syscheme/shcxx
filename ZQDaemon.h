@@ -101,20 +101,20 @@ protected:
 	char** m_argv;
 
 	ServiceMIB::Ptr _pServiceMib;
-	ZQ::SNMP::Subagent* _pSnmpSA;
 
 	// variables to be managed by snmp
 	std::string _strVersion;
-	int _snmpLoggingMask;
 	std::string _logDir;
 	uint32 _logSize;
 	uint16 _logTimeout;
 	uint32 _logBufferSize;
+	int _logLevel;
+	int _snmpLoggingMask;
+	uint32	_instanceId;
+	ZQ::SNMP::SubAgent* _pSnmpSA;
 	uint32 m_dwKeepAliveInterval_ms;// wait time out option in start()
 	uint32 m_dwShutdownWaitTime; //shutdownWaitTime
-	int _logLevel;
 	std::string _configDir;
-	uint32	_instanceId;
 
 public: // APIs to SNMP access
 	uint32 getLogLevel_Main();
