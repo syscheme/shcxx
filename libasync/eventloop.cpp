@@ -178,7 +178,7 @@ namespace LibAsync {
 				ZQ::common::MutexGuard gd(mLocker);
 				while(true) {
 					if(mTimers.empty()) {
-						mNextWakeup = ZQ::common::now() + 10 * 1000;//configurable ?
+						mNextWakeup = ZQ::common::now() + 2 * 1000;//configurable ?
 						break;
 					}
 					TIMERINFOS::iterator it = mTimers.begin();
