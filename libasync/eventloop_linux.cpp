@@ -364,7 +364,23 @@ static bool createDummyPipe( int* sockpair ) {
 	sockpair[1] =  sock;
 
 	addrlen = sizeof(bindaddr);
-	sockpair[0] =  accept4(sockpair[0], (struct sockaddr*)&bindaddr, &addrlen, SOCK_NONBLOCK);
+	sock =  accept(sockpair[0], (struct sockaddr*)&bindaddr, &addrlen);
+	//set sock to NON_BLOCK
+	flags = fcntl(sock, F_GETFL, 0);
+	if ( -1 == flags)
+	{
+		close(sockpair[1]);
+		close(sock);
+		return false;
+	}
+	if( -1 == fcntl(sock, F_SETFL, flags | O_NONBLOCK) )
+	{
+		close(sockpair[1]);
+		close(sock);
+		return false;
+	}
+
+	sockpair[0] = sock;
 	return sockpair[0] >= 0;
 }
 

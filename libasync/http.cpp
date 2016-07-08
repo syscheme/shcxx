@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <vector>
+#include <fcntl.h>
 #include <Locks.h>
 #include <TimeUtil.h>
 #include <urlstr.h>
@@ -1147,9 +1148,21 @@ namespace LibAsync {
 		struct sockaddr_storage addr;
 		while( mbRunning ) {
 			socklen_t size= (socklen_t)sizeof( addr );
-			int sock = ::accept4( mSocket, (struct sockaddr*)&addr, &size, SOCK_NONBLOCK);
+			int sock = ::accept( mSocket, (struct sockaddr*)&addr, &size);
 			if( sock < 0 )
 				break;
+			int flags = fcntl(sock, F_GETFL, 0);
+			if ( -1 == flags)
+			{
+				::close(sock);
+				continue;
+			}
+			if( -1 == fcntl(sock, F_SETFL, flags | O_NONBLOCK) )
+			{
+				::close(sock);
+				continue;
+			}
+
 			Socket::Ptr newSock = onSocketAccepted( sock );
 			if( newSock ) {
 				newSock->initialServerSocket();
