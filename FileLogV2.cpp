@@ -41,8 +41,7 @@ extern "C" {
 namespace ZQ{
 namespace common{
 
-	
-/// -----------------------------
+// -----------------------------
 /// class FileLogException
 /// -----------------------------
 FileLogException::FileLogException(const std::string &what_arg) throw()
@@ -70,108 +69,127 @@ private:
 // LogThread implementation
 //////////////////////////////////////////////////////////////////////////
 
-LogThread::LogThread() : _bQuit(false)
+class LogThread : public NativeThread
 {
-}
-
-LogThread::~LogThread()
-{
-	try {stop();} catch (...) {}
-}
-
-bool LogThread::init(void)
-{
-#ifdef ZQ_OS_MSWIN
-	_event = NULL;
-	_event = ::CreateEvent(NULL,TRUE,FALSE,NULL);
-	return (NULL != _event);
-#else
-	sem_init(&_pthsem,0,0);
-	return true;
-#endif
-}
-
-void LogThread::final(void)
-{
-}
-
-int LogThread::run()
-{
-	while (!_bQuit)
+	friend class FileLog;
+protected: 
+	LogThread() : _bQuit(false) {}
+	virtual ~LogThread()
 	{
-		{
-			MutexGuard lk(_lockLogInsts);
-			LogItor itor = _logInsts.begin();
-			for (; itor != _logInsts.end(); itor ++)
-				(*itor)->run_interval();
+		stop();
+	}
+
+	void stop()
+	{
+		try { 
+			_bQuit = true;
+#ifdef ZQ_OS_MSWIN
+			if (NULL != _event)
+				::SetEvent(_event);
+#else
+			try
+			{
+				sem_post(&_pthsem);
+			}
+			catch (...){}
+#endif
+
+			waitHandle(5000);
+
+#ifdef ZQ_OS_MSWIN
+			// close event handle
+			if (NULL != _event)
+				try {CloseHandle(_event);} catch (...) {}
+			_event = NULL;
+#else
+			try
+			{
+				sem_destroy(&_pthsem);
+			}
+			catch(...){}
+#endif
 		}
+		catch (...) {}
+	}
+
+	void addLogInst(FileLog* logInst)
+	{
+		MutexGuard lk(_lockLogInsts);
+		_logInsts.push_back(logInst);
+	}
+
+	void rmvLogInst(FileLog* logInst)
+	{
+		MutexGuard lk(_lockLogInsts);
+		LogItor itor = _logInsts.begin();
+		for (; itor != _logInsts.end(); itor ++)
+		{
+			if ((*itor)->m_instIdent != logInst->m_instIdent)
+				continue;
+
+			_logInsts.erase(itor);
+			break;
+		}
+	}
+
+protected: // derived from native thread
+	bool init(void)
+	{
+#ifdef ZQ_OS_MSWIN
+		_event = NULL;
+		_event = ::CreateEvent(NULL,TRUE,FALSE,NULL);
+		return (NULL != _event);
+#else
+		sem_init(&_pthsem,0,0);
+#endif
+		return true;
+	}
+
+	int run()
+	{
+		while (!_bQuit)
+		{
+			{
+				MutexGuard lk(_lockLogInsts);
+				LogItor itor = _logInsts.begin();
+				for (; itor != _logInsts.end(); itor ++)
+					(*itor)->run_interval();
+			}
 
 #ifdef ZQ_OS_MSWIN
 #pragma message(__MSGLOC__"TODO: make the hard coded flush interval here to customizeable")
-		WaitForSingleObject(_event, ZQLOG_DEFAULT_FLUSHINTERVAL*1000);
+			WaitForSingleObject(_event, ZQLOG_DEFAULT_FLUSHINTERVAL*1000);
 #else
-		struct timespec ts;
-		struct timeb tb;
-		ftime(&tb);
-		tb.time += ZQLOG_DEFAULT_FLUSHINTERVAL;
-		ts.tv_sec = tb.time;
-		ts.tv_nsec = tb.millitm * 1000000;
-		sem_timedwait(&_pthsem,&ts);
+			struct timespec ts;
+			struct timeb tb;
+			ftime(&tb);
+			tb.time += ZQLOG_DEFAULT_FLUSHINTERVAL;
+			ts.tv_sec = tb.time;
+			ts.tv_nsec = tb.millitm * 1000000;
+			sem_timedwait(&_pthsem,&ts);
 #endif
+		}
+		return 0;
 	}
-	return 0;
-}
 
-void LogThread::stop()
-{
-	_bQuit = true;
+	void final(void) {}
+
+private: 
 #ifdef ZQ_OS_MSWIN
-	if (NULL != _event)
-		::SetEvent(_event);
+	HANDLE _event;
 #else
-	try
-	{
-		sem_post(&_pthsem);
-	}
-	catch (...){}
+	sem_t			_pthsem;
 #endif
+	bool	_bQuit;
+typedef std::vector<FileLog*> LogVector;
+typedef LogVector::iterator LogItor;
+	LogVector _logInsts;
+	Mutex _lockLogInsts;
+};
 	
-	waitHandle(5000);
-
-#ifdef ZQ_OS_MSWIN
-	// close event handle
-	if (NULL != _event)
-		try {CloseHandle(_event);} catch (...) {}
-	_event = NULL;
-#else
-	try
-	{
-		sem_destroy(&_pthsem);
-	}
-	catch(...){}
-#endif
-}
-
-void LogThread::addLogInst(FileLog* logInst)
-{
-	MutexGuard lk(_lockLogInsts);
-	_logInsts.push_back(logInst);
-}
-
-void LogThread::rmvLogInst(FileLog* logInst)
-{
-	MutexGuard lk(_lockLogInsts);
-	LogItor itor = _logInsts.begin();
-	for (; itor != _logInsts.end(); itor ++)
-	{
-		if ((*itor)->m_instIdent != logInst->m_instIdent)
-			continue;
-
-		_logInsts.erase(itor);
-		break;
-	}
-}
-
+/// -----------------------------
+/// class FileLog
+/// -----------------------------
 LogThread* FileLog::m_staticThread = NULL;
 int FileLog::m_lastInstIdent = 0;
 
@@ -517,7 +535,7 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 	char* right = ::strrchr(m_FileName, '.');
 	if(left != NULL)
 	{
-	m_appName = ::std::string(left + 1, right - left - 1); 
+		m_appName = ::std::string(left + 1, right - left - 1); 
 	}
 	else
 	{	
@@ -593,7 +611,6 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 	else
 	{
 		//文件不存在，创建文件
-		assemblyFileName();
 		_pNest->m_FileStream->open(m_FileName,std::ios::out | std::ios::binary);
 		if(!_pNest->m_FileStream->is_open())
 		{
@@ -650,7 +667,7 @@ void FileLog::writeMessage(const char *msg, int level)
 		{
 			MutexGuard lk(m_buffMtx);
 			flushData();
-			RemoveAndCreateFile();
+			roll();
 		}
 	}
 	char line[ZQLOG_DEFAULT_MAXLINESIZE];
@@ -676,17 +693,18 @@ void FileLog::writeMessage(const char *msg, int level)
 		{
 			MutexGuard mg(m_buffMtx);
 			flushData();
-			RemoveAndCreateFile();
+			roll();
 		}
 	}
-	
+
 	char line[ZQLOG_DEFAULT_MAXLINESIZE] = {0};
-	int nCount = snprintf(line,ZQLOG_DEFAULT_MAXLINESIZE-3,"%02d-%02d %02d:%02d:%02d.%03d [ %7s ] %s",ptm->tm_mon+1,ptm->tm_mday,ptm->tm_hour,ptm->tm_min,ptm->tm_sec,(int)tv.tv_usec/1000,getVerbosityStr(level), msg);
+	int nCount = snprintf(line,ZQLOG_DEFAULT_MAXLINESIZE-2,"%02d-%02d %02d:%02d:%02d.%03d [ %7s ] %s",ptm->tm_mon+1,ptm->tm_mday,ptm->tm_hour,ptm->tm_min,ptm->tm_sec,(int)tv.tv_usec/1000,getVerbosityStr(level), msg);
+	
 #endif
 #ifdef ZQ_OS_MSWIN
-	if(nCount < 0)
+	if(nCount < 0 )
 	{
-		line[ZQLOG_DEFAULT_MAXLINESIZE-3] = '\r';
+ 		line[ZQLOG_DEFAULT_MAXLINESIZE-3] = '\r';
 		line[ZQLOG_DEFAULT_MAXLINESIZE-2] = '\n';
 		line[ZQLOG_DEFAULT_MAXLINESIZE-1] = '\0';
 	}
@@ -697,10 +715,15 @@ void FileLog::writeMessage(const char *msg, int level)
 		line[nCount+2] = '\0';
 	}
 #else //in linux os delete "\r"
-	if(nCount < 0)
+	if(nCount < 0 )
 	{
 		line[ZQLOG_DEFAULT_MAXLINESIZE-2] = '\n';
 		line[ZQLOG_DEFAULT_MAXLINESIZE-1] = '\0';
+	}
+	else if(nCount > ZQLOG_DEFAULT_MAXLINESIZE-2)
+	{
+		line[ZQLOG_DEFAULT_MAXLINESIZE-3] = '\n';
+		line[ZQLOG_DEFAULT_MAXLINESIZE-2] = '\0';
 	}
 	else 
 	{
@@ -717,9 +740,12 @@ void FileLog::writeMessage(const char *msg, int level)
 	}
 
 	int nLineSize = 0;
-	if (nCount < 0)
+
+/*	if(nCount < 0)
+	{
 		nLineSize = ZQLOG_DEFAULT_MAXLINESIZE - 1;
-	else
+	}
+	else if(nCount > ZQLOG_DEFAULT_MAXLINESIZE-3)
 	{
 #ifdef ZQ_OS_MSWIN
 		nLineSize = nCount + 2;
@@ -727,6 +753,30 @@ void FileLog::writeMessage(const char *msg, int level)
 		nLineSize = nCount + 1;
 #endif
 	}
+*/	
+#ifdef ZQ_OS_MSWIN
+	if(nCount < 0)
+	{
+		nLineSize = ZQLOG_DEFAULT_MAXLINESIZE - 1;
+	}
+	else
+	{
+		nLineSize = nCount + 2;
+	}
+#else
+	if(nCount < 0)
+	{
+		nLineSize = ZQLOG_DEFAULT_MAXLINESIZE -1;
+	}
+	else if(nCount > ZQLOG_DEFAULT_MAXLINESIZE-2)
+	{
+		nLineSize = ZQLOG_DEFAULT_MAXLINESIZE -2;
+	}
+	else
+	{
+		nLineSize = nCount + 1;
+	}
+#endif
 
 	{
 		MutexGuard lk(m_buffMtx);
@@ -844,46 +894,15 @@ void FileLog::flushData()
 
 	// rotate the files if file size exceeded the limitation
 	if (m_nCurrentFileSize > m_nMaxFileSize)
-		RemoveAndCreateFile();
+		roll();
 }
 
 
 bool FileLog::IsFileExist(int& retFileSize)
 {
-	char searchFor[MAX_PATH];
-	snprintf(searchFor, MAX_PATH-2, "%s" FNSEPS "%s.*.%s", m_dirName.c_str(), m_appName.c_str(), "log");
 #ifdef ZQ_OS_MSWIN
-	WIN32_FIND_DATAA finddata, correctfile;
+	WIN32_FIND_DATAA finddata;
 	HANDLE hHandle;
-
-	// 获得最新文件的文件名
-	int64 curfiletime = 0;
-	int64 prefiletime = 0;
-	bool done = false;
-	bool find = false;
-
-	char scanFor[MAX_PATH];
-
-	hHandle = ::FindFirstFileA(searchFor, &finddata);
-	for(;hHandle != INVALID_HANDLE_VALUE && !done ;done = (0 == ::FindNextFileA(hHandle, &finddata)))
-	{
-		// 确保FileLog格式正确，消除诸如 rtsp.snmp.xxx.log 对 rtsp.xxx.log 的影响
-		std::string str_index = std::string(finddata.cFileName + m_appName.size() + 1,12);
-		int64 index = atof(str_index.c_str());	
-		if(index == 0 || strlen(str_index.c_str()) != 12)
-		{
-			continue;
-		}
-		// 确保correctfile是最新的FileLog
-		curfiletime = *(int64 *)&finddata.ftCreationTime;
-		
-		if(prefiletime < curfiletime)
-		{
-			correctfile = finddata;
-			find = true;
-		}
-		prefiletime = *(int64 *)&finddata.ftCreationTime;
-	}
 	// m_FileName里面有通配符*?
 	if(strstr(m_FileName,"*") != NULL || strstr(m_FileName,"?") != NULL)
 	{
@@ -891,75 +910,32 @@ bool FileLog::IsFileExist(int& retFileSize)
 		return false;
 	}
 
+	hHandle = ::FindFirstFileA(m_FileName, &finddata); //TODO-of-Wei: replace FindFirstFileA with GetFileAttributeEx()
+
 	//找不到文件
-	if(find == false)
-	{
+	if(hHandle == INVALID_HANDLE_VALUE)
 		return false;
-	}
 
 	//找到的文件为文件夹
-	if((correctfile.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE_DIRECTORY)
+	if((finddata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE_DIRECTORY)
 	{
 		FindClose(hHandle);
 		return false;
 	}
-	snprintf(m_FileName, MAX_PATH-2, "%s" FNSEPS "%s", m_dirName.c_str(), correctfile.cFileName);
 
 	//得到文件大小
-	retFileSize = (correctfile.nFileSizeHigh * MAXDWORD + correctfile.nFileSizeHigh) + correctfile.nFileSizeLow;
+	retFileSize = (finddata.nFileSizeHigh * MAXDWORD + finddata.nFileSizeHigh) + finddata.nFileSizeLow;
 	FindClose(hHandle);
 #else
-/*	commented by weizhaoguang
 	//file is exist ?
-	if(access(filename, F_OK) != 0)
+	if(access(m_FileName, F_OK) != 0)
 		return false;
 	struct stat buf;
-	if(stat(filename, &buf) != 0)
+	if(stat(m_FileName, &buf) != 0)
 		return false;
 	
 	retFileSize = buf.st_size;
-*/
-	char scanFor[MAX_PATH];
-	snprintf(scanFor, MAX_PATH-2, "%s" FNSEPS "%s.%%lld.%s", m_dirName.c_str(), m_appName.c_str(), "log");
-	glob_t gl;
-	struct stat correctbuf, tempbuf;
-	std::vector<std::string> filename;
-	
-	if(!glob(searchFor, GLOB_PERIOD|GLOB_TILDE, 0, &gl))
-	{	
-		// 确保FileLog格式正确，消除诸如 rtsp.snmp.xxx.log 对 rtsp.xxx.log 的影响
-		int64 fileidx = -1;
-		for(size_t i = 0 ; i < gl.gl_pathc ; ++i)
-		{
-			 if(sscanf(gl.gl_pathv[i], scanFor, &fileidx) == 1 && fileidx > 9999999999)
-			{
-				filename.push_back(gl.gl_pathv[i]);
-			}
-		}	
-		if(filename.size() == 0)
-		{
-			return false;
-		}
-		//  以文件的最后修改时间为依据，获得最新文件名
-		stat(filename[0].c_str(), &correctbuf);
-		snprintf(m_FileName, MAX_PATH-2, "%s",filename[0].c_str());
-		for(size_t i = 0; i < filename.size(); ++i)
-		{
-			stat(filename[i].c_str() ,&tempbuf);
-			if( (tempbuf.st_mtim.tv_sec > correctbuf.st_mtim.tv_sec) || (tempbuf.st_mtim.tv_sec = correctbuf.st_mtim.tv_sec && tempbuf.st_mtim.tv_nsec > correctbuf.st_mtim.tv_nsec) )
-//			if(tempbuf.st_mtime >= correctbuf.st_mtime )
-			{
-				correctbuf = tempbuf;
-				snprintf(m_FileName, MAX_PATH-2, "%s",filename[i].c_str());
-			}
-		}
-	}
-	else
-	{
-		return false;
-	}
-	
-	retFileSize = correctbuf.st_size;	
+
 #endif
 
 	return true;
@@ -978,31 +954,30 @@ void FileLog::increaseInsert(std::vector<int>& vctInts, int valInt)
 			break;
 		}
 	}
+
 	if (false == bAdded)
 		vctInts.push_back(valInt);
 }
 
-void FileLog::RemoveAndCreateFile()
+void FileLog::roll()
 {
 	if (m_cYield >0)
 	{
 		--m_cYield;
 		return;
 	}
-	else
-		m_cYield = 0;
 
+	m_cYield = 0;
 	char searchFor[MAX_PATH];
-	snprintf(searchFor, MAX_PATH-2, "%s" FNSEPS "%s.*.%s", m_dirName.c_str(), m_appName.c_str(), "log");
+	snprintf(searchFor, MAX_PATH-2, "%s" FNSEPS "%s.*.log", m_dirName.c_str(), m_appName.c_str());
 
 	bool bQuit = false;
     bool bReportFailureToSystem = m_stampLastReportedFailure == 0 || (now() - m_stampLastReportedFailure) > 5000; // not report twice in 5 seconds
 
 //  int bubblePos = m_nMaxLogfileNum - 1;			comment by weizhaoguang
 
-    std::vector<int64> files;				// keep the history file indices here
-	std::vector<int64> files_yesteryear; 
-	std::vector<int64> files_toyear; 
+	std::vector<std::string> files;				// keep the history file indices here
+	std::vector<std::string> filesOfLastYear; 
 
 #ifdef ZQ_OS_MSWIN
 
@@ -1016,321 +991,99 @@ void FileLog::RemoveAndCreateFile()
 	for (hFind = ::FindFirstFileA(searchFor, &finddata); !bQuit && INVALID_HANDLE_VALUE != hFind && !done;
 		done = (0 ==::FindNextFileA(hFind, &finddata)))
 	{
-/*		//get logfile index
-		int64 fileidx =-1;
-		char filename[MAX_PATH];
-		strcpy(filename, finddata.cFileName);
-		char* lastDot = strrchr(filename, '.');
-		
-		if (NULL != lastDot)
-		{
-			*lastDot = '\0'; // cut off the extension name
-			lastDot = strrchr(filename, '.');
-			if (NULL != lastDot)
-			{
-				// check if the token before extname is a number
-				const char* pFileIdx = lastDot + 1;
-				fileidx = atof(pFileIdx);
-				if(fileidx == 0 && 0 != strcmp(pFileIdx, "0"))
-				{
-					// conversion failure
-					fileidx = -1;
-				}
+		__int64 timestamp =0;
+		char extname[20]="\0";
+		if (sscanf(finddata.cFileName +m_appName.length(), ".%lld%s", &timestamp, extname) <=1 || 0 != stricmp(extname, ".log"))
+			continue; // skip those files that are not in the pattern of rolling filenames
 
-				// cut off the token before extname, and double check if the shortname matches
-				*lastDot = '\0';
-				if (0 != stricmp(filename, m_appName.c_str()))
-					fileidx = -1;
-			}
-		}
-
-		if(fileidx < 0)
+		if(timestamp < 1010000000 || timestamp > 12312359599) // 01010000000 is the minimum timestamp ,12312359599 is the maximum timestamp
 			continue;
-*/
-		std::string str_index = std::string(finddata.cFileName + m_appName.size() + 1,12);
-		int64 index = atof(str_index.c_str());
-		if(index == 0 || strlen(str_index.c_str()) != 12)
-		{
-			continue;
-		}
 
 		FileTimeToSystemTime(&finddata.ftCreationTime, &filetime); 
-		if(filetime.wYear == currenttime.wYear)
-		{
-			files_toyear.push_back(index);
-		}
-		else if(filetime.wYear < currenttime.wYear)
-		{
-			files_yesteryear.push_back(index);
-		}		
+		
+		if (filetime.wYear < currenttime.wYear || (timestamp/1000000000) > currenttime.wMonth)
+			filesOfLastYear.push_back(finddata.cFileName);
+		else files.push_back(finddata.cFileName);
 	}
+
 	::FindClose(hFind);
+
 #else
-	time_t tmt;
-	time(&tmt);
-	struct tm* currenttime;
+
+	//Wei-TODO:
+	struct timeval tv;
 	struct tm* filetime;
-	currenttime = localtime(&tmt);
+	struct tm* currenttime;
+	gettimeofday(&tv, NULL);
+	currenttime = localtime(&tv.tv_sec);
 	
-	char scanFor[MAX_PATH];
-	snprintf(scanFor, MAX_PATH-2, "%s" FNSEPS "%s.%%lld.%s", m_dirName.c_str(), m_appName.c_str(), "log");
 	glob_t gl;
-	struct stat buf;
+	struct stat fileinfo;
 
 	if(!glob(searchFor, GLOB_PERIOD|GLOB_TILDE, 0, &gl))
 	{
 		for(size_t i = 0 ; i < gl.gl_pathc ; ++i)
 		{
-			int64 index = -1;
-			if(sscanf(gl.gl_pathv[i], scanFor, &index) == 1 && index > 9999999999)
-			{
-				stat(gl.gl_pathv[i], &buf);
-				filetime = localtime(&buf.st_mtime);
-				if(filetime->tm_year == currenttime->tm_year)
-				{
-					files_toyear.push_back(index);
-				}
-				else if(filetime->tm_year < currenttime->tm_year)
-				{					
-					files_toyear.push_back(index);
-				}
-			}
+			int64 timestamp = 0;
+			char extname[20] = "\0";
+			char filename[MAX_PATH] = "\0";
+			if(sscanf(gl.gl_pathv[i]+ m_dirName.length()+1 + m_appName.length(),".%lld%s" ,&timestamp, &extname) <= 1 && 0 != stricmp(extname, ".log") )
+				continue; // skip those files that are not in the pattern of rolling filenames
+
+			if(timestamp < 1010000000 || timestamp > 12312359599) // 01010000000 is the minimum timestamp ,12312359599 is the maximum timestamp
+				continue;
+			
+			stat(gl.gl_pathv[i], &fileinfo);
+			filetime = localtime(&fileinfo.st_mtime);
+			snprintf(filename, MAX_PATH-2, "%s.%011lld.log", m_appName.c_str(), timestamp);
+			if(filetime->tm_year < currenttime->tm_year || (timestamp/1000000000) > currenttime->tm_mon+1)
+				filesOfLastYear.push_back(filename);
+			else files.push_back(filename);
+			
 		}
 	}
 	globfree(&gl);
 #endif
-	files.insert(files.end(),files_yesteryear.begin(),files_yesteryear.end());
-	files.insert(files.end(),files_toyear.begin(),files_toyear.end());
-/* commented by weizhaoguang
-	// we got the file indices, find the bubble position now
-    std::vector<int>::iterator itOutOfDate = std::remove_if(files.begin(), files.end(), std::bind2nd(std::greater<int>(), m_nMaxLogfileNum - 1));
 
-    std::vector<int> oldFiles;
-    oldFiles.assign(itOutOfDate, files.end());
-    files.erase(itOutOfDate, files.end());
-    files.erase(std::unique(files.begin(), files.end()), files.end());
+	sort(filesOfLastYear.begin(), filesOfLastYear.end());
+	sort(files.begin(), files.end());
+	files.insert(files.begin(), filesOfLastYear.begin(), filesOfLastYear.end());
 
-    std::sort(files.begin(), files.end());
+	// clean up the old log files
+	if (files.size() >= m_nMaxLogfileNum)
 	{
-        bubblePos = -1;
-        for(size_t i = 0; i < files.size(); ++i)
-        {
-            if(i != files[i])
-            {
-                bubblePos = i;
-                break;
-            }
-        }
+		std::vector<std::string> oldFiles;
+		size_t n = files.size() - m_nMaxLogfileNum;
+		for (size_t i =0; i <=n; i++)
+			oldFiles.push_back(files[i]);
+		files.erase(files.begin(), files.begin() +n);
 
-        if(bubblePos < 0)
-        { // no bubble in the valid range, we should make one
-            if(files.size() == m_nMaxLogfileNum)
-            {
-                oldFiles.push_back(files.back());
-                files.pop_back();
-            }
-            bubblePos = files.size();
-        }
-
-        // remove the out of date files
-        for(size_t i = 0; i < oldFiles.size(); ++i)
-        {
-            char idxBuf[12] = {0};
-            sprintf(idxBuf, "%d", oldFiles[i]);
-
-            std::string strdel = dirname + FNSEPS + shortname + "." + idxBuf + "." + extname;
-
-            if (0 !=::unlink(strdel.c_str()))
-            {
-                if (oldFiles[i] == m_nMaxLogfileNum-1)
-                {
-                    if(bReportFailureToSystem)
-                    {
-                        SYSTEMFILELOG(Log::L_EMERG, "quit log rolling per delete file[%s] failed, errno[%d]: %s", strdel.c_str(), errno, ::strerror(errno));
-                        m_stampLastReportedFailure = now();
-                    }
-                    bQuit = true;
-                }
-            }
-        } // end for
-    }
-*/
-	std::vector<int64> oldFiles;
-	std::vector<int64>::iterator itOutOfDate;
-
-	if(files.size() > m_nMaxLogfileNum)
-	{	
-		size_t i = files.size();
-		itOutOfDate = std::find(files.begin(), files.end(), files[i - m_nMaxLogfileNum]);
-		oldFiles.assign(files.begin(),itOutOfDate);
-		files.erase(files.begin(),itOutOfDate);
-		files.erase(std::unique(files.begin(), files.end()), files.end());	
-	}
-	// remove the out of date files
-	for(size_t i = 0; i < oldFiles.size(); ++i)
-    {
-		char strdel[MAX_PATH];
-		snprintf(strdel,sizeof(strdel)-2, "%s"FNSEPS"%s.%012lld.%s", m_dirName.c_str(), m_appName.c_str(), oldFiles[i], "log");
-        if (0 !=::unlink(strdel))
+		// remove the out of date files
+		for (size_t i = 0; i < oldFiles.size(); ++i)
 		{
-				if(bReportFailureToSystem)
+			char strdel[MAX_PATH];
+			snprintf(strdel,sizeof(strdel)-2, "%s" FNSEPS "%s", m_dirName.c_str(), oldFiles[i].c_str());
+			if (0 !=::unlink(strdel))
+			{
+				if (bReportFailureToSystem)
 				{
 					SYSTEMFILELOG(Log::L_EMERG, "quit log rolling per delete file[%s] failed, errno[%d]: %s", strdel, errno, ::strerror(errno));
 					m_stampLastReportedFailure = now();
 				}
+
 				bQuit = true;	
-        }
-    } // end for
-	
-/* commented by weizhaoguang	
-#else
-	char scanFor[MAX_PATH];
-	snprintf(scanFor, MAX_PATH-2, "%s" FNSEPS "%s.%%d.%s", dirname.c_str() ,shortname.c_str(), extname.c_str());
-	glob_t gl;
-
-	if (!glob(searchFor, GLOB_PERIOD|GLOB_TILDE, 0, &gl)) 
-	{
-		for(size_t i = 0; i < gl.gl_pathc; ++i) 
-		{
-			int fileidx =-1;
-			if (::sscanf(gl.gl_pathv[i], scanFor, &fileidx) ==1 && fileidx >= m_nMaxLogfileNum-1)
-			{	
-				if (0 !=::unlink(gl.gl_pathv[i]) && fileidx == m_nMaxLogfileNum-1)
-				{
-                    if(bReportFailureToSystem)
-                    {
-                        SYSTEMFILELOG(Log::L_EMERG, "quit log rolling per delete file[%s] failed, errno[%d]: %s", gl.gl_pathv[i], errno, ::strerror(errno));
-                        m_stampLastReportedFailure = now();
-                    }
-					bQuit = true;
-				}
-			}	
-		}
+			}
+		} // end for
 	}
-
-	globfree(&gl);
-#endif
-
-*/
-/*by weizhaoguang
-    // rename all the files before bubble position
-	for (int i = bubblePos; !bQuit && i >0; i--)
-	{
-		char fromName[MAX_PATH], toName[MAX_PATH];
-		snprintf(toName, sizeof(toName) -2, "%s" FNSEPS "%s.%d.%s", dirname.c_str(), shortname.c_str(), i, extname.c_str());
-		snprintf(fromName, sizeof(fromName) -2, "%s" FNSEPS "%s.%d.%s", dirname.c_str(), shortname.c_str(), i-1, extname.c_str());
-		if (0 == ::access(fromName, 0) && 0 !=::rename(fromName, toName))
-		{
-            if(bReportFailureToSystem)
-            {
-                SYSTEMFILELOG(Log::L_EMERG, "quit log rolling per renaming file(%s=>%s) failed: %s", fromName, toName, ::strerror(errno));
-                m_stampLastReportedFailure = now();
-            }
-			bQuit = true;
-		}
-	}
-*/
 
 	if (bQuit)
 	{
 		m_cYield = 100;
 		return;
 	}
-    else
-    { // no error during the rolling
-        // reset the rolling failure stamp
-        m_stampLastReportedFailure = 0;
-    }
 
-/*
-	// noExtName: 没有扩展名的带有路径的文件名
-	// extName: 扩展名
-	// dirName: 路径名结尾没有"\\"
-	::std::string noExtName, extName, dirName;
-	noExtName = getLeftStr(m_FileName, ".", false);
-	extName = getRightStr(m_FileName, ".", false);
-	dirName = getPath(m_FileName);
-	//                 |       noExtName      | extName |
-	// 假设当前文件名为"directoryname\filename.extension"
-	//                 |   dirName   |
-	// DO: directoryname\filename.*.extension匹配的文件名
-	std::vector<std::string> tempArray;
-
-#ifdef ZQ_OS_MSWIN
-	WIN32_FIND_DATAA findData;
-	HANDLE hHandle;
-	char findBuff[MAX_PATH];
-	snprintf(findBuff, sizeof(findBuff) - 1, "%s.*.%s", noExtName.c_str(), extName.c_str());
-	hHandle = ::FindFirstFileA(findBuff, &findData);
-	if (INVALID_HANDLE_VALUE != hHandle)
-	{
-		do 
-		{
-			char fullName[MAX_PATH];
-			fullName[sizeof(fullName) - 1] = '\0';
-			snprintf(fullName, sizeof(fullName) - 1, "%s\\%s", dirName.c_str(), findData.cFileName);
-			tempArray.push_back(fullName);
-		}
-		while (::FindNextFileA(hHandle, &findData));
-	}
-	::FindClose(hHandle);
-#else
-	for(int ncount = 0; ncount<= m_nMaxLogfileNum; ncount ++)
-	{
-		char chName[MAX_PATH];
-		snprintf(chName, sizeof(chName) - 1, "%s.%d.%s", noExtName.c_str(), ncount,extName.c_str());
-		if(access(chName,F_OK) == 0)
-			tempArray.push_back(chName);
-	}
-#endif
-
-	// 将文件按新老排序，最近的放在数组的前面
-	std::vector<int> vctInts;
-	vctInts.clear();
-	int i = 0,count = 0;
-	for (i = 0, count = tempArray.size(); i < count; i ++)
-	{
-		std::string idxStr;
-		idxStr = getRightStr(getLeftStr(tempArray[i], ".", false), ".", false);
-		if (true == isInt(idxStr))
-			increaseInsert(vctInts, atoi(idxStr.c_str()));
-	}
-	std::vector<std::string> fileArray;
-	fileArray.clear();
-	for (i = 0, count = vctInts.size(); i < count; i ++)
-	{
-		char fullName[MAX_PATH];
-		fullName[sizeof(fullName) - 1] = '\0';
-		snprintf(fullName, sizeof(fullName) - 1, "%s.%d.%s", noExtName.c_str(), vctInts[i], extName.c_str());
-		fileArray.push_back(fullName);
-	}
-
-	// 删除过期的备份文件
-#ifdef ZQ_OS_MSWIN
-	while (int(fileArray.size()) >= m_nMaxLogfileNum)
-	{
-		if (0 == ::DeleteFileA(fileArray.back().c_str()))
-			SYSTEMFILELOG(Log::L_EMERG, "delete file [%s] failed.", fileArray.back().c_str());
-		fileArray.pop_back();
-	}
-#else
-	while (int(fileArray.size()) >= m_nMaxLogfileNum)
-	{
-		if (0 != remove(fileArray.back().c_str()))
-			SYSTEMFILELOG(Log::L_EMERG, "delete file [%s] failed.", fileArray.back().c_str());//syslog 
-		fileArray.pop_back();
-	}
-
-#endif
-	// 开始rename
-	for (i = fileArray.size() - 1; i >= 0; i --)
-	{
-		char newName[MAX_PATH];
-		newName[sizeof(newName) - 1] = '\0';
-		snprintf(newName, sizeof(newName) - 1, "%s.%d.%s", noExtName.c_str(), vctInts[i] + 1, extName.c_str());
-		rename(fileArray[i].c_str(), newName);
-	}
-*/
+	// reset the rolling failure stamp
+    m_stampLastReportedFailure = 0;
 
 	// 关闭当前读写的文件
 	if( NULL != _pNest->m_FileStream && _pNest->m_FileStream->is_open())
@@ -1339,25 +1092,35 @@ void FileLog::RemoveAndCreateFile()
 		delete _pNest->m_FileStream;
 		_pNest->m_FileStream = NULL;
 	}
-/*	contented by weizhaoguang
-	bool bRenameSuccess = true;
+
+	// 主log重命名，RtspProxy.log -> RtspProxy.xxxxxxxxxxxxx.log
+	char seqname[20] ="\0";
+
+#ifdef ZQ_OS_MSWIN
+	snprintf(seqname, sizeof(seqname)-1, "%02d%02d%02d%02d%02d%d", 
+		currenttime.wMonth, currenttime.wDay, currenttime.wHour, currenttime.wMinute, currenttime.wSecond, currenttime.wMilliseconds/100);
+#else
+	snprintf(seqname, sizeof(seqname)-1, "%02d%02d%02d%02d%02d%d", 
+		currenttime->tm_mon+1, currenttime->tm_mday, currenttime->tm_hour, currenttime->tm_min, currenttime->tm_sec, tv.tv_usec/100000);
+#endif
+
 	char newName[MAX_PATH];
-	newName[sizeof(newName) - 1] = '\0';
-	snprintf(newName, sizeof(newName) - 1, "%s" FNSEPS "%s.0.%s", dirname.c_str(), shortname.c_str(), extname.c_str());
+	snprintf(newName, sizeof(newName)-2, "%s" FNSEPS "%s.%s.log", m_dirName.empty() ? "." : m_dirName.c_str(), m_appName.c_str(), seqname);
+
+	bool bRenameSuccess = true;
 	if (0 != rename(m_FileName, newName))
 	{
 		SYSTEMFILELOG(Log::L_EMERG, "failed to rename file(%s=>%s) failed: errno[%d]: %s", m_FileName, newName, errno, ::strerror(errno));
 		bRenameSuccess = false;
 	}
-*/	
+
 	if(NULL == _pNest->m_FileStream)
 		_pNest->m_FileStream = new std::ofstream();
 
 	if(NULL == _pNest->m_FileStream)
-		throw FileLogException("Failed to new a fstream");
+		throw FileLogException("failed to new a fstream");
 
-/*	contented by weizhaoguang
-	if (true == bRenameSuccess)
+	if (bRenameSuccess)
 	{
 		// 之前rename过程没有错误，则创建一个新的文件，并置当前文件大小为0
 		_pNest->m_FileStream->open(m_FileName, std::ios::out | std::ios::binary);
@@ -1370,45 +1133,14 @@ void FileLog::RemoveAndCreateFile()
 		if (m_nCurrentFileSize <= 0)
 			m_nCurrentFileSize = 0;
 	}
-*/
-	// 创建一个新的文件
-	assemblyFileName();
-	_pNest->m_FileStream->open(m_FileName, std::ios::out | std::ios::binary);
-	m_nCurrentFileSize = 0;
 
-	if(!_pNest->m_FileStream->is_open())
+	if (!_pNest->m_FileStream->is_open())
 	{	
 		delete _pNest->m_FileStream;
 		_pNest->m_FileStream = NULL;
 
-		SYSTEMFILELOG(Log::L_EMERG,"Create file [%s] fail!", m_FileName);
-		throw FileLogException("Create file fail!");
-	}
-}
-
-void FileLog::assemblyFileName()
-{
-	char indices[20];
-	memset(m_FileName, 0, sizeof(m_FileName));
-
-#ifdef ZQ_OS_MSWIN
-	SYSTEMTIME time;
-	GetLocalTime(&time);
-	snprintf(indices, sizeof(indices), "%02d%02d%02d%02d%02d%02d", time.wMonth, time.wDay, time.wHour, time.wMinute, time.wSecond, time.wMilliseconds/10);
-#else
-	struct timeval tv;
-	struct tm* ptm;
-	gettimeofday(&tv, NULL);
-	ptm = localtime(&tv.tv_sec);
-	snprintf(indices, sizeof(indices), "%02d%02d%02d%02d%02d%02d", ptm->tm_mon+1, ptm->tm_mday, ptm->tm_hour, ptm->tm_min, ptm->tm_sec, tv.tv_usec/100000);
-#endif
-	if(m_dirName.size() != 0)
-	{
-	snprintf(m_FileName, sizeof(m_FileName) - 2, "%s" FNSEPS "%s.%s.%s", m_dirName.c_str(), m_appName.c_str(), indices, "log");
-	}
-	else
-	{
-		snprintf(m_FileName, sizeof(m_FileName) - 2, "%s.%s.%s", m_appName.c_str(), indices, "log");
+		SYSTEMFILELOG(Log::L_EMERG,"failed to create file[%s]", m_FileName);
+		throw FileLogException("failed to create file");
 	}
 }
 

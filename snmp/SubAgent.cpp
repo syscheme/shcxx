@@ -27,6 +27,18 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/snmp/SubAgent.cpp $
 // 
+// 32    1/15/16 9:42a Li.huang
+// 
+// 31    12/29/15 3:20p Li.huang
+// using SubAgent instead of  Subagent
+// 
+// 29    12/28/15 2:29p Li.huang
+// using SubAgent instead of  Subagent
+// 
+// 28    12/28/15 9:19a Li.huang
+// 
+// 27    12/23/15 4:16p Li.huang
+// 
 // 26    9/10/15 4:00p Hongquan.zhang
 // 
 // 25    3/27/15 2:51p Build
@@ -276,7 +288,7 @@ size_t BaseAgent::encodeMessage(uint8* stream, size_t maxlen, Msgheader& header,
 }
 
 void BaseAgent::stop()
-{
+{	
 	_bQuit = true;
 	SALOG(ZQ::common::Log::L_DEBUG, CLOGFMT(BaseAgent, "stop() SNMPv3 udp-endpoint[%s/%d]"), _bindAddr.c_str(), _bindPort);
 	waitHandle(500);
@@ -284,6 +296,8 @@ void BaseAgent::stop()
 
 bool BaseAgent::init(void)
 {
+	SALOG(ZQ::common::Log::L_DEBUG, CLOGFMT(BaseAgent, "BaseAgent::init()"));
+
 	if (_bindPort >0)
 		_soUdp.bind(ZQ::common::InetHostAddress(_bindAddr.c_str()), _bindPort);
 
@@ -302,6 +316,8 @@ bool BaseAgent::init(void)
 
 int BaseAgent::run()
 {
+	SALOG(ZQ::common::Log::L_INFO, CLOGFMT(BaseAgent, "SNMPv3 udp-endpoint[%s/%d] BaseAgent::run() enter, _bQuit[%d]"), _bindAddr.c_str(), _bindPort, _bQuit);
+
 	while(!_bQuit)
 	{
 		int64 stampIdleStart = ZQ::common::now();
@@ -320,15 +336,21 @@ int BaseAgent::run()
 			ZQ::common::tpport_t bport =0;
 			_bindAddr = _soUdp.getLocal(&bport).getHostAddress();
 			_bindPort = bport;
+			SALOG(ZQ::common::Log::L_INFO, CLOGFMT(BaseAgent, "BaseAgent::run() bindPort[%d]"), _bindPort);
 		}
 
 		if (_bQuit)
 			break;
-		
+	
+		_log.flush();
+
 		uint8 msg[ZQSNMP_MSG_LEN_MAX];
 		ZQ::common::InetHostAddress  peerAddr;
 		int peerPort = 0;
 		int msglen = _soUdp.receiveFrom((void *)msg, sizeof(msg), peerAddr, peerPort);
+
+		if(msglen <= 0)
+			continue;
 		
 		int respLen = (int)processMessage(peerAddr, peerPort, msg, msglen, sizeof(msg));
 		if (respLen <=0)
@@ -346,10 +368,11 @@ int BaseAgent::run()
 	}
 
 	SALOG(ZQ::common::Log::L_INFO, CLOGFMT(BaseAgent, "SNMPv3 udp-endpoint[%s/%d] quits"), _bindAddr.c_str(), _bindPort);
+	_log.flush();
 	return 0;
 }
 
-
+/*
 // -----------------------------
 // class Subagent
 // -----------------------------
@@ -583,6 +606,7 @@ bool Subagent::processMessage(const uint8* request, int len, std::string& respon
     }
 
 	uint8 resp[ZQSNMP_MSG_LEN_MAX];
+	memset(resp, 0, sizeof(resp));
 	size_t msglen = encodeMessage(resp, ZQSNMP_MSG_LEN_MAX, pduType, err, vlist);
 	if (msglen>0)
 	{
@@ -594,7 +618,7 @@ bool Subagent::processMessage(const uint8* request, int len, std::string& respon
 		SALOG(ZQ::common::Log::L_ERROR, CLOGFMT(Subagent, "encodeResponse() failed."));
 	return false;
 }
-
+*/
 // -----------------------------
 // class SnmpAgent
 // -----------------------------
@@ -606,6 +630,8 @@ SnmpAgent::SnmpAgent(ZQ::common::Log& log)
 
 SnmpAgent::~SnmpAgent()
 {
+	_log(ZQ::common::Log::L_INFO, CLOGFMT(SnmpAgent, "~SnmpAgent()"));
+
 }
 
 size_t SnmpAgent::processMessage(const ZQ::common::InetHostAddress& peerAddr, uint32 peerPort, uint8* msgbuf, int nbyteIn, int maxlen)
@@ -637,7 +663,7 @@ void SnmpAgent::OnQueryResult(const ZQ::common::InetHostAddress& serverAddr, int
 			_log(ZQ::common::Log::L_WARNING, CLOGFMT(SnmpAgent, "OnQueryResult() ignored result(%d) from SubAgent[%s/%d]"), header.cseq, serverAddr.getHostAddress(), serverPort);
 		return;
 	}
-
+    it->second.header = header;
 	it->second.stampResponsed = ZQ::common::now();
 	it->second.vlist = vlist;
 
@@ -661,6 +687,7 @@ uint32 SnmpAgent::sendQuery(const ZQ::common::InetHostAddress& serverAddr, int s
 	aq.pEvent = eventArrived;
 
 	uint8 msg[ZQSNMP_MSG_LEN_MAX];
+	memset(msg, 0, sizeof(msg));
 
 	// step 1. compose the request
 	size_t msglen = encodeMessage(msg, sizeof(msg), aq.header, vlist);
@@ -688,6 +715,16 @@ uint32 SnmpAgent::sendQuery(const ZQ::common::InetHostAddress& serverAddr, int s
 		return 0;
 	}
 
+/*	char buf[1024];
+	memset(buf , 0, 1024);
+
+	 ZQ::common::InetHostAddress tempAddr;
+	 int port;
+
+	 int msgLength = _soUdp.receiveFrom(buf, 1024, tempAddr, port);
+
+	 _log(ZQ::common::Log::L_ERROR, CLOGFMT(SnmpAgent, "receiveFrom() failed receiver[%d]"),msgLength);
+*/
 	if (ModuleMIB::_flags_VERBOSE & ModuleMIB::VFLG_VERBOSE_AGENT)
 		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(SnmpAgent, "sendQuery() query(%d) sent to SubAgent[%s/%d] msglen[%d]"), aq.header.cseq, serverAddr.getHostAddress(), serverPort, msglen);
 	return aq.header.cseq;
@@ -739,7 +776,6 @@ size_t SubAgent::processMessage(const ZQ::common::InetHostAddress& peerAddr, uin
 
     case ZQSNMP_PDU_GETNEXT:
          header.error = (uint32) _mmib.nextVar(vlist);
-		 break;
         break;
 
 	case ZQSNMP_PDU_SET:

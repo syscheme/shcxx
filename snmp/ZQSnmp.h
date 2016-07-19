@@ -27,6 +27,19 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/snmp/ZQSnmp.h $
 // 
+// 57    1/15/16 9:42a Li.huang
+// 
+// 56    12/30/15 4:34p Li.huang
+// 
+// 55    12/29/15 3:20p Li.huang
+// using SubAgent instead of  Subagent
+// 
+// 53    12/28/15 2:29p Li.huang
+// using SubAgent instead of  Subagent
+// 
+// 52    11/30/15 4:54p Ketao.zhang
+// check in  merge git
+// 
 // 51    3/26/15 7:12p Hui.shao
 // DEFAULT_LOG_FLAGS for loggingMask
 // 
@@ -213,11 +226,11 @@ class ZQ_SNMP_API SNMPVariable; // the abstraction of Windows/netsnmp SNMP varia
 
 class ZQ_SNMP_API SNMPObject;   // the wrapper of local address that will be exposed
 class ZQ_SNMP_API ModuleMIB;    // the MIB collection of this module
-class ZQ_SNMP_API Subagent;     // THIS CLASS SHOULD BE CLEANED
+//class ZQ_SNMP_API Subagent;     // THIS CLASS SHOULD BE CLEANED
 class ZQ_SNMP_API SubAgent;     // the communicator with SNMP agent
+class ZQ_SNMP_API BaseAgent;
 
 #ifdef _DEBUG
-class ZQ_SNMP_API BaseAgent;
 class ZQ_SNMP_API SnmpAgent;
 #endif // _DEBUG
 
@@ -283,7 +296,7 @@ public:
 
     typedef std::vector< I_t > Data;
     
-	Oid() {}
+	Oid() { _data.clear();}
 	Oid(const Oid &other) // copier
 	{
 		if (this == &other)
@@ -691,13 +704,15 @@ public:
 		_bQuit(false)
 	{}
 
-	virtual ~BaseAgent() {}
+	virtual ~BaseAgent() { _log(ZQ::common::Log::L_INFO, CLOGFMT(BaseAgent, "~BaseAgent()"));}
 
 	uint lastCSeq();
 
 	void stop();
 
 	uint32 portOfModule(uint32 componentId, uint32 moduleId);
+
+	uint32 getTimeout(){ return _timeout;};
 
 	static uint8 checksum(const uint8* data, int len);
 	static bool readUdpConfigure(ZQ::common::Log& log, uint32& baseUdpPort, uint32& timeoutComm);
@@ -805,7 +820,7 @@ protected:
 	bool nextModule(uint componentOid, uint& moduleOid) const;
 
 };
-
+/*
 // !!!!!!!!!!!!!!!!!!!   THIS CLASS SHOULD BE CLEANED !!!!!!!!!!!!!!!!!!!!
 // -----------------------------
 // class Subagent
@@ -855,7 +870,7 @@ private:
 	bool       _bQuit;
 };
 // !!!!!!!!!!!!!!!!!!!   THIS CLASS SHOULD BE CLEANED !!!!!!!!!!!!!!!!!!!!
-
+*/
 // -----------------------------
 // class SubAgent
 // -----------------------------

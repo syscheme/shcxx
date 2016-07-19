@@ -27,6 +27,9 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/snmp/ModuleMIB.cpp $
 // 
+// 37    11/30/15 4:54p Ketao.zhang
+// check in  merge git
+// 
 // 36    3/26/15 10:14a Hui.shao
 // log by flags
 // 
@@ -193,7 +196,7 @@ static const Oid::I_t OID_TIANSHAN_SVCFAMILY[] = {1,3,6,1,4,1,22839,4,1};
 // ModuleMIB
 // ----------------------
 const ZQ::SNMP::ModuleMIB::ServiceOidIdx* ZQ::SNMP::ModuleMIB::gMibSvcs = _gMibSvcs; // to export
-uint8 ModuleMIB::_flags_VERBOSE = 0xFFFF; // default 0
+uint8 ModuleMIB::_flags_VERBOSE =0; // default 0
 
 //const ModuleMIB::MIBE* ModuleMIB::_mibe = NULL;
 //void ModuleMIB::setComponentMIBIndices(const MIBE* mibe)

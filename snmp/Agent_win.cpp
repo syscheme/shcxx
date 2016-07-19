@@ -28,6 +28,22 @@ VOID SNMP_FUNC_TYPE SnmpExtensionClose();
 namespace ZQ {
 namespace SNMP {
 
+	static std::string GetPduType(BYTE pdutype)
+	{
+		switch(pdutype)
+		{
+		case SNMP_PDU_GET:
+			return "GetRequest-PDU";
+		case SNMP_PDU_GETNEXT:
+			return "GetNextRequest-PDU";
+		case SNMP_PDU_SET:
+			return "SetRequest-PDU";
+		case SNMP_PDU_RESPONSE:
+			return "GetResponse-PDU";
+		default:
+			return "Unsupported PDU";
+		}
+	}
 // -----------------------------
 // class SnmpAgent_win
 // -----------------------------
@@ -132,7 +148,6 @@ void SnmpAgent_win::loadInitConfiguration()
 			if (ERROR_SUCCESS == RegQueryValueEx(hRoot, "Timeout", NULL, &vtype, (LPBYTE)dwValue, &vsize) 
 				&& REG_DWORD == vtype)
 			{
-				if (dwValue>100 && dwValue < 65535)
 					_timeout = dwValue;
 			}
 
@@ -149,7 +164,13 @@ void SnmpAgent_win::loadInitConfiguration()
 	if (FNSEPC != _logDir[_logDir.length()-1])
 		_logDir += FNSEPC;
 
-	ModuleMIB::_flags_VERBOSE = (_loggingMask >>8) & 0xff;
+	if (_baseUdpPort <100 || _baseUdpPort > 65000)
+		_baseUdpPort = DEFAULT_BASE_UDP_PORT;
+
+	if (_timeout <100 || _timeout > 60*1000)
+		_timeout = DEFAULT_COMM_TIMEOUT;
+
+	ZQ::SNMP::ModuleMIB::_flags_VERBOSE = (_loggingMask >>8) & 0xff;
 }
 
 void SnmpAgent_win::loadServiceConfiguration()
@@ -428,7 +449,7 @@ SNMPError SnmpAgent_win::doQuery(BYTE pdutype, SnmpVarBindList* pVbl, AsnInteger
 	uint32 err = se_NoError;
 
 	if (ModuleMIB::_flags_VERBOSE & ModuleMIB::VFLG_VERBOSE_AGENT)
-		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(SnmpAgent, "doQuery() pdu[%02X] for %d vars"), pdutype, pVbl->len);
+		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(SnmpAgent, "doQuery() pdu[%02X][%s] for %d vars"), pdutype, GetPduType(pdutype).c_str(), pVbl->len);
 
 	for (UINT i = 0; i < pVbl->len; i++)
 	{
@@ -472,10 +493,10 @@ SNMPError SnmpAgent_win::doQuery(BYTE pdutype, SnmpVarBindList* pVbl, AsnInteger
 			if (_bQuit)
 				break;
 
-			uint cSeq = sendQuery(serverAddr, serverPort, ZQSNMP_PDU_GET, vlist, eventArrived);
+			uint cSeq = sendQuery(serverAddr, serverPort, pdutype, vlist, eventArrived);
 			if (0 == cSeq)
 			{
-				_log(ZQ::common::Log::L_ERROR, CLOGFMT(SnmpAgent, "doQuery() failed send to SubAgent[%s/%d] len[%d]"), serverAddr.getHostAddress(), serverPort);
+				_log(ZQ::common::Log::L_ERROR, CLOGFMT(SnmpAgent, "doQuery() failed send to SubAgent[%s/%d]"), serverAddr.getHostAddress(), serverPort);
 				err = se_GenericError;
 				break;
 			}
@@ -501,16 +522,18 @@ SNMPError SnmpAgent_win::doQuery(BYTE pdutype, SnmpVarBindList* pVbl, AsnInteger
 				oidbuf[i] = oid[i];
 			SnmpUtilOidCpy(&pVar->name, &aoid);
 
+			err = result.header.error;
+
 		} while(0);
 
 		*pErrStat = err;
-		*pErrIdx = i + 1;
+		*pErrIdx = i;
 		if (se_NoError != err)
 			break;
 	} // for list
 
 	if (ModuleMIB::_flags_VERBOSE & ModuleMIB::VFLG_VERBOSE_AGENT)
-		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(SnmpAgent, "doQuery() pdu[%02X] for %d vars: err(%d) idxErr(%d)"), pdutype, pVbl->len, pErrStat?*pErrStat:0, pErrIdx?*pErrIdx:0);
+		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(SnmpAgent, "doQuery() pdu[%02X][%s] for %d vars: err(%d) idxErr(%d)"), pdutype, GetPduType(pdutype).c_str(), pVbl->len, pErrStat?*pErrStat:0, pErrIdx?*pErrIdx:0);
 
 	return (SNMPError) err;
 }
@@ -609,7 +632,8 @@ BOOL APIENTRY DllMain(HANDLE hModule,
 
 	return TRUE;
 }
-
+static UINT m_ZQTianShanOidPrefixData[ZQSNMP_OID_LEN_MAX];
+static AsnObjectIdentifier  m_ZQTianShanOidPrefix;
 // -----------------------------
 // entry SnmpExtensionInit()
 // -----------------------------
@@ -624,6 +648,20 @@ BOOL SNMP_FUNC_TYPE SnmpExtensionInit(DWORD dwUptimeReference,
 
 	gAgent->start();
 
+	ZQ::SNMP::Oid rootOid = ZQ::SNMP::ModuleMIB::productRootOid();
+
+	//prepare root oid	
+	size_t len =0;
+	for (len =0; len < rootOid.length() && len < ZQSNMP_OID_LEN_MAX; len++)
+		m_ZQTianShanOidPrefixData[len] = rootOid[len];
+
+	m_ZQTianShanOidPrefix.idLength = len;
+	m_ZQTianShanOidPrefix.ids =  m_ZQTianShanOidPrefixData;
+
+	if(phSubagentTrapEvent)
+		*phSubagentTrapEvent = NULL;
+	if(pFirstSupportedRegion)
+		*pFirstSupportedRegion = m_ZQTianShanOidPrefix;
 	return TRUE;
 }
 

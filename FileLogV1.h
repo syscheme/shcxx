@@ -25,7 +25,6 @@
 #ifndef __ZQ_COMMON_FileLogV1_H__
 #define __ZQ_COMMON_FileLogV1_H__
 
-#include "ZQ_common_conf.h"
 #include "NativeThread.h"
 #include "Locks.h"
 
