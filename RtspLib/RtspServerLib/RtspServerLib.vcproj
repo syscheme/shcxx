@@ -169,7 +169,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;$(ZQProjsPath)\common\RtspLib&quot;;&quot;$(OPENSSLPath)\include&quot;;&quot;$(ZQProjsPath)\common&quot;;&quot;$(ZQProjsPath)\common\DataPostHouse&quot;"
+				AdditionalIncludeDirectories="&quot;$(ZQProjsPath)\common\RtspLib&quot;;&quot;$(OPENSSLPath)\x86\include&quot;;&quot;$(ZQProjsPath)\common&quot;;&quot;$(ZQProjsPath)\common\DataPostHouse&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -233,7 +233,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;$(ZQProjsPath)\common\RtspLib&quot;;&quot;$(OPENSSLPath)\include&quot;;&quot;$(ZQProjsPath)\common&quot;;&quot;$(ZQProjsPath)\common\DataPostHouse&quot;"
+				AdditionalIncludeDirectories="&quot;$(ZQProjsPath)\common\RtspLib&quot;;&quot;$(OPENSSLPath)\x64\include&quot;;&quot;$(ZQProjsPath)\common&quot;;&quot;$(ZQProjsPath)\common\DataPostHouse&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"

@@ -113,8 +113,6 @@ public:
 	// return the bytes has been filled into this BufferList
 	virtual size_t fill(uint8* buf, size_t offset, size_t len);
 
-	virtual size_t fill_2(uint8* buf, size_t offset, size_t len , std::vector<int>& useTime);
-
 	// read data out from this buffer. 
 	// return the bytes has been read from this BufferList
 	virtual size_t read(uint8* buf, size_t offset, size_t maxlen);
@@ -123,6 +121,9 @@ public:
 	// return the bytes has been read from this BufferList
 	virtual size_t readToString(std::string& str, size_t offset=0, size_t len =-1);
 
+	// read data out from this buffer into a string 
+	// return the bytes has been read from this BufferList
+	virtual uint8* bd(size_t index, size_t& len, size_t& size) const;
 
 protected:
 

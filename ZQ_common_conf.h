@@ -27,6 +27,11 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/ZQ_common_conf.h $
 // 
+// 16    4/19/16 11:19a Li.huang
+// 
+// 15    4/19/16 11:00a Li.huang
+// macro define : ZQ_FILELOG_V2, ZQCommon use FileLogV2
+// 
 // 14    3/11/16 10:04a Dejian.fei
 // NDK android
 // 
@@ -451,6 +456,9 @@ typedef	uint64			timeout64_t; // msec
 #  define MAX(_A, _B) ((_A) >(_B) ? (_A) :(_B))
 #endif
 
+#ifndef ZQ_FILELOG_V1
+#define ZQ_FILELOG_V2
+#endif
 #ifdef __cplusplus
 /// The root namespace of ZQ classes
 namespace ZQ   {

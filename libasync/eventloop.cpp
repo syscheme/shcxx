@@ -90,14 +90,11 @@ namespace LibAsync {
 
 	void EventLoop::addAsyncWork(AsyncWork::Ptr work) {
 		assert(work != NULL);
-		bool bPosted = false;
 		{
 			ZQ::common::MutexGuard gd(mLocker);
 			mAsyncWorks.push_back(work);
-			bPosted = mbAsyncWorkMessagePosted;
 		}
-		if(!bPosted)
-			wakeupLoop();
+		wakeupLoop();//wake up eventloop
 	}
 
 	bool EventLoop::addTimer( Timer::Ptr t ) {
@@ -113,7 +110,6 @@ namespace LibAsync {
 			mTimers.insert(info);
 			if( info.target < mNextWakeup){
 				bWakeUp = true;
-				mNextWakeup = info.target;
 			}
 		}
 		if( bWakeUp)
@@ -182,7 +178,7 @@ namespace LibAsync {
 				ZQ::common::MutexGuard gd(mLocker);
 				while(true) {
 					if(mTimers.empty()) {
-						mNextWakeup = ZQ::common::now() + 10 * 1000;//configurable ?
+						mNextWakeup = ZQ::common::now() + 2 * 1000;//configurable ?
 						break;
 					}
 					TIMERINFOS::iterator it = mTimers.begin();

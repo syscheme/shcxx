@@ -5,11 +5,13 @@
 #ifndef __DATA_COMMUNICATOR_SSL_H__
 #define __DATA_COMMUNICATOR_SSL_H__
 
+#include "DataCommunicatorUnite.h"
+
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
 #include <openssl/err.h>
 
-#include "DataCommunicatorUnite.h"
+
 
 namespace ZQ
 {

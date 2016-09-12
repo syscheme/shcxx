@@ -645,7 +645,7 @@ SEND_DATA:
 		//mLoop.getLog()(ZQ::common::Log::L_DEBUG, CLOGFMT(Socket, "socketshutdown() socket[%p]" ), this);
 		mShutdown = true;
 		AsyncBuffer buf;
-		buf.len = 2 * 64 * 1024;
+		buf.len = 64;
 		buf.base = (char*)malloc(sizeof(char)* buf.len);
 		if ( buf.base == NULL )
 			return false;
@@ -681,6 +681,7 @@ SEND_DATA:
 				recvIt->base = NULL;
 			}
 		}
+		mLingerPtr = NULL;
 		return true;
 	}
 	

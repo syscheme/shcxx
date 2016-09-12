@@ -27,6 +27,13 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/LRUMap.h $
 // 
+// 14    2/24/16 11:34a Hongquan.zhang
+// revert to previous version
+// 
+// 10    11/13/15 3:35p Ketao.zhang
+// 
+// 9     10/16/15 4:09p Ketao.zhang
+// 
 // 8     9/10/15 3:42p Hongquan.zhang
 // remove unreferenced header file
 // 

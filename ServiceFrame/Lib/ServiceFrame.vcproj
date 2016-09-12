@@ -44,7 +44,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="4"
-				AdditionalIncludeDirectories="$(ICE_ROOT)/include/stlport,../../ssllib,$(OPENSSLPATH)\include,$(ZQPROJSPATH)\Common,$(ExpatPath)/include"
+				AdditionalIncludeDirectories="&quot;$(ICE_ROOT)/include/stlport&quot;;../../ssllib;&quot;$(OPENSSLPATH)\x86\include&quot;;&quot;$(ZQPROJSPATH)\Common&quot;;&quot;$(ExpatPath)/include&quot;"
 				PreprocessorDefinitions="MBCS;_LIB;_MT;_SPEED_VERSION;_WIN32_SPECIAL_VERSION;NDEBUG;WIN32;_STLP_NEW_PLATFORM_SDK"
 				RuntimeLibrary="2"
 				RuntimeTypeInfo="true"
@@ -119,7 +119,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="4"
-				AdditionalIncludeDirectories="$(ICE_ROOT)/include/stlport,../../ssllib,$(OPENSSLPATH)\include,$(ZQPROJSPATH)\Common,$(ExpatPath)/include"
+				AdditionalIncludeDirectories="&quot;$(ICE_ROOT)/include/stlport&quot;;../../ssllib;&quot;$(OPENSSLPATH)\x64\include&quot;;&quot;$(ZQPROJSPATH)\Common&quot;;&quot;$(ExpatPath)/include&quot;"
 				PreprocessorDefinitions="MBCS;_LIB;_MT;_SPEED_VERSION;_WIN32_SPECIAL_VERSION;NDEBUG;WIN32;_STLP_NEW_PLATFORM_SDK"
 				RuntimeLibrary="2"
 				RuntimeTypeInfo="true"

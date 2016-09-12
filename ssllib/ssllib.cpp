@@ -1,5 +1,4 @@
-#include <ssllib.h>
-#include "_ssllib.h"
+#include "ssllib.h"
 
 #ifndef _NO_LOG_LIB_SUPPORT
 #include "Log.h"
@@ -332,46 +331,49 @@ SSLContext::SSLContext(SSLVersion ver /* = VER_TLSv1 */)
 {
 	_ver = ver;
 }
-
 int SSLContext::create(bool isServer /* = true */)
 {
 	SSL_METHOD* method;
 	if (isServer) {
-		switch(_ver) {
+		switch(_ver){
+#ifndef OPENSSL_NO_SSL2
 		case VER_SSLv2:
-			method = SSLv2_server_method();
+			method = (SSL_METHOD *)SSLv2_server_method();
 			break;
+#endif
 		case VER_SSLv3:
-			method = SSLv3_server_method();
+			method = (SSL_METHOD *)SSLv3_server_method();
 			break;
 		case VER_SSLv2v3:
-			method = SSLv23_server_method();
+			method = (SSL_METHOD *)SSLv23_server_method();
 			break;
 		case VER_TLSv1:
-			method = TLSv1_server_method();
+			method = (SSL_METHOD *)TLSv1_server_method();
 			break;
 
 		default:
-			method = TLSv1_server_method();
+			method = (SSL_METHOD *)TLSv1_server_method();
 			assert(false);
 		}
 	} else {
-		switch(_ver) {
+		switch(_ver){
+#ifndef OPENSSL_NO_SSL2
 		case VER_SSLv2:
-			method = SSLv2_client_method();
+			method = (SSL_METHOD *) SSLv2_client_method();
 			break;
+#endif
 		case VER_SSLv3:
-			method = SSLv3_client_method();
+			method = (SSL_METHOD *)SSLv3_client_method();
 			break;
 		case VER_SSLv2v3:
-			method = SSLv23_client_method();
+			method = (SSL_METHOD *)SSLv23_client_method();
 			break;
 		case VER_TLSv1:
-			method = TLSv1_client_method();
+			method = (SSL_METHOD *)TLSv1_client_method();
 			break;
 
 		default:
-			method = TLSv1_server_method();
+			method = (SSL_METHOD *)TLSv1_server_method();
 			assert(false);
 		}
 	}

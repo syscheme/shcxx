@@ -175,7 +175,7 @@ int testAgent()
 	SnmpExtensionInit(0, NULL, NULL);
 
 	SnmpVarBind vbs[3];
-	memset(vbs, 0, sizeof(vbs));
+//	memset(vbs, 0, sizeof(vbs));
 	size_t i =0, j;
 	Oid fullOid = mmib.buildupOid(Oid(".1"));
 	for (j=0; j<3; j++)

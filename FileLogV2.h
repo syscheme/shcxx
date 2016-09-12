@@ -25,7 +25,6 @@
 #ifndef __ZQ_COMMON_FileLogV2_H__
 #define __ZQ_COMMON_FileLogV2_H__
 
-#include "ZQ_common_conf.h"
 #include "NativeThread.h"
 #include "Locks.h"
 #include <vector>
@@ -54,35 +53,8 @@ public:
 
 class FileLog;
 class FileLogNest;
+class LogThread;
 
-class LogThread : public NativeThread
-{
-	friend class FileLog;
-protected: 
-	LogThread();
-	virtual ~LogThread();
-	void stop();
-	void addLogInst(FileLog* logInst);
-	void rmvLogInst(FileLog* logInst);
-
-protected: // derived from native thread
-	int run();
-	void final(void);
-	bool init(void);
-
-private: 
-#ifdef ZQ_OS_MSWIN
-	HANDLE _event;
-#else
-	sem_t			_pthsem;
-#endif
-	bool	_bQuit;
-typedef std::vector<FileLog*> LogVector;
-typedef LogVector::iterator LogItor;
-	LogVector _logInsts;
-	Mutex _lockLogInsts;
-};
-	
 class FileLog : public Log
 {
 	friend class FileLogNest;
@@ -183,9 +155,8 @@ protected:
 
 	//与log缓冲区相关的变量
 protected:
-	void	assemblyFileName();
 	void	createDir();
-	void	RemoveAndCreateFile();
+	void	roll();
 	bool	IsFileExist(int& retFileSize);
 	char*			m_Buff;						//缓冲区指针
 	int				m_nMaxBuffSize;				//缓冲区最大size
@@ -196,7 +167,7 @@ protected:
 	int				m_eventLogLevel;			//写入系统EventLog的log级别
 	int				m_instIdent;
 
-	static LogThread* m_staticThread;
+	static LogThread * m_staticThread;
 	static int		m_lastInstIdent;			// 记录上一个log instance的identity
 	Mutex			m_lockLastInstIdent;
 	int				m_cYield;

@@ -21,8 +21,10 @@
 // Desc  : impl a pool for the native objected thread
 // --------------------------------------------------------------------------------------------
 // Revision History: 
-// $Header: /ZQProjs/Common/NativeThreadPool.cpp 7     10/17/12 5:45p Hui.shao $
+// $Header: /ZQProjs/Common/NativeThreadPool.cpp 8     9/25/15 2:23p Ketao.zhang $
 // $Log: /ZQProjs/Common/NativeThreadPool.cpp $
+// 
+// 8     9/25/15 2:23p Ketao.zhang
 // 
 // 7     10/17/12 5:45p Hui.shao
 // merged from V1.16

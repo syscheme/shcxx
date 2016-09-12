@@ -303,7 +303,7 @@ namespace LibAsync {
 	 * 	      因为这个时候, 我们还没有拿到任何user code的实例, 所以看起来需要在
 	 * 	      HttpServer里面加上一个接口来专门处理这种情况b1.add(8);?
 	 * */
-	class HttpServant : public virtual HttpProcessor, public virtual Timer {
+	class HttpServant : public HttpProcessor {
 	public:
 		HttpServant( HttpServer& server, SOCKET socket, ZQ::common::Log& logger );
 		virtual ~HttpServant();
@@ -337,8 +337,6 @@ namespace LibAsync {
 		virtual void	onHttpComplete();
 
 		virtual void	onSocketConnected();
-
-		virtual void 	onTimer();
 
 		void			clear();
 

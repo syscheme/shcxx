@@ -122,8 +122,7 @@ HRESULT BaseZQServiceApplication::init(int argc,char *argv[])
 	
 	if(NULL ==  m_hCfg )
 	{// severe error 
-		_stprintf(errBuf,
-				_T("Config open error,No subkey %S in \\LocalMachine\\Softeware\\ZQ Interactive\\%S\\CurrentVersion\\Service"),
+		_stprintf(errBuf, _T("Config open error, no subkey %S in \\LocalMachine\\Softeware\\ZQ Interactive\\%S\\CurrentVersion\\Service"),
 				m_sServiceName,
 				m_sProductName);
 
@@ -169,7 +168,7 @@ HRESULT BaseZQServiceApplication::init(int argc,char *argv[])
 	hr = getConfigValue(_T("LogDir"),m_wsLogFolder,(TCHAR*)m_wsLogFolder,&dwSize,false,true);
 	if (hr != S_OK)
 	{
-		_stprintf(errBuf, _T("Fail to get the registry setting of LogFileName"));
+		_stprintf(errBuf, _T("failed to get the registry setting of LogFileName"));
 		
 		HANDLE  hEventSource;
 		hEventSource = RegisterEventSource(NULL, servname);
@@ -239,9 +238,9 @@ HRESULT BaseZQServiceApplication::init(int argc,char *argv[])
 	{	
 		// severe error	
 #if defined _UNICODE  || defined UNICODE
-		_stprintf(errBuf, _T("Fail to initialize FileLog, filename %S, size %d, error[%S]"), strFile, m_dwLogFileSize, ex.getString());
+		_stprintf(errBuf, _T("failed to initialize FileLog[%S], size %d, error[%S]"), strFile, m_dwLogFileSize, ex.getString());
 #else
-		_stprintf(errBuf, _T("Fail to initialize FileLog, filename %s, size %d, error[%s]"), strFile, m_dwLogFileSize, ex.getString());
+		_stprintf(errBuf, _T("failed to initialize FileLog[%s], size %d, error[%s]"), strFile, m_dwLogFileSize, ex.getString());
 #endif
 		
 		HANDLE  hEventSource;
@@ -269,7 +268,7 @@ HRESULT BaseZQServiceApplication::init(int argc,char *argv[])
 	ZQ::common::setGlogger(m_pReporter);
 
 	_strVersion = __STR1__(ZQ_PRODUCT_VER_MAJOR) "." __STR1__(ZQ_PRODUCT_VER_MINOR) "." __STR1__(ZQ_PRODUCT_VER_PATCH) "." __STR1__(ZQ_PRODUCT_VER_BUILD);
-	MyGlog(Log::L_INFO, "========================= Service[%s] starts =========================",_strVersion.c_str());
+	MyGlog(Log::L_INFO, "========================= Service[%s] version[%s] starts =========================",m_sServiceName,_strVersion.c_str());
 
 	// remark the log
 	getConfigValue(_T("KeepAliveIntervals"),&m_dwKeepAliveInterval_ms,m_dwKeepAliveInterval_ms,true,true);
@@ -301,7 +300,7 @@ HRESULT BaseZQServiceApplication::init(int argc,char *argv[])
     // if(SNMPOpenSession(m_sServiceName, m_sProductName, ZQSNMP_OID_SVCPROCESS_SVCAPP, SnmpCallback, snmpLogFile, m_dwSnmpLoggingMask, nLogFileSize, nProcessInstanceId))
     //  MyGlog(ZQ::common::Log::L_INFO,_T("Open SNMP session successfully"));
     // else
-    //    MyGlog(ZQ::common::Log::L_WARNING,"Fail to open SNMP session.");
+    //    MyGlog(ZQ::common::Log::L_WARNING,"failed to open SNMP session.");
 
 	if (NULL != snmpLogFile)
 		ServiceMIB::_flog.open(snmpLogFile, m_dwSnmpLoggingMask &0x0f, 3);
@@ -707,12 +706,14 @@ HRESULT BaseZQServiceApplication::setConfigValue(TCHAR* cfg_name,TCHAR* value,DW
 	{
 		return S_FALSE;
 	}
+
 	if(bReport)
 	{
 		TCHAR buf[256];
 		_stprintf(buf,_T("Set configuration [%s] as [%s]"),cfg_name,value);
 		logEvent(buf,Log::L_INFO);
 	}
+
 	return S_OK;
 }
 
@@ -727,6 +728,7 @@ HRESULT BaseZQServiceApplication::hasSubKey(TCHAR* keyName, bool createIfNotExis
 			status = CFG_SUBKEY(m_hCfg, keyName, &values);
 		}
 	}
+
 	return status == CFG_SUCCESS ? S_OK : S_FALSE;
 }
 
@@ -748,14 +750,14 @@ HRESULT BaseZQServiceApplication::OnUnInit(void)
 HRESULT BaseZQServiceApplication::OnPause(void)
 {
     SetEvent( HAppPaused );
-	logEvent(_T("Recieve Pause message from service shell."),Log::L_NOTICE);
+	logEvent(_T("received Pause message from service shell."), Log::L_NOTICE);
 	return S_OK;
 }
 
 HRESULT BaseZQServiceApplication::OnContinue(void)
 {
 	SetEvent( HAppContinued );	
-	logEvent(_T("Recieve Continue message from service shell."),Log::L_NOTICE);
+	logEvent(_T("received Continue message from service shell."), Log::L_NOTICE);
 	return S_OK;
 }
 
@@ -766,7 +768,9 @@ HRESULT BaseZQServiceApplication::OnStop(void)
 		delete _pSnmpSA;
 	_pSnmpSA = NULL;
 
-	logEvent(_T("Recieve Stop message from service shell."),Log::L_NOTICE);
+	TCHAR  strStopMessage[256]=_T("");
+    sprintf(strStopMessage, _T("Service[%s] received Stop message from service shell."), m_sServiceName);
+	logEvent(_T(strStopMessage),Log::L_NOTICE);
 
 	SetEvent(m_StopEvent);
 

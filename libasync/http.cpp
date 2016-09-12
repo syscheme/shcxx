@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <vector>
+#include <fcntl.h>
 #include <Locks.h>
 #include <TimeUtil.h>
 #include <urlstr.h>
@@ -42,7 +43,7 @@ namespace LibAsync {
 			LoopInfo info;
 			info.loop = l;
 			mLoops.push_back(info);
-		}
+		}		
 
 #ifdef ZQ_OS_MSWIN
         if (!Socket::getAcceptEx() || !Socket::getConnectEx()){
@@ -310,6 +311,10 @@ namespace LibAsync {
             assert(false && "invalid state");
             return false;
         }
+		BufferHelper bh(bufs);
+		if(bh.size() ==0) {
+			return 0; // do nothing if no data is being sent
+		}
         if(!mOutgoingMsg->hasContentBody() ) {
             assert( false && "http message do not have a content body");
             return false;
@@ -319,7 +324,6 @@ namespace LibAsync {
 			return sendDirect( bufs);
 		}
 
-		BufferHelper bh(bufs);
 		size_t sentSize = 0;
 		int rc = 0;
 		while (bh.size() > 0) {
@@ -611,6 +615,7 @@ namespace LibAsync {
 		if( expectSize == (size_t)res) {
 			mSendingChunkState = SENDING_CHUNK_NULL;
 			mLastUnsentBytes = 0;
+			onHttpEndSent(mbOutgoingKeepAlive);
 			return res;
 		} else {
 			mLastUnsentBytes = expectSize - (size_t)res;
@@ -897,7 +902,6 @@ namespace LibAsync {
 	HttpServant::HttpServant( HttpServer& server, SOCKET socket, ZQ::common::Log& logger)
 	:Socket(httpClientCenter.getLoop(), socket),
 	HttpProcessor(false,socket),
-	Timer(Socket::getLoop()),
 	mServer(server),
 	mHandler(0),
 	mLastTouch(0),
@@ -1062,11 +1066,6 @@ namespace LibAsync {
 		mHandler->onHttpComplete();
 	}
 
-	void HttpServant::onTimer() {
-
-	}
-
-
 	///Http Server part
 	HttpServer::HttpServer( const HttpServerConfig& conf, ZQ::common::Log& logger )
 	:Socket(httpClientCenter.getLoop()),
@@ -1152,6 +1151,18 @@ namespace LibAsync {
 			int sock = ::accept( mSocket, (struct sockaddr*)&addr, &size);
 			if( sock < 0 )
 				break;
+			int flags = fcntl(sock, F_GETFL, 0);
+			if ( -1 == flags)
+			{
+				::close(sock);
+				continue;
+			}
+			if( -1 == fcntl(sock, F_SETFL, flags | O_NONBLOCK) )
+			{
+				::close(sock);
+				continue;
+			}
+
 			Socket::Ptr newSock = onSocketAccepted( sock );
 			if( newSock ) {
 				newSock->initialServerSocket();

@@ -27,6 +27,12 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/TCPSocket.h $
 // 
+// 8     3/09/16 12:09p Hongquan.zhang
+// 
+// 8     12/23/15 5:31p Hongquan.zhang
+// temp solution for ticket 18557
+// dummy connection is bad for waking up selector
+// 
 // 7     1/25/11 5:38p Hui.shao
 // query for tcp thread pool status
 // 

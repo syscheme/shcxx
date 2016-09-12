@@ -39,6 +39,11 @@ void DoSocket::clear()
 		_sendBuf.len = 0;
 		_sendBuf.base = NULL;
 	}
+	/*if(_fd != NULL)
+	{
+		fclose (_fd);
+		_fd = NULL;
+	}*/
 	_thisPtr =NULL;	
 }
 
@@ -110,7 +115,7 @@ void DoSocket::onWritable()
 			_log(ZQ::common::Log::L_WARNING, CLOGFMT(DoSocket, "onWritable() server[%p] with file[%s] got bufRemain[%d]."), this, _fileName.c_str(), _bufRemain);
 			if(_bufRemain == -1)
 			{
-				//鏆傛椂娌℃湁鏁版嵁鍙彂锛岃绛夊緟
+				//暂时没有数据可发，请等待
 				updateTimer(20);
 				return;
 			}

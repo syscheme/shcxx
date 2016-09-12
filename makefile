@@ -41,8 +41,10 @@ OBJS := Exception.os       \
 		DiskIOPerf.os      \
 		BufferPool.os      \
 		HttpClient.os				\
+		CryptoAlgm.os				\
 		SystemInfo.os
 
+CXXFLAGS += -DZQ_FILELOG_V2
 LDFLAGS += -lpthread -ldl -lrt -luuid $(_expat_dir)/lib/libexpat.a -lboost_thread-mt
 
 include $(TOPDIR)/build/common.mk

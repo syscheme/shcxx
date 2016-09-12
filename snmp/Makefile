@@ -4,7 +4,7 @@ include $(TOPDIR)/build/defines.mk
 
 SOLIB  := ZQSnmp
  
-OBJS   := ModuleMIB.os SnmpVar.os SubAgent.os
+OBJS   := ModuleMIB.os SnmpVar.os SubAgent.os Agent_netsnmp.os
 
 INCDIR += $(TOPDIR)/Common
 

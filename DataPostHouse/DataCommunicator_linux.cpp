@@ -198,10 +198,28 @@ bool ASocket::connect( const std::string& remoteIp , const std::string& remotePo
 		struct pollfd pfd;
 		pfd.fd 		= mSock;
 		pfd.events	= POLLOUT;
+		pfd.revents = 0;
+		
+		MLOG(ZQ::common::Log::L_DEBUG,COMMFMT(connect,"poll() start with timeout %d with events %d"), timeout, pfd.events);
+
 		int iRet = poll(&pfd,1,timeout);
-		if( iRet < 0 )
+
+		MLOG(ZQ::common::Log::L_DEBUG,COMMFMT(connect,"poll() stop with return value %d, revents %d"), iRet, pfd.revents);
+
+		if( 0 == iRet)
+		{
+			MLOG(ZQ::common::Log::L_ERROR,COMMFMT(connect,"connect timeout"));
+			return false;
+		}
+		else if( iRet < 0 )
 		{
 			MLOG(ZQ::common::Log::L_ERROR,COMMFMT(connect,"failed to detect socket status, error[%d]"), errno );
+			return false;
+		}
+
+		if( !(pfd.revents & POLLOUT) )
+		{
+			MLOG(ZQ::common::Log::L_ERROR,COMMFMT(connect,"socket is not writable yet as revents is %d"), pfd.revents);
 			return false;
 		}
 		int so_error;
@@ -306,7 +324,7 @@ int32 ASocket::read( int8* buffer , size_t bufSize ,int32 timeoutInterval /* = -
 		{
 			if((pfd.revents & POLLIN) == POLLIN )
 			{
-				iRet = ::send( mSock , buffer , bufSize , 0 );
+				iRet = ::send( mSock , buffer , bufSize , MSG_NOSIGNAL );
 				if( iRet == -1 )
 				{
 					MLOG(ZQ::common::Log::L_ERROR,COMMFMT(read,"failed to invoke send and errorCode[%d]"),
@@ -382,7 +400,7 @@ int32 ASocket::write( const int8* buffer , size_t bufSize , int32 timeoutInterva
 		//int64 startTime = ZQ::common::now();
 		while( bufSize > 0 )
 		{
-			int iRet = ::send( mSock , buffer + pos , bufSize , 0 );
+			int iRet = ::send( mSock , buffer + pos , bufSize , MSG_NOSIGNAL );
 			if( iRet <= 0 )
 			{			
 				MLOG(ZQ::common::Log::L_ERROR,COMMFMT(write,"failed to invoke send and errorCode[%s]"),
@@ -421,7 +439,7 @@ int32 ASocket::write( const int8* buffer , size_t bufSize , int32 timeoutInterva
 		{
 			if((pfd.revents & POLLOUT) == POLLOUT )
 			{
-				iRet = ::send( mSock , buffer , bufSize , 0 );
+				iRet = ::send( mSock , buffer , bufSize , MSG_NOSIGNAL );
 				if( iRet == -1 )
 				{
 					MLOG(ZQ::common::Log::L_ERROR,COMMFMT(write,"failed to invoke send and errorCode[%d]"),
@@ -456,7 +474,7 @@ int32 ASocket::writeAsync( const int8* buffer , size_t bufSize )
 
 	updateActiveStamp();
 	
-	int dwFlag = MSG_DONTWAIT;
+	int dwFlag = MSG_DONTWAIT | MSG_NOSIGNAL;
 
 	int iRet = ::send( mSock , buffer, bufSize, dwFlag);
 
@@ -973,11 +991,15 @@ bool AClientSocketTcp::connectTo( const std::string& remoteIp , const std::strin
 	{	
 	if( !this->bind(localIp ,localPort ) )
 	{
+		close();
+		clear();
 		return false;
 	}
 	}
 	if( !this->connect(remoteIp , remotePort , timeout ))
 	{
+		close();
+		clear();
 		return false;
 	}
 	mType = COMM_TYPE_TCP;

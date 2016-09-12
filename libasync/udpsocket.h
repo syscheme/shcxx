@@ -22,8 +22,8 @@ namespace LibAsync {
 		static UDPSocket::Ptr create(EventLoop& loop);
 		bool    openudp();
 		bool	bind(const std::string& ip, unsigned short port);
-		void    peer(const std::string& ip, unsigned short port);
-		void    local(const std::string& ip, unsigned short port);
+		bool 	peer(const std::string& ip, unsigned short port);
+		bool	local(const std::string& ip, unsigned short port);
 		EventLoop&  getLoop() const  { return Socket::getLoop(); }
 		bool    sendto(const std::string& ip, unsigned short port, AsyncBuffer buf);
 		bool    sendto(AsyncBuffer);
@@ -34,6 +34,9 @@ namespace LibAsync {
 		bool    setbroadcast(bool enable = true);
 		bool    setgroup(const std::string& ip, unsigned short port);
 		bool    setgroup();
+		bool    setTTL(int ttl);
+		int 	setSendBufSize(int size);
+		bool	setPeer( const std::string& ip, unsigned short port );
 		//fun to validates multicast addresses
 		bool    vaildatemulticast(const std::string& ip);
 #ifdef ZQ_OS_LINUX
@@ -46,7 +49,9 @@ namespace LibAsync {
 	protected:
 		virtual	void	onSocketRecved(size_t size, std::string ip, unsigned short port) { }
 
+
 	protected:
+		SocketAddrHelper			mPeerInfo;
 		std::string                 mLocalAddr;
 		unsigned  short             mLocalPort;
 		std::string                 mPeerAddr;

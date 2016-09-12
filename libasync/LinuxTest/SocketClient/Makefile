@@ -10,6 +10,6 @@ INCDIR += . ../.. ../../..
 
 VPATH += :.:../..
 
-LDFLAGS += -L. -lZQCommon 
+LDFLAGS += -lZQCommon 
 
 include $(TOPDIR)/build/common.mk

@@ -7,7 +7,7 @@ int main(int argc, char **argv)
 	const std::string uri	= "/scs/getfile?file=cdntest1234567892010xor.com.0X0000&ic=10000000000&rate=375000&range=0-1048577";
 	const unsigned int maxHttpClient = 400;
 
-	ZQ::common::FileLog log("testHttp.log", ZQ::common::Log::L_DEBUG);
+	ZQ::common::FileLog log("C:\\testHttp.log", ZQ::common::Log::L_DEBUG);
 
 	LibAsync::HttpMessagePtr sendMsgPtr = new LibAsync::HttpMessage(http_parser_type::HTTP_REQUEST);
 	sendMsgPtr->method(http_method::HTTP_GET);

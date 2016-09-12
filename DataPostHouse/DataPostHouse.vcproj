@@ -173,7 +173,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;$(OPENSSLPath)\include&quot;;&quot;$(ZQProjsPath)\common&quot;"
+				AdditionalIncludeDirectories="&quot;$(OPENSSLPath)\x86\include&quot;;&quot;$(ZQProjsPath)\common&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -193,7 +193,7 @@
 			<Tool
 				Name="VCLibrarianTool"
 				AdditionalDependencies="libeay32.lib ssleay32.lib"
-				AdditionalLibraryDirectories="&quot;$(OPENSSLPath)\lib&quot;"
+				AdditionalLibraryDirectories="&quot;$(ICE_Root)\lib&quot;;&quot;$(OPENSSLPath)\x86\lib&quot;"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -237,7 +237,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="&quot;$(OPENSSLPath)\include&quot;;&quot;$(ZQProjsPath)\common&quot;"
+				AdditionalIncludeDirectories="&quot;$(OPENSSLPath)\x64\include&quot;;&quot;$(ZQProjsPath)\common&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -257,7 +257,7 @@
 			<Tool
 				Name="VCLibrarianTool"
 				AdditionalDependencies="libeay32.lib ssleay32.lib"
-				AdditionalLibraryDirectories="&quot;$(ICE_Root)\lib\x64&quot;"
+				AdditionalLibraryDirectories="&quot;$(ICE_Root)\lib\x64&quot;;&quot;$(OPENSSLPath)\x64\lib&quot;"
 			/>
 			<Tool
 				Name="VCALinkTool"

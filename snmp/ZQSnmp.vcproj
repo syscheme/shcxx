@@ -4,6 +4,7 @@
 	Version="8.00"
 	Name="ZQSnmp"
 	ProjectGUID="{0DD1A94D-D423-4097-A7AC-4A880F1DA1D8}"
+	RootNamespace="ZQSnmp"
 	>
 	<Platforms>
 		<Platform
@@ -51,15 +52,15 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				InlineFunctionExpansion="1"
-				AdditionalIncludeDirectories="$(ZQProjsPath)/Common"
+				AdditionalIncludeDirectories="&quot;$(ZQProjsPath)/Common&quot;;&quot;$(RegExppKit)&quot;"
 				PreprocessorDefinitions="NDEBUG;WIN32;_WINDOWS;_USRDLL;ZQSNMP_EXPORTS;XML_STATIC;LOGFMTWITHTID;_WIN32_WINNT=0x500"
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
 				PrecompiledHeaderFile=".\Release/ZQSnmp.pch"
-				AssemblerListingLocation=".\Release/"
-				ObjectFile=".\Release/"
-				ProgramDataBaseFileName=".\Release/"
+				AssemblerListingLocation=""
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\vc80.pdb"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 				DebugInformationFormat="3"
@@ -80,6 +81,7 @@
 				OutputFile="$(ZQProjsPath)\TianShan\bin\ZQSnmp.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
+				ModuleDefinitionFile=".\Agent_win.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(ZQProjsPath)\TianShan\bin\ZQSnmp.pdb"
 				ImportLibrary="$(ZQProjsPath)\TianShan\bin\ZQSnmp.lib"
@@ -147,7 +149,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				InlineFunctionExpansion="1"
-				AdditionalIncludeDirectories="$(ZQProjsPath)/Common"
+				AdditionalIncludeDirectories="&quot;$(ZQProjsPath)/Common&quot;;&quot;$(RegExppKit)&quot;"
 				PreprocessorDefinitions="NDEBUG;WIN32;_WINDOWS;_USRDLL;ZQSNMP_EXPORTS;XML_STATIC;LOGFMTWITHTID;_WIN32_WINNT=0x500"
 				StringPooling="true"
 				RuntimeLibrary="2"
@@ -176,6 +178,7 @@
 				OutputFile="$(ZQProjsPath)\TianShan\bin64\ZQSnmp.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
+				ModuleDefinitionFile=".\Agent_win.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(ZQProjsPath)\TianShan\bin64\ZQSnmp.pdb"
 				ImportLibrary="$(ZQProjsPath)\TianShan\bin64\ZQSnmp.lib"
@@ -271,6 +274,7 @@
 				OutputFile=".\Debug/ZQSnmp.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
+				ModuleDefinitionFile=".\Agent_win.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\Debug/ZQSnmp.pdb"
 				ImportLibrary=".\Debug/ZQSnmp.lib"
@@ -363,7 +367,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile=".\Debug/ZQSnmp.dll"
+				OutputFile="$(ZQProjsPath)\TianShan\bin64debug\ZQSnmp.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				GenerateDebugInformation="true"
@@ -411,6 +415,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Agent_win.def"
+				>
+			</File>
+			<File
 				RelativePath=".\ModuleMIB.cpp"
 				>
 			</File>
@@ -440,10 +448,6 @@
 			Name="Resource Files"
 			Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 			>
-			<File
-				RelativePath=".\Agent_win.def"
-				>
-			</File>
 			<File
 				RelativePath="ZQSnmp.rc"
 				>

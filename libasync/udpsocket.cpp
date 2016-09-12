@@ -68,20 +68,19 @@ namespace LibAsync {
 		return true;
 	}
 
-	void    UDPSocket::peer(const std::string& ip, unsigned short port)
+	bool UDPSocket::peer(const std::string& ip, unsigned short port)
 	{
-		mPeerAddr = ip;
-		mPeerPort = port;
+		return setPeer(ip, port);
 	}
 
-	void UDPSocket::local(const std::string& ip, unsigned short port)
+	bool UDPSocket::local(const std::string& ip, unsigned short port)
 	{
 		if( ip.empty())
 			mLocalAddr = "0.0.0.0";
 		else
 			mLocalAddr = ip;
 		mLocalPort = port;
-		bind(mLocalAddr, port);
+		return bind(mLocalAddr, port);
 	}
 
 	bool UDPSocket::setbroadcast(bool enable/*=true*/)
@@ -116,12 +115,17 @@ namespace LibAsync {
 		return recv(bufs);
 	}
 
+	bool UDPSocket::setPeer( const std::string& ip, unsigned short port) {
+		mPeerAddr = ip;
+		mPeerPort = port;
+		return mPeerInfo.parse(mPeerAddr, mPeerPort);
+	}
+
 	bool UDPSocket::sendto(const std::string& ip, unsigned short port, AsyncBuffer buf)
 	{
 		if (buf.len <= 0)
 			return false;
-		mPeerAddr = ip;
-		mPeerPort = port;
+		setPeer(ip, port);
 		return sendto(buf);
 	}
 
@@ -190,4 +194,22 @@ namespace LibAsync {
 			return false;
 		return true;
 	}
+
+	bool UDPSocket::setTTL(int ttl)
+    {
+        return 0 == setsockopt(mSocket, SOL_SOCKET, IP_TTL, (char*)&ttl, sizeof(ttl));
+    }
+
+	int UDPSocket::setSendBufSize(int size)
+    {
+        if (0 != setsockopt( mSocket, SOL_SOCKET, SO_SNDBUFFORCE, (const char*)&size, sizeof(size))) {
+			return -1;
+		}
+		socklen_t optSize = sizeof(size);
+		if(0 != getsockopt( mSocket, SOL_SOCKET, SO_SNDBUF, &size, &optSize)) {
+			return -1;
+		}
+		return size;
+    }
+	
 }

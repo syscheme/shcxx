@@ -17,22 +17,23 @@ void EventLoop::createLoop()
 	 //mEpollFd = ::epoll_create1(EPOLL_CLOEXEC);
 	  if ( mEpollFd == -1)
 			::abort();
-	
+	  /*
 	  int flags = fcntl(mEpollFd, F_GETFL, 0);
 	  if (flags == -1)
 		::abort();
 
 	  if( fcntl(mEpollFd, F_SETFL, flags | O_NONBLOCK) == -1)
 	  	::abort();
+	  */
 	
 	  bool eventfdCreate = mDummyEventFd.create();
 	  assert(eventfdCreate && "create DummyEventFd falled.");
 	  struct epoll_event ev;
 	  ev.events = EPOLLIN;
 	  ev.data.fd = mDummyEventFd.fd();
-	  if( ::epoll_ctl(mEpollFd, EPOLL_CTL_ADD, mDummyEventFd.fd(), &ev) != 0)
+	  if( ::epoll_ctl(mEpollFd, EPOLL_CTL_ADD, mDummyEventFd.fd(), &ev) != 0) {
 	  	assert(false && "add DummyEventFd to epoll failed.");
-
+	  }
 }
 
 void EventLoop::destroyLoop()
@@ -115,6 +116,8 @@ void EventLoop::processEvent( int64 expireAt )
 	int waitTimeOut = (int)(expireAt - ::ZQ::common::TimeUtil::now());
 	if (waitTimeOut < 0)
 		waitTimeOut = 0;
+	if(waitTimeOut > 2 * 1000 ) 
+		waitTimeOut = 2 * 1000;
 	struct epoll_event events[EPOLLEVENTS];
 	int res = ::epoll_wait(mEpollFd, events, EPOLLEVENTS, waitTimeOut);
 	//int64 loopStart = currentTime();
@@ -361,7 +364,23 @@ static bool createDummyPipe( int* sockpair ) {
 	sockpair[1] =  sock;
 
 	addrlen = sizeof(bindaddr);
-	sockpair[0] =  accept(sockpair[0],(struct sockaddr*)&bindaddr,&addrlen);
+	sock =  accept(sockpair[0], (struct sockaddr*)&bindaddr, &addrlen);
+	//set sock to NON_BLOCK
+	flags = fcntl(sock, F_GETFL, 0);
+	if ( -1 == flags)
+	{
+		close(sockpair[1]);
+		close(sock);
+		return false;
+	}
+	if( -1 == fcntl(sock, F_SETFL, flags | O_NONBLOCK) )
+	{
+		close(sockpair[1]);
+		close(sock);
+		return false;
+	}
+
+	sockpair[0] = sock;
 	return sockpair[0] >= 0;
 }
 

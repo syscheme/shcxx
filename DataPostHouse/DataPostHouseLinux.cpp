@@ -306,8 +306,8 @@ int HandleRequest::run(void)
 				continue;
 			if(key != NULL)
 			{	
-				//try
-				//{
+				try
+				{
 					//MLOG(ZQ::common::Log::L_DEBUG,"Communicator[%lld] have date to handle",	key->dataCommunicator->getCommunicatorId());
 					//MLOG.flush();
 					re = communicator->onDataAsyncResult(epollevent);
@@ -316,8 +316,8 @@ int HandleRequest::run(void)
 						if( !_dak.addnewCommunicator(communicator,true) )
 							communicator->onDataAsyncError();
 					}
-				//}
-				//catch(...){}			
+				}
+				catch(...){}			
 			}
 			else
 			{
