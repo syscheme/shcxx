@@ -231,6 +231,10 @@ namespace LibAsync {
 
 		void	bindCB( FUNC_ONASYNCWORK cb );
 
+		EventLoop& getLoop() {
+			return mLoop;
+		}
+
 	protected:
 		friend class EventLoop;
 		AsyncWork( EventLoop& loop);
