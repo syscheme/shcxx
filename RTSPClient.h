@@ -27,14 +27,7 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/RTSPClient.h $
 // 
-// 29    2/29/16 3:11p Hui.shao
-// 
-// 28    2/29/16 2:34p Hui.shao
-// 
-// 27    2/25/16 6:09p Hui.shao
-// 
-// 25    2/25/16 4:23p Hui.shao
-// added RTSPClient_sync
+// 30    8/02/16 5:31p Hui.shao
 // 
 // 24    11/10/15 3:00p Hui.shao
 // ticket#18316 to protect multiple in comming message of a same session
@@ -301,6 +294,8 @@ public:
 		racDownstreamUreachable     = 6004,
 		racUnableEncrpt             = 6005,
 
+		racFakedItemStepped         = 8810, // TianShan spec defined 8803 as "ItemStepped", Gehua copied the idea
+		                                    // but renumber it to 8810, which is a mess up
 	} RTSPAnnounceCode;
 
 	typedef enum _ReqError
