@@ -42,7 +42,7 @@
 //*     Generic ZQ messages
 //*******************************************************************************
 //
-//  Values are 32 bit values layed out as follows:
+//  Values are 32 bit values laid out as follows:
 //
 //   3 3 2 2 2 2 2 2 2 2 2 2 1 1 1 1 1 1 1 1 1 1
 //   1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
@@ -83,7 +83,7 @@
 //
 // MessageText:
 //
-//  ZQ Service General Success:%1.
+// ZQ Service General Success:%1.
 //
 #define ZQ_GENERIC_SUCCESS               0x00001000L
 
@@ -92,7 +92,7 @@
 //
 // MessageText:
 //
-//  ZQ Service General Information:%1.
+// ZQ Service General Information:%1.
 //
 #define ZQ_GENERIC_INFO                  0x40001001L
 
@@ -101,7 +101,7 @@
 //
 // MessageText:
 //
-//  ZQ Service General Warning:%1.
+// ZQ Service General Warning:%1.
 //
 #define ZQ_GENERIC_WARNING               0x80001002L
 
@@ -110,7 +110,7 @@
 //
 // MessageText:
 //
-//  ZQ Service General Error:%1.
+// ZQ Service General Error:%1.
 //
 #define ZQ_GENERIC_ERROR                 0xC0001003L
 
@@ -123,8 +123,8 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Unable to report status to Service Control Manager.
-//  Error is %1. State is %2.
+// (ZQSRVSHELL)Unable to report status to Service Control Manager.
+// Error is %1. State is %2.
 //
 #define SHELL_LOST_SCMGR_CNXN            0x8006C000L
 
@@ -133,7 +133,7 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Service %1 stop requested by SCManager.
+// (ZQSRVSHELL)Service %1 stop requested by SCManager.
 //
 #define SHELL_STOPPING_SVC               0x4006C001L
 
@@ -142,8 +142,8 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Error closing handle to %1.
-//  Error code is %2.
+// (ZQSRVSHELL)Error closing handle to %1.
+// Error code is %2.
 //
 #define SHELL_CLOSE_ERR                  0xC006C002L
 
@@ -152,7 +152,7 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Service %1 is now exiting
+// (ZQSRVSHELL)Service %1 is now exiting
 //
 #define SHELL_NORMAL_EXIT                0x4006C003L
 
@@ -161,8 +161,8 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Service application %1, PID= %2 has failed to shutdown.
-//  %3...
+// (ZQSRVSHELL)Service application %1, PID= %2 has failed to shutdown.
+// %3...
 //
 #define SHELL_NOKILL                     0xC006C004L
 
@@ -171,8 +171,8 @@
 //
 // MessageText:
 //
-//  %1 failed.
-//  (ZQSRVSHELL)Unable to initiate system shutdown. Error code is %2.
+// %1 failed.
+// (ZQSRVSHELL)Unable to initiate system shutdown. Error code is %2.
 //
 #define SHELL_NOSHUTDOWN                 0xC006C005L
 
@@ -181,7 +181,7 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Unable to manage snmp variables. Sts = %1, GetLastError = %2.
+// (ZQSRVSHELL)Unable to manage snmp variables. Sts = %1, GetLastError = %2.
 //
 #define SHELL_MANINIT_FAIL               0x8006C006L
 
@@ -190,7 +190,7 @@
 //
 // MessageText:
 //
-//  (ZQAPPSHELL)Unable to make timer variables manageable. Error is %1, GetLastError is %2.
+// (ZQAPPSHELL)Unable to make timer variables manageable. Error is %1, GetLastError is %2.
 //
 #define APPSHELL_MANINIT_FAIL            0x8006C007L
 
@@ -199,8 +199,8 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Service %1 wants to create application process, but application is already running.
-//  %2...
+// (ZQSRVSHELL)Service %1 wants to create application process, but application is already running.
+// %2...
 //
 #define SHELL_APP_ALREADY_UP             0xC006C008L
 
@@ -210,8 +210,8 @@
 //
 // MessageText:
 //
-//  No service application name on command line. Command line is %1.
-//  Exiting...
+// No service application name on command line. Command line is %1.
+// Exiting...
 //
 #define SHELL_NOSERVICE                  0xC006C800L
 
@@ -220,7 +220,7 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Unable to initialize service shell %1. Error is %2. Exiting...
+// (ZQSRVSHELL)Unable to initialize service shell %1. Error is %2. Exiting...
 //
 #define SHELL_INITFAIL                   0xC006C801L
 
@@ -229,8 +229,8 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Service shell %1 failed to get configuration values for RebootTimeThreshold/RebootCountLimit from upstream node for SystemType %2
-//  %3.
+// (ZQSRVSHELL)Service shell %1 failed to get configuration values for RebootTimeThreshold/RebootCountLimit from upstream node for SystemType %2
+// %3.
 //
 #define SHELL_ERROR_REBOOTPARMS          0x8006C803L
 
@@ -239,11 +239,11 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Service %1 failed to create application process
-//  Command line is %2.
-//  Image is %3.
-//  Current directory is %4.
-//  Error is %5.
+// (ZQSRVSHELL)Service %1 failed to create application process
+// Command line is %2.
+// Image is %3.
+// Current directory is %4.
+// Error is %5.
 //
 #define SHELL_START_PROC_FAIL            0xC006CC00L
 
@@ -252,7 +252,7 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Service application %1, PID=%2 exited unexpectedly with status=%3., ChildExit Event occurred
+// (ZQSRVSHELL)Service application %1, PID=%2 exited unexpectedly with status=%3., ChildExit Event occurred
 //
 #define SHELL_UNEXP_EXIT                 0xC006CC01L
 
@@ -261,7 +261,7 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Service shell starting service %1 with ProcessId %2.
+// (ZQSRVSHELL)Service shell starting service %1 with ProcessId %2.
 //
 #define SHELL_STARTING_SVC               0x4006CC02L
 
@@ -270,8 +270,8 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Service application %1 experiencing too many restarts:
-//  %2 starts within %3 seconds. %4...
+// (ZQSRVSHELL)Service application %1 experiencing too many restarts:
+// %2 starts within %3 seconds. %4...
 //
 #define SHELL_TOO_MANY_RESTARTS          0xC006CC03L
 
@@ -280,8 +280,8 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Alive protocol has timed out for application %1, PID=%2.
-//  Will attempt to restart. 
+// (ZQSRVSHELL)Alive protocol has timed out for application %1, PID=%2.
+// Will attempt to restart. 
 //
 #define SHELL_ALIVE_TIMEOUT              0xC006CC04L
 
@@ -290,8 +290,8 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Unexpected completion from a wait.
-//  Completion code is %1. Service %2 exiting...
+// (ZQSRVSHELL)Unexpected completion from a wait.
+// Completion code is %1. Service %2 exiting...
 //
 #define SHELL_UNKNOWN_WAIT_RESULT        0xC006CC05L
 
@@ -300,7 +300,7 @@
 //
 // MessageText:
 //
-//  (ZQAPPSHELL)Unable to %1 event %2. Error is %3. Exiting... 
+// (ZQAPPSHELL)Unable to %1 event %2. Error is %3. Exiting... 
 //
 #define APPSHELL_EVENT_ERROR             0xC006CC06L
 
@@ -309,7 +309,7 @@
 //
 // MessageText:
 //
-//  (ZQAPPSHELL)Unable to start main thread. Error is %1. Exiting...
+// (ZQAPPSHELL)Unable to start main thread. Error is %1. Exiting...
 //
 #define APPSHELL_NO_MAIN_THREAD          0xC006CC07L
 
@@ -318,7 +318,7 @@
 //
 // MessageText:
 //
-//  (ZQAPPSHELL)Application thread did not set the alive event within %1 sec (AppStartupWait). Exiting...
+// (ZQAPPSHELL)Application thread did not set the alive event within %1 sec (AppStartupWait). Exiting...
 //
 #define APPSHELL_ALIVE_TIMEOUT           0xC006CC08L
 
@@ -327,8 +327,8 @@
 //
 // MessageText:
 //
-//  (ZQAPPSHELL)Unexpected completion from a wait.
-//  Completion code is %1. Exiting...
+// (ZQAPPSHELL)Unexpected completion from a wait.
+// Completion code is %1. Exiting...
 //
 #define APPSHELL_UNKNOWN_WAIT_RESULT     0xC006CC09L
 
@@ -337,9 +337,9 @@
 //
 // MessageText:
 //
-//  (ZQAPPSHELL)Exception encountered in application.
-//  Exception code is %1. Address is %2.
-//  Binary data contain exception record and context. Exiting...
+// (ZQAPPSHELL)Exception encountered in application.
+// Exception code is %1. Address is %2.
+// Binary data contain exception record and context. Exiting...
 //
 #define APPSHELL_EXCEPTION               0xC006CC0AL
 
@@ -348,7 +348,7 @@
 //
 // MessageText:
 //
-//  (ZQAPPSHELL)The main application thread (app_main) has terminated.  Exiting...
+// (ZQAPPSHELL)The main application thread (app_main) has terminated.  Exiting...
 //
 #define APPSHELL_DEAD_APPTHREAD          0xC006CC0BL
 
@@ -357,7 +357,7 @@
 //
 // MessageText:
 //
-//  (ZQAPPSHELL)Unable to start service control thread. Error is %1.
+// (ZQAPPSHELL)Unable to start service control thread. Error is %1.
 //
 #define APPSHELL_NO_CONTROL_THREAD       0xC006CC0CL
 
@@ -366,7 +366,7 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Application %1 received PAUSE signal.
+// (ZQSRVSHELL)Application %1 received PAUSE signal.
 //
 #define SHELL_PAUSED                     0x4006CC0DL
 
@@ -375,7 +375,7 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Application %1 received CONTINUE signal.
+// (ZQSRVSHELL)Application %1 received CONTINUE signal.
 //
 #define SHELL_CONTINUED                  0x4006CC0EL
 
@@ -384,9 +384,9 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Exception encountered in service shell.
-//  Exception code is %1. Address is %2.
-//  Binary data contain exception record and context. Exiting...
+// (ZQSRVSHELL)Exception encountered in service shell.
+// Exception code is %1. Address is %2.
+// Binary data contain exception record and context. Exiting...
 //
 #define SHELL_EXCEPTION                  0xC006CC0FL
 
@@ -395,7 +395,7 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Service %1 pause requested by SCManager.
+// (ZQSRVSHELL)Service %1 pause requested by SCManager.
 //
 #define SHELL_PAUSING_SVC                0x4006CC10L
 
@@ -404,7 +404,7 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Service %1 continue requested by SCManager.
+// (ZQSRVSHELL)Service %1 continue requested by SCManager.
 //
 #define SHELL_CONTINUING_SVC             0x4006CC11L
 
@@ -413,7 +413,7 @@
 //
 // MessageText:
 //
-//  (ZQAPPSHELL)Unable to start Shell Monitoring thread. Error is %1.
+// (ZQAPPSHELL)Unable to start Shell Monitoring thread. Error is %1.
 //
 #define APPSHELL_NO_MONITOR_THREAD       0xC006CC12L
 
@@ -422,7 +422,7 @@
 //
 // MessageText:
 //
-//  (ZQAPPSHELL)Unable to open mutex %1. Error is %2. Exiting... 
+// (ZQAPPSHELL)Unable to open mutex %1. Error is %2. Exiting... 
 //
 #define APPSHELL_MUTEX_ERROR             0xC006CC13L
 
@@ -431,7 +431,7 @@
 //
 // MessageText:
 //
-//  (ZQAPPSHELL)Service Shell %1 is dead. Condition is %2. Exiting... 
+// (ZQAPPSHELL)Service Shell %1 is dead. Condition is %2. Exiting... 
 //
 #define APPSHELL_SHELL_NOTALIVE          0xC006CC14L
 
@@ -440,7 +440,7 @@
 //
 // MessageText:
 //
-//  (ZQAPPSHELL)Received service shell request to %1. 
+// (ZQAPPSHELL)Received service shell request to %1. 
 //
 #define APPSHELL_SERVICE_REQUEST         0x4006CC15L
 
@@ -449,8 +449,8 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Service %1 failed to reacquire its ShellAlive mutex from child process, PID=%2.
-//  %3...
+// (ZQSRVSHELL)Service %1 failed to reacquire its ShellAlive mutex from child process, PID=%2.
+// %3...
 //
 #define SHELL_REACQUIRE_SHELLALIVE_MUTEX 0xC006CC16L
 
@@ -459,7 +459,7 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Service application %1, PID=%2, has terminated successfully with status=%3.
+// (ZQSRVSHELL)Service application %1, PID=%2, has terminated successfully with status=%3.
 //
 #define SHELL_APP_TERM_OK                0x4006CC17L
 
@@ -468,7 +468,7 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Service %1 requested its child process %2 to immediately abort
+// (ZQSRVSHELL)Service %1 requested its child process %2 to immediately abort
 //
 #define SHELL_RELEASING_SHELLALIVE_MUTEX 0xC006CC18L
 
@@ -477,7 +477,7 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Service %1 in helpless state.  Killing service process...
+// (ZQSRVSHELL)Service %1 in helpless state.  Killing service process...
 //
 #define SHELL_HELPLESS_STATE             0xC006CC19L
 
@@ -486,7 +486,7 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Service %1 terminating abnormally 
+// (ZQSRVSHELL)Service %1 terminating abnormally 
 //
 #define SHELL_ABEND                      0xC006CC1AL
 
@@ -495,8 +495,8 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Service %1 experiencing too many reboots:
-//  %2 starts within %3 seconds. Exiting...
+// (ZQSRVSHELL)Service %1 experiencing too many reboots:
+// %2 starts within %3 seconds. Exiting...
 //
 #define SHELL_TOO_MANY_REBOOTS           0xC006CC1BL
 
@@ -505,7 +505,7 @@
 //
 // MessageText:
 //
-//  (ZQAPPSHELL)Service terminating.  Need system reboot to recover..
+// (ZQAPPSHELL)Service terminating.  Need system reboot to recover..
 //
 #define SHELL_EXITTING_NEED_REBOOT       0xC006CC1CL
 
@@ -514,7 +514,7 @@
 //
 // MessageText:
 //
-//  (ZQAPPSHELL)Service terminating.  Need process restart to recover.
+// (ZQAPPSHELL)Service terminating.  Need process restart to recover.
 //
 #define SHELL_EXITTING_NEED_RESTART      0xC006CC1DL
 
@@ -523,7 +523,7 @@
 //
 // MessageText:
 //
-//  (ZQAPPSHELL)Service terminating.  Need user intervention to recover.
+// (ZQAPPSHELL)Service terminating.  Need user intervention to recover.
 //
 #define SHELL_EXITTING_NEED_INTERVENTION 0xC006CC1EL
 
@@ -532,7 +532,7 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Service initiating system shutdown.
+// (ZQSRVSHELL)Service initiating system shutdown.
 //
 #define SHELL_REBOOTING                  0xC006CC1FL
 
@@ -541,9 +541,9 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Unable to report status to Service Control Manager.
-//  After trying several times, the RPC Server is still too busy.
-//  Service %1 is terminating.
+// (ZQSRVSHELL)Unable to report status to Service Control Manager.
+// After trying several times, the RPC Server is still too busy.
+// Service %1 is terminating.
 //
 #define SHELL_SCMGR_RPC_BUSY             0xC006CC20L
 
@@ -552,7 +552,7 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Service initiating system shutdown.%1
+// (ZQSRVSHELL)Service initiating system shutdown.%1
 //
 #define SHELL_REBOOT_DELAY               0x4006CC21L
 
@@ -561,8 +561,8 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Unable to find ProductName value in SYSTEM...Services...%1.  NT Error = %2.
-//  Assuming CDCI...
+// (ZQSRVSHELL)Unable to find ProductName value in SYSTEM...Services...%1.  NT Error = %2.
+// Assuming CDCI...
 //
 #define SHELL_NO_PRODUCT                 0x8006CC22L
 
@@ -571,8 +571,8 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Unable to find the management port for %1.  Error=%2.
-//  Continuing without management...
+// (ZQSRVSHELL)Unable to find the management port for %1.  Error=%2.
+// Continuing without management...
 //
 #define SHELL_NO_PORT                    0x8006CC23L
 
@@ -581,7 +581,7 @@
 //
 // MessageText:
 //
-//  (ZQAPPSHELL)Service %1 still running on its backup node.
+// (ZQAPPSHELL)Service %1 still running on its backup node.
 //
 #define APPSHELL_ON_BACKUP               0x8006CC24L
 
@@ -590,7 +590,7 @@
 //
 // MessageText:
 //
-//  (ZQAPPSHELL)Unable to start backup warning thread. Error is %1. Exiting...
+// (ZQAPPSHELL)Unable to start backup warning thread. Error is %1. Exiting...
 //
 #define APPSHELL_NO_WARNING_THREAD       0xC006CC25L
 
@@ -599,7 +599,7 @@
 //
 // MessageText:
 //
-//  (ZQAPPSHELL)Service %1 started on its backup node.
+// (ZQAPPSHELL)Service %1 started on its backup node.
 //
 #define APPSHELL_TO_BACKUP               0xC006CC26L
 
@@ -608,7 +608,7 @@
 //
 // MessageText:
 //
-//  (ZQSRVSHELL)Service application, unable to kill the process %1, PID= %2. Attempt to kill failed with an Win32 error %3 :-.
+// (ZQSRVSHELL)Service application, unable to kill the process %1, PID= %2. Attempt to kill failed with an Win32 error %3 :-.
 //
 #define SHELL_KILL_FAILED                0xC006CC27L
 
@@ -617,7 +617,7 @@
 //
 // MessageText:
 //
-//  %1
+// %1
 //
 #define SERVICE_LOG_ERROR                0xC006CC50L
 
@@ -626,7 +626,7 @@
 //
 // MessageText:
 //
-//  %1
+// %1
 //
 #define SERVICE_LOG_WARNING              0x8006CC51L
 
@@ -635,7 +635,7 @@
 //
 // MessageText:
 //
-//  %1
+// %1
 //
 #define SERVICE_LOG_INFO                 0x4006CC52L
 

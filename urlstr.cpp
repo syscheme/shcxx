@@ -384,7 +384,7 @@ bool URLStr::parse(const char* urlstr)
 		if (!bCase)
 			TOLOWER(var);
 		
-		mVars.insert(std::make_pair<std::string, std::string>(var, val));
+		mVars.insert(urlvar_t::value_type(var, val));
 	}
 		 
 		 
