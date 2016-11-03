@@ -56,8 +56,8 @@
 #  define ZQ_ELOOP_API
 #endif // OS
 
-// namespace ZQ {
-// namespace eloop {
+namespace ZQ {
+	namespace eloop {
 
 // -----------------------------
 // class Handle
@@ -77,18 +77,18 @@ protected:
 public:
 	int is_active();
 	int is_closing();
-	void close(cbClose_t cbClose = NULL);
+	void close();
 	void ref();
 	void unref();
 	int has_ref();
 	int send_buffer_size(int *value);
 	int recv_buffer_size(int *value);
 	int fileno(fd_t* fd);
-
-	Handle* context_ptr();
+	void* data;
 
 protected:
-	virtual void OnClose() {}
+	virtual void OnClose(Handle *handle) {}
+	uv_handle_t *context_ptr();
 
 private:
 	Handle(const Handle& that) = delete;
@@ -98,8 +98,8 @@ private:
 	static void _cbClose(uv_handle_t *uvhandle)
 	{
 		Handle *h = static_cast<Handle *>(uvhandle->data);
-		if (NULL !=h)
-			h->OnClose();
+		if (NULL != h)
+			h->OnClose(h);
 	}
 
 	uv_any_handle* context;
@@ -110,8 +110,6 @@ private:
 // -----------------------------
 class Loop
 {
-private:
-	typedef void(*cbWalk_t) (Handle *handle, void* arg);
 public:
 	enum RunMode {
 		Default = UV_RUN_DEFAULT,
@@ -131,11 +129,10 @@ public:
 	uint64_t now();
 	void update_time();
 	uv_loop_t *context_ptr();
-
-	void walk(cbWalk_t cbWalk, void *arg);
+	void walk(void* arg);
 
 protected:
-	virtual void OnWalk(void* arg) {}
+	virtual void OnWalk(Handle *handle, void* arg) {}
 
 private:
 	uv_loop_t* _uvLoop;
@@ -144,8 +141,8 @@ private:
 	{
 		uv_loop_t* uvloop = uvhandle->loop;
 		Loop* l = static_cast<Loop *>(uvloop->data);
-		if (NULL !=l)
-			l->OnWalk(arg);
+		if (NULL != l)
+			l->OnWalk(static_cast<Handle *>(uvhandle->data), arg);
 	}
 };
 
@@ -156,18 +153,18 @@ class Idle : public Handle
 {
 public:
 	Idle();
-	int init(uvpp_loop &loop);
-	int start(uvpp_idle_cb idle_callback);
+	int init(Loop &loop);
+	int start();
 	int stop();
 
 protected:
-	virtual void OnIdle() {}
+	virtual void OnIdle(Idle* idle) {}
 
 	static void _cbOnIdle(uv_idle_t* uvhandle)
 	{
-		Idle *h = static_cast<Idle *>(handle->data);
+		Idle *h = static_cast<Idle *>(uvhandle->data);
 		if (NULL != h)
-			h->OnIdle();
+			h->OnIdle(h);
 	}
 };
 
@@ -176,26 +173,67 @@ protected:
 // -----------------------------
 class Timer : public Handle
 {
-private:
-	typedef void(*uvpp_timer_cb)(uvpp_timer* self);
 
 public:
-	uvpp_timer();
-	int init(uvpp_loop &loop);
-	int start(uint64_t timeout, uint64_t repeat, uvpp_timer_cb timer_callback);
+	Timer();
+	int init(Loop &loop);
+	int start(uint64_t timeout, uint64_t repeat);
 	int stop();
 	int again();
 	void set_repeat(uint64_t repeat);
 	uint64_t get_repeat();
 
+protected:
+	virtual void OnTimer(Timer* timer) {}
+
 private:
-	uvpp_timer_cb timer_callback;
-	static void timer_cb(uv_timer_t *timer);
+	static void timer_cb(uv_timer_t *timer)
+	{
+		Timer *h = static_cast<Timer *>(timer->data);
+		if (NULL != h)
+			h->OnTimer(h);
+	}
+};
+
+// -----------------------------
+// class Async
+// -----------------------------
+class Async : public Handle {
+
+public:
+	Async();
+	int init(Loop &loop);
+	int send();
+
+protected:
+	virtual void OnAsync(Async* async) {}
+
+private:
+	static void async_cb(uv_async_t *async)
+	{
+		Async *h = static_cast<Async *>(async->data);
+		if (NULL != h)
+			h->OnAsync(h);
+	}
+};
+// -----------------------------
+// class Signal
+// -----------------------------
+class Signal : public Handle {
+public:
+	Signal();
+	int init(Loop &loop);
+	int start(int signum);
+	int stop();
+
+protected:
+	virtual void OnSignal(Signal *self, int signum) {}
+private:
+	static void signal_cb(uv_signal_t *signal, int signum);
 };
 
 
 
-
-// } } // namespace ZQ::eloop
+ } } // namespace ZQ::eloop
 
 #endif // __ZQ_COMMON_ELOOP_H__
