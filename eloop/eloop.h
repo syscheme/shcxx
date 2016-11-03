@@ -43,9 +43,6 @@
 #include <vector>
 #include <map>
 
-#define SNMP_VENDOR_NET_SNMP    (1)
-#define SNMP_VENDOR_Microsoft   (2)
-
 #ifdef ZQ_OS_MSWIN
 #  ifdef ELOOP_EXPORTS
 #    define ZQ_ELOOP_API __EXPORT
@@ -57,7 +54,14 @@
 #endif // OS
 
 namespace ZQ {
-	namespace eloop {
+namespace eloop {
+
+class ZQ_ELOOP_API Loop;
+class ZQ_ELOOP_API Handle;
+class ZQ_ELOOP_API Idle;
+class ZQ_ELOOP_API Timer;
+class ZQ_ELOOP_API Async;
+class ZQ_ELOOP_API Signal;
 
 // -----------------------------
 // class Handle
@@ -92,7 +96,7 @@ protected:
 
 private:
 	Handle(const Handle& that) = delete;
-	Handle &operator=(const Handle& that) = delete;
+	Handle& operator=(const Handle& that) = delete;
 
 private:
 	static void _cbClose(uv_handle_t *uvhandle)
@@ -137,13 +141,7 @@ protected:
 private:
 	uv_loop_t* _uvLoop;
 
-	static void _doWalk(uv_handle_t* uvhandle, void *arg)
-	{
-		uv_loop_t* uvloop = uvhandle->loop;
-		Loop* l = static_cast<Loop *>(uvloop->data);
-		if (NULL != l)
-			l->OnWalk(static_cast<Handle *>(uvhandle->data), arg);
-	}
+	static void _doWalk(uv_handle_t* uvhandle, void *arg);
 };
 
 // -----------------------------
@@ -158,14 +156,10 @@ public:
 	int stop();
 
 protected:
-	virtual void OnIdle(Idle* idle) {}
+	virtual void OnIdle() {}
 
-	static void _cbOnIdle(uv_idle_t* uvhandle)
-	{
-		Idle *h = static_cast<Idle *>(uvhandle->data);
-		if (NULL != h)
-			h->OnIdle(h);
-	}
+private:
+	static void _cbOnIdle(uv_idle_t* uvhandle);
 };
 
 // -----------------------------
@@ -184,42 +178,34 @@ public:
 	uint64_t get_repeat();
 
 protected:
-	virtual void OnTimer(Timer* timer) {}
+	virtual void OnTimer() {}
 
 private:
-	static void timer_cb(uv_timer_t *timer)
-	{
-		Timer *h = static_cast<Timer *>(timer->data);
-		if (NULL != h)
-			h->OnTimer(h);
-	}
+	static void _cbOnTimer(uv_timer_t *timer);
 };
 
 // -----------------------------
 // class Async
 // -----------------------------
-class Async : public Handle {
-
+class Async : public Handle 
+{
 public:
 	Async();
 	int init(Loop &loop);
 	int send();
 
 protected:
-	virtual void OnAsync(Async* async) {}
+	virtual void OnAsync() {}
 
 private:
-	static void async_cb(uv_async_t *async)
-	{
-		Async *h = static_cast<Async *>(async->data);
-		if (NULL != h)
-			h->OnAsync(h);
-	}
+	static void _cbAsync(uv_async_t *async);
 };
+
 // -----------------------------
 // class Signal
 // -----------------------------
-class Signal : public Handle {
+class Signal : public Handle
+{
 public:
 	Signal();
 	int init(Loop &loop);
@@ -227,9 +213,10 @@ public:
 	int stop();
 
 protected:
-	virtual void OnSignal(Signal *self, int signum) {}
+	virtual void OnSignal(int signum) {}
+
 private:
-	static void signal_cb(uv_signal_t *signal, int signum);
+	static void _cbSignal(uv_signal_t *signal, int signum);
 };
 
 

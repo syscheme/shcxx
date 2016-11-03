@@ -1,4 +1,3 @@
-
 // ===========================================================================
 // Copyright (c) 2015 by
 // XOR media, Shanghai, PRC.,
@@ -35,52 +34,52 @@
 #include "eloop.h"
 #include "eloop_net.h"
 namespace ZQ {
-	namespace eloop {
+namespace eloop {
 
-		// -----------------------------
-		// class File
-		// -----------------------------
-		// dup of uvpp_fs_event
-		class File : public Handle {
+// -----------------------------
+// class File
+// -----------------------------
+// dup of uvpp_fs_event
+class File : public Handle
+{
+public:
+	File();
+	int init(Loop &loop);
+	int start(const char *path, unsigned int flags);
+	int stop();
+	int getpath(char *buffer, size_t *size);
 
-		public:
-			File();
-			int init(Loop &loop);
-			int start(const char *path, unsigned int flags);
-			int stop();
-			int getpath(char *buffer, size_t *size);
+protected:
+	virtual void OnFile_cb(File *self, const char *filename, int events, int status) {}
 
-		protected:
-			virtual void OnFile_cb(File *self, const char *filename, int events, int status) {}
+private:
+	static void fs_event_cb(uv_fs_event_t *handle, const char *filename, int events, int status);
+};
 
-		private:
-			static void fs_event_cb(uv_fs_event_t *handle, const char *filename, int events, int status);
-		};
+// -----------------------------
+// class Pipe
+// -----------------------------
+class Pipe : public Stream {
 
-		// -----------------------------
-		// class Pipe
-		// -----------------------------
-		class Pipe : public Stream {
+public:
+	Pipe();
+	int init(Loop &loop, int ipc);
+	int open(uv_file file);
+	int bind(const char *name);
+	void connect(const char *name);
+	int getsockname(char *buffer, size_t *size);
+	int getpeername(char *buffer, size_t *size);
+	void pending_instances(int count);
+	int pending_count();
 
-		public:
-			Pipe();
-			int init(Loop &loop, int ipc);
-			int open(uv_file file);
-			int bind(const char *name);
-			void connect(const char *name);
-			int getsockname(char *buffer, size_t *size);
-			int getpeername(char *buffer, size_t *size);
-			void pending_instances(int count);
-			int pending_count();
-		protected:
-			virtual void OnPipeConnect_cb(Pipe* self, int status) {}
+protected:
+	virtual void OnPipeConnect_cb(Pipe* self, int status) {}
 
-		private:
-			static void connect_cb(uv_connect_t *req, int status);
-		};
+private:
+	static void connect_cb(uv_connect_t *req, int status);
+};
 
-	}
-} // namespace ZQ::eloop
+} } // namespace ZQ::eloop
 
 
 #endif // __ZQ_COMMON_ELOOP_File_H__
