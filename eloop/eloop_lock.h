@@ -31,6 +31,7 @@
 #ifndef __ZQ_COMMON_ELOOP_Lock_H__
 #define __ZQ_COMMON_ELOOP_Lock_H__
 #include <uv.h>
+#include "eloop.h"
 
 namespace ZQ {
 namespace eloop {
@@ -72,7 +73,6 @@ public:
 		const Mutex& _mutex;
 	};
 
-
 };
 
 // -----------------------------
@@ -81,39 +81,20 @@ public:
 class Condition
 {
 public:
-	explicit Condition()
-	{
-		uv_cond_init(&_cond);
-	}
-
-	~Condition()
-	{
-		uv_cond_destroy(&_cond);
-	}
+	explicit Condition();
+	~Condition();
 
 	//Unblock at least one of the threads that are blocked on this condition
-	void signal()
-	{
-		uv_cond_signal(&_cond);
-	}
+	void signal();
 
 	//Unblock all threads currently blocked on this condition
-	void broadcast()
-	{
-		uv_cond_broadcast(&_cond);
-	}
+	void broadcast();
 
 	//Block on this condition variable, mutex needs to be locked
-	void wait(Mutex *mutex)
-	{
-		uv_cond_wait(&_cond, &(mutex->_mutex));
-	}
+	void wait(Mutex *mutex);
 
 	//Block on this condition variable for the given amount of time, mutex needs to be locked
-	int timedwait(Mutex *mutex, uint64_t timeout)
-	{
-		return uv_cond_timedwait(&_cond, &(mutex->_mutex), timeout);
-	}
+	int timedwait(Mutex *mutex, uint64_t timeout);
 
 private:
 	uv_cond_t _cond;

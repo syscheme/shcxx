@@ -33,15 +33,18 @@
 
 #include "ZQ_common_conf.h"
 #include "Pointer.h"
-#include "FileLog.h"
+/*#include "FileLog.h"
 #include "Locks.h"
-#include "NativeThread.h"
+#include "NativeThread.h"*/
+
 
 #include <uv.h>
 
-#include <string>
-#include <vector>
-#include <map>
+
+
+//#include <string>
+//#include <vector>
+//#include <map>
 
 #ifdef ZQ_OS_MSWIN
 #  ifdef ELOOP_EXPORTS
@@ -73,8 +76,8 @@ public:
 
 protected:
 	Handle();
-	Handle(Handle &&);
-	Handle &operator=(Handle &&);
+	Handle(Handle &);
+	Handle &operator=(Handle &);
 	~Handle();
 	void init();
 
@@ -88,22 +91,23 @@ public:
 	int send_buffer_size(int *value);
 	int recv_buffer_size(int *value);
 	int fileno(fd_t* fd);
+	const char* eloop_err_name(int err);
+	const char* eloop_strerror(int err);
 	void* data;
 
 protected:
-	virtual void OnClose(Handle *handle) {}
+	virtual void OnClose(Handle *handle){}
 	uv_handle_t *context_ptr();
 
-private:
-	Handle(const Handle& that) = delete;
-	Handle& operator=(const Handle& that) = delete;
 
 private:
+	void _deleteContext();
 	static void _cbClose(uv_handle_t *uvhandle)
 	{
 		Handle *h = static_cast<Handle *>(uvhandle->data);
 		if (NULL != h)
 			h->OnClose(h);
+			h->_deleteContext();
 	}
 
 	uv_any_handle* context;

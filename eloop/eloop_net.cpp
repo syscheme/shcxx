@@ -12,22 +12,23 @@ namespace ZQ {
 		int Stream::shutdown() {
 			uv_shutdown_t* req = new uv_shutdown_t;
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
-			return uv_shutdown(req, stream, shutdown_cb);
+			return uv_shutdown(req, stream, _cbShutdown);
 		}
 
 		int Stream::listen() {
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
-			return uv_listen(stream, SOMAXCONN, connection_cb);
+			return uv_listen(stream, SOMAXCONN, _cbConnection);
 		}
 
-		int Stream::accept(Stream &client) {
+		int Stream::accept(Stream *client) {
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
-			return uv_accept(stream, (uv_stream_t *)client.context_ptr());
+			uv_stream_t* streamclient = (uv_stream_t *)client->context_ptr();
+			return uv_accept(stream, streamclient);
 		}
 
 		int Stream::read_start() {
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
-			return uv_read_start(stream, alloc_cb, read_cb);
+			return uv_read_start(stream, _cbAlloc,_cbRead);
 		}
 
 		int Stream::read_stop() {
@@ -40,7 +41,7 @@ namespace ZQ {
 
 			uv_write_t *req = new uv_write_t;
 			uv_stream_t * stream = (uv_stream_t *)context_ptr();
-			return uv_write(req, stream, &wbuf, 1, write_cb);
+			return uv_write(req, stream, &wbuf, 1, _cbWrite);
 		}
 
 
@@ -49,7 +50,7 @@ namespace ZQ {
 			uv_buf_t wbuf = uv_buf_init((char *)buf, length);
 			uv_write_t *req = new uv_write_t;
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
-			return uv_write2(req, stream, &wbuf, 1, (uv_stream_t *)send_handle->context_ptr(), write_cb);
+			return uv_write2(req, stream, &wbuf, 1, (uv_stream_t *)send_handle->context_ptr(), _cbWrite);
 		}
 
 		int Stream::try_write(const char *buf, size_t length) {
@@ -75,48 +76,54 @@ namespace ZQ {
 			return uv_is_writable(stream);
 		}
 
-		void Stream::shutdown_cb(uv_shutdown_t *req, int status) {
+		void Stream::_cbShutdown(uv_shutdown_t *req, int status) {
 			uv_stream_t *stream = req->handle;
 
 			//			Handle* handle = static_cast<Handle *>(stream->data);
 			//			Stream* self = static_cast<Stream *>(handle);
 			Stream* self = static_cast<Stream *>(stream->data);
 			if (self != NULL) {
-				self->OnShutdown_cb(self, status);
+				self->OnShutdown_cb(status);
 			}
 			delete req;
 		}
 
-		void Stream::connection_cb(uv_stream_t *stream, int status) {
+		void Stream::_cbConnection(uv_stream_t *stream, int status) {
 
 			Stream* self = static_cast<Stream *>(stream->data);
 			if (self != NULL) {
-				self->OnConnection_cb(self, status);
+				self->OnConnection_cb(status);
 			}
 		}
 
-		void Stream::alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
+		void Stream::_cbAlloc(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
 
-			Stream* self = static_cast<Stream *>(handle->data);
-			if (self != NULL) {
-				self->OnAlloc_cb(self, suggested_size, buf);
-			}
+			buf->base = (char*)malloc(suggested_size);
+			buf->len = suggested_size;
+			memset(buf->base,0,buf->len);
 		}
 
-		void Stream::read_cb(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
+		void Stream::_cbRead(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
 
 			Stream* self = static_cast<Stream *>(stream->data);
 			if (self != NULL) {
-				self->OnRead_cb(self, nread, buf);
+				if (nread < 0) {
+					fprintf(stderr, "Read error %s\n", self->eloop_err_name(nread));
+					//self->close();
+					free(buf->base);
+					return;
+				}
+				self->OnRead_cb(nread, buf);
+				free(buf->base);
 			}
 		}
 
-		void Stream::write_cb(uv_write_t *req, int status) {
+		void Stream::_cbWrite(uv_write_t *req, int status) {
 			uv_stream_t *stream = req->handle;
 
 			Stream* self = static_cast<Stream *>(stream->data);
 			if (self != NULL) {
-				self->OnWrite_cb(self, status);
+				self->OnWrite_cb(status);
 			}
 			delete req;
 		}
@@ -131,6 +138,7 @@ namespace ZQ {
 		int TCP::init(Loop &loop) {
 			this->Handle::init();
 			uv_tcp_t* tcp = (uv_tcp_t *)context_ptr();
+			_loop = &loop;
 			return uv_tcp_init(loop.context_ptr(), tcp);
 		}
 
@@ -211,20 +219,26 @@ namespace ZQ {
 
 			uv_tcp_t* tcp = (uv_tcp_t *)context_ptr();
 
-			return uv_tcp_connect(req, tcp, addr, connect_cb);
+			return uv_tcp_connect(req, tcp, addr, _cbConnect);
 		}
 
-		void TCP::connect_cb(uv_connect_t *req, int status) {
+		void TCP::_cbConnect(uv_connect_t *req, int status) {
 			uv_stream_t *stream = req->handle;
 
 			TCP* self = static_cast<TCP *>(stream->data);
+
+
 			if (self != NULL) {
-				self->OnConnect_cb(self, status);
+				self->OnConnect_cb(status);
 			}
 
 			delete req;
 		}
 
+		Loop& TCP::get_loop()
+		{
+			return *_loop;
+		}
 
 		// -----------------------------
 		// class UDP
@@ -252,6 +266,24 @@ namespace ZQ {
 		int UDP::bind(const struct sockaddr *addr, unsigned int flags) {
 			uv_udp_t* udp = (uv_udp_t *)context_ptr();
 			return uv_udp_bind(udp, addr, flags);
+		}
+
+		int UDP::bind4(const char *ipv4, int port, unsigned int flags)
+		{
+			struct sockaddr_in addr;
+			int r = uv_ip4_addr(ipv4,port, &addr);
+			if (r < 0)
+				return r;
+			return bind((const struct sockaddr *)&addr,flags);
+		}
+
+		int UDP::bind6(const char *ipv6, int port, unsigned int flags)
+		{
+			struct sockaddr_in6 addr;
+			int r = uv_ip6_addr(ipv6, port, &addr);
+			if (r < 0)
+				return r;
+			return bind((const struct sockaddr *)&addr,flags);
 		}
 
 		int UDP::getsockname(struct sockaddr *name, int *namelen) {
@@ -289,12 +321,35 @@ namespace ZQ {
 			return uv_udp_set_ttl(udp, ttl);
 		}
 
-		int UDP::send(const char *buf, size_t length, const struct sockaddr *addr) {
+		void UDP::get_ip4_name(const struct sockaddr_in* src, char* dst, size_t size)
+		{
+			uv_ip4_name(src, dst, size);
+		}
+
+		int UDP::send(const char *buf, size_t length,const struct sockaddr *addr) {
 
 			uv_buf_t sendbuf = uv_buf_init((char *)buf, length);
 			uv_udp_send_t* req = new uv_udp_send_t;
 			uv_udp_t* udp = (uv_udp_t *)context_ptr();
-			return uv_udp_send(req, udp, &sendbuf, 1, addr, send_cb);
+			return uv_udp_send(req, udp, &sendbuf, 1, addr, _cbsend);
+		}
+
+		int UDP::send4(const char *buf, size_t length,const char *ipv4,int port) {
+
+			struct sockaddr_in send_addr;
+			int r = uv_ip4_addr(ipv4,port, &send_addr);
+			if (r < 0)
+				return r;
+			return send(buf,length,(const struct sockaddr *)&send_addr);
+		}
+
+		int UDP::send6(const char *buf, size_t length,const char *ipv6,int port) {
+
+			struct sockaddr_in6 addr;
+			int r = uv_ip6_addr(ipv6, port, &addr);
+			if (r < 0)
+				return r;
+			return send(buf,length,(const struct sockaddr *)&addr);
 		}
 
 		int UDP::try_send(const char *buf, size_t length, const struct sockaddr *addr) {
@@ -304,16 +359,34 @@ namespace ZQ {
 			return uv_udp_try_send(udp, &sendbuf, 1, addr);
 		}
 
+		int UDP::try_send4(const char *buf, size_t length,const char *ipv4,int port)
+		{
+			struct sockaddr_in send_addr;
+			int r = uv_ip4_addr(ipv4,port, &send_addr);
+			if (r < 0)
+				return r;
+			return try_send(buf,length,(const struct sockaddr *)&send_addr);
+		}
+
+		int UDP::try_send6(const char *buf, size_t length,const char *ipv6,int port)
+		{
+			struct sockaddr_in6 addr;
+			int r = uv_ip6_addr(ipv6, port, &addr);
+			if (r < 0)
+				return r;
+			return try_send(buf,length,(const struct sockaddr *)&addr);
+		}
+
 		int UDP::recv_start() {
 			uv_udp_t* udp = (uv_udp_t *)context_ptr();
-			return uv_udp_recv_start(udp, alloc_cb, recv_cb);
+			return uv_udp_recv_start(udp, _cballoc, _cbrecv);
 		}
 		int UDP::recv_stop() {
 			uv_udp_t* udp = (uv_udp_t *)context_ptr();
 			return uv_udp_recv_stop(udp);
 		}
 
-		void UDP::send_cb(uv_udp_send_t *req, int status) {
+		void UDP::_cbsend(uv_udp_send_t *req, int status) {
 			uv_udp_t* udp = req->handle;
 
 			UDP* self = static_cast<UDP *>(udp->data);
@@ -323,19 +396,26 @@ namespace ZQ {
 			delete req;
 		}
 
-		void UDP::alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
+		void UDP::_cballoc(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
 
-			UDP* self = static_cast<UDP *>(handle->data);
-			if (self != NULL) {
-				self->OnAlloc_cb(self, suggested_size, buf);
-			}
+			buf->base = (char*)malloc(suggested_size);
+			buf->len = suggested_size;
+			memset(buf->base,0,buf->len);
+
 		}
 
-		void UDP::recv_cb(uv_udp_t *handle, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags) {
+		void UDP::_cbrecv(uv_udp_t *handle, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags) {
 
 			UDP* self = static_cast<UDP *>(handle->data);
 			if (self != NULL) {
+				if (nread < 0) {
+					fprintf(stderr, "Read error %s\n", self->eloop_err_name(nread));
+					self->close();
+					free(buf->base);
+					return;
+				}
 				self->OnRead_cb(self, nread, buf, addr, flags);
+				free(buf->base);
 			}
 		}
 	}

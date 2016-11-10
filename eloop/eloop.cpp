@@ -7,33 +7,37 @@ namespace eloop {
 // class Handle
 // -----------------------------
 Handle::Handle() {
-	context = nullptr;
+	context = NULL;
 	//	data = NULL;
 }
 
 Handle::~Handle() {
-	if (context) {
-		if (is_active()) {
+	if (context != NULL) {
+/*		if (is_active()) {
 			close();
 			uv_run(context->handle.loop, UV_RUN_DEFAULT);
-		}
-
-		delete context;
+		}*/
+		close();
+		uv_run(context->handle.loop, UV_RUN_DEFAULT);
+		
 	}
 }
 
-Handle::Handle(Handle &&other) {
+Handle::Handle(Handle &other) {
 	context = other.context;
-	other.context = nullptr;
+	other.context = NULL;
+
 }
 
-Handle &Handle::operator=(Handle &&other) {
+Handle &Handle::operator=(Handle &other) {
+
 	context = other.context;
-	other.context = nullptr;
+	other.context = NULL;
 	return *this;
 }
 
 void Handle::init() {
+	
 	context = new uv_any_handle;
 	context->handle.data = static_cast<void *>(this);
 }
@@ -41,7 +45,7 @@ void Handle::init() {
 uv_handle_t *Handle::context_ptr() {
 	if (context)
 		return &context->handle;
-	return nullptr;
+	return NULL;
 }
 
 int Handle::is_active() {
@@ -54,6 +58,15 @@ int Handle::is_closing() {
 
 void Handle::close() {
 	uv_close(&context->handle, _cbClose);
+}
+
+void Handle::_deleteContext()
+{
+	if (context != NULL)
+	{
+		delete context;
+		context = NULL;
+	}
 }
 
 void Handle::ref() {
@@ -78,6 +91,16 @@ int Handle::recv_buffer_size(int *value) {
 
 int Handle::fileno(fd_t *fd) {
 	return uv_fileno(&context->handle, fd);
+}
+
+const char* Handle::eloop_err_name(int err)
+{
+	return uv_err_name(err);
+}
+
+const char* Handle::eloop_strerror(int err)
+{
+	return uv_strerror(err);
 }
 
 // -----------------------------
@@ -214,7 +237,7 @@ int Timer::init(Loop &loop) {
 
 int Timer::start(uint64_t timeout, uint64_t repeat) {
 	uv_timer_t* timer = (uv_timer_t *)context_ptr();
-	return uv_timer_start(timer, timer_cb, timeout, repeat);
+	return uv_timer_start(timer, _cbOnTimer, timeout, repeat);
 }
 
 int Timer::stop() {
@@ -254,7 +277,7 @@ void Async::_cbAsync(uv_async_t *async)
 int Async::init(Loop &loop) {
 	this->Handle::init();
 	uv_async_t * async = (uv_async_t *)context_ptr();
-	return uv_async_init(loop.context_ptr(), async, async_cb);
+	return uv_async_init(loop.context_ptr(), async, _cbAsync);
 }
 
 int Async::send() {
@@ -277,7 +300,7 @@ int Signal::init(Loop &loop) {
 int Signal::start(int signum) {
 	uv_signal_t* signal = (uv_signal_t *)context_ptr();
 
-	return uv_signal_start(signal, signal_cb, signum);
+	return uv_signal_start(signal, _cbSignal, signum);
 }
 
 int Signal::stop() {

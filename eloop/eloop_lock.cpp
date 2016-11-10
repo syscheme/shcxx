@@ -33,6 +33,7 @@ int Mutex::tryLock() const
 	return uv_mutex_trylock((LPCRITICAL_SECTION)&_mutex);
 }
 
+
 // -----------------------------
 // class Condition
 // -----------------------------
@@ -40,6 +41,7 @@ Condition::Condition()
 {
 	uv_cond_init(&_cond);
 }
+
 
 Condition::~Condition()
 {

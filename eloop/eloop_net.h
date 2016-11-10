@@ -51,7 +51,7 @@ protected:
 public:
 	int shutdown();
 	int listen();
-	int accept(Stream &client);
+	int accept(Stream *client);
 	int read_start();
 	int read_stop();
 	int write(const char *buf, size_t length);
@@ -63,18 +63,18 @@ public:
 	int is_writeable();
 
 protected:
-	virtual void* OnShutdown_cb(Stream *self, int status) {}
-	virtual void* OnConnection_cb(Stream *self, int status) {}
-	virtual void* OnWrite_cb(Stream *self, int status) {}
-	virtual void* OnRead_cb(Stream *self, ssize_t nread, const uv_buf_t *buf) {}
-	virtual void* OnAlloc_cb(Stream *self, size_t suggested_size, uv_buf_t *buf) {}
+	virtual void OnShutdown_cb(int status) {}
+	virtual void OnConnection_cb(int status) {}
+	virtual void OnWrite_cb(int status) {}
+	virtual void OnRead_cb(ssize_t nread, const uv_buf_t *buf) {}
+//	virtual void OnAlloc_cb(size_t suggested_size, uv_buf_t *buf) {}
 
 private:
-	static void shutdown_cb(uv_shutdown_t *req, int status);
-	static void connection_cb(uv_stream_t *stream, int status);
-	static void alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf);
-	static void read_cb(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf);
-	static void write_cb(uv_write_t *req, int status);
+	static void _cbShutdown(uv_shutdown_t *req, int status);
+	static void _cbConnection(uv_stream_t *stream, int status);
+	static void _cbAlloc(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf);
+	static void _cbRead(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf);
+	static void _cbWrite(uv_write_t *req, int status);
 };
 
 // -----------------------------
@@ -99,15 +99,17 @@ public:
 	int getpeername(struct sockaddr *name, int *namelen);
 	int connect4(const char *ipv4, int prot);
 	int connect6(const char *ipv6, int port);
+	Loop& get_loop();
 
 
 protected:
-	virtual void OnConnect_cb(TCP *self, int status) {}
+	virtual void OnConnect_cb(int status) {}
 
 private:
 	int connect(const struct sockaddr *addr);
 	int bind(const sockaddr *addr, unsigned int flags);
-	static void connect_cb(uv_connect_t *req, int status);
+	static void _cbConnect(uv_connect_t *req, int status);
+	Loop* _loop;
 
 };
 
@@ -132,7 +134,9 @@ public:
 	int init(Loop &loop);
 	int init_ex(Loop &loop, unsigned int flags);
 	int open(sock_t sock);
-	int bind(const struct sockaddr *addr, unsigned int flags);
+	int bind4(const char *ipv4, int port, unsigned int flags);
+	int bind6(const char *ipv6, int port, unsigned int flags);
+
 	int getsockname(struct sockaddr *name, int *namelen);
 	int set_membership(const char *multicast_addr, const char *interface_addr, membership_t membership);
 	int set_multicast_loop(int on);
@@ -140,20 +144,32 @@ public:
 	int set_multicast_interface(const char *interface_addr);
 	int set_broadcast(int on);
 	int set_ttl(int ttl);
+
+	void get_ip4_name(const struct sockaddr_in* src, char* dst, size_t size);
+	
+	int UDP::send4(const char *buf, size_t length,const char *ipv4,int port);
+	int UDP::send6(const char *buf, size_t length,const char *ipv6,int port);
 	int send(const char *buf, size_t length, const struct sockaddr *addr);
-	int try_send(const char *buf, size_t length, const struct sockaddr *addr);
+
+	int try_send4(const char *buf, size_t length,const char *ipv4,int port);
+	int try_send6(const char *buf, size_t length,const char *ipv6,int port);
+
+	
 	int recv_start();
 	int recv_stop();
 
 protected:
 	virtual void OnSend_cb(UDP *self, int status) {}
-	virtual void OnAlloc_cb(UDP *self, size_t suggested_size, uv_buf_t *buf) {}
+//	virtual void OnAlloc_cb(UDP *self, size_t suggested_size, uv_buf_t *buf) {}
 	virtual void OnRead_cb(UDP *self, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags) {}
 
 private:
-	static void send_cb(uv_udp_send_t *req, int status);
-	static void alloc_cb(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf);
-	static void recv_cb(uv_udp_t *udp, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags);
+	int bind(const struct sockaddr *addr, unsigned int flags);
+	int try_send(const char *buf, size_t length, const struct sockaddr *addr);
+
+	static void _cbsend(uv_udp_send_t *req, int status);
+	static void _cballoc(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf);
+	static void _cbrecv(uv_udp_t *udp, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags);
 };
 
 } } // namespace ZQ::eloop
