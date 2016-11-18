@@ -44,25 +44,27 @@ class File : public Handle
 {
 public:
 	File();
+
 	int init(Loop &loop);
 	int start(const char *path, unsigned int flags);
 	int stop();
 	int getpath(char *buffer, size_t *size);
 
 protected:
-	virtual void OnFile_cb(File *self, const char *filename, int events, int status) {}
+	virtual void OnFileEvent(const char *filename, int events, int status) {}
 
 private:
-	static void fs_event_cb(uv_fs_event_t *handle, const char *filename, int events, int status);
+	static void _cbFSevent(uv_fs_event_t *handle, const char *filename, int events, int status);
 };
 
 // -----------------------------
 // class Pipe
 // -----------------------------
-class Pipe : public Stream {
-
+class Pipe : public Stream
+{
 public:
 	Pipe();
+
 	int init(Loop &loop, int ipc);
 	int open(uv_file file);
 	int bind(const char *name);
@@ -73,10 +75,11 @@ public:
 	int pending_count();
 
 protected:
-	virtual void OnPipeConnect_cb(Pipe* self, int status) {}
+	//TODO: why wiped uv_connect_t here??
+	virtual void OnConnected(int status) {}
 
 private:
-	static void connect_cb(uv_connect_t *req, int status);
+	static void _cbConnected(uv_connect_t *req, int status);
 };
 
 } } // namespace ZQ::eloop

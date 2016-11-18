@@ -115,7 +115,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="&quot;$(ZQProjsPath)/Common/eloop&quot;;&quot;$(ZQProjsPath)/Common&quot;;&quot;$(ZQProjsPath)/Common/eloop/libuv_vs2005/include&quot;"
+				AdditionalIncludeDirectories="../..;../../libuv_1.9.1/include;../../.."
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"

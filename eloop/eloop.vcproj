@@ -52,7 +52,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				InlineFunctionExpansion="1"
-				AdditionalIncludeDirectories="..;&quot;$(RegExppKit)&quot;;../eloop/libuv_vs2005/include"
+				AdditionalIncludeDirectories="..;libuv_1.9.1/include;&quot;$(RegExppKit)&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;ELOOP_EXPORTS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_WIN32_WINNT=0x0600;_GNU_SOURCE"
 				StringPooling="true"
 				RuntimeLibrary="2"
@@ -150,7 +150,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="$(ZQProjsPath)/Common"
+				AdditionalIncludeDirectories="..;&quot;$(RegExppKit)&quot;;../eloop/libuv_1.9.1/include"
 				PreprocessorDefinitions="_DEBUG;WIN32;_WINDOWS;_USRDLL;ELOOP_EXPORTS;XML_STATIC;LOGFMTWITHTID;_WIN32_WINNT=0x500"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"

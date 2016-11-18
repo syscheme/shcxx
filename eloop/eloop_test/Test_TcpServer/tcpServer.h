@@ -15,7 +15,7 @@ public:
 
 	virtual void OnConnection_cb(int status);
 
-	virtual void OnRead_cb(ssize_t nread, const uv_buf_t *buf);
+	virtual void OnRead(ssize_t nread, const uv_buf_t *buf);
 };
 
 #endif

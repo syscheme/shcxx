@@ -2,7 +2,7 @@
 #include "tcpClient.h"
 
 
-void tcpClient::OnRead_cb(ssize_t nread, const uv_buf_t *buf)
+void tcpClient::OnRead(ssize_t nread, const uv_buf_t *buf)
 {
 	printf("recv data:%s,len = %d\n", buf->base,nread);
 
@@ -13,7 +13,7 @@ void tcpClient::OnRead_cb(ssize_t nread, const uv_buf_t *buf)
 	write(sendbuf,strlen(sendbuf));
 }
 
-void tcpClient::OnConnect_cb(int status)
+void tcpClient::OnConnected(int status)
 {
 	if (status < 0) {
 		//fprintf(stderr, "on_connect error %s\n", uv_strerror(status));

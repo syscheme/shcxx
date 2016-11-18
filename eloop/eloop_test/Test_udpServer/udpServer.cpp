@@ -12,7 +12,7 @@ udpServer::~udpServer()
 
 }
 
-void udpServer::OnSend_cb(UDP *self, int status)
+void udpServer::OnSent(UDP *self, int status)
 {
 	if (status) {
 		fprintf(stderr, "Send error %s\n", eloop_strerror(status));
@@ -20,7 +20,7 @@ void udpServer::OnSend_cb(UDP *self, int status)
 	}
 }
 
-void udpServer::OnRead_cb(UDP *self, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags)
+void udpServer::OnRead(UDP *self, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags)
 {
 	char sender[17] = { 0 };
 	get_ip4_name((const struct sockaddr_in*)addr, sender, 16);

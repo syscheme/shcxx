@@ -11,8 +11,8 @@ public:
 	udpServer();
 	~udpServer();
 
-	virtual void OnSend_cb(UDP *self, int status);
-	virtual void OnRead_cb(UDP *self, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags);
+	virtual void OnSent(UDP *self, int status);
+	virtual void OnRead(UDP *self, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags);
 
 };
 

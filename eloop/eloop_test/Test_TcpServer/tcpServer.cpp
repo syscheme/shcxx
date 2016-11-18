@@ -25,7 +25,7 @@ void tcpServer::OnConnection_cb(int status)
 }
 
 
-void tcpServer::OnRead_cb(ssize_t nread, const uv_buf_t *buf)
+void tcpServer::OnRead(ssize_t nread, const uv_buf_t *buf)
 {
 	printf("recv data:%s,len = %d\n", buf->base,nread);
 

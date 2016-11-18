@@ -63,18 +63,18 @@ public:
 	int is_writeable();
 
 protected:
-	virtual void OnShutdown_cb(int status) {}
+	virtual void OnShutdown(int status) {}
 	virtual void OnConnection_cb(int status) {}
-	virtual void OnWrite_cb(int status) {}
-	virtual void OnRead_cb(ssize_t nread, const uv_buf_t *buf) {}
-//	virtual void OnAlloc_cb(size_t suggested_size, uv_buf_t *buf) {}
+	virtual void OnWrote(int status) {}
+	virtual void OnRead(ssize_t nread, const uv_buf_t *buf) {} // TODO: uv_buf_t is unacceptable to appear here, must take a new manner known in this C++ wrapper level
+//	virtual void OnAllocate(size_t suggested_size, uv_buf_t *buf) {}
 
 private:
 	static void _cbShutdown(uv_shutdown_t *req, int status);
 	static void _cbConnection(uv_stream_t *stream, int status);
 	static void _cbAlloc(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf);
 	static void _cbRead(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf);
-	static void _cbWrite(uv_write_t *req, int status);
+	static void _cbWrote(uv_write_t *req, int status);
 };
 
 // -----------------------------
@@ -103,7 +103,8 @@ public:
 
 
 protected:
-	virtual void OnConnect_cb(int status) {}
+	// TODO: must enumerate all the status in the class
+	virtual void OnConnected(int status) {}
 
 private:
 	int connect(const struct sockaddr *addr);
@@ -147,29 +148,29 @@ public:
 
 	void get_ip4_name(const struct sockaddr_in* src, char* dst, size_t size);
 	
-	int UDP::send4(const char *buf, size_t length,const char *ipv4,int port);
-	int UDP::send6(const char *buf, size_t length,const char *ipv6,int port);
-	int send(const char *buf, size_t length, const struct sockaddr *addr);
+	int send4(const char *buf, size_t length, const char *ipv4,int port);
+	int send6(const char *buf, size_t length, const char *ipv6,int port);
+	int send(const char *buf, size_t length,  const struct sockaddr *addr);
 
-	int try_send4(const char *buf, size_t length,const char *ipv4,int port);
-	int try_send6(const char *buf, size_t length,const char *ipv6,int port);
-
+	int try_send4(const char *buf, size_t length, const char *ipv4, int port);
+	int try_send6(const char *buf, size_t length, const char *ipv6, int port);
 	
 	int recv_start();
 	int recv_stop();
 
 protected:
-	virtual void OnSend_cb(UDP *self, int status) {}
-//	virtual void OnAlloc_cb(UDP *self, size_t suggested_size, uv_buf_t *buf) {}
-	virtual void OnRead_cb(UDP *self, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags) {}
+	// TODO: must enumerate all the status in the class
+	virtual void OnSent(int status) {}
+//	virtual void OnAllocate(UDP *self, size_t suggested_size, uv_buf_t *buf) {}
+	virtual void OnReceived(ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags) {}
 
 private:
 	int bind(const struct sockaddr *addr, unsigned int flags);
 	int try_send(const char *buf, size_t length, const struct sockaddr *addr);
 
-	static void _cbsend(uv_udp_send_t *req, int status);
-	static void _cballoc(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf);
-	static void _cbrecv(uv_udp_t *udp, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags);
+	static void _cbSent(uv_udp_send_t *req, int status);
+	static void _cbAlloc(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf);
+	static void _cbRecv(uv_udp_t *udp, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags);
 };
 
 } } // namespace ZQ::eloop

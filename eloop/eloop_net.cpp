@@ -41,7 +41,7 @@ namespace ZQ {
 
 			uv_write_t *req = new uv_write_t;
 			uv_stream_t * stream = (uv_stream_t *)context_ptr();
-			return uv_write(req, stream, &wbuf, 1, _cbWrite);
+			return uv_write(req, stream, &wbuf, 1, _cbWrote);
 		}
 
 
@@ -50,7 +50,7 @@ namespace ZQ {
 			uv_buf_t wbuf = uv_buf_init((char *)buf, length);
 			uv_write_t *req = new uv_write_t;
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
-			return uv_write2(req, stream, &wbuf, 1, (uv_stream_t *)send_handle->context_ptr(), _cbWrite);
+			return uv_write2(req, stream, &wbuf, 1, (uv_stream_t *)send_handle->context_ptr(), _cbWrote);
 		}
 
 		int Stream::try_write(const char *buf, size_t length) {
@@ -83,7 +83,7 @@ namespace ZQ {
 			//			Stream* self = static_cast<Stream *>(handle);
 			Stream* self = static_cast<Stream *>(stream->data);
 			if (self != NULL) {
-				self->OnShutdown_cb(status);
+				self->OnShutdown(status);
 			}
 			delete req;
 		}
@@ -113,17 +113,17 @@ namespace ZQ {
 					free(buf->base);
 					return;
 				}
-				self->OnRead_cb(nread, buf);
+				self->OnRead(nread, buf);
 				free(buf->base);
 			}
 		}
 
-		void Stream::_cbWrite(uv_write_t *req, int status) {
+		void Stream::_cbWrote(uv_write_t *req, int status) {
 			uv_stream_t *stream = req->handle;
 
 			Stream* self = static_cast<Stream *>(stream->data);
 			if (self != NULL) {
-				self->OnWrite_cb(status);
+				self->OnWrote(status);
 			}
 			delete req;
 		}
@@ -229,7 +229,7 @@ namespace ZQ {
 
 
 			if (self != NULL) {
-				self->OnConnect_cb(status);
+				self->OnConnected(status);
 			}
 
 			delete req;
@@ -331,7 +331,7 @@ namespace ZQ {
 			uv_buf_t sendbuf = uv_buf_init((char *)buf, length);
 			uv_udp_send_t* req = new uv_udp_send_t;
 			uv_udp_t* udp = (uv_udp_t *)context_ptr();
-			return uv_udp_send(req, udp, &sendbuf, 1, addr, _cbsend);
+			return uv_udp_send(req, udp, &sendbuf, 1, addr, _cbSent);
 		}
 
 		int UDP::send4(const char *buf, size_t length,const char *ipv4,int port) {
@@ -379,24 +379,24 @@ namespace ZQ {
 
 		int UDP::recv_start() {
 			uv_udp_t* udp = (uv_udp_t *)context_ptr();
-			return uv_udp_recv_start(udp, _cballoc, _cbrecv);
+			return uv_udp_recv_start(udp, _cbAlloc, _cbRecv);
 		}
 		int UDP::recv_stop() {
 			uv_udp_t* udp = (uv_udp_t *)context_ptr();
 			return uv_udp_recv_stop(udp);
 		}
 
-		void UDP::_cbsend(uv_udp_send_t *req, int status) {
+		void UDP::_cbSent(uv_udp_send_t *req, int status) {
 			uv_udp_t* udp = req->handle;
 
 			UDP* self = static_cast<UDP *>(udp->data);
 			if (self != NULL) {
-				self->OnSend_cb(self, status);
+				self->OnSent(status);
 			}
 			delete req;
 		}
 
-		void UDP::_cballoc(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
+		void UDP::_cbAlloc(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
 
 			buf->base = (char*)malloc(suggested_size);
 			buf->len = suggested_size;
@@ -404,7 +404,7 @@ namespace ZQ {
 
 		}
 
-		void UDP::_cbrecv(uv_udp_t *handle, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags) {
+		void UDP::_cbRecv(uv_udp_t *handle, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags) {
 
 			UDP* self = static_cast<UDP *>(handle->data);
 			if (self != NULL) {
@@ -414,7 +414,7 @@ namespace ZQ {
 					free(buf->base);
 					return;
 				}
-				self->OnRead_cb(self, nread, buf, addr, flags);
+				self->OnReceived(nread, buf, addr, flags);
 				free(buf->base);
 			}
 		}
