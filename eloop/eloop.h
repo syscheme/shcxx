@@ -37,10 +37,7 @@
 #include "Locks.h"
 #include "NativeThread.h"*/
 
-
 #include <uv.h>
-
-
 
 //#include <string>
 //#include <vector>
@@ -78,27 +75,31 @@ protected:
 	Handle();
 	Handle(Handle &);
 	Handle &operator=(Handle &);
-	~Handle();
+	virtual ~Handle();
+	
 	void init();
 
 public:
-	int is_active();
-	int is_closing();
+
 	void close();
 	void ref();
 	void unref();
 	int has_ref();
+
+	int is_active();
+	int is_closing();
 	int send_buffer_size(int *value);
 	int recv_buffer_size(int *value);
+
 	int fileno(fd_t* fd);
+	
 	const char* eloop_err_name(int err);
 	const char* eloop_strerror(int err);
-	void* data;
 
 protected:
 	virtual void OnClose(Handle *handle){}
 	uv_handle_t *context_ptr();
-
+	void* data;
 
 private:
 	void _deleteContext();
@@ -134,6 +135,7 @@ public:
 	int alive();
 	int backend_fd();
 	int backend_timeout();
+
 	uint64_t now();
 	void update_time();
 	uv_loop_t *context_ptr();
@@ -223,8 +225,6 @@ private:
 	static void _cbSignal(uv_signal_t *signal, int signum);
 };
 
-
-
- } } // namespace ZQ::eloop
+} } // namespace ZQ::eloop
 
 #endif // __ZQ_COMMON_ELOOP_H__

@@ -6,7 +6,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "eloop", "eloop.vcproj", "{0
 		{4B4BF2B1-9E2C-4CA9-BFF6-9B013E81D6A7} = {4B4BF2B1-9E2C-4CA9-BFF6-9B013E81D6A7}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libuv_vs2005", "libuv_vs2005\libuv_vs2005.vcproj", "{4B4BF2B1-9E2C-4CA9-BFF6-9B013E81D6A7}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libuv_vs2005", "libuv_1.9.1\libuv_vs2005.vcproj", "{4B4BF2B1-9E2C-4CA9-BFF6-9B013E81D6A7}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Test_async", "eloop_test\Test_async\Test_async.vcproj", "{92FDC578-4BBA-4900-A67E-59D5DEA862A5}"
 EndProject
