@@ -1,5 +1,5 @@
 #include "udpServer.h"
-
+#include "winsock.h"
 
 
 udpServer::udpServer()
@@ -12,31 +12,21 @@ udpServer::~udpServer()
 
 }
 
-void udpServer::OnSent(UDP *self, int status)
+void udpServer::OnSent(ElpeError status)
 {
-	if (status) {
-		fprintf(stderr, "Send error %s\n", eloop_strerror(status));
+	if (status != ElpeError::elpeSuccess) {
+		fprintf(stderr, "Send error %s\n", Error(status).str());
 		return;
 	}
 }
 
-void udpServer::OnRead(UDP *self, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags)
-{
-	char sender[17] = { 0 };
-	get_ip4_name((const struct sockaddr_in*)addr, sender, 16);
-	printf("Recv from %s\n",sender);
+void udpServer::OnReceived(ssize_t nread, const char *buf, const struct sockaddr *addr, unsigned flags)
+{	
+	sockaddr_in* psin = (sockaddr_in*)addr;
 
-/*	char* recvdata = (char*)malloc(nread);
-	memset(recvdata,0,nread);
-	memcpy(recvdata,buf->base,nread);*/
-	printf("recv data:%s,len = %d\n", buf->base,nread);
+	printf("Recv from ip:%s,port:%d\n",inet_ntoa(psin->sin_addr),ntohs(psin->sin_port));
 
-/*
-	uv_udp_send_t* sendreq;
-	sendreq = (uv_udp_send_t*)malloc(sizeof(*sendreq));
-	uv_buf_t sendbuf = uv_buf_init(recvdata, nread);
-*/
-//	printf("send buf:%s,len=%d\n",recvdata, nread);
+	printf("recv data:%s,len = %d\n", buf,nread);
 
-	send(buf->base,nread,addr);
+	send(buf,nread,addr);
 }

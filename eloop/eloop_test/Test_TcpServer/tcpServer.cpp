@@ -2,11 +2,10 @@
 
 
 
-void tcpServer::OnConnection_cb(int status)
+void tcpServer::OnConnection_cb(ElpeError status)
 {
-	if (status < 0) {
-//		fprintf(stderr, "New connection error %s\n", uv_strerror(status));
-		// error!
+	if (status != ElpeError::elpeSuccess) {
+		fprintf(stderr, "New connection error %s\n", Error(status).str());
 		return;
 	}
 
@@ -15,7 +14,10 @@ void tcpServer::OnConnection_cb(int status)
 
 	if (accept((Stream *)client) == 0) {
 
-	//	read_start();
+		char ip[17] = { 0 };
+		int  port = 0;
+		client->getpeerIpPort(ip,port);
+		printf("accept client ip = %s,port = %d\n",ip,port);
 		client->read_start();
 	}
 	else {
@@ -25,9 +27,9 @@ void tcpServer::OnConnection_cb(int status)
 }
 
 
-void tcpServer::OnRead(ssize_t nread, const uv_buf_t *buf)
+void tcpServer::OnRead(ssize_t nread, const char *buf)
 {
-	printf("recv data:%s,len = %d\n", buf->base,nread);
+	printf("recv data:%s,len = %d\n", buf,nread);
 
-	write(buf->base,nread);
+	write(buf,nread);
 }

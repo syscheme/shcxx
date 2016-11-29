@@ -11,8 +11,8 @@ public:
 	udpClient();
 	~udpClient();
 
-	virtual void OnSent(UDP *self, int status);
-	virtual void OnRead(UDP *self, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags);
+	virtual void OnSent(ElpeError status);
+	virtual void OnReceived(ssize_t nread, const char *buf, const struct sockaddr *addr, unsigned flags);
 };
 
 #endif

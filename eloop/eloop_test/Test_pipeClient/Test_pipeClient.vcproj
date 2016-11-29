@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="Test_udpServer"
-	ProjectGUID="{41CB3512-1B02-4258-A394-02974281AEF9}"
-	RootNamespace="Test_udpServer"
+	Name="Test_pipeClient"
+	ProjectGUID="{470DAED7-7F6A-4A70-B87C-6CED370D3C44}"
+	RootNamespace="Test_pipeClient"
 	Keyword="Win32Proj"
 	>
 	<Platforms>
@@ -134,7 +134,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="eloop.lib ws2_32.lib"
+				AdditionalDependencies="eloop.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="$(ZQProjsPath)\TianShan\bin\"
 				GenerateDebugInformation="true"
@@ -178,11 +178,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\main.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\udpServer.cpp"
+				RelativePath=".\pipeClient.cpp"
 				>
 			</File>
 		</Filter>
@@ -191,10 +187,12 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
-			<File
-				RelativePath=".\udpServer.h"
-				>
-			</File>
+		</Filter>
+		<Filter
+			Name="Resource Files"
+			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
+			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
+			>
 		</Filter>
 	</Files>
 	<Globals>

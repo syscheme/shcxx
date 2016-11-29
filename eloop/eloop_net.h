@@ -63,10 +63,10 @@ public:
 	int is_writeable();
 
 protected:
-	virtual void OnShutdown(int status) {}
-	virtual void OnConnection_cb(int status) {}
-	virtual void OnWrote(int status) {}
-	virtual void OnRead(ssize_t nread, const uv_buf_t *buf) {} // TODO: uv_buf_t is unacceptable to appear here, must take a new manner known in this C++ wrapper level
+	virtual void OnShutdown(ElpeError status) {}
+	virtual void OnConnection_cb(ElpeError status) {}
+	virtual void OnWrote(ElpeError status) {}
+	virtual void OnRead(ssize_t nread, const char *buf) {} // TODO: uv_buf_t is unacceptable to appear here, must take a new manner known in this C++ wrapper level
 //	virtual void OnAllocate(size_t suggested_size, uv_buf_t *buf) {}
 
 private:
@@ -97,20 +97,21 @@ public:
 	int bind6(const char *ipv6, int port);
 	int getsockname(struct sockaddr *name, int *namelen);
 	int getpeername(struct sockaddr *name, int *namelen);
+	void getpeerIpPort(char* ip,int& port);
 	int connect4(const char *ipv4, int prot);
 	int connect6(const char *ipv6, int port);
-	Loop& get_loop();
+
 
 
 protected:
 	// TODO: must enumerate all the status in the class
-	virtual void OnConnected(int status) {}
+	virtual void OnConnected(ElpeError status) {}
 
 private:
 	int connect(const struct sockaddr *addr);
 	int bind(const sockaddr *addr, unsigned int flags);
 	static void _cbConnect(uv_connect_t *req, int status);
-	Loop* _loop;
+
 
 };
 
@@ -159,10 +160,10 @@ public:
 	int recv_stop();
 
 protected:
-	// TODO: must enumerate all the status in the class
-	virtual void OnSent(int status) {}
+	// 
+	virtual void OnSent(ElpeError status) {}
 //	virtual void OnAllocate(UDP *self, size_t suggested_size, uv_buf_t *buf) {}
-	virtual void OnReceived(ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags) {}
+	virtual void OnReceived(ssize_t nread, const char *buf, const struct sockaddr *addr, unsigned flags) {}
 
 private:
 	int bind(const struct sockaddr *addr, unsigned int flags);

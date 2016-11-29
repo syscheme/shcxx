@@ -134,7 +134,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="eloop.lib"
+				AdditionalDependencies="eloop.lib ws2_32.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="$(ZQProjsPath)\TianShan\bin\"
 				GenerateDebugInformation="true"

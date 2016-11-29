@@ -6,9 +6,8 @@ namespace eloop {
 // -----------------------------
 // class Handle
 // -----------------------------
-Handle::Handle() {
-	context = NULL;
-	//	data = NULL;
+Handle::Handle():data(NULL),context(NULL),_loop(NULL) {
+
 }
 
 Handle::~Handle() {
@@ -25,19 +24,28 @@ Handle::~Handle() {
 
 Handle::Handle(Handle &other) {
 	context = other.context;
+	data = other.data;
+	_loop = other._loop;
 	other.context = NULL;
-
+	other.data = NULL;
+	other._loop =NULL;
 }
 
 Handle &Handle::operator=(Handle &other) {
 
 	context = other.context;
+	data = other.data;
+	_loop = other._loop;
+
 	other.context = NULL;
+	other.data = NULL;
+	other._loop =NULL;
 	return *this;
 }
 
-void Handle::init() {
+void Handle::init(Loop &loop) {
 	
+	_loop = &loop;
 	context = new uv_any_handle;
 	context->handle.data = static_cast<void *>(this);
 }
@@ -93,14 +101,43 @@ int Handle::fileno(fd_t *fd) {
 	return uv_fileno(&context->handle, fd);
 }
 
-const char* Handle::eloop_err_name(int err)
+Loop& Handle::get_loop()
 {
-	return uv_err_name(err);
+	return *_loop;
 }
 
-const char* Handle::eloop_strerror(int err)
+// -----------------------------
+// class Request
+// -----------------------------
+Request::Request() {
+//	context = NULL;
+	context = new uv_any_req;
+	context->req.data = static_cast<void *>(this);
+}
+
+Request::~Request() {
+	if (context != NULL) {
+		cancel();
+		delete context;
+	}
+}
+
+void Request::init()
 {
-	return uv_strerror(err);
+	context = new uv_any_req;
+	context->req.data = static_cast<void *>(this);
+}
+
+int Request::cancel()
+{
+	return uv_cancel(&context->req);
+}
+
+uv_req_t *Request::context_ptr()
+{
+	if (context)
+		return &context->req;
+	return NULL;
 }
 
 // -----------------------------
@@ -199,7 +236,7 @@ void Idle::_cbOnIdle(uv_idle_t* uvhandle)
 }
 
 int Idle::init(Loop &loop) {
-	this->Handle::init();
+	this->Handle::init(loop);
 	uv_idle_t* handle = (uv_idle_t *)context_ptr();
 	return uv_idle_init(loop.context_ptr(), handle);
 }
@@ -218,7 +255,7 @@ int Idle::stop() {
 // class Timer
 // -----------------------------
 
-Timer::Timer() 
+Timer::Timer()
 {
 }
 
@@ -230,7 +267,7 @@ void Timer::_cbOnTimer(uv_timer_t *timer)
 }
 
 int Timer::init(Loop &loop) {
-	this->Handle::init();
+	this->Handle::init(loop);
 	uv_timer_t * timer = (uv_timer_t *)context_ptr();
 	return uv_timer_init(loop.context_ptr(), timer);
 }
@@ -275,7 +312,7 @@ void Async::_cbAsync(uv_async_t *async)
 }
 
 int Async::init(Loop &loop) {
-	this->Handle::init();
+	this->Handle::init(loop);
 	uv_async_t * async = (uv_async_t *)context_ptr();
 	return uv_async_init(loop.context_ptr(), async, _cbAsync);
 }
@@ -292,7 +329,7 @@ Signal::Signal() {
 }
 
 int Signal::init(Loop &loop) {
-	this->Handle::init();
+	this->Handle::init(loop);
 	uv_signal_t* signal = (uv_signal_t *)context_ptr();
 	return uv_signal_init(loop.context_ptr(), signal);
 }

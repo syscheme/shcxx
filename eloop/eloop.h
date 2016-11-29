@@ -62,6 +62,8 @@ class ZQ_ELOOP_API Idle;
 class ZQ_ELOOP_API Timer;
 class ZQ_ELOOP_API Async;
 class ZQ_ELOOP_API Signal;
+class ZQ_ELOOP_API Error;
+class ZQ_ELOOP_API Exception;
 
 // -----------------------------
 // class Handle
@@ -71,16 +73,59 @@ class Handle
 public:
 	typedef uv_os_fd_t fd_t;
 
+	typedef enum _Error
+	{
+		elpeSuccess = 0,
+		elpeNotPermitted = EPERM,	 // operation not permitted
+		elpeNoFile = ENOENT,		//no such file or directory
+		elpeNoProcess = ESRCH,		//no such process
+		elpeIntr = EINTR,			//interrupted system call
+		elpeIO = EIO,				//i/o error
+		elpeNotDevOrAddress = ENXIO,			//no such device or address
+		elpeArgTooLong = E2BIG,			//argument list too long
+		elpeENOEXEC = ENOEXEC,
+		elpeBadFd = EBADF,				//bad file descriptor
+		elpeECHILD = ECHILD,			//
+		elpeResUnavailable = EAGAIN,			//resource temporarily unavailable
+		elpeNotEnoughMemory = ENOMEM,			//not enough memory
+		elpePermissionDenied = EACCES,			//permission denied
+		elpeBadAddress = EFAULT,			//bad address in system call argument
+		elpeResBusy = EBUSY,				//resource busy or locked
+		elpeFileAlreadyExists = EEXIST,			//file already exists
+		elpeNotPermittedLink = EXDEV,				//cross-device link not permitted
+		elpeNotDevice = ENODEV,			//no such device
+		elpeNotDirectory = ENOTDIR,		//not a directory
+		elpeEISDIR = EISDIR,			//illegal operation on a directory
+		elpeENFILE = ENFILE,			//file table overflow
+		elpeTooMany = EMFILE,			//too many open files
+		elpeENOTTY = ENOTTY,
+		elpeFileTooLarge = EFBIG,				//file too large
+		elpeNoSpace = ENOSPC,			//no space left on device
+		elpeInvalidSeek = ESPIPE,			//invalid seek
+		elpeROFS = EROFS,				//read-only file system
+		elpeTooManyLinks = EMLINK,			//too many links
+		elpeBorkenPipe = EPIPE,				//broken pipe
+		elpeEDOM = EDOM,
+		elpeEDEADLK = EDEADLK,
+		elpeNameTooLong = ENAMETOOLONG, //name too long
+		elpeNOLCK = ENOLCK,
+		elpeFunNotImpl = ENOSYS,			//function not implemented
+		elpeDirNotEmpty = ENOTEMPTY		//directory not empty
+} ElpeError;
+
+	const char* errDesc(ElpeError e) { return uv_strerror(e); }
+
+
 protected:
 	Handle();
 	Handle(Handle &);
 	Handle &operator=(Handle &);
 	virtual ~Handle();
 	
-	void init();
+	void init(Loop &loop);
 
 public:
-
+	void* data;
 	void close();
 	void ref();
 	void unref();
@@ -90,16 +135,13 @@ public:
 	int is_closing();
 	int send_buffer_size(int *value);
 	int recv_buffer_size(int *value);
-
 	int fileno(fd_t* fd);
-	
-	const char* eloop_err_name(int err);
-	const char* eloop_strerror(int err);
+	Loop& get_loop();
 
 protected:
 	virtual void OnClose(Handle *handle){}
 	uv_handle_t *context_ptr();
-	void* data;
+	
 
 private:
 	void _deleteContext();
@@ -112,7 +154,33 @@ private:
 	}
 
 	uv_any_handle* context;
+	Loop* _loop;
 };
+
+
+// -----------------------------
+// class Request
+// -----------------------------
+class Request
+{
+protected:
+	Request();
+	virtual ~Request();
+	void init();
+	int cancel();
+
+private:
+	Request(Request &){}
+	Request &operator=(Request &){}
+protected:
+	uv_req_t *context_ptr();
+	
+private:
+	uv_any_req* context;
+};
+
+
+
 
 // -----------------------------
 // class Loop
@@ -223,6 +291,43 @@ protected:
 
 private:
 	static void _cbSignal(uv_signal_t *signal, int signum);
+};
+
+
+class Exception: public std::runtime_error
+{
+public:
+	Exception(const std::string& message):
+	  std::runtime_error(message)
+	  {}
+};
+
+class Error
+{
+public:
+	explicit Error(int c):
+	  _error(c)
+	  {
+	  }
+
+public:
+	operator bool() const
+	{
+		return _error != 0;
+	}
+
+	const char* str() const
+	{
+		return uv_strerror(_error);
+	}
+
+	const char* err_name() const
+	{
+		return uv_err_name(_error);
+	}
+
+private:
+	int _error;
 };
 
 } } // namespace ZQ::eloop

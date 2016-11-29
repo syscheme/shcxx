@@ -2,21 +2,21 @@
 #include "tcpClient.h"
 
 
-void tcpClient::OnRead(ssize_t nread, const uv_buf_t *buf)
+void tcpClient::OnRead(ssize_t nread, const char *buf)
 {
-	printf("recv data:%s,len = %d\n", buf->base,nread);
+	printf("recv data:%s,len = %d\n", buf,nread);
 
 	char sendbuf[1024];
 	memset(sendbuf,0,1024);
 	scanf("%s",sendbuf);
 
-	write(sendbuf,strlen(sendbuf));
+	write(sendbuf,strlen(sendbuf)+1);
 }
 
-void tcpClient::OnConnected(int status)
+void tcpClient::OnConnected(ElpeError status)
 {
-	if (status < 0) {
-		//fprintf(stderr, "on_connect error %s\n", uv_strerror(status));
+	if (status != ElpeError::elpeSuccess) {
+		fprintf(stderr, "on_connect error %s\n", Error(status).str());
 		return;
 	}
 	read_start();
@@ -25,6 +25,6 @@ void tcpClient::OnConnected(int status)
 	memset(buf,0,1024);
 	scanf("%s",buf);
 
-	write(buf,strlen(buf));
+	write(buf,strlen(buf)+1);
 
 }

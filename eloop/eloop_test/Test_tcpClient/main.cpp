@@ -8,6 +8,7 @@ int main()
 
 	tcpClient client;
 	client.init(loop);
+	client.bind4("127.0.0.1",9979);
 	client.connect4("127.0.0.1",9978);
 
 

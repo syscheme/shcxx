@@ -12,25 +12,21 @@ udpClient::~udpClient()
 
 }
 
-void udpClient::OnSent(UDP *self, int status)
+void udpClient::OnSent(ElpeError status)
 {
-	if (status) {
-		fprintf(stderr, "Send error %s\n", eloop_strerror(status));
+	if (status != ElpeError::elpeSuccess) {
+		fprintf(stderr, "Send error %s\n",Error(status).str());
 		return;
 	}
 }
 
-void udpClient::OnRead(UDP *self, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags)
+void udpClient::OnReceived(ssize_t nread,const char *buf, const struct sockaddr *addr, unsigned flags)
 {
-	char sender[17] = { 0 };
-	get_ip4_name((const struct sockaddr_in*)addr, sender, 16);
-	printf("Recv from %s\n",sender);
+	sockaddr_in* psin = (sockaddr_in*)addr;
 
-/*	char* recvdata = (char*)malloc(nread);
-	memset(recvdata,0,nread);
-	memcpy(recvdata,buf->base,nread);
-	*/
-	printf("recv data:%s len = %d\n", buf->base,nread);
+	printf("Recv from ip:%s,port:%d\n",inet_ntoa(psin->sin_addr),ntohs(psin->sin_port));
+
+	printf("recv data:%s len = %d\n", buf,nread);
 
 	char sendbuf[1024];
 	memset(sendbuf,0,1024);

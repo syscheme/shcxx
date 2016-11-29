@@ -37,8 +37,8 @@ namespace ZQ {
 		}
 
 		int Stream::write(const char *buf, size_t length) {
-			uv_buf_t wbuf = uv_buf_init((char *)buf, length);
 
+			uv_buf_t wbuf = uv_buf_init((char *)buf, length);
 			uv_write_t *req = new uv_write_t;
 			uv_stream_t * stream = (uv_stream_t *)context_ptr();
 			return uv_write(req, stream, &wbuf, 1, _cbWrote);
@@ -83,7 +83,7 @@ namespace ZQ {
 			//			Stream* self = static_cast<Stream *>(handle);
 			Stream* self = static_cast<Stream *>(stream->data);
 			if (self != NULL) {
-				self->OnShutdown(status);
+				self->OnShutdown((ElpeError)status);
 			}
 			delete req;
 		}
@@ -92,7 +92,7 @@ namespace ZQ {
 
 			Stream* self = static_cast<Stream *>(stream->data);
 			if (self != NULL) {
-				self->OnConnection_cb(status);
+				self->OnConnection_cb((ElpeError)status);
 			}
 		}
 
@@ -108,12 +108,12 @@ namespace ZQ {
 			Stream* self = static_cast<Stream *>(stream->data);
 			if (self != NULL) {
 				if (nread < 0) {
-					fprintf(stderr, "Read error %s\n", self->eloop_err_name(nread));
-					//self->close();
+					fprintf(stderr, "Read error %s\n",  Error(nread).err_name());
+					self->close();
 					free(buf->base);
 					return;
 				}
-				self->OnRead(nread, buf);
+				self->OnRead(nread, buf->base);
 				free(buf->base);
 			}
 		}
@@ -123,7 +123,7 @@ namespace ZQ {
 
 			Stream* self = static_cast<Stream *>(stream->data);
 			if (self != NULL) {
-				self->OnWrote(status);
+				self->OnWrote((ElpeError)status);
 			}
 			delete req;
 		}
@@ -136,9 +136,9 @@ namespace ZQ {
 		}
 
 		int TCP::init(Loop &loop) {
-			this->Handle::init();
+			this->Handle::init(loop);
 			uv_tcp_t* tcp = (uv_tcp_t *)context_ptr();
-			_loop = &loop;
+			
 			return uv_tcp_init(loop.context_ptr(), tcp);
 		}
 
@@ -198,6 +198,16 @@ namespace ZQ {
 			return uv_tcp_getpeername(tcp, name, namelen);
 		}
 
+		void TCP::getpeerIpPort(char* ip,int& port)
+		{
+			struct sockaddr peername;
+			int namelen = sizeof peername;
+			getpeername(&peername, &namelen);
+			struct sockaddr_in* addr2 = (struct sockaddr_in*)&peername;
+			uv_ip4_name(addr2, ip, 17);
+			port = ntohs(addr2->sin_port);
+		}
+
 		int TCP::connect4(const char *ipv4, int port) {
 			struct sockaddr_in addr;
 			int r = uv_ip4_addr(ipv4, port, &addr);
@@ -229,16 +239,13 @@ namespace ZQ {
 
 
 			if (self != NULL) {
-				self->OnConnected(status);
+				self->OnConnected((ElpeError)status);
 			}
 
 			delete req;
 		}
 
-		Loop& TCP::get_loop()
-		{
-			return *_loop;
-		}
+
 
 		// -----------------------------
 		// class UDP
@@ -248,7 +255,7 @@ namespace ZQ {
 		}
 
 		int UDP::init(Loop &loop) {
-			this->Handle::init();
+			this->Handle::init(loop);
 			uv_udp_t* udp = (uv_udp_t *)context_ptr();
 			return uv_udp_init(loop.context_ptr(), udp);
 		}
@@ -391,7 +398,7 @@ namespace ZQ {
 
 			UDP* self = static_cast<UDP *>(udp->data);
 			if (self != NULL) {
-				self->OnSent(status);
+				self->OnSent((ElpeError)status);
 			}
 			delete req;
 		}
@@ -409,12 +416,12 @@ namespace ZQ {
 			UDP* self = static_cast<UDP *>(handle->data);
 			if (self != NULL) {
 				if (nread < 0) {
-					fprintf(stderr, "Read error %s\n", self->eloop_err_name(nread));
+					fprintf(stderr, "Read error %s\n", Error(nread).err_name());
 					self->close();
 					free(buf->base);
 					return;
 				}
-				self->OnReceived(nread, buf, addr, flags);
+				self->OnReceived(nread, buf->base, addr, flags);
 				free(buf->base);
 			}
 		}

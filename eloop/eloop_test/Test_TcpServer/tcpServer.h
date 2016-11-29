@@ -13,9 +13,9 @@ public:
 
 
 
-	virtual void OnConnection_cb(int status);
+	virtual void OnConnection_cb(ElpeError status);
 
-	virtual void OnRead(ssize_t nread, const uv_buf_t *buf);
+	virtual void OnRead(ssize_t nread, const char *buf);
 };
 
 #endif

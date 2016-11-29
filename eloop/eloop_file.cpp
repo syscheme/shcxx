@@ -6,39 +6,150 @@ namespace eloop {
 // -----------------------------
 // class File
 // -----------------------------
-File::File() {
+FileEvent::FileEvent() {
 }
 
-int File::init(Loop &loop) {
-	this->Handle::init();
+int FileEvent::init(Loop &loop) {
+	this->Handle::init(loop);
 	uv_fs_event_t* event = (uv_fs_event_t *)context_ptr();
 	return uv_fs_event_init(loop.context_ptr(), event);
 }
 
-int File::start(const char *path, unsigned int flags) {
+int FileEvent::start(const char *path, fs_event_flags flags) {
 	uv_fs_event_t* event = (uv_fs_event_t *)context_ptr();
 
-	return uv_fs_event_start(event, _cbFSevent, path, flags);
+	return uv_fs_event_start(event, _cbFSevent, path,flags);
 }
 
-int File::stop() {
+int FileEvent::stop() {
 	uv_fs_event_t* event = (uv_fs_event_t *) context_ptr();
 	return uv_fs_event_stop(event);
 }
 
-int File::getpath(char *buffer, size_t *size) {
+int FileEvent::getpath(char *buffer, size_t *size) {
 	uv_fs_event_t* event = (uv_fs_event_t *)context_ptr();
 	return uv_fs_event_getpath(event, buffer, size);
 }
 
-void File::_cbFSevent(uv_fs_event_t *handle, const char *filename, int events, int status) {
+void FileEvent::_cbFSevent(uv_fs_event_t *handle, const char *filename, int events, int status) {
 
-	File* self = static_cast<File *>(handle->data);
+	FileEvent* self = static_cast<FileEvent *>(handle->data);
 	if (self != NULL) {
-		self->OnFileEvent(filename, events, status);
+		self->OnFileEvent(filename, (fs_event)events, (ElpeError)status);
 	}
 }
 
+
+// -----------------------------
+// class File
+// -----------------------------
+File::File(Loop& loop)
+	:_loop(loop),
+	_fb(0)
+{
+}
+
+int File::open(const char* filename,int flags,int mode)
+{
+	uv_fs_t *req = new uv_fs_t;
+	req->data = static_cast<void *>(this);
+	return uv_fs_open(_loop.context_ptr(),req,filename,flags,mode,_cbFileOpen);
+}
+
+int File::read(size_t len)
+{
+	_buf = (char*)malloc(len);
+	memset(_buf,0,len);
+	uv_buf_t buf = uv_buf_init(_buf,len);
+	uv_fs_t *req = new uv_fs_t;
+	req->data = static_cast<void *>(this);
+	int ret =  uv_fs_read(_loop.context_ptr(),req,_fb,&buf,1,-1,_cbFileRead);
+	return ret;
+}
+
+int File::write(const char* data,size_t len)
+{
+	uv_fs_t *req = new uv_fs_t;
+	req->data = static_cast<void *>(this);
+	uv_buf_t buf = uv_buf_init((char*)data,len);
+	return uv_fs_write(_loop.context_ptr(),req,_fb,&buf,1,-1,_cbFileWrite);
+}
+
+int File::mkdir(const char* dirname,int mode)
+{
+	uv_fs_t *req = new uv_fs_t;
+	req->data = static_cast<void *>(this);
+	return uv_fs_mkdir(_loop.context_ptr(),req,dirname,mode,_cbMkdir);
+}
+
+int File::close()
+{
+	uv_fs_t *req = new uv_fs_t;
+	req->data = static_cast<void *>(this);
+	return uv_fs_close(_loop.context_ptr(),req,_fb,_cbFileClose);
+}
+
+void File::cleanup(uv_fs_t* req)
+{
+	uv_fs_req_cleanup(req);
+	delete req;
+}
+void File::setfb(int fb)
+{
+	_fb = fb;
+}
+
+void File::_cbFileOpen(uv_fs_t* req)
+{
+	File *h = static_cast<File *>(req->data);
+	if (NULL != h)
+	{
+		h->setfb(req->result);
+		h->OnOpen(req->result);
+		h->cleanup(req);
+	}
+}
+
+void File::_cbFileClose(uv_fs_t* req)
+{
+	File *h = static_cast<File *>(req->data);
+	if (NULL != h)
+	{
+		h->OnClose(req->result);
+		h->cleanup(req);
+	}
+}
+
+void File::_cbFileWrite(uv_fs_t* req)
+{
+	File *h = static_cast<File *>(req->data);
+	if (NULL != h)
+	{
+		h->OnWrite(req->result);
+		h->cleanup(req);
+	}
+}
+
+void File::_cbFileRead(uv_fs_t* req)
+{
+	File *h = static_cast<File *>(req->data);
+	if (NULL != h)
+	{
+		h->OnRead(h->_buf,req->result);
+		free(h->_buf);
+		h->cleanup(req);
+	}
+}
+
+void File::_cbMkdir(uv_fs_t* req)
+{
+	File *h = static_cast<File *>(req->data);
+	if (NULL != h)
+	{
+		h->OnMkdir(req->result);
+		h->cleanup(req);
+	}
+}
 
 // -----------------------------
 // class Pipe
@@ -47,7 +158,7 @@ Pipe::Pipe() {
 }
 
 int Pipe::init(Loop &loop, int ipc) {
-	this->Handle::init();
+	this->Handle::init(loop);
 	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
 	return uv_pipe_init(loop.context_ptr(), pipe, ipc);
 }
@@ -96,7 +207,7 @@ void Pipe::_cbConnected(uv_connect_t *req, int status) {
 
 	if (self != NULL) {
 		//TODO: why wiped uv_connect_t here??
-		self->OnConnected(status);
+		self->OnConnected((ElpeError)status);
 	}
 
 	delete req;

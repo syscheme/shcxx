@@ -33,29 +33,100 @@
 
 #include "eloop.h"
 #include "eloop_net.h"
+#include <fcntl.h>
 namespace ZQ {
 namespace eloop {
+class ZQ_ELOOP_API FileEvent;
+class ZQ_ELOOP_API File;
+class ZQ_ELOOP_API Pipe;
 
 // -----------------------------
-// class File
+// class FileEvent
 // -----------------------------
 // dup of uvpp_fs_event
-class File : public Handle
+class FileEvent : public Handle
 {
 public:
-	File();
+	enum fs_event {
+		Rename = UV_RENAME,
+		Change = UV_CHANGE
+	};
+	enum fs_event_flags{
+		Event_Default = 0,
+		Watch_Entry = UV_FS_EVENT_WATCH_ENTRY,
+		Event_Stat = UV_FS_EVENT_STAT,
+		Event_Recursive = UV_FS_EVENT_RECURSIVE
+	};
+	
+public:
+	FileEvent();
 
 	int init(Loop &loop);
-	int start(const char *path, unsigned int flags);
+	int start(const char *path, fs_event_flags flags = Event_Default);
 	int stop();
 	int getpath(char *buffer, size_t *size);
 
 protected:
-	virtual void OnFileEvent(const char *filename, int events, int status) {}
+	virtual void OnFileEvent(const char *filename, fs_event events, ElpeError status) {}
 
 private:
 	static void _cbFSevent(uv_fs_event_t *handle, const char *filename, int events, int status);
 };
+
+
+// -----------------------------
+// class File
+// -----------------------------
+class File
+{
+public:
+	enum FileFlags{
+		RDONLY = O_RDONLY,
+		WRONLY = O_WRONLY,
+		RDWR = O_RDWR,
+		CREAT = O_CREAT,
+		APPEND = O_APPEND,
+		CREAT_RDWR = O_CREAT | O_RDWR,
+		CREAT_WRONLY = O_CREAT | O_WRONLY
+	};
+	enum FileMode{
+		RD_WR = _S_IREAD | _S_IWRITE,
+		READ = _S_IREAD,
+		WRITE = _S_IWRITE
+	};
+
+public:
+	File(Loop& loop);
+	File();
+	int open(const char* filename,int flags,int mode);
+	int read(size_t len);
+	int write(const char* data,size_t len);
+	int mkdir(const char* dirname,int mode);
+	int close();
+	void cleanup(uv_fs_t* req);
+	char* _buf;
+
+
+protected:
+	virtual void OnOpen(int result){}
+	virtual void OnWrite(int result){}
+	virtual void OnRead(char* data,int len){}
+	virtual void OnClose(int result){}
+	virtual void OnMkdir(int result){}
+
+private:
+	static void _cbFileOpen(uv_fs_t* req);
+	static void _cbFileClose(uv_fs_t* req);
+	static void _cbFileWrite(uv_fs_t* req);
+	static void _cbFileRead(uv_fs_t* req);
+	static void _cbMkdir(uv_fs_t* req);
+	void setfb(int fb);
+
+private:
+	Loop& _loop;
+	int _fb;
+};
+
 
 // -----------------------------
 // class Pipe
@@ -65,7 +136,7 @@ class Pipe : public Stream
 public:
 	Pipe();
 
-	int init(Loop &loop, int ipc);
+	int init(Loop &loop, int ipc = 0);
 	int open(uv_file file);
 	int bind(const char *name);
 	void connect(const char *name);
@@ -73,13 +144,15 @@ public:
 	int getpeername(char *buffer, size_t *size);
 	void pending_instances(int count);
 	int pending_count();
+	
 
 protected:
 	//TODO: why wiped uv_connect_t here??
-	virtual void OnConnected(int status) {}
+	virtual void OnConnected(ElpeError status) {}
 
 private:
 	static void _cbConnected(uv_connect_t *req, int status);
+	
 };
 
 } } // namespace ZQ::eloop

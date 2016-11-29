@@ -11,8 +11,8 @@ public:
 	tcpClient(){}
 	~tcpClient(){}
 
-	virtual void OnConnected(int status);
-	virtual void OnRead(ssize_t nread, const uv_buf_t *buf);
+	virtual void OnConnected(ElpeError status);
+	virtual void OnRead(ssize_t nread, const char *buf);
 
 };
 
