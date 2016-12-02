@@ -425,5 +425,35 @@ namespace ZQ {
 				free(buf->base);
 			}
 		}
+
+		// -----------------------------
+		// class DNS
+		// -----------------------------
+
+		DNS::DNS()
+		{
+
+		}
+
+		int DNS::getAddrInfo(Loop &loop,const char* node,const char* service,const struct addrinfo* hints)
+		{
+			uv_getaddrinfo_t *req = new uv_getaddrinfo_t;
+			req->data = reinterpret_cast<void *>(this);
+			return uv_getaddrinfo(loop.context_ptr(),req,_cbResolved,node,service,hints);
+		}
+
+		void DNS::_cbResolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res)
+		{
+			DNS *h = static_cast<DNS *>(resolver->data);
+			if (NULL != h)
+			{
+				char addr[17] = {'\0'};
+				uv_ip4_name((struct sockaddr_in*) res->ai_addr, addr, 16);
+				h->onResolved((Handle::ElpeError)status,addr);
+				uv_freeaddrinfo(res);
+			}
+			resolver->data = NULL;
+			delete resolver;
+		}
 	}
 } // namespace ZQ::eloop

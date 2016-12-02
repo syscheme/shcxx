@@ -38,6 +38,7 @@ namespace eloop {
 class ZQ_ELOOP_API Stream;
 class ZQ_ELOOP_API TCP;
 class ZQ_ELOOP_API UDP;
+class ZQ_ELOOP_API DNS;
 
 // -----------------------------
 // class Stream
@@ -173,6 +174,22 @@ private:
 	static void _cbAlloc(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf);
 	static void _cbRecv(uv_udp_t *udp, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags);
 };
+
+class DNS
+{
+public:
+	DNS();
+	int getAddrInfo(Loop &loop,const char* node,const char* service,const struct addrinfo* hints);
+
+protected:
+	virtual void onResolved(Handle::ElpeError status,const char* ip){}
+
+private:
+	static void _cbResolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res);
+
+};
+
+
 
 } } // namespace ZQ::eloop
 

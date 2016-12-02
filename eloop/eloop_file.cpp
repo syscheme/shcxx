@@ -89,11 +89,7 @@ int File::close()
 	return uv_fs_close(_loop.context_ptr(),req,_fb,_cbFileClose);
 }
 
-void File::cleanup(uv_fs_t* req)
-{
-	uv_fs_req_cleanup(req);
-	delete req;
-}
+
 void File::setfb(int fb)
 {
 	_fb = fb;
@@ -106,8 +102,9 @@ void File::_cbFileOpen(uv_fs_t* req)
 	{
 		h->setfb(req->result);
 		h->OnOpen(req->result);
-		h->cleanup(req);
 	}
+	uv_fs_req_cleanup(req);
+	delete req;
 }
 
 void File::_cbFileClose(uv_fs_t* req)
@@ -116,8 +113,9 @@ void File::_cbFileClose(uv_fs_t* req)
 	if (NULL != h)
 	{
 		h->OnClose(req->result);
-		h->cleanup(req);
 	}
+	uv_fs_req_cleanup(req);
+	delete req;
 }
 
 void File::_cbFileWrite(uv_fs_t* req)
@@ -126,8 +124,9 @@ void File::_cbFileWrite(uv_fs_t* req)
 	if (NULL != h)
 	{
 		h->OnWrite(req->result);
-		h->cleanup(req);
 	}
+	uv_fs_req_cleanup(req);
+	delete req;
 }
 
 void File::_cbFileRead(uv_fs_t* req)
@@ -137,8 +136,9 @@ void File::_cbFileRead(uv_fs_t* req)
 	{
 		h->OnRead(h->_buf,req->result);
 		free(h->_buf);
-		h->cleanup(req);
 	}
+	uv_fs_req_cleanup(req);
+	delete req;
 }
 
 void File::_cbMkdir(uv_fs_t* req)
@@ -147,8 +147,9 @@ void File::_cbMkdir(uv_fs_t* req)
 	if (NULL != h)
 	{
 		h->OnMkdir(req->result);
-		h->cleanup(req);
 	}
+	uv_fs_req_cleanup(req);
+	delete req;
 }
 
 // -----------------------------

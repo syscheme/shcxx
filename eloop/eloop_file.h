@@ -103,7 +103,6 @@ public:
 	int write(const char* data,size_t len);
 	int mkdir(const char* dirname,int mode);
 	int close();
-	void cleanup(uv_fs_t* req);
 	char* _buf;
 
 
