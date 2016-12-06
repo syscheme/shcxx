@@ -503,11 +503,17 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 //	printf("app naem is %s\n",mdlName);
 	m_SysLog.open(mdlName,eventLogLevel);
 
-	//set local month
-	time_t tmt;
-	time(&tmt);
-	struct tm* ptm;
-	ptm = localtime(&tmt);
+	//set local month	
+//	time_t tmt;
+//	time(&tmt);
+//	struct tm* ptm;
+//	ptm = localtime(&tmt);
+//	m_currentMonth = ptm->tm_mon + 1;//base from 0
+
+	struct timeval tv;
+	struct tm* ptm=NULL, tmret;
+	gettimeofday(&tv,  (struct timezone*)NULL);
+	ptm = localtime_r(&tv.tv_sec, &tmret);
 	m_currentMonth = ptm->tm_mon + 1;//base from 0
 #endif
 	// 获得文件名
@@ -1012,10 +1018,11 @@ void FileLog::roll()
 
 	//Wei-TODO:
 	struct timeval tv;
-	struct tm* filetime;
-	struct tm* currenttime;
-	gettimeofday(&tv, NULL);
-	currenttime = localtime(&tv.tv_sec);
+	struct tm* filetime=NULL,tmret_file;
+	struct tm* currenttime=NULL,tmret_current;
+	
+	gettimeofday(&tv,(struct timezone*)NULL);
+	currenttime = localtime_r(&tv.tv_sec,&tmret_current);
 	
 	glob_t gl;
 	struct stat fileinfo;
@@ -1027,14 +1034,14 @@ void FileLog::roll()
 			int64 timestamp = 0;
 			char extname[20] = "\0";
 			char filename[MAX_PATH] = "\0";
-			if(sscanf(gl.gl_pathv[i]+ m_dirName.length()+1 + m_appName.length(),".%lld%s" ,&timestamp, &extname) <= 1 && 0 != stricmp(extname, ".log") )
+			if(sscanf(gl.gl_pathv[i]+ m_dirName.length()+1 + m_appName.length(),".%lld%s" ,&timestamp, &extname) <= 1 && 0 != strcasecmp(extname, ".log") )
 				continue; // skip those files that are not in the pattern of rolling filenames
 
 			if(timestamp < 1010000000 || timestamp > 12312359599) // 01010000000 is the minimum timestamp ,12312359599 is the maximum timestamp
 				continue;
 			
 			stat(gl.gl_pathv[i], &fileinfo);
-			filetime = localtime(&fileinfo.st_mtime);
+			filetime = localtime_r(&fileinfo.st_mtime,&tmret_file);
 			snprintf(filename, MAX_PATH-2, "%s.%011lld.log", m_appName.c_str(), timestamp);
 			if(filetime->tm_year < currenttime->tm_year || (timestamp/1000000000) > currenttime->tm_mon+1)
 				filesOfLastYear.push_back(filename);
