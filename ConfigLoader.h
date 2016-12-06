@@ -65,7 +65,6 @@ public:
 };
 typedef auto_free<ZQ::common::XMLPreferenceEx*>		PREF;
 
-
 class ZQ_COMMON_API ConfigLoader
 {
 public:
