@@ -15,10 +15,11 @@ int FileEvent::init(Loop &loop) {
 	return uv_fs_event_init(loop.context_ptr(), event);
 }
 
-int FileEvent::start(const char *path, fs_event_flags flags) {
+int FileEvent::start(const char *path, uint flags)
+{
 	uv_fs_event_t* event = (uv_fs_event_t *)context_ptr();
 
-	return uv_fs_event_start(event, _cbFSevent, path,flags);
+	return uv_fs_event_start(event, _cbFSevent, path, flags);
 }
 
 int FileEvent::stop() {
@@ -35,7 +36,7 @@ void FileEvent::_cbFSevent(uv_fs_event_t *handle, const char *filename, int even
 
 	FileEvent* self = static_cast<FileEvent *>(handle->data);
 	if (self != NULL) {
-		self->OnFileEvent(filename, (fs_event)events, (ElpeError)status);
+		self->OnFileEvent(filename, (uint) events, (ElpeError)status);
 	}
 }
 
@@ -51,7 +52,7 @@ File::File(Loop& loop)
 {
 }
 
-int File::open(const char* filename,int flags,int mode)
+int File::open(const char* filename, uint flags, uint mode)
 {
 	uv_fs_t *req = new uv_fs_t;
 	req->data = static_cast<void *>(this);
@@ -78,7 +79,7 @@ int File::read(size_t len,int64_t offset)
 	return ret;
 }
 
-int File::write(const char* data,size_t len,int64_t offset)
+int File::write(const char* data, size_t len, int64_t offset)
 {
 	uv_fs_t *req = new uv_fs_t;
 	req->data = static_cast<void *>(this);
@@ -86,7 +87,7 @@ int File::write(const char* data,size_t len,int64_t offset)
 	return uv_fs_write(_loop.context_ptr(),req,_fb,&buf,1,offset,_cbFileWrite);
 }
 
-int File::mkdir(const char* dirname,int mode)
+int File::mkdir(const char* dirname, uint mode)
 {
 	uv_fs_t *req = new uv_fs_t;
 	req->data = static_cast<void *>(this);
@@ -99,13 +100,13 @@ int File::close()
 	req->data = static_cast<void *>(this);
 	return uv_fs_close(_loop.context_ptr(),req,_fb,_cbFileClose);
 }
+
 void File::clean()
 {
 	free(_buf);
 	_buf = NULL;
 	_len = 0;
 }
-
 
 void File::setfb(int fb)
 {

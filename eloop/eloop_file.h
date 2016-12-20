@@ -40,6 +40,10 @@ class ZQ_ELOOP_API FileEvent;
 class ZQ_ELOOP_API File;
 class ZQ_ELOOP_API Pipe;
 
+#ifndef FLAG
+#  define FLAG(_F)  (1<<_F)
+#endif // FLAG
+
 // -----------------------------
 // class FileEvent
 // -----------------------------
@@ -47,32 +51,44 @@ class ZQ_ELOOP_API Pipe;
 class FileEvent : public Handle
 {
 public:
-	enum fs_event {
-		Rename = UV_RENAME,
-		Change = UV_CHANGE
-	};
-	enum fs_event_flags{
-		Event_Default = 0,
-		Watch_Entry = UV_FS_EVENT_WATCH_ENTRY,
-		Event_Stat = UV_FS_EVENT_STAT,
-		Event_Recursive = UV_FS_EVENT_RECURSIVE
-	};
+	typedef enum _Event {
+		fseRenamed = UV_RENAME, // file event when a file or dir has been renamed
+		fseChanged = UV_CHANGE  // file event when a file has been modified
+	} Event;
+
+	// flags to be passed to start() to watch a file
+	typedef enum _StartFlags {
+		fsfNone   = 0, // 0 means none flag is turned on
+		
+		// fefWatchEntry  - instead of watching a directory and all its children file by default,
+		//                  this flag specify to only watch the directly entry itself
+		fsfWatchEntry     = FLAG(0), // UV_FS_EVENT_WATCH_ENTRY,
+
+		// fsfActiveStat  - for some file systems such as NFS mounts to remote storage, it is recommended
+		//                  to actively call stat() on a regular interval for the file event
+		fsfActiveStat     = FLAG(1), // UV_FS_EVENT_STAT,
+
+		// fsfRecursive   - to watching the sub-directories
+	    fsfRecursive      = FLAG(2), // UV_FS_EVENT_RECURSIVE
+	} StartFlags ;
 	
 public:
 	FileEvent();
 
 	int init(Loop &loop);
-	int start(const char *path, fs_event_flags flags = Event_Default);
+
+	//@param flags - flag combination of StartFlags
+	int start(const char *path, uint flags = fsfNone);
 	int stop();
 	int getpath(char *buffer, size_t *size);
 
 protected:
-	virtual void OnFileEvent(const char *filename, fs_event events, ElpeError status) {}
+	//@param events  - combination of flags of Event
+	virtual void OnFileEvent(const char *filename, uint events, ElpeError status) {}
 
 private:
 	static void _cbFSevent(uv_fs_event_t *handle, const char *filename, int events, int status);
 };
-
 
 // -----------------------------
 // class File
@@ -80,39 +96,45 @@ private:
 class File
 {
 public:
-	enum FileFlags{
-		RDONLY = O_RDONLY,
-		WRONLY = O_WRONLY,
-		RDWR = O_RDWR,
-		CREAT = O_CREAT,
-		APPEND = O_APPEND,
-		CREAT_RDWR = O_CREAT | O_RDWR,
+	enum OpenFlags {
+		RDONLY       = O_RDONLY,
+		WRONLY       = O_WRONLY,
+		RDWR         = O_RDWR,
+		CREAT        = O_CREAT,
+		APPEND       = O_APPEND,
+		CREAT_RDWR   = O_CREAT | O_RDWR,
 		CREAT_WRONLY = O_CREAT | O_WRONLY
 	};
-	enum FileMode{
+
+	enum FileMode {
 		RD_WR = _S_IREAD | _S_IWRITE,
-		READ = _S_IREAD,
+		READ  = _S_IREAD,
 		WRITE = _S_IWRITE
 	};
 
 public:
 	File(Loop& loop);
 	File();
-	int open(const char* filename,int flags,int mode);
-	int read(size_t len,int64_t offset);
-	int write(const char* data,size_t len,int64_t offset);
-	int mkdir(const char* dirname,int mode);
+
+	//@param flags - flag combination of OpenFlags
+	//@param mode  - flag combination of FileMode
+	int open(const char* filename, uint flags, uint mode);
+	int read(size_t len, int64_t offset);
+	int write(const char* data, size_t len, int64_t offset);
+
+	//@param mode  - flag combination of FileMode
+	int mkdir(const char* dirname, uint mode);
 	int close();
 	void clean();
 	char* _buf;
 
 
 protected:
-	virtual void OnOpen(int result){}
-	virtual void OnWrite(int result){}
-	virtual void OnRead(char* data,int len){}
-	virtual void OnClose(int result){}
-	virtual void OnMkdir(int result){}
+	virtual void OnOpen(int result) {}
+	virtual void OnWrite(int result) {}
+	virtual void OnRead(char* data,int len) {}
+	virtual void OnClose(int result) {}
+	virtual void OnMkdir(int result) {}
 
 private:
 	static void _cbFileOpen(uv_fs_t* req);
@@ -129,7 +151,6 @@ private:
 	size_t _len;
 };
 
-
 // -----------------------------
 // class Pipe
 // -----------------------------
@@ -138,15 +159,14 @@ class Pipe : public Stream
 public:
 	Pipe();
 
-	int init(Loop &loop, int ipc = 0);
-	int open(uv_file file);
-	int bind(const char *name);
+	int  init(Loop &loop, int ipc =0);
+	int  open(uv_file file);
+	int  bind(const char *name);
 	void connect(const char *name);
-	int getsockname(char *buffer, size_t *size);
-	int getpeername(char *buffer, size_t *size);
+	int  getsockname(char *buffer, size_t *size);
+	int  getpeername(char *buffer, size_t *size);
 	void pending_instances(int count);
-	int pending_count();
-	
+	int  pending_count();
 
 protected:
 	//TODO: why wiped uv_connect_t here??
@@ -158,6 +178,5 @@ private:
 };
 
 } } // namespace ZQ::eloop
-
 
 #endif // __ZQ_COMMON_ELOOP_File_H__

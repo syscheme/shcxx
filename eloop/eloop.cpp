@@ -31,7 +31,15 @@ Handle::Handle(Handle &other) {
 	other._loop =NULL;
 }
 
-Handle &Handle::operator=(Handle &other) {
+void Handle::_cbClose(uv_handle_t *uvhandle)
+{
+	Handle *h = static_cast<Handle *>(uvhandle->data);
+	if (NULL != h)
+		h->OnClose(h);
+	h->_deleteContext();
+}
+
+Handle& Handle::operator=(Handle &other) {
 
 	context = other.context;
 	data = other.data;

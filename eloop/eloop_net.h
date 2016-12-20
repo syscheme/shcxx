@@ -102,8 +102,6 @@ public:
 	int connect4(const char *ipv4, int prot);
 	int connect6(const char *ipv6, int port);
 
-
-
 protected:
 	// TODO: must enumerate all the status in the class
 	virtual void OnConnected(ElpeError status) {}
@@ -112,7 +110,6 @@ private:
 	int connect(const struct sockaddr *addr);
 	int bind(const sockaddr *addr, unsigned int flags);
 	static void _cbConnect(uv_connect_t *req, int status);
-
 
 };
 
@@ -175,6 +172,9 @@ private:
 	static void _cbRecv(uv_udp_t *udp, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags);
 };
 
+// -----------------------------
+// class DNS
+// -----------------------------
 class DNS
 {
 public:
@@ -182,14 +182,12 @@ public:
 	int getAddrInfo(Loop &loop,const char* node,const char* service,const struct addrinfo* hints);
 
 protected:
-	virtual void onResolved(Handle::ElpeError status,const char* ip){}
+	virtual void onResolved(Handle::ElpeError status,const char* ip) {}
 
 private:
 	static void _cbResolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res);
 
 };
-
-
 
 } } // namespace ZQ::eloop
 

@@ -115,7 +115,6 @@ public:
 
 	const char* errDesc(ElpeError e) { return uv_strerror(e); }
 
-
 protected:
 	Handle();
 	Handle(Handle &);
@@ -145,13 +144,7 @@ protected:
 
 private:
 	void _deleteContext();
-	static void _cbClose(uv_handle_t *uvhandle)
-	{
-		Handle *h = static_cast<Handle *>(uvhandle->data);
-		if (NULL != h)
-			h->OnClose(h);
-			h->_deleteContext();
-	}
+	static void _cbClose(uv_handle_t *uvhandle);
 
 	uv_any_handle* context;
 	Loop* _loop;
@@ -178,9 +171,6 @@ protected:
 private:
 	uv_any_req* context;
 };
-
-
-
 
 // -----------------------------
 // class Loop
