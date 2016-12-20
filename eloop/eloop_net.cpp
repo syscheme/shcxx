@@ -20,7 +20,7 @@ namespace ZQ {
 			return uv_listen(stream, SOMAXCONN, _cbConnection);
 		}
 
-		int Stream::accept(Stream *client) {
+		int Stream::accept(Stream* client) {
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
 			uv_stream_t* streamclient = (uv_stream_t *)client->context_ptr();
 			return uv_accept(stream, streamclient);
@@ -107,12 +107,12 @@ namespace ZQ {
 
 			Stream* self = static_cast<Stream *>(stream->data);
 			if (self != NULL) {
-				if (nread < 0) {
+/*				if (nread < 0) {
 					fprintf(stderr, "Read error %s\n",  Error(nread).err_name());
 					self->close();
 					free(buf->base);
 					return;
-				}
+				}*/
 				self->OnRead(nread, buf->base);
 				free(buf->base);
 			}
@@ -191,6 +191,16 @@ namespace ZQ {
 		int TCP::getsockname(struct sockaddr *name, int *namelen) {
 			uv_tcp_t* tcp = (uv_tcp_t *)context_ptr();
 			return uv_tcp_getsockname(tcp, name, namelen);
+		}
+
+		void TCP::getlocaleIpPort(char* ip,int& port)
+		{
+			struct sockaddr localename;
+			int namelen = sizeof localename;
+			getsockname(&localename, &namelen);
+			struct sockaddr_in* addr2 = (struct sockaddr_in*)&localename;
+			uv_ip4_name(addr2, ip, 17);
+			port = ntohs(addr2->sin_port);
 		}
 
 		int TCP::getpeername(struct sockaddr *name, int *namelen) {
@@ -415,12 +425,12 @@ namespace ZQ {
 
 			UDP* self = static_cast<UDP *>(handle->data);
 			if (self != NULL) {
-				if (nread < 0) {
+/*				if (nread < 0) {
 					fprintf(stderr, "Read error %s\n", Error(nread).err_name());
 					self->close();
 					free(buf->base);
 					return;
-				}
+				}*/
 				self->OnReceived(nread, buf->base, addr, flags);
 				free(buf->base);
 			}

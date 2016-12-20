@@ -99,10 +99,11 @@ public:
 	File(Loop& loop);
 	File();
 	int open(const char* filename,int flags,int mode);
-	int read(size_t len);
-	int write(const char* data,size_t len);
+	int read(size_t len,int64_t offset);
+	int write(const char* data,size_t len,int64_t offset);
 	int mkdir(const char* dirname,int mode);
 	int close();
+	void clean();
 	char* _buf;
 
 
@@ -124,6 +125,8 @@ private:
 private:
 	Loop& _loop;
 	int _fb;
+	bool _isAlloc;
+	size_t _len;
 };
 
 

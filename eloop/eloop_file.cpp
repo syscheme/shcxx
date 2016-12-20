@@ -45,7 +45,9 @@ void FileEvent::_cbFSevent(uv_fs_event_t *handle, const char *filename, int even
 // -----------------------------
 File::File(Loop& loop)
 	:_loop(loop),
-	_fb(0)
+	_fb(0),
+	_isAlloc(false),
+	_len(0)
 {
 }
 
@@ -56,23 +58,32 @@ int File::open(const char* filename,int flags,int mode)
 	return uv_fs_open(_loop.context_ptr(),req,filename,flags,mode,_cbFileOpen);
 }
 
-int File::read(size_t len)
+int File::read(size_t len,int64_t offset)
 {
-	_buf = (char*)malloc(len);
-	memset(_buf,0,len);
+	if (len > _len)
+	{
+		if (_isAlloc)
+		{
+			free(_buf);
+			_buf = NULL;
+		}
+		_buf = (char*)malloc(len);
+		_len = len;
+	}
+	memset(_buf,0,_len);
 	uv_buf_t buf = uv_buf_init(_buf,len);
 	uv_fs_t *req = new uv_fs_t;
 	req->data = static_cast<void *>(this);
-	int ret =  uv_fs_read(_loop.context_ptr(),req,_fb,&buf,1,-1,_cbFileRead);
+	int ret =  uv_fs_read(_loop.context_ptr(),req,_fb,&buf,1,offset,_cbFileRead);
 	return ret;
 }
 
-int File::write(const char* data,size_t len)
+int File::write(const char* data,size_t len,int64_t offset)
 {
 	uv_fs_t *req = new uv_fs_t;
 	req->data = static_cast<void *>(this);
 	uv_buf_t buf = uv_buf_init((char*)data,len);
-	return uv_fs_write(_loop.context_ptr(),req,_fb,&buf,1,-1,_cbFileWrite);
+	return uv_fs_write(_loop.context_ptr(),req,_fb,&buf,1,offset,_cbFileWrite);
 }
 
 int File::mkdir(const char* dirname,int mode)
@@ -87,6 +98,12 @@ int File::close()
 	uv_fs_t *req = new uv_fs_t;
 	req->data = static_cast<void *>(this);
 	return uv_fs_close(_loop.context_ptr(),req,_fb,_cbFileClose);
+}
+void File::clean()
+{
+	free(_buf);
+	_buf = NULL;
+	_len = 0;
 }
 
 
@@ -113,6 +130,7 @@ void File::_cbFileClose(uv_fs_t* req)
 	if (NULL != h)
 	{
 		h->OnClose(req->result);
+		h->clean();
 	}
 	uv_fs_req_cleanup(req);
 	delete req;
@@ -135,7 +153,6 @@ void File::_cbFileRead(uv_fs_t* req)
 	if (NULL != h)
 	{
 		h->OnRead(h->_buf,req->result);
-		free(h->_buf);
 	}
 	uv_fs_req_cleanup(req);
 	delete req;

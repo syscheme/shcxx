@@ -32,14 +32,14 @@
 #define __ZQ_COMMON_ELOOP_H__
 
 #include "ZQ_common_conf.h"
-#include "Pointer.h"
-/*#include "FileLog.h"
+/*#include "Pointer.h"
+#include "FileLog.h"
 #include "Locks.h"
 #include "NativeThread.h"*/
 
 #include <uv.h>
 
-//#include <string>
+#include <string>
 //#include <vector>
 //#include <map>
 
@@ -241,7 +241,6 @@ private:
 // -----------------------------
 class Timer : public Handle
 {
-
 public:
 	Timer();
 	int init(Loop &loop);
@@ -261,7 +260,7 @@ private:
 // -----------------------------
 // class Async
 // -----------------------------
-class Async : public Handle 
+class Async : public Handle
 {
 public:
 	Async();

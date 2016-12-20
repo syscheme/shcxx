@@ -45,14 +45,13 @@ class ZQ_ELOOP_API DNS;
 // -----------------------------
 class Stream : public Handle
 {
-
 protected:
 	Stream();
 
 public:
 	int shutdown();
 	int listen();
-	int accept(Stream *client);
+	int accept(Stream* client);
 	int read_start();
 	int read_stop();
 	int write(const char *buf, size_t length);
@@ -98,6 +97,7 @@ public:
 	int bind6(const char *ipv6, int port);
 	int getsockname(struct sockaddr *name, int *namelen);
 	int getpeername(struct sockaddr *name, int *namelen);
+	void getlocaleIpPort(char* ip,int& port);
 	void getpeerIpPort(char* ip,int& port);
 	int connect4(const char *ipv4, int prot);
 	int connect6(const char *ipv6, int port);
