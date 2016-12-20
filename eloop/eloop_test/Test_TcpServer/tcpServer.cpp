@@ -9,19 +9,21 @@ void tcpServer::OnConnection_cb(ElpeError status)
 		return;
 	}
 
-	tcpServer *client = new tcpServer();
+	tcpServer* client = new tcpServer();
 	client->init(get_loop());
 
-	if (accept((Stream *)client) == 0) {
+	if (accept((Stream*)client) == 0) {
 
 		char ip[17] = { 0 };
 		int  port = 0;
 		client->getpeerIpPort(ip,port);
-		printf("accept client ip = %s,port = %d\n",ip,port);
+		printf("client accept client ip = %s,port = %d\n",ip,port);
+
 		client->read_start();
 	}
 	else {
 		client->close();
+		delete client;
 	}
 
 }

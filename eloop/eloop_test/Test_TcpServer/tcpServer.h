@@ -11,11 +11,10 @@ public:
 	tcpServer(){}
 	~tcpServer(){}
 
-
-
 	virtual void OnConnection_cb(ElpeError status);
 
 	virtual void OnRead(ssize_t nread, const char *buf);
+
 };
 
 #endif

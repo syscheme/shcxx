@@ -4,6 +4,11 @@
 
 void tcpClient::OnRead(ssize_t nread, const char *buf)
 {
+	if (nread < 0) {
+		fprintf(stderr, "Read error %s\n",  Error(nread).err_name());
+		close();
+		return;
+	}
 	printf("recv data:%s,len = %d\n", buf,nread);
 
 	char sendbuf[1024];

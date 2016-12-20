@@ -1,6 +1,7 @@
 #include "eloop_lock.h"
 #include "NativeThread.h"
 
+
 ZQ::eloop::Mutex m;
 int num = 0;
 class ReadThread:public ZQ::common::NativeThread

@@ -38,8 +38,8 @@ public:
 		printf("open end! result = %d\n",result);
 		
 		char* buf = "1234";
-		this->write(buf,4);
-//		this->read(2);
+		this->write(buf,4,-1);
+//		this->read(2,-1);
 	}
 
 	virtual void OnClose(int result)

@@ -2,11 +2,14 @@
 #define __TCP_CLIENT_H__
 
 #include "eloop_net.h"
+#include "Pointer.h"
 using namespace ZQ::eloop;
 
 
 class tcpClient:public TCP
 {
+public:	
+	typedef ZQ::common::Pointer<tcpClient> Ptr;
 public:
 	tcpClient(){}
 	~tcpClient(){}

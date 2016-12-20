@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="Test_pipeClient"
-	ProjectGUID="{470DAED7-7F6A-4A70-B87C-6CED370D3C44}"
-	RootNamespace="Test_pipeClient"
+	Name="udpsend"
+	ProjectGUID="{2E478891-21A2-4BF8-BF95-6493F08C17D4}"
+	RootNamespace="udpsend"
 	Keyword="Win32Proj"
 	>
 	<Platforms>
@@ -115,6 +115,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				Optimization="0"
 				AdditionalIncludeDirectories="../..;../../libuv_1.9.1/include;../../.."
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				RuntimeLibrary="2"
@@ -134,7 +135,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="eloop.lib"
+				AdditionalDependencies="eloop.lib ws2_32.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="$(ZQProjsPath)\TianShan\bin\"
 				GenerateDebugInformation="true"
@@ -178,9 +179,37 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\pipeClient.cpp"
+				RelativePath="..\..\..\getopt.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\main.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\udpsend.cpp"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Header Files"
+			Filter="h;hpp;hxx;hm;inl;inc;xsd"
+			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
+			>
+			<File
+				RelativePath="..\..\..\getopt.h"
+				>
+			</File>
+			<File
+				RelativePath=".\udpsend.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Resource Files"
+			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
+			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
+			>
 		</Filter>
 	</Files>
 	<Globals>

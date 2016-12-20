@@ -29,4 +29,6 @@ void udpServer::OnReceived(ssize_t nread, const char *buf, const struct sockaddr
 	printf("recv data:%s,len = %d\n", buf,nread);
 
 	send(buf,nread,addr);
+
+//	send4(buf,nread,"192.168.100.90",1800);
 }
