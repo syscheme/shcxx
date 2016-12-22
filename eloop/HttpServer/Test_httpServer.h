@@ -29,12 +29,16 @@ public:
 	TestHttpHandle(HttpProcessor* processor);
 	~TestHttpHandle();
 
+
+	void Response();
+	void ResponseIndex();
+
  	virtual bool onHttpMessage( const HttpMessage::Ptr msg);
  	virtual bool onHttpBody( const char* data, size_t size);
  	virtual void onHttpComplete();
  	virtual void onHttpError( int error );
 
-	virtual void	onHttpDataSent( size_t size);
+	virtual void	onHttpDataSent(bool keepAlive);
 
 	virtual void	onHttpDataReceived( size_t size );
 

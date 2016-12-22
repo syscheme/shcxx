@@ -1,5 +1,6 @@
 #include <FileLog.h>
 #include "httpServer.h"
+#include "Test_httpServer.h"
 #include "getopt.h"
 #include <iostream>
 
@@ -11,7 +12,7 @@ void usage() {
 		<< "  -h								display this screen\n"
 		<< std::endl;
 }
-
+Code2StatusMapInitializer c2smapinitializer;
 
 int main(int argc,char* argv[])
 {
@@ -46,12 +47,20 @@ int main(int argc,char* argv[])
 		printf("Failed to create a log file %s.\n",logFilePath.c_str());
 		return -1;
 	}
+
+
+	IHttpHandlerFactory::Ptr Test = new TestHttpHandleFactory();
+
+
 	HttpServer::HttpServerConfig conf;
 	HttpServer server(conf,*pLog);
 
+	server.addRule("/",Test);
+	server.addRule("/index.html",Test);
+
 
 	server.init(loop);
-	server.startAt("127.0.0.1",9978);
+	server.startAt("192.168.81.28",9978);
 
 
 	loop.run(Loop::Default);

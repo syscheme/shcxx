@@ -16,15 +16,14 @@ class HttpProcessor:public TCP,public ParserCallback
 public:
 	virtual ~HttpProcessor();
 
-	bool			canSendHeader( ) const;
-	bool			canSendBody( ) const;
-	bool beginSend(HttpMessage::Ptr msg);
-	bool sendBody(const char* buf,size_t len);
-	bool endSend();
+	int send(const char* buf,size_t len);
+	void setkeepAlive(bool alive){mbOutgoingKeepAlive = alive;}
 
 protected:
 	HttpProcessor( bool clientSide );
 	void			reset( ParserCallback* callback = NULL );
+	int getSendCount(){return mSendCount;}
+	
 //	int 			sendChunk( BufferHelper& bh);
 	virtual void OnRead(ssize_t nread, const char *buf);
 	virtual void OnWrote(ElpeError status);
@@ -38,25 +37,23 @@ protected:
 	virtual void onHttpError(int err) {}
 
 	// onReqMsgSent is only used to notify that the sending buffer is free and not held by HttpClient any mre
-	virtual void onHttpDataSent(size_t size) { }
+	virtual void onHttpDataSent(bool keepAlive) { }
 
 	// onHttpDataReceived is only used to notify that the receiving buffer is free and not held by HttpClient any mre
 	virtual void onHttpDataReceived(size_t size) { }
-
-	// this callback is used by HttpServant
-	virtual void onHttpEndSent(bool keepAlive) { }
 
 private:
 	http_parser_type		mParseType;
 	HttpParser				mHttpParser;
 
 	HttpMessage::Ptr		mIncomingMsg;
-	HttpMessage::Ptr		mOutgoingMsg;
 
-	std::string				mOutgoingHeadersTemp;
-	std::string				mWritingBufs;
-	bool					mbSending;
+	int						mSendCount;
 	bool					mbOutgoingKeepAlive;
+
+
+//	bool					mbSending;
+//	bool					mbOutgoingKeepAlive;
 };
 
 
@@ -68,7 +65,7 @@ public:
 	typedef ZQ::common::Pointer<IHttpHandler> Ptr;
 	virtual ~IHttpHandler() { }
 
-	virtual void	onHttpDataSent(size_t size) = 0;
+	virtual void	onHttpDataSent(bool keepAlive) = 0;
 
 	virtual void	onHttpDataReceived( size_t size ) = 0;
 
@@ -106,9 +103,7 @@ private:
 
 	virtual void    onWritable();
 
-	virtual void	onHttpDataSent(size_t size);
-
-	virtual void 	onHttpEndSent( bool keepAlive );
+	virtual void	onHttpDataSent( bool keepAlive );
 
 	virtual void	onHttpDataReceived( size_t size );
 
@@ -132,9 +127,10 @@ private:
 	HttpServer*					m_server;
 	IHttpHandler::Ptr			mHandler;
 	int64						mLastTouch;
-	int							mOutstandingRequests;
+	
 	ZQ::common::Log&			mLogger;
 	bool						mHeaderComplete;
+	bool						mbError;
 
 	std::string					mHint;
 };

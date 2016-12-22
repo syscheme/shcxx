@@ -7,10 +7,10 @@
 HttpProcessor::HttpProcessor(bool clientSide)
 		:mParseType(clientSide?HTTP_RESPONSE:HTTP_REQUEST),
 		mHttpParser(mParseType),
-		mbOutgoingKeepAlive(false),
-		mbSending(false),
-		mIncomingMsg(NULL),
-		mOutgoingMsg(NULL)
+		mbOutgoingKeepAlive(true),
+//		mbSending(false),
+		mSendCount(0),
+		mIncomingMsg(NULL)
 
 {
 	reset();
@@ -26,90 +26,22 @@ void HttpProcessor::reset(ParserCallback* p ) {
 	mHttpParser.reset(p);
 }
 
-bool HttpProcessor::canSendHeader( ) const {
-	return (mOutgoingMsg == NULL) && (!mbSending);
-}
-
-bool HttpProcessor::canSendBody( ) const {
-	assert( (mOutgoingMsg != NULL) && (!mbSending) );
-	return ((mOutgoingMsg != NULL) && (!mbSending));
-}
-
-bool HttpProcessor::beginSend(HttpMessage::Ptr msg)
+int HttpProcessor::send(const char* buf,size_t len)
 {
-	if(!canSendHeader()) {
-		assert(false&&"invalid state");
-		return false;
-	}
-	mOutgoingMsg = msg;
-	assert(msg != NULL && "msg can not be NULL");
-
-	mOutgoingHeadersTemp = mOutgoingMsg->toRaw();
-	assert(!mOutgoingHeadersTemp.empty());
-	
-	mbSending = true;
-	mbOutgoingKeepAlive = msg->keepAlive();
-	return write(mOutgoingHeadersTemp.c_str(),mOutgoingHeadersTemp.size());
+	mSendCount++;
+	return write(buf,len);
 }
 
-bool HttpProcessor::sendBody(const char* buf,size_t len)
-{
-	if(!canSendBody()) {
-		assert(false && "invalid state");
-		return false;
-	}
-	if(!mOutgoingMsg->hasContentBody() ) {
-		assert( false && "http message do not have a content body");
-		return false;
-	}
-	mWritingBufs.clear();
-	mWritingBufs = buf;
-	
-	if( mOutgoingMsg->chunked() ) 
-	{
-		char ChunkHeader[32];
-		sprintf( ChunkHeader, "%x\r\n", (unsigned int)len);// should not fail
-		mWritingBufs = ChunkHeader;
-		mWritingBufs = mWritingBufs + buf + "\r\n";
-	}
-	mbSending = true;
-	return  write(mWritingBufs.c_str(),mWritingBufs.size());
-}
-
-bool HttpProcessor::endSend()
-{
-	if( !canSendBody() ) {
-		assert( false && "invalid state");
-		return false;
-	}
-	if(!mOutgoingMsg->chunked()) {
-		//TODO: invoking callback here
-		onHttpDataSent(0);
-		mOutgoingMsg = NULL;
-		onHttpEndSent(mbOutgoingKeepAlive);
-		return true;
-	}
-//	mChunkHeader.len = sprintf(mChunkHeader.base,"0\r\n");
-	mWritingBufs.clear();
-//	mWritingBufs.push_back(mChunkHeader);
-//	mWritingBufs.push_back(chunkTail);
-
-	mWritingBufs = "0\r\n";
-	mWritingBufs += "\r\n";
-
-	mOutgoingMsg = NULL;
-	mbSending = true;
-	return write(mWritingBufs.c_str(),mWritingBufs.size());
-}
 
 void HttpProcessor::OnRead(ssize_t nread, const char *buf)
 {
 	if (nread < 0) {
 		fprintf(stderr, "Read error %s\n",  Error(nread).err_name());
-		close();
+		onHttpError(ERR_RECVFAIL);
 		return;
 	}
-	printf("recv data:%s,len = %d\n", buf,nread);
+	std::string str = buf;
+	printf("recv data:%s,len = %d,size = %d\n", buf,nread,str.size());
 
 	size_t nparsed = mHttpParser.parse(buf, nread);
 	if(nparsed != nread){
@@ -131,24 +63,22 @@ void HttpProcessor::OnRead(ssize_t nread, const char *buf)
 
 void HttpProcessor::OnWrote(ElpeError status)
 {
+//	mbSending = false;
+	mSendCount--;
 	if (status != elpeSuccess)
 	{
-		fprintf(stderr, "Read error %s\n",  Error(status).str());
-		mbSending  = false; 
-		onHttpError(status);
-		close();
+		fprintf(stderr, "send error %s\n",  Error(status).str()); 
+		onHttpError(ERR_SENDFAIL);
 		return;
 	}
 	
 	// if whole http raw message has been sent
 	// mOutgoingMsg should be NULL
-	onHttpDataSent(mWritingBufs.size());
-	mWritingBufs.clear();
-	mOutgoingHeadersTemp.clear();
-	mbSending = false;
+	onHttpDataSent(mbOutgoingKeepAlive);
+/*
 	if( mOutgoingMsg == NULL ) {
 		onHttpEndSent(mbOutgoingKeepAlive);
-	}
+	}*/
 }
 
 // ---------------------------------------
@@ -157,9 +87,9 @@ void HttpProcessor::OnWrote(ElpeError status)
 HttpServant::HttpServant(HttpServer* server,ZQ::common::Log& logger)
 		:m_server(server),
 		HttpProcessor(false),
+		mbError(false),
 		mHandler(0),
 		mLastTouch(0),
-		mOutstandingRequests(0),
 		mLogger(logger)
 {
 
@@ -200,13 +130,14 @@ void HttpServant::onSocketConnected() {
 		return;
 	}
 	mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServant,"%s start to receive data"),mHint.c_str());
-	m_server->addServant(this);
 }
 
 void HttpServant::errorResponse( int code ) {
 	mLogger(ZQ::common::Log::L_DEBUG,CLOGFMT(HttpServant,"errorResponse, code %d"), code);
 	HttpMessage::Ptr msg = m_server->makeSimpleResponse(code);
-	beginSend(msg);
+	mbError = true;
+	std::string response = msg->toRaw();
+	send(response.c_str(),response.length());
 }
 
 void HttpServant::onHttpError( int err ) {
@@ -223,7 +154,9 @@ void HttpServant::onHttpError( int err ) {
 		this, locip, locport, peerip, peerport, ErrorCodeToStr((ErrorCode)err));
 	if(mHandler)
 		mHandler->onHttpError(err);
-	//clear();
+
+	if(getSendCount() <= 0)
+		clear();
 }
 
 void HttpServant::onWritable()
@@ -235,10 +168,8 @@ void HttpServant::onWritable()
 	mHandler->onWritable();
 }
 
-void HttpServant::onHttpDataSent( size_t size) {
-	if(!mHandler) {			
-		return;
-	}
+void HttpServant::onHttpDataSent( bool keepAlive ) {
+
 	char locip[17] = { 0 };
 	int  locport = 0;
 	getlocaleIpPort(locip,locport);
@@ -246,25 +177,24 @@ void HttpServant::onHttpDataSent( size_t size) {
 	char peerip[17] = { 0 };
 	int  peerport = 0;
 	getlocaleIpPort(locip,peerport);
-	mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServant, "onHttpDataSent [%p] [%s:%d==>%s:%d] size[%d]."), this, locip, locport, peerip, peerport, (int)size);
+	mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServant, "onHttpDataSent [%p] [%s:%d==>%s:%d]."), this, locip, locport, peerip, peerport);
 
-	mHandler->onHttpDataSent(size);
-}
+	if(mHandler != NULL) {			
+		mHandler->onHttpDataSent(keepAlive);
+	}
 
-void HttpServant::onHttpEndSent( bool keepAlive ) {
-	if( --mOutstandingRequests > 0 )
-		return; //ignore keepAlive ?
-
-	if(!keepAlive)
+	if(!keepAlive && getSendCount() <= 0)
 		clear();
+
 }
+
 
 void HttpServant::onHttpDataReceived( size_t size ) {
 	// NOTE something here
 	if(mHandler) {
 		mHandler->onHttpDataReceived(size);
 	}
-	start();//this may fail because a receiving call has been fired		
+	//start();//this may fail because a receiving call has been fired		
 }
 
 bool HttpServant::onHttpMessage( const HttpMessage::Ptr msg) {
@@ -290,12 +220,12 @@ bool HttpServant::onHttpMessage( const HttpMessage::Ptr msg) {
 			mHandler = NULL;
 			return false;
 		}
-		mOutstandingRequests ++;
 		return true;
 	}		
 }
 
 bool HttpServant::onHttpBody( const char* data, size_t size) {
+
 	if(!mHandler) {
 		mLogger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServant,"http body received, but no handler is ready"));
 		errorResponse(500);

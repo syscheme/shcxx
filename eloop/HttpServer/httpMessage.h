@@ -74,7 +74,7 @@ public:
 	}
 };
 
-//Code2StatusMapInitializer c2smapinitializer;
+
 
 static const char* httpDateStrWeekDay[] = {"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
 static const char* httpDateStrMonth[] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
