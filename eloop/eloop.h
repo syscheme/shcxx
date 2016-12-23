@@ -76,11 +76,11 @@ public:
 	typedef enum _Error
 	{
 		elpeSuccess = 0,
-		elpeNotPermitted = EPERM,	 // operation not permitted
-		elpeNoFile = ENOENT,		//no such file or directory
-		elpeNoProcess = ESRCH,		//no such process
-		elpeIntr = EINTR,			//interrupted system call
-		elpeIO = EIO,				//i/o error
+		elpeNotPermitted = EPERM,	   // operation not permitted
+		elpeNoFile = ENOENT,		   //no such file or directory
+		elpeNoProcess = ESRCH,		   //no such process
+		elpeIntr = EINTR,			   //interrupted system call
+		elpeIO = EIO,				   //i/o error
 		elpeNotDevOrAddress = ENXIO,			//no such device or address
 		elpeArgTooLong = E2BIG,			//argument list too long
 		elpeENOEXEC = ENOEXEC,
@@ -111,7 +111,7 @@ public:
 		elpeNOLCK = ENOLCK,
 		elpeFunNotImpl = ENOSYS,			//function not implemented
 		elpeDirNotEmpty = ENOTEMPTY		//directory not empty
-} ElpeError;
+	} ElpeError;
 
 	const char* errDesc(ElpeError e) { return uv_strerror(e); }
 
