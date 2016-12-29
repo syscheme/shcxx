@@ -47,8 +47,8 @@ private:
 	static int cInst;
 };
 
-#define ServiceMIB_ExportVarEx(SVCMIB, VARNAME, VARADDR, VARTYPE, SUBOID, READONLY)	\
-	SVCMIB->addObject(new ZQ::SNMP::SNMPObject(VARNAME, VARADDR, ZQ::SNMP::VARTYPE, READONLY), SUBOID)
+#define ServiceMIB_ExportVarEx(SVCMIB, VARNAME, VARADDR, SUBOID, READONLY)	\
+	SVCMIB->addObject(new ZQ::SNMP::SNMPObject(VARNAME, VARADDR, READONLY), SUBOID)
 
 #define ServiceMIB_ExportByAPI(SVCMIB, VARNAME, CLASS, OBJ, BASET, ASNTYPE, METHOD_GET, METHOD_SET, SUBOID)	\
 	SVCMIB->addObject(new ZQ::SNMP::SNMPObjectByAPI<CLASS, BASET>(VARNAME, OBJ, ZQ::SNMP::ASNTYPE, METHOD_GET, METHOD_SET), SUBOID)
@@ -121,8 +121,8 @@ public: // APIs to SNMP access
 	void   setLogLevel_Main(const uint32& newLevel);
 };
 
-#define SvcMIB_ExportReadOnlyVar(VARNAME, VARADDR, VARTYPE, SUBOID)\
-	ServiceMIB_ExportVarEx(_pServiceMib, VARNAME, VARADDR, VARTYPE, SUBOID, true)
+#define SvcMIB_ExportReadOnlyVar(VARNAME, VARADDR, SUBOID)\
+	ServiceMIB_ExportVarEx(_pServiceMib, VARNAME, VARADDR, SUBOID, true)
 
 #define SvcMIB_ExportByAPI(VARNAME, BASET, ASNTYPE, METHOD_GET, METHOD_SET, SUBOID)\
 	ServiceMIB_ExportByAPI(_pServiceMib, VARNAME, BaseZQServiceApplication, *this, BASET, ASNTYPE, METHOD_GET, METHOD_SET, SUBOID)

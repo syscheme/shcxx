@@ -387,18 +387,18 @@ bool BaseZQServiceApplication::OnUnInit() {
 
 void BaseZQServiceApplication::doEnumSnmpExports()
 {
-	SvcMIB_ExportReadOnlyVar("Version", &_strVersion, AsnType_String, ".1");
-	SvcMIB_ExportReadOnlyVar("SnmpLoggingMask", &_snmpLoggingMask, AsnType_Int32, ".2");
-	SvcMIB_ExportReadOnlyVar("LogDir", &_logDir, AsnType_String, ".3");
-	SvcMIB_ExportReadOnlyVar("KeepAliveIntervals", &m_dwKeepAliveInterval_ms, AsnType_Int32, ".4");
-	SvcMIB_ExportReadOnlyVar("ShutdownWaitTime", &m_dwShutdownWaitTime, AsnType_Int32, ".5");
-	SvcMIB_ExportReadOnlyVar("LogFileSize", &_logSize, AsnType_Int32, ".6");
-	SvcMIB_ExportReadOnlyVar("LogTimeOut", &_logTimeout, AsnType_Int32, ".7");
-	SvcMIB_ExportReadOnlyVar("LogBufferSize", &_logBufferSize, AsnType_Int32, ".8");
+	SvcMIB_ExportReadOnlyVar("Version", _strVersion, ".1");
+	SvcMIB_ExportReadOnlyVar("SnmpLoggingMask", (int32&)_snmpLoggingMask, ".2");
+	SvcMIB_ExportReadOnlyVar("LogDir", _logDir, ".3");
+	SvcMIB_ExportReadOnlyVar("KeepAliveIntervals", (uint32&)m_dwKeepAliveInterval_ms,  ".4");
+	SvcMIB_ExportReadOnlyVar("ShutdownWaitTime", (uint32&)m_dwShutdownWaitTime, ".5");
+	SvcMIB_ExportReadOnlyVar("LogFileSize", (uint32&)_logSize, ".6");
+	SvcMIB_ExportReadOnlyVar("LogTimeOut", (uint32&)_logTimeout, ".7");
+	SvcMIB_ExportReadOnlyVar("LogBufferSize", (uint32&)_logBufferSize, ".8");
 
 	SvcMIB_ExportByAPI("LogLevel", uint32, AsnType_Int32, &BaseZQServiceApplication::getLogLevel_Main, &BaseZQServiceApplication::setLogLevel_Main, ".9");
 
-	SvcMIB_ExportReadOnlyVar("configDir", &_configDir, AsnType_String, ".10");
+	SvcMIB_ExportReadOnlyVar("configDir", _configDir, ".10");
 }
 
 

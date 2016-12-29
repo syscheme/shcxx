@@ -448,11 +448,11 @@ public:
 		vf_VarName =2,
 		vf_Access  =3
 	} FieldId;
-
+protected:
 	SNMPObject(const std::string& varname, void* vaddr, AsnType vtype, bool readOnly =true)
 		: _varname(varname), _vtype(vtype), _readonly(readOnly), _vaddr(vaddr)
 	{}
-
+public:
 	SNMPObject(const std::string& varname, int32& vInt32, bool readOnly =true)
 		: _varname(varname), _vtype(AsnType_Int32), _readonly(readOnly), _vaddr(&vInt32)
 	{}

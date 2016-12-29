@@ -745,6 +745,7 @@ static size_t decodeAny(uint8* data, size_t datalength,  uint8& type, netsnmp_va
 //@returns the bytes processed
 size_t SNMPVariable::unserialize(const uint8* stream, size_t maxlen)
 {
+	size_t n =0;
 	const u_char* p = stream;
 	clear(); 
 
