@@ -75,6 +75,7 @@ private:
 	static void _cbAlloc(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf);
 	static void _cbRead(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf);
 	static void _cbWrote(uv_write_t *req, int status);
+
 };
 
 // -----------------------------

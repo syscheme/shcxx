@@ -306,7 +306,7 @@ bool ModuleMIB::addObject(SNMPObject::Ptr obj, const Oid& csubOid)
 
 	if (subOid.isNil() && NULL != _mibe)
 	{
-		for (size_t i = 0; NULL != _mibe[i].varname; i++)
+		for (size_t i = 0; NULL != _mibe[i].varname  && '\0' !=_mibe[i].varname[0]; i++)
 		{
 			if (0 == obj->_varname.compare(_mibe[i].varname))
 			{
