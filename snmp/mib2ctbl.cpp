@@ -6,7 +6,7 @@
 // -------------------------------------
 const ZQ::SNMP::ModuleMIB::MIBE gTblMib_bcastChannel[] = {
 	{".2", "bcastChApp" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).bcastChannel(1900).bcastChApp(2)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service c2fe oid[2500]
@@ -14,14 +14,14 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_bcastChannel[] = {
 const ZQ::SNMP::ModuleMIB::MIBE gTblMib_c2fe[] = {
 	{".2", "c2feApp" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).c2fe(2500).c2feApp(2)
 	{".2.1", "c2feAttr" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).c2fe(2500).c2feApp(2).c2feAttr(1)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service cdnCS oid[2000]
 // -------------------------------------
 const ZQ::SNMP::ModuleMIB::MIBE gTblMib_cdnCS[] = {
 	{".2", "cdnCSSvcApp" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).cdnCS(2000).cdnCSSvcApp(2)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service cdnss oid[2100]
@@ -64,14 +64,14 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_cdnss[] = {
 	{".2.1.21", "cdnssStat-cache-hotLocalsSize" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).cdnss(2100).cdnssSvcApp(2).cdnssAttr(1).cdnssStat-cache-hotLocalsSize(21)
 	{".2.1.22", "cdnssStat-cache-requestsInTimeWin" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).cdnss(2100).cdnssSvcApp(2).cdnssAttr(1).cdnssStat-cache-requestsInTimeWin(22)
 	{".2.1.23", "cdnssStat-cache-hitInTimeWin" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).cdnss(2100).cdnssSvcApp(2).cdnssAttr(1).cdnssStat-cache-hitInTimeWin(23)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service channelOnDemand oid[800]
 // -------------------------------------
 const ZQ::SNMP::ModuleMIB::MIBE gTblMib_channelOnDemand[] = {
 	{".2", "chodSvcApp" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).channelOnDemand(800).chodSvcApp(2)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service cpeSvc oid[700]
@@ -86,28 +86,28 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_cpeSvc[] = {
 	{".2.1.100.1.3", "cpeBwSubtotal" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).cpeSvc(700).cpesvcApp(2).cpesvcAttr(1).contentProvSessionTable(100).contentProvSessionEntry(1).cpeBwSubtotal(3)
 	{".2.1.100.1.4", "cpeSessMax" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).cpeSvc(700).cpesvcApp(2).cpesvcAttr(1).contentProvSessionTable(100).contentProvSessionEntry(1).cpeSessMax(4)
 	{".2.1.100.1.5", "cpeBwMax" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).cpeSvc(700).cpesvcApp(2).cpesvcAttr(1).contentProvSessionTable(100).contentProvSessionEntry(1).cpeBwMax(5)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service dataOnDemand oid[1600]
 // -------------------------------------
 const ZQ::SNMP::ModuleMIB::MIBE gTblMib_dataOnDemand[] = {
 	{".2", "dodApp" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).dataOnDemand(1600).dodApp(2)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service dataStream oid[1800]
 // -------------------------------------
 const ZQ::SNMP::ModuleMIB::MIBE gTblMib_dataStream[] = {
 	{".2", "dataStreamApp" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).dataStream(1800).dataStreamApp(2)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service dodCS oid[1700]
 // -------------------------------------
 const ZQ::SNMP::ModuleMIB::MIBE gTblMib_dodCS[] = {
 	{".2", "dodCSApp" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).dodCS(1700).dodCSApp(2)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service dsmccCRG oid[2700]
@@ -132,7 +132,7 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_dsmccCRG[] = {
 	{".2.1.106", "dsmccStat-PendingSize" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).dsmccCRG(2700).dsmccCRGSvcApp(2).dsmccCRGAttr(1).dsmccStat-PendingSize(106)
 	{".2.1.107", "dsmccStat-BusyThreads" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).dsmccCRG(2700).dsmccCRGSvcApp(2).dsmccCRGAttr(1).dsmccStat-BusyThreads(107)
 	{".2.1.108", "dsmccStat-ThreadPoolSize" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).dsmccCRG(2700).dsmccCRGSvcApp(2).dsmccCRGAttr(1).dsmccStat-ThreadPoolSize(108)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service edgeFe oid[3400]
@@ -140,7 +140,7 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_dsmccCRG[] = {
 const ZQ::SNMP::ModuleMIB::MIBE gTblMib_edgeFe[] = {
 	{".2", "edgeFeApp" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).edgeFe(3400).edgeFeApp(2)
 	{".2.1", "edgeFeAttr" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).edgeFe(3400).edgeFeApp(2).edgeFeAttr(1)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service edgeRM oid[2300]
@@ -187,7 +187,7 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_edgeRM[] = {
 	{".2.1.202.1.1.7", "ecStartUDPPort" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).edgeRM(2300).edgeRMApp(2).edgeRMAttr(1).ermChannels(202).channelsTable(1).channelsEntry(1).ecStartUDPPort(7)
 	{".2.1.202.1.1.8", "ecUdpPortStepByPn" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).edgeRM(2300).edgeRMApp(2).edgeRMAttr(1).ermChannels(202).channelsTable(1).channelsEntry(1).ecUdpPortStepByPn(8)
 	{".2.1.202.1.1.9", "ecStartProgramNumber" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).edgeRM(2300).edgeRMApp(2).edgeRMAttr(1).ermChannels(202).channelsTable(1).channelsEntry(1).ecStartProgramNumber(9)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service eventChannel oid[1300]
@@ -197,7 +197,7 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_eventChannel[] = {
 	{".2.1", "eventChAttr" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).eventChannel(1300).eventChApp(2).eventChAttr(1)
 	{".2.1.20", "eventCh-endpoint" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).eventChannel(1300).eventChApp(2).eventChAttr(1).eventCh-endpoint(20)
 	{".2.1.21", "eventCh-llevelIce" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).eventChannel(1300).eventChApp(2).eventChAttr(1).eventCh-llevelIce(21)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service eventGateway oid[1200]
@@ -208,7 +208,7 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_eventGateway[] = {
 	{".2.1.20", "eventGw-eventChEp" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).eventGateway(1200).eventGwSvcApp(2).eventGwAttr(1).eventGw-eventChEp(20)
 	{".2.1.21", "eventGw-ConnCheckIntv" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).eventGateway(1200).eventGwSvcApp(2).eventGwAttr(1).eventGw-ConnCheckIntv(21)
 	{".2.1.23", "eventGw-llevelIce" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).eventGateway(1200).eventGwSvcApp(2).eventGwAttr(1).eventGw-llevelIce(23)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service httpCRG oid[2200]
@@ -280,7 +280,7 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_httpCRG[] = {
 	{".3.1.7", "c2locTotalBwKbps" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).httpCRG(2200).extC2loc(3).c2locAttr(1).c2locTotalBwKbps(7)
 	{".3.1.8", "c2locActiveBwKbps" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).httpCRG(2200).extC2loc(3).c2locAttr(1).c2locActiveBwKbps(8)
 	{".3.1.9", "c2locTransferCount" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).httpCRG(2200).extC2loc(3).c2locAttr(1).c2locTransferCount(9)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service mediaClusterCS oid[1500]
@@ -312,14 +312,14 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_mediaClusterCS[] = {
 	{".2.1.7", "mediaClusterCS-LogWriteTimeOut" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).mediaClusterCS(1500).mediaClusterCSApp(2).mediaClusterCSAttr(1).mediaClusterCS-LogWriteTimeOut(7)
 	{".2.1.8", "mediaClusterCS-LogBufferSize" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).mediaClusterCS(1500).mediaClusterCSApp(2).mediaClusterCSAttr(1).mediaClusterCS-LogBufferSize(8)
 	{".2.1.9", "mediaClusterCS-LogLevel" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).mediaClusterCS(1500).mediaClusterCSApp(2).mediaClusterCSAttr(1).mediaClusterCS-LogLevel(9)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service modSvc oid[900]
 // -------------------------------------
 const ZQ::SNMP::ModuleMIB::MIBE gTblMib_modSvc[] = {
 	{".2", "modSvcApp" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).modSvc(900).modSvcApp(2)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service nss oid[1400]
@@ -328,7 +328,7 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_nss[] = {
 	{".2", "nssSvcApp" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss(1400).nssSvcApp(2)
 	{".2.1", "nssAttr" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss(1400).nssSvcApp(2).nssAttr(1)
 	{".2.1.100", "nssStat-cSessions" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss(1400).nssSvcApp(2).nssAttr(1).nssStat-cSessions(100)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service nss1 oid[1410]
@@ -337,7 +337,7 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_nss1[] = {
 	{".2", "nss1SvcApp" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss1(1410).nss1SvcApp(2)
 	{".2.1", "nss1Attr" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss1(1410).nss1SvcApp(2).nss1Attr(1)
 	{".2.1.100", "nss1Stat-cSessions" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss1(1410).nss1SvcApp(2).nss1Attr(1).nss1Stat-cSessions(100)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service nss2 oid[1420]
@@ -346,7 +346,7 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_nss2[] = {
 	{".2", "nss2SvcApp" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss2(1420).nss2SvcApp(2)
 	{".2.1", "nss2Attr" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss2(1420).nss2SvcApp(2).nss2Attr(1)
 	{".2.1.100", "nss2Stat-cSessions" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss2(1420).nss2SvcApp(2).nss2Attr(1).nss2Stat-cSessions(100)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service nss3 oid[1430]
@@ -355,7 +355,7 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_nss3[] = {
 	{".2", "nss3SvcApp" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss3(1430).nss3SvcApp(2)
 	{".2.1", "nss3Attr" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss3(1430).nss3SvcApp(2).nss3Attr(1)
 	{".2.1.100", "nss3Stat-cSessions" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss3(1430).nss3SvcApp(2).nss3Attr(1).nss3Stat-cSessions(100)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service nss4 oid[1440]
@@ -364,7 +364,7 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_nss4[] = {
 	{".2", "nss4SvcApp" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss4(1440).nss4SvcApp(2)
 	{".2.1", "nss4Attr" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss4(1440).nss4SvcApp(2).nss4Attr(1)
 	{".2.1.100", "nss4Stat-cSessions" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss4(1440).nss4SvcApp(2).nss4Attr(1).nss4Stat-cSessions(100)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service nss5 oid[1450]
@@ -373,7 +373,7 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_nss5[] = {
 	{".2", "nss5SvcApp" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss5(1450).nss5SvcApp(2)
 	{".2.1", "nss5Attr" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss5(1450).nss5SvcApp(2).nss5Attr(1)
 	{".2.1.100", "nss5Stat-cSessions" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss5(1450).nss5SvcApp(2).nss5Attr(1).nss5Stat-cSessions(100)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service nss6 oid[1460]
@@ -382,7 +382,7 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_nss6[] = {
 	{".2", "nss6SvcApp" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss6(1460).nss6SvcApp(2)
 	{".2.1", "nss6Attr" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss6(1460).nss6SvcApp(2).nss6Attr(1)
 	{".2.1.100", "nss6Stat-cSessions" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss6(1460).nss6SvcApp(2).nss6Attr(1).nss6Stat-cSessions(100)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service nss7 oid[1470]
@@ -391,7 +391,7 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_nss7[] = {
 	{".2", "nss7SvcApp" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss7(1470).nss7SvcApp(2)
 	{".2.1", "nss7Attr" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss7(1470).nss7SvcApp(2).nss7Attr(1)
 	{".2.1.100", "nss7Stat-cSessions" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss7(1470).nss7SvcApp(2).nss7Attr(1).nss7Stat-cSessions(100)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service nss8 oid[1480]
@@ -400,7 +400,7 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_nss8[] = {
 	{".2", "nss8SvcApp" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss8(1480).nss8SvcApp(2)
 	{".2.1", "nss8Attr" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss8(1480).nss8SvcApp(2).nss8Attr(1)
 	{".2.1.100", "nss8Stat-cSessions" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss8(1480).nss8SvcApp(2).nss8Attr(1).nss8Stat-cSessions(100)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service nss9 oid[1490]
@@ -409,7 +409,7 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_nss9[] = {
 	{".2", "nss9SvcApp" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss9(1490).nss9SvcApp(2)
 	{".2.1", "nss9Attr" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss9(1490).nss9SvcApp(2).nss9Attr(1)
 	{".2.1.100", "nss9Stat-cSessions" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).nss9(1490).nss9SvcApp(2).nss9Attr(1).nss9Stat-cSessions(100)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service rtspProxy oid[1000]
@@ -575,7 +575,7 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_rtspProxy[] = {
 	{".6.1", "rtspS1Attr" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).rtspProxy(1000).rtspS1(6).rtspS1Attr(1)
 	{".6.1.1", "rtspLogS1" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).rtspProxy(1000).rtspS1(6).rtspS1Attr(1).rtspLogS1(1)
 	{".6.1.2", "rtspLogIcetrace" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).rtspProxy(1000).rtspS1(6).rtspS1Attr(1).rtspLogIcetrace(2)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service sentry oid[1100]
@@ -601,14 +601,14 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_sentry[] = {
 	{".2.1.101.1.5", "memory" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).sentry(1100).sentrySvcApp(2).sentryAttr(1).tsNeighborTable(101).tsNeighbor(1).memory(5)
 	{".2.1.101.1.6", "os" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).sentry(1100).sentrySvcApp(2).sentryAttr(1).tsNeighborTable(101).tsNeighbor(1).os(6)
 	{".2.1.101.1.7", "startup" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).sentry(1100).sentrySvcApp(2).sentryAttr(1).tsNeighborTable(101).tsNeighbor(1).startup(7)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service siteAdmin oid[300]
 // -------------------------------------
 const ZQ::SNMP::ModuleMIB::MIBE gTblMib_siteAdmin[] = {
 	{".2", "siteAdminSvcApp" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).siteAdmin(300).siteAdminSvcApp(2)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service streamSegementer oid[2400]
@@ -616,7 +616,7 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_siteAdmin[] = {
 const ZQ::SNMP::ModuleMIB::MIBE gTblMib_streamSegementer[] = {
 	{".2", "ssegApp" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).streamSegementer(2400).ssegApp(2)
 	{".2.1", "ssegAttr" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).streamSegementer(2400).ssegApp(2).ssegAttr(1)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service streamSmith oid[100]
@@ -700,7 +700,7 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_streamSmith[] = {
 	{".2.1.8", "streamSmith-LogBufferSize" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).streamSmith(100).streamSmithSvcApp(2).streamSmithAttr(1).streamSmith-LogBufferSize(8)
 	{".2.1.84", "streamSmith-SocketServer-IncomingMessage-maxLen" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).streamSmith(100).streamSmithSvcApp(2).streamSmithAttr(1).streamSmith-SocketServer-IncomingMessage-maxLen(84)
 	{".2.1.9", "streamSmith-LogLevel" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).streamSmith(100).streamSmithSvcApp(2).streamSmithAttr(1).streamSmith-LogLevel(9)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // service weiwoo oid[200]
@@ -714,7 +714,7 @@ const ZQ::SNMP::ModuleMIB::MIBE gTblMib_weiwoo[] = {
 	{".2.1.100.4", "weiwooStat-BusyThreads" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).weiwoo(200).weiwooSvcApp(2).weiwooAttr(1).weiwooStat(100).weiwooStat-BusyThreads(4)
 	{".2.1.100.5", "weiwooStat-ThreadPoolSize" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).weiwoo(200).weiwooSvcApp(2).weiwooAttr(1).weiwooStat(100).weiwooStat-ThreadPoolSize(5)
 	{".2.1.41", "weiwooDumpSgUsage" }, //{enterprises}.zqInteractive(22839).tianShanComponents(4).tianShanService(1).weiwoo(200).weiwooSvcApp(2).weiwooAttr(1).weiwooDumpSgUsage(41)
-	{ "\0", "\0" } };
+	{ NULL, NULL } };
 
 // -------------------------------------
 // Idx by services
