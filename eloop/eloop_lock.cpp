@@ -19,18 +19,21 @@ Mutex::~Mutex()
 
 void Mutex::lock() const
 {
-	uv_mutex_lock((LPCRITICAL_SECTION)&_mutex);
+	//uv_mutex_lock((LPCRITICAL_SECTION)&_mutex);
+	uv_mutex_lock(const_cast<uv_mutex_t*>(&_mutex));
 }
 
 void Mutex::unlock() const
 {
-	uv_mutex_unlock((LPCRITICAL_SECTION)&_mutex);
+//	uv_mutex_unlock((LPCRITICAL_SECTION)&_mutex);
+	uv_mutex_unlock(const_cast<uv_mutex_t*>(&_mutex));
 }
 
 //Try to lock the mutex, return True if the lock was acquired, False otherwise
 int Mutex::tryLock() const
 {
-	return uv_mutex_trylock((LPCRITICAL_SECTION)&_mutex);
+	//return uv_mutex_trylock((LPCRITICAL_SECTION)&_mutex);
+	return uv_mutex_trylock(const_cast<uv_mutex_t*>(&_mutex));
 }
 
 
