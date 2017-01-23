@@ -782,6 +782,13 @@ size_t SubAgent::processMessage(const ZQ::common::InetHostAddress& peerAddr, uin
 		header.error = (uint32) _mmib.writeVars(vlist);
 		break;
 
+	case ZQSNMP_PDU_GETJSON:
+		// TODO: index in the MIB table, then format the output in JSON
+		// step 1. search the MIB table for the SNMPVar
+		// step 2. format SNMPVar to JSON as a SNMPVariable(type=string)
+		// step 3. vlist.push_back(jsonstr)
+		break;
+
 	default:
         // method not support
 		header.error = (uint32) se_GenericError;
