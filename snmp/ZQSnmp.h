@@ -265,7 +265,7 @@ typedef enum _SNMPError
 #  define ZQSNMP_PDU_GETNEXT     0x01  // MODE_GETNEXT
 #  define ZQSNMP_PDU_SET         0x02  // MODE_SET_COMMIT
 #  define ZQSNMP_PDU_UNKNOWN     0xff
-#  define ZQSNMP_PDU_GETJSON     (SNMP_PDU_GET | 0x10)
+#  define ZQSNMP_PDU_GETJSON     (ZQSNMP_PDU_GET | 0x10)
 
 typedef enum _SNMPError
 {
@@ -575,6 +575,66 @@ private:
 };
 
 // -----------------------------
+// class SNMPObjectByStaticAPI
+// -----------------------------
+// object to access value via API invocation
+template <typename BaseT >
+class SNMPObjectByStaticAPI : public SNMPObject
+{
+public:
+	typedef BaseT (*MethodGet)();
+	typedef void (*MethodSet)(const BaseT&);
+
+	SNMPObjectByStaticAPI(const std::string& varname, AsnType vtype, MethodGet methodGet, MethodSet methodSet=NULL)
+		: SNMPObject(varname, NULL, vtype, methodSet?false:true), 
+		_methodGet(methodGet), _methodSet(methodSet)
+	{
+	}
+
+	virtual ~SNMPObjectByStaticAPI() {}
+
+	virtual SNMPError write(const SNMPVariable& value)
+	{
+		if (NULL == _methodSet)
+			return se_ReadOnly;
+
+		if (value.type() != this->_vtype)
+			return se_BadValue;
+		
+		MemRange mr = value.getValueByMemRange();
+		if (NULL == mr.first || mr.second <=0)
+			return se_BadValue;
+
+		BaseT vv;
+		setDataMemRange(vv, mr);
+		(_methodSet)(vv);
+		return se_NoError;
+	}
+
+	virtual SNMPError read(SNMPVariable& value, Oid::I_t field =vf_Value) const
+	{
+		if (vf_Value != field)
+			return SNMPObject::read(value, field);
+
+		if (NULL == _methodGet)
+			return se_BadValue;
+
+//do NOT validate here
+//      if (value.type() != this->_vtype)
+//			return se_BadValue;
+
+		BaseT vv = (*_methodGet)();
+		MemRange mr = getDataMemRange(vv);
+		value.setValueByMemRange(_vtype, mr);
+		return se_NoError;
+	}
+
+private:
+	MethodGet _methodGet;
+	MethodSet _methodSet;
+};
+
+// -----------------------------
 // class SNMPObjectDupValue
 // -----------------------------
 // object by duplicate the value instead of accessing memory or invoking API
@@ -630,8 +690,8 @@ public:
 	// used for the index converted from MIB file
 	typedef struct _MIBE
 	{
-		char* strSubOid;
-		char* varname;
+		const char* strSubOid;
+		const char* varname;
 		// Oid::I_t subOid;
 	} MIBE;
 
