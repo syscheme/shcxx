@@ -27,6 +27,8 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/snmp/ModuleMIB.cpp $
 // 
+// 38    12/27/16 5:13p Dejian.fei
+// 
 // 37    11/30/15 4:54p Ketao.zhang
 // check in  merge git
 // 
@@ -306,7 +308,7 @@ bool ModuleMIB::addObject(SNMPObject::Ptr obj, const Oid& csubOid)
 
 	if (subOid.isNil() && NULL != _mibe)
 	{
-		for (size_t i = 0; NULL != _mibe[i].varname  && '\0' !=_mibe[i].varname[0]; i++)
+		for (size_t i = 0; NULL != _mibe[i].varname && '\0' !=_mibe[i].varname[0]; i++)
 		{
 			if (0 == obj->_varname.compare(_mibe[i].varname))
 			{
@@ -651,6 +653,7 @@ SNMPError ModuleMIB::nextVar(SNMPVariable::List& vlist)
 
 	if (_flags_VERBOSE & VFLG_VERBOSE_MIB)
 		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(ModuleMIB, "nextVar() Oid[%s] is next to [%s]"), tmpOid.str().c_str(), requestedOid.c_str());
+
 	return ModuleMIB::readVars(vlist);
 }
 
@@ -706,6 +709,119 @@ SNMPError ModuleMIB::writeVars(SNMPVariable::List& vlist)
 	return se_NoError;
 }
 
+// access by SNMPVarList
+SNMPError ModuleMIB::vars2Json(SNMPVariable::List& vlist)
+{
+	SNMPError err = se_NoError;
+	Oid::I_t fieldId= (Oid::I_t) SNMPObject::vf_Value;
+
+	std::string subOidList;
+
+	for (size_t i =0; i < vlist.size(); i++)
+	{
+		if (NULL == vlist[i])
+			continue;
+		Oid sOid;
+		if (!chopOid(vlist[i]->oid(), sOid, fieldId))
+		{
+			if (0 == (_flags_VERBOSE & VFLG_MUTE_ERRS_MIB))
+				_log(ZQ::common::Log::L_WARNING, CLOGFMT(ModuleMIB, "vars2Json() invalid oid[%s] requested"), vlist[i]->oid().str().c_str());
+			return se_NoSuchName;
+		}
+
+		ZQ::common::MutexGuard g(_lock);
+		std::string jsonstr = subtreeInJson(sOid);
+		if (jsonstr.empty())
+		{
+			if (0 == (_flags_VERBOSE & VFLG_MUTE_ERRS_MIB))
+				_log(ZQ::common::Log::L_WARNING, CLOGFMT(ModuleMIB, "vars2Json() NULL object of oid[%s] requested"), vlist[i]->oid().str().c_str());
+			return se_NoSuchName;
+		}
+
+		jsonstr = std::string("{") + jsonstr + "}";
+
+		vlist[i]->setValueByMemRange(AsnType_String, MemRange((void*)jsonstr.c_str(), jsonstr.length()));
+		subOidList += sOid.str() + ", ";
+	}
+
+	if (_flags_VERBOSE & VFLG_VERBOSE_MIB)
+		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(ModuleMIB, "vars2Json() subOid[%s] has been read, requested %d items"), subOidList.c_str(), (int)vlist.size());
+	return se_NoError;
+}
+
+std::string ModuleMIB::subtreeInJson(Oid cOid)
+{
+	SNMPObject::Ptr obj = getObject(cOid);
+	if (NULL == obj)
+		return "";
+
+	std::string jsonstr;
+
+	// case 1. this is a table
+	if (obj->_vtype == AsnType_String && 0 == ((std::string*)obj->_vaddr)->compare(0, sizeof(TAG_TABLE_NODE)-1, TAG_TABLE_NODE))
+	{
+		Oid tabOid = cOid;
+		jsonstr = std::string("\"") + obj->name() +"\":{";
+		int lastColId = -1;
+		std::string colvals;
+		for (cOid = nextOid(cOid); tabOid.isDescendant(cOid); cOid = nextOid(cOid))
+		{
+			if (cOid.length() < tabOid.length() +2)
+				continue;
+
+			int colId = cOid[tabOid.length() +1];
+			SNMPObject::Ptr cell = getObject(cOid);
+			if (NULL ==  cell)
+				break;
+
+			if (colId != lastColId)
+			{
+				// start a column here, close the previous first
+				if (!colvals.empty())
+					colvals = colvals.substr(0, colvals.length()-1); // cut off the last comma
+				jsonstr += colvals;
+				colvals = "";
+				if (lastColId >0)
+					jsonstr += "],";
+				lastColId = colId;
+				std::string colname = cell->name();
+				size_t pos = colname.find("#");
+				if (std::string::npos != pos)
+					colname = colname.substr(0, pos);
+
+				jsonstr += std::string("\"") +colname +"\":[";
+			}
+			colvals += cell->val2json() + ",";	
+		}
+
+		// close the last column
+		if (lastColId>0)
+		{
+			if (!colvals.empty())
+					colvals = colvals.substr(0, colvals.length()-1); // cut off the last comma				
+			jsonstr += colvals +"]";
+		}
+		jsonstr += "}";
+		return jsonstr;
+	}
+
+	jsonstr = std::string("\"") + obj->name() +"\":";
+
+	Oid thisOid = cOid;
+	Oid nOid = nextOid(cOid);
+	if (!thisOid.isDescendant(nOid))
+		return jsonstr + obj->val2json();
+
+	jsonstr += std::string("{\"_v\":") + obj->val2json();
+
+	for (; cOid.isDescendant(nOid); nOid = nextOid(nOid))
+		jsonstr +=  std::string(",") + subtreeInJson(nOid);
+
+	jsonstr += "}";
+	return jsonstr; //TODO: cut off the last comma
+}
+
+
 // -----------------------------
 // class SNMPObject
 // -----------------------------
@@ -724,9 +840,13 @@ const char* SNMPObject::typestr(AsnType at)
 }
 
 std::string SNMPObject::name() const
-{ 
-	size_t pos = _varname.find(':');
-	return (std::string::npos == pos) ? _varname : _varname.substr(0, pos);
+{
+	std::string vname = _varname;
+	size_t pos = vname.find(':');
+	if (std::string::npos != pos) 
+		vname = vname.substr(0, pos);
+
+	return vname;
 }
 
 SNMPError SNMPObject::read(SNMPVariable& value, Oid::I_t fieldId) const
@@ -793,6 +913,40 @@ SNMPError SNMPObject::read(SNMPVariable& value, Oid::I_t fieldId) const
 	}
 
 	return se_NoError;
+}
+
+std::string SNMPObject::val2json()
+{
+    if (NULL == _vaddr)
+        return "";
+
+	SNMPError ret = se_NoError;
+	std::string json;
+	// format the value
+	char buf[256] = "\0";
+	switch (_vtype)
+	{
+	case AsnType_Int32:
+		snprintf(buf, sizeof(buf)-2, "%d", *(int32*)_vaddr);
+		break;
+	case AsnType_Int64:
+		snprintf(buf, sizeof(buf)-2, "%lld", *(int64*)_vaddr);
+		break;
+	case AsnType_String:
+		snprintf(buf, sizeof(buf)-2, "\"%s\"", ((std::string*) _vaddr)->c_str());
+		break;
+	case AsnType_CStr:
+		snprintf(buf, sizeof(buf)-2, "\"%s\"", (const char*) _vaddr);
+		break;
+	}
+
+	if (se_NoError == ret)
+	{
+//		json += "\"" + _varname + "\":";
+		json += buf;
+	}
+
+	return json;
 }
 
 SNMPError SNMPObject::write(const SNMPVariable& value)

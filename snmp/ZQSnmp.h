@@ -491,6 +491,7 @@ public:
 
 	virtual SNMPError write(const SNMPVariable& value);
     virtual SNMPError read(SNMPVariable& value, Oid::I_t field =vf_Value) const;
+	virtual std::string val2json();
 
 protected:
 
@@ -675,11 +676,12 @@ public:
 	// lookup the subOid
 	Oid nextOid(const Oid& subOidFrom);
 	Oid firstOid();
-
+	std::string ModuleMIB::subtreeInJson(Oid cOid);
 	// access by SNMPVarList
 	SNMPError readVars(SNMPVariable::List& vlist);
 	SNMPError nextVar(SNMPVariable::List& vlist);
 	SNMPError writeVars(SNMPVariable::List& vlist);
+	SNMPError vars2Json(SNMPVariable::List& vlist);
 
 protected:
 	ZQ::common::Log& _log;
@@ -799,11 +801,31 @@ protected:
 	void OnQueryResult(const ZQ::common::InetHostAddress& serverAddr, int serverPort, BaseAgent::Msgheader header, const SNMPVariable::List& vlist);
 	std::string getJSON(const char* serviceType, uint moduleId, const char* varname)
 	{
+		/*
+		ZQ::SNMP::SNMPVariable::List vlist;
+		ZQ::common::Event::Ptr eventArrived = new ZQ::common::Event();
 		// step 1. search MIB for var oid by serviceType, moduleId and varname
-		// step 2. call sendQuery(pdu=ZQSNMP_PDU_GETJSON) to issue a UDP message to the subAgent
+		Oid::I_t oidI_t =  oidOfServiceType(serviceType);
+		// step 2. call sendQuery(pdu=ZQSNMP_PDU_GETJSON) to issue a UDP message to the subAgent	
+		uint cSeq = sendQuery(_bindAddr.c_str(),_bindPort,ZQSNMP_PDU_GETJSON,vlist,eventArrived);
+		if (0 == cSeq)
+		{
+			log(ZQ::common::Log::L_ERROR, CLOGFMT(getJSON, "failed send to SubAgent[%s/%d]"), _bindAddr, _bindPort);
+			return "";
+		}
 		// step 3. wait for response
+		Query result;
+		if (!eventArrived->wait(getTimeout()) || !getResponse(cSeq, result))
+		{
+			log(ZQ::common::Log::L_ERROR, CLOGFMT(getJSON, "failed to receive response(%d) from SubAgent[%s/%d] timeout[%d]"), cSeq, serverAddr.getHostAddress(), serverPort, getTimeout());
+			//err = se_GenericError;
+			log.flush();
+			return "";
+		}
 		std::string jsonstr; // should be the string body from query response
 		return jsonstr;
+		*/
+		return "";
 	}
 	
 	//@ return cSeq

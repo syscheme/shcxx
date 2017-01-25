@@ -56,18 +56,29 @@ int SNMP_unitTest()
 	ModuleMIB mmib3(log, 1000, 3);
 	Oid subOidTable;
  	mmib3.reserveTable("sopTable", 15, subOidTable);
-	mmib3.addTableCell(subOidTable, 1, 1, new SNMPObjectDupValue("sopIndex", (int32)123));
+	mmib3.addTableCell(subOidTable, 1, 1, new SNMPObjectDupValue("sopIndex", (int32)11));
 	mmib3.addTableCell(subOidTable, 2, 1, new SNMPObjectDupValue("sopName",  "name"));
 	mmib3.addTableCell(subOidTable, 3, 1, new SNMPObjectDupValue("sopStreamer", "streamer"));
 	mmib3.addTableCell(subOidTable, 4, 1, new SNMPObjectDupValue("sopStreamService", "service"));
 	mmib3.addTableCell(subOidTable, 5, 1, new SNMPObjectDupValue("sopStatus", "status"));
-	mmib3.addTableCell(subOidTable, 6, 1, new SNMPObjectDupValue("sopPenalty", (int32)12));
-	mmib3.addTableCell(subOidTable, 7, 1, new SNMPObjectDupValue("sopSessionUsed", (int32)123));
-	mmib3.addTableCell(subOidTable, 8, 1, new SNMPObjectDupValue("sopSessionFailed", (int32)32));
-	mmib3.addTableCell(subOidTable, 9, 1, new SNMPObjectDupValue("sopErrorRate", (int32)5));
-	mmib3.addTableCell(subOidTable, 10, 1, new SNMPObjectDupValue("sopUsedBandwidth", (int64)1234567890));
-	mmib3.addTableCell(subOidTable, 11, 1, new SNMPObjectDupValue("sopMaxBandwidth", (int32)5));
-	mmib3.addTableCell(subOidTable, 15, 1, new SNMPObjectDupValue("sopVolume", "volume"));
+	//mmib3.addTableCell(subOidTable, 6, 1, new SNMPObjectDupValue("sopPenalty", (int32)12));
+	//mmib3.addTableCell(subOidTable, 7, 1, new SNMPObjectDupValue("sopSessionUsed", (int32)123));
+	//mmib3.addTableCell(subOidTable, 8, 1, new SNMPObjectDupValue("sopSessionFailed", (int32)32));
+	//mmib3.addTableCell(subOidTable, 9, 1, new SNMPObjectDupValue("sopErrorRate", (int32)5));
+	//mmib3.addTableCell(subOidTable, 10, 1, new SNMPObjectDupValue("sopUsedBandwidth", (int64)1234567890));
+	//mmib3.addTableCell(subOidTable, 11, 1, new SNMPObjectDupValue("sopMaxBandwidth", (int32)5));
+	//mmib3.addTableCell(subOidTable, 15, 1, new SNMPObjectDupValue("sopVolume", "volume"));
+	mmib3.addTableCell(subOidTable, 1, 2, new SNMPObjectDupValue("sopIndex", (int32)22));
+	mmib3.addTableCell(subOidTable, 2, 2, new SNMPObjectDupValue("sopName",  "N2"));
+	mmib3.addTableCell(subOidTable, 3, 2, new SNMPObjectDupValue("sopStreamer", "S2"));
+	mmib3.addTableCell(subOidTable, 4, 2, new SNMPObjectDupValue("sopStreamService", "SVC2"));
+	mmib3.addTableCell(subOidTable, 5, 2, new SNMPObjectDupValue("sopStatus", "ST2"));
+
+	mmib3.addObject(new SNMPObjectDupValue("XXXX1", "XXX1"), ".5"); 
+	mmib3.addObject(new SNMPObjectDupValue("XXXX2", "XXX2"), ".5.1");
+	mmib3.addObject(new SNMPObjectDupValue("XXXX3", "XXX3"), ".5.2");
+	mmib3.addObject(new SNMPObjectDupValue("XXXX4", "XXX4"), ".5.3");
+	// XXXX1: {"_v":XXX1, XXXX2:XXX2, XXXX3:XXX3}
 
 	Oid next = mmib3.nextOid(Oid(".2"));
 	Oid first = mmib3.firstOid();
@@ -113,7 +124,7 @@ int SNMP_unitTest()
 
 	vlist[0]->setOid(mmib.buildupOid(Oid(".4")));
 	mmib.writeVars(vlist);
-
+	//mmib.vars2Json(vlist);
     int64 var_int64 = 64;
     Oid oid5(".5");
     mmib.addObject(new SNMPObject("testInt64", var_int64, false), oid5);
@@ -141,12 +152,14 @@ int SNMP_unitTest()
 */
     vlist.push_back(new SNMPVariable(mmib.buildupOid(Oid(".7")), &v));
 	mmib.readVars(vlist);
-	vlist[0]->setOid(mmib.buildupOid(Oid(".8")));
-	mmib.writeVars(vlist);
+	vlist[0]->setOid(mmib3.buildupOid(subOidTable));
+	// vlist[0]->setOid(mmib3.buildupOid(Oid(".5.2")));
+	// mmib.writeVars(vlist);
+	mmib3.vars2Json(vlist);
 
 	BaseAgent::Msgheader hdr;
 	memset(&hdr, 0, sizeof(hdr));
-	hdr.pdu = ZQSNMP_PDU_GET;
+	hdr.pdu = ZQSNMP_PDU_GETJSON;
 	hdr.error = se_NoError;
 	size_t len = ag.encodeMessage(buf, sizeof(buf), hdr, vlist);
 	vlist.clear();
@@ -205,5 +218,5 @@ int testAgent()
 
 int main()
 {
-	return testAgent();
+	return SNMP_unitTest();
 }
