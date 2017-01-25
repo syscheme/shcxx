@@ -27,6 +27,11 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/snmp/ZQSnmp.h $
 // 
+// 59    12/27/16 3:36p Li.huang
+// correct to take "reference" instead of "void*"
+// 
+// 58    12/26/16 2:49p Hui.shao
+// 
 // 57    1/15/16 9:42a Li.huang
 // 
 // 56    12/30/15 4:34p Li.huang
@@ -226,7 +231,6 @@ class ZQ_SNMP_API SNMPVariable; // the abstraction of Windows/netsnmp SNMP varia
 
 class ZQ_SNMP_API SNMPObject;   // the wrapper of local address that will be exposed
 class ZQ_SNMP_API ModuleMIB;    // the MIB collection of this module
-//class ZQ_SNMP_API Subagent;     // THIS CLASS SHOULD BE CLEANED
 class ZQ_SNMP_API SubAgent;     // the communicator with SNMP agent
 class ZQ_SNMP_API BaseAgent;
 
@@ -243,6 +247,7 @@ class ZQ_SNMP_API SnmpAgent;
 #  define ZQSNMP_PDU_GETNEXT     SNMP_PDU_GETNEXT
 #  define ZQSNMP_PDU_SET         SNMP_PDU_SET
 #  define ZQSNMP_PDU_UNKNOWN     0xff
+#  define ZQSNMP_PDU_GETJSON     (SNMP_PDU_GET | 0x10)
 
 typedef enum _SNMPError
 {
@@ -260,6 +265,7 @@ typedef enum _SNMPError
 #  define ZQSNMP_PDU_GETNEXT     0x01  // MODE_GETNEXT
 #  define ZQSNMP_PDU_SET         0x02  // MODE_SET_COMMIT
 #  define ZQSNMP_PDU_UNKNOWN     0xff
+#  define ZQSNMP_PDU_GETJSON     (ZQSNMP_PDU_GET | 0x10)
 
 typedef enum _SNMPError
 {
@@ -448,10 +454,12 @@ public:
 		vf_VarName =2,
 		vf_Access  =3
 	} FieldId;
+
 protected:
 	SNMPObject(const std::string& varname, void* vaddr, AsnType vtype, bool readOnly =true)
 		: _varname(varname), _vtype(vtype), _readonly(readOnly), _vaddr(vaddr)
 	{}
+
 public:
 	SNMPObject(const std::string& varname, int32& vInt32, bool readOnly =true)
 		: _varname(varname), _vtype(AsnType_Int32), _readonly(readOnly), _vaddr(&vInt32)
@@ -567,6 +575,66 @@ private:
 };
 
 // -----------------------------
+// class SNMPObjectByStaticAPI
+// -----------------------------
+// object to access value via API invocation
+template <typename BaseT >
+class SNMPObjectByStaticAPI : public SNMPObject
+{
+public:
+	typedef BaseT (*MethodGet)();
+	typedef void (*MethodSet)(const BaseT&);
+
+	SNMPObjectByStaticAPI(const std::string& varname, AsnType vtype, MethodGet methodGet, MethodSet methodSet=NULL)
+		: SNMPObject(varname, NULL, vtype, methodSet?false:true), 
+		_methodGet(methodGet), _methodSet(methodSet)
+	{
+	}
+
+	virtual ~SNMPObjectByStaticAPI() {}
+
+	virtual SNMPError write(const SNMPVariable& value)
+	{
+		if (NULL == _methodSet)
+			return se_ReadOnly;
+
+		if (value.type() != this->_vtype)
+			return se_BadValue;
+		
+		MemRange mr = value.getValueByMemRange();
+		if (NULL == mr.first || mr.second <=0)
+			return se_BadValue;
+
+		BaseT vv;
+		setDataMemRange(vv, mr);
+		(_methodSet)(vv);
+		return se_NoError;
+	}
+
+	virtual SNMPError read(SNMPVariable& value, Oid::I_t field =vf_Value) const
+	{
+		if (vf_Value != field)
+			return SNMPObject::read(value, field);
+
+		if (NULL == _methodGet)
+			return se_BadValue;
+
+//do NOT validate here
+//      if (value.type() != this->_vtype)
+//			return se_BadValue;
+
+		BaseT vv = (*_methodGet)();
+		MemRange mr = getDataMemRange(vv);
+		value.setValueByMemRange(_vtype, mr);
+		return se_NoError;
+	}
+
+private:
+	MethodGet _methodGet;
+	MethodSet _methodSet;
+};
+
+// -----------------------------
 // class SNMPObjectDupValue
 // -----------------------------
 // object by duplicate the value instead of accessing memory or invoking API
@@ -622,8 +690,8 @@ public:
 	// used for the index converted from MIB file
 	typedef struct _MIBE
 	{
-		char* strSubOid;
-		char* varname;
+		const char* strSubOid;
+		const char* varname;
 		// Oid::I_t subOid;
 	} MIBE;
 
@@ -789,6 +857,14 @@ protected:
 	ZQ::common::Mutex _awaitLock;
 
 	void OnQueryResult(const ZQ::common::InetHostAddress& serverAddr, int serverPort, BaseAgent::Msgheader header, const SNMPVariable::List& vlist);
+	std::string getJSON(const char* serviceType, uint moduleId, const char* varname)
+	{
+		// step 1. search MIB for var oid by serviceType, moduleId and varname
+		// step 2. call sendQuery(pdu=ZQSNMP_PDU_GETJSON) to issue a UDP message to the subAgent
+		// step 3. wait for response
+		std::string jsonstr; // should be the string body from query response
+		return jsonstr;
+	}
 	
 	//@ return cSeq
 	uint32 sendQuery(const ZQ::common::InetHostAddress& serverAddr, int serverPort, uint8 pdu, SNMPVariable::List& vlist, ZQ::common::Event::Ptr eventArrived=NULL);
@@ -820,57 +896,6 @@ protected:
 	bool nextModule(uint componentOid, uint& moduleOid) const;
 
 };
-/*
-// !!!!!!!!!!!!!!!!!!!   THIS CLASS SHOULD BE CLEANED !!!!!!!!!!!!!!!!!!!!
-// -----------------------------
-// class Subagent
-// -----------------------------
-// Subagent on the application/service-side that process the message communication with SnmpAgent
-//#pragma message ( __MSGLOC__ "TODO: should inherit from BaseAgent when the communication is replaced")
-class Subagent: public ZQ::common::NativeThread
-{
-public:
-
-	Subagent(ZQ::common::Log& log, ModuleMIB& mmib, timeout_t timeout)
-		: _log(log), _mmib(mmib), _timeout(timeout), _bQuit(false)
-	{}
-
-	virtual ~Subagent() { stop(); }
-
-	ModuleMIB& mmib() { return _mmib; }
-
-	void stop();
-
-protected: // impl of NativeThread
-	virtual int run();
-	virtual void final(void);
-
-public:
-	bool refreshBasePort(void); // TODO be removed
-
-	typedef struct _Msgheader // TODO should be gotten rid of
-	{
-		unsigned long  _serviceSendSeq;
-		unsigned long  _agentRecvSeq;
-		unsigned long  _lastLossCount; //last time: _lastLossCount = _serviceSendSeq - _agentRecvSeq
-	} Msgheader;
-
-	virtual bool processMessage(const uint8* request, int len, std::string& responseMsg); // TODO be removed
-
-//pragma message ( __MSGLOC__ "TODO: should call BaseAgent's encode/decodeMessage()")
-	static bool decodeMessage(const uint8* request, int len, SNMPVariable::List& vlist, uint8& pduType, uint32& err);
-	static size_t encodeMessage(uint8* stream, size_t maxlen, uint8 pduType, uint32 err, SNMPVariable::List& vlist);
-
-private:
-	ZQ::common::Log& _log; // TODO be removed
-
-	ModuleMIB& _mmib;
-	uint32     _snmpUdpBasePort; // TODO be removed
-	uint32     _timeout; // TODO be removed
-	bool       _bQuit;
-};
-// !!!!!!!!!!!!!!!!!!!   THIS CLASS SHOULD BE CLEANED !!!!!!!!!!!!!!!!!!!!
-*/
 // -----------------------------
 // class SubAgent
 // -----------------------------

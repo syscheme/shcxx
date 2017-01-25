@@ -33,7 +33,7 @@ public:
 
 VarContainer vc;
 
-int test0()
+int SNMP_unitTest()
 {
 	FileLog log("SnmpTrace.log", Log::L_DEBUG);
 	// ZQ::SNMP::ModuleMIB::setComponentMIBIndices(gSvcMib_rtspProxy);
@@ -114,20 +114,20 @@ int test0()
 	vlist[0]->setOid(mmib.buildupOid(Oid(".4")));
 	mmib.writeVars(vlist);
 
-    uint64 var_uint64 = 64;
+    int64 var_int64 = 64;
     Oid oid5(".5");
-    mmib.addObject(new SNMPObject("testInt64", &var_uint64, AsnType_Int64, false), oid5);
+    mmib.addObject(new SNMPObject("testInt64", var_int64, false), oid5);
 
     std::string var_string = "string";
     Oid oid6(".6");
-    mmib.addObject(new SNMPObject("testString", &var_string, AsnType_String, true), oid6);
+    mmib.addObject(new SNMPObject("testString", var_string, true), oid6);
 
     char var_cstr7[200] = "cstringAAA";
     char var_cstr8[200] = "cstringBBB";
-    mmib.addObject(new SNMPObject("var_cstr7", var_cstr7, AsnType_CStr, false), Oid(".7"));
-    mmib.addObject(new SNMPObject("var_cstr8", var_cstr8, AsnType_CStr, false), Oid(".8"));
+    mmib.addObject(new SNMPObject("var_cstr7", var_cstr7, false), Oid(".7"));
+    mmib.addObject(new SNMPObject("var_cstr8", var_cstr8, false), Oid(".8"));
 
-	Subagent ag(log, mmib, 5000);
+	SubAgent ag(log, mmib, 5000);
 
 	vlist.clear();
 /*
@@ -144,11 +144,13 @@ int test0()
 	vlist[0]->setOid(mmib.buildupOid(Oid(".8")));
 	mmib.writeVars(vlist);
 
-	uint8 pdu = ZQSNMP_PDU_GET;
-	uint32 err = se_NoError;
-	size_t len = ag.encodeMessage(buf, sizeof(buf), pdu, err, vlist);
+	BaseAgent::Msgheader hdr;
+	memset(&hdr, 0, sizeof(hdr));
+	hdr.pdu = ZQSNMP_PDU_GET;
+	hdr.error = se_NoError;
+	size_t len = ag.encodeMessage(buf, sizeof(buf), hdr, vlist);
 	vlist.clear();
-	ag.decodeMessage(buf, len, vlist, pdu, err);
+	ag.decodeMessage(buf, len, hdr, vlist);
 	
 	ag.start();
     SYS::sleep(60*60*1000);
@@ -203,5 +205,5 @@ int testAgent()
 
 int main()
 {
-	return test0();
+	return testAgent();
 }
