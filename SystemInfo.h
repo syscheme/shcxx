@@ -67,7 +67,6 @@
 #include <string>
 #include <vector>
 
-
 namespace ZQ {
 namespace common {
 
@@ -152,7 +151,8 @@ struct ProcessState
 		processesRawData.swap(other.processesRawData);
 	}
 };
-}//processRawInfo 
+
+} // namespace processRawInfo 
 
 // -----------------------------
 // class SystemInfo
@@ -163,8 +163,10 @@ class SystemInfo
 public:
 	SystemInfo(ZQ::common::Log* log);
 	virtual ~SystemInfo();
+
 	void refreshSystemUsage();
 	bool refreshProcessInfo();
+
 	static uint32 getCpuCounts(ZQ::common::Log* log);
 	typedef struct _ProcessInfo
 	{
@@ -176,19 +178,21 @@ public:
 		uint32 virtualMemUse; //the virtual memory or the process use (KB)
 		uint32 handleCount;
 		uint32 threadCount;
-	}PROCESSINFO;
+	} PROCESSINFO;
+
 	typedef std::vector<PROCESSINFO> ProcessesInfo;
 	typedef struct _cpuInfo 
 	{
 		std::string cpuName;
 		uint32	    cpuClockMHZ;
-	}CPUINFO;
+	} CPUINFO;
+
 	typedef std::vector<CPUINFO> CPUInfo;
 	typedef struct _osInfo
 	{
 		std::string osType;
 		std::string osVersion;
-	}OSINFO;
+	} OSINFO;
 	
 public:	// exports all the members
 	std::string _hostName;
@@ -197,21 +201,27 @@ public:	// exports all the members
 	CPUInfo _cpu;
 	std::string _cpuArchitecture;
 	uint32		_cpuCount;// _cpuClockMHz;
-	OSINFO _os;  // http://msdn.microsoft.com/en-us/library/windows/desktop/ms724834(v=vs.85).aspx
+	OSINFO      _os;  // http://msdn.microsoft.com/en-us/library/windows/desktop/ms724834(v=vs.85).aspx
 	uint32		_memTotalPhys, _memAvailPhys;
 	uint32		_memTotalVirtual, _memAvailVirtual;
 	ProcessesInfo _listProcessInfo;
+
 protected:
 	processRawInfo::ProcessState _processRawData1;
 	processRawInfo::ProcessState _processRawData2;
+
 private:
 	ZQ::common::Log *_pLog;
+
 protected:
 	void gatherStaticSystemInfo();
+	
 	//collect the performance processes data
 	bool collectPerfData();
+	
 	//get the process info from the raw data
 	bool getProcessData();
+
 #ifdef ZQ_OS_MSWIN
 protected:
 //gather the raw process data through the performance data
@@ -223,12 +233,10 @@ protected:
 	bool readProcCpuTime(const char* dirName,processRawInfo::RawData& processRawData);
 	bool readCpuTime(uint64& sysCpuTime);
 #endif
-
 };
 
-
 //------------------------------
-//class DeviceInfo
+// class DeviceInfo
 //------------------------------
 #ifdef ZQ_OS_MSWIN
 #define  MAX_IDE_DRIVES  4
@@ -264,6 +272,7 @@ public:
 		BYTE  bReserved[2];  //  Reserved for future expansion.
 		DWORD  dwReserved[2];  //  Reserved for future expansion.
 	} DRIVERSTATUS, *PDRIVERSTATUS, *LPDRIVERSTATUS;
+
 	typedef struct _SENDCMDOUTPARAMS
 	{
 		DWORD         cBufferSize;   //  Size of bBuffer in bytes
@@ -283,6 +292,7 @@ public:
 		BYTE bCommandReg;        // Actual IDE command.
 		BYTE bReserved;          // reserved for future use.  Must be zero.
 	} IDEREGS, *PIDEREGS, *LPIDEREGS;
+
 	typedef struct _GETVERSIONOUTPARAMS
 	{
 		BYTE bVersion;      // Binary driver version.
@@ -292,6 +302,7 @@ public:
 		DWORD fCapabilities; // Bit mask of driver capabilities.
 		DWORD dwReserved[4]; // For future use.
 	} GETVERSIONOUTPARAMS, *PGETVERSIONOUTPARAMS, *LPGETVERSIONOUTPARAMS;
+
 	typedef struct _SENDCMDINPARAMS
 	{
 		DWORD     cBufferSize;   //  Buffer size in bytes
@@ -302,6 +313,7 @@ public:
 		DWORD     dwReserved[4]; //  For future use.
 		BYTE      bBuffer[1];    //  Input buffer.
 	} SENDCMDINPARAMS, *PSENDCMDINPARAMS, *LPSENDCMDINPARAMS;
+
 	typedef struct _SRB_IO_CONTROL
 	{
 		ULONG HeaderLength;
@@ -311,6 +323,7 @@ public:
 		ULONG ReturnCode;
 		ULONG Length;
 	} SRB_IO_CONTROL, *PSRB_IO_CONTROL;
+
 	typedef struct _IDSECTOR
 	{
 		USHORT  wGenConfig;
@@ -344,13 +357,15 @@ public:
 		USHORT  wMultiWordDMA;
 		BYTE    bReserved[128];
 	} IDSECTOR, *PIDSECTOR;
+
 #endif
 	typedef struct _diskInfo
 	{
 		std::string  diskModel; //the model of the disk
 		std::string diskSeque; //the sequence num of the disk
 	//	int diskSize;  //the total size of the disk (G)  
-	}DISKINFO;
+	} DISKINFO;
+
 	typedef std::vector<DISKINFO> DiskInfo;
 	typedef struct _netCard
 	{
@@ -358,14 +373,16 @@ public:
 		std::string macAddress;
 		std::string cardDescription;
 		std::vector<std::string> IPs;
-	}NETCARD;
+	} NETCARD;
 	typedef std::vector<NETCARD> NetCard;
+
 public:
 	DeviceInfo(ZQ::common::Log* log);
 	~DeviceInfo();
 
 	void gatherDiskInfo();
 	void gatherNetAdapterInfo();
+
 private:
 #ifdef ZQ_OS_MSWIN
 	void  ReadPhysicalDriveInNT(void);
@@ -376,14 +393,15 @@ private:
 #else
 	bool getdiskInfo(const std::string& path);
 #endif
+
 public:
 	DiskInfo _disk;
 	NetCard _netInterfaceCard;
+
 private:
 	ZQ::common::Log *_pLog;
-
-
 };
+
 }} // namespace
 
 #endif // __ZQ_Common_SystemInfo_H__
