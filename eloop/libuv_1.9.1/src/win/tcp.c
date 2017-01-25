@@ -1471,6 +1471,16 @@ int uv_tcp_open(uv_tcp_t* handle, uv_os_sock_t sock) {
   return 0;
 }
 
+int uv_tcp_connected_open(uv_tcp_t* handle, uv_os_sock_t sock)
+{
+	int r = uv_tcp_open(handle,sock);
+	if (r != 0)
+		return r;
+	uv_connection_init((uv_stream_t*)handle);
+	/* AcceptEx() implicitly binds the accepted socket. */
+	handle->flags |= UV_HANDLE_BOUND | UV_HANDLE_READABLE | UV_HANDLE_WRITABLE;
+	return 0;
+}
 
 /* This function is an egress point, i.e. it returns libuv errors rather than
  * system errors.

@@ -123,3 +123,6 @@ static long my_0_InterlockedOr(long volatile* target) {
 }
 在async.c和tty.c两个文件中需要用到
 
+7.编译Linux版本库的时候需要修改libuv.target.mk，否则编译eloop库时会提示could not read symbols: Bad value
+
+Release版本在CFLAGS_Release变量中添加-shared和-fPIC
