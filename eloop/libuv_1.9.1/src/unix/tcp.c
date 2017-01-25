@@ -202,6 +202,11 @@ int uv_tcp_open(uv_tcp_t* handle, uv_os_sock_t sock) {
                          UV_STREAM_READABLE | UV_STREAM_WRITABLE);
 }
 
+int uv_tcp_connected_open(uv_tcp_t* handle,uv_os_sock_t sock)
+{
+	return uv_tcp_open(handle,sock);
+	
+}
 
 int uv_tcp_getsockname(const uv_tcp_t* handle,
                        struct sockaddr* name,
