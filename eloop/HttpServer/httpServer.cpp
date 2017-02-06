@@ -36,10 +36,11 @@ int HttpProcessor::send(const char* buf,size_t len)
 void HttpProcessor::OnRead(ssize_t nread, const char *buf)
 {
 	if (nread < 0) {
-		fprintf(stderr, "Read error %s\n",  Error(nread).err_name());
+		fprintf(stderr, "OnRead() error %s\n",  errName(nread));
 		onHttpError(ERR_RECVFAIL);
 		return;
 	}
+
 	std::string str = buf;
 	printf("recv data:%s,len = %d,size = %d\n", buf,nread,str.size());
 
@@ -67,7 +68,7 @@ void HttpProcessor::OnWrote(ElpeError status)
 	mSendCount--;
 	if (status != elpeSuccess)
 	{
-		fprintf(stderr, "send error %s\n",  Error(status).str()); 
+		fprintf(stderr, "send error %s\n",  errDesc(status)); 
 		onHttpError(ERR_SENDFAIL);
 		return;
 	}
@@ -276,10 +277,11 @@ void HttpServer::stop( )
 	close();
 }
 
-void HttpServer::OnConnection_cb(ElpeError status)
+void HttpServer::doAccept(ElpeError status)
 {
-	if (status != ElpeError::elpeSuccess) {
-		fprintf(stderr, "New connection error %s\n", Error(status).str());
+	if (status != ElpeError::elpeSuccess)
+	{
+		fprintf(stderr, "doAccept()error %s\n", errDesc(status));
 		return;
 	}
 

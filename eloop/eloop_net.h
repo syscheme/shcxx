@@ -63,11 +63,19 @@ public:
 	int is_writeable();
 
 protected:
+	// called when the stream is shutdown
 	virtual void OnShutdown(ElpeError status) {}
-	virtual void OnConnection_cb(ElpeError status) {}
+
+	// tiggered when a new incomming connection is detected by listen()
+	virtual void doAccept(ElpeError status) {}
+	
+	// called after buffer has been written into the stream
 	virtual void OnWrote(ElpeError status) {}
+	// called after buffer has been read from the stream
 	virtual void OnRead(ssize_t nread, const char *buf) {} // TODO: uv_buf_t is unacceptable to appear here, must take a new manner known in this C++ wrapper level
-//	virtual void OnAllocate(size_t suggested_size, uv_buf_t *buf) {}
+
+	virtual void* doAllocate(size_t suggested_size)	{ return malloc(suggested_size); }
+	virtual void doFree(void* buf) { free(buf); }
 
 private:
 	static void _cbShutdown(uv_shutdown_t *req, int status);

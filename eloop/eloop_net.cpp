@@ -92,15 +92,23 @@ namespace ZQ {
 
 			Stream* self = static_cast<Stream *>(stream->data);
 			if (self != NULL) {
-				self->OnConnection_cb((ElpeError)status);
+				self->doAccept((ElpeError)status);
 			}
 		}
 
-		void Stream::_cbAlloc(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
+		void Stream::_cbAlloc(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf)
+		{
+			buf->base = NULL;
+			buf->len = 0;
+			Stream* self = static_cast<Stream *>(handle->data);
+			if (self != NULL)
+				buf->base = (char*) self->doAllocate(suggested_size);
 
-			buf->base = (char*)malloc(suggested_size);
-			buf->len = suggested_size;
-			memset(buf->base,0,buf->len);
+			if (buf->base)
+			{
+				buf->len = suggested_size;
+				memset(buf->base,0,buf->len);
+			}
 		}
 
 		void Stream::_cbRead(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
@@ -114,7 +122,7 @@ namespace ZQ {
 					return;
 				}*/
 				self->OnRead(nread, buf->base);
-				free(buf->base);
+				self->doFree((void*)buf->base);
 			}
 		}
 

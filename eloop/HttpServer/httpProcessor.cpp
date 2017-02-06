@@ -36,7 +36,7 @@ int HttpProcessor::send(const char* buf,size_t len)
 void HttpProcessor::OnRead(ssize_t nread, const char *buf)
 {
 	if (nread < 0) {
-		fprintf(stderr, "Read error %s\n",  Error(nread).err_name());
+		fprintf(stderr, "Read error %s\n",  errName((ZQ::eloop::Handle::ElpeError)nread));
 		onHttpError(ERR_RECVFAIL);
 		return;
 	}
@@ -67,7 +67,7 @@ void HttpProcessor::OnWrote(ElpeError status)
 	mSendCount--;
 	if (status != elpeSuccess)
 	{
-		fprintf(stderr, "send error %s\n",  Error(status).str()); 
+		fprintf(stderr, "send error %s\n",  errDesc(status)); 
 		onHttpError(ERR_SENDFAIL);
 		return;
 	}

@@ -8,7 +8,7 @@ public:
 	pipeServer(){}
 	~pipeServer(){}
 
-	virtual void OnConnection_cb(ElpeError status)
+	virtual void doAccept(ElpeError status)
 	{
 		if (status != ElpeError::elpeSuccess) {
 			fprintf(stderr, "New connection error %s\n", Error(status).str());

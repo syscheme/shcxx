@@ -2,10 +2,10 @@
 
 
 
-void tcpServer::OnConnection_cb(ElpeError status)
+void tcpServer::doAccept(Handle::ElpeError status)
 {
 	if (status != ElpeError::elpeSuccess) {
-		fprintf(stderr, "New connection error %s\n", Error(status).str());
+		fprintf(stderr, "New connection error %s\n", Handle::errDesc(status));
 		return;
 	}
 
@@ -27,7 +27,6 @@ void tcpServer::OnConnection_cb(ElpeError status)
 	}
 
 }
-
 
 void tcpServer::OnRead(ssize_t nread, const char *buf)
 {

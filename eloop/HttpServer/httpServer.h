@@ -11,7 +11,7 @@ using namespace ZQ::eloop;
 // ---------------------------------------
 // class HttpProcessor
 // ---------------------------------------
-class HttpProcessor:public TCP,public ParserCallback
+class HttpProcessor: public TCP, public ParserCallback
 {
 public:
 	virtual ~HttpProcessor();
@@ -178,7 +178,7 @@ public:
 	HttpMessage::Ptr makeSimpleResponse( int code ) const;
 
 protected:
-	virtual void OnConnection_cb(ElpeError status);
+	virtual void doAccept(ElpeError status);
 
 private:
 	struct UrlRule {

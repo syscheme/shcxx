@@ -73,7 +73,7 @@ class Handle
 public:
 	typedef uv_os_fd_t fd_t;
 
-	typedef enum _Error
+	typedef enum _ElpeError
 	{
 		elpeSuccess = 0,
 		elpeNotPermitted = EPERM,	   // operation not permitted
@@ -113,7 +113,8 @@ public:
 		elpeDirNotEmpty = ENOTEMPTY		//directory not empty
 	} ElpeError;
 
-	const char* errDesc(ElpeError e) { return uv_strerror(e); }
+	static const char* errDesc(ElpeError err)  { return uv_strerror(err); }
+	static const char* errName(ElpeError err) { return uv_err_name(err); }
 
 protected:
 	Handle();
@@ -280,43 +281,6 @@ protected:
 
 private:
 	static void _cbSignal(uv_signal_t *signal, int signum);
-};
-
-
-class Exception: public std::runtime_error
-{
-public:
-	Exception(const std::string& message):
-	  std::runtime_error(message)
-	  {}
-};
-
-class Error
-{
-public:
-	explicit Error(int c):
-	  _error(c)
-	  {
-	  }
-
-public:
-	operator bool() const
-	{
-		return _error != 0;
-	}
-
-	const char* str() const
-	{
-		return uv_strerror(_error);
-	}
-
-	const char* err_name() const
-	{
-		return uv_err_name(_error);
-	}
-
-private:
-	int _error;
 };
 
 } } // namespace ZQ::eloop

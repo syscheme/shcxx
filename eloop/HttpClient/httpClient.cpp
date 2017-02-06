@@ -16,7 +16,7 @@ HttpClient::~HttpClient()
 void HttpClient::OnConnected(ElpeError status)
 {
 	if (status != ElpeError::elpeSuccess) {
-		fprintf(stderr, "on_connect error %s\n", Error(status).str());
+		fprintf(stderr, "on_connect error %s\n", errDesc(status));
 		return;
 	}
 	read_start();

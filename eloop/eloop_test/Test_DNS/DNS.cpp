@@ -11,7 +11,7 @@ public:
 	{
 		if (status != 0) 
 		{
-			fprintf(stderr, "getAddrInfo error %s\n",Error(status).str());
+			fprintf(stderr, "getAddrInfo error %s\n", Handle::errDesc(status));
 			return;
 		}
 		printf("ip:%s\n",ip);
