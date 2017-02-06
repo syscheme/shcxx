@@ -226,10 +226,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\httpParser.h"
-				>
-			</File>
-			<File
 				RelativePath=".\httpServer.h"
 				>
 			</File>

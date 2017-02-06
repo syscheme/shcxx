@@ -2,7 +2,7 @@
 #include <urlstr.h>
 
 HttpClient::HttpClient()
-	:HttpProcessor(true),
+	:HttpConnection(true),
 	mSendMsg(NULL)
 {
 

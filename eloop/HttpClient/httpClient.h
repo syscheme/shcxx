@@ -4,7 +4,7 @@
 #include "httpMessage.h"
 #include "httpProcessor.h"
 
-class HttpClient : public HttpProcessor {
+class HttpClient : public HttpConnection {
 public:
 	HttpClient();
 	virtual void OnConnected(ElpeError status);

@@ -1,7 +1,8 @@
 #include "httpParser.h"
 #include <assert.h>
 
-const char* ErrorCodeToStr( ErrorCode c ) {
+static const char* ErrorCodeToStr( ErrorCode c ) 
+{
 	switch( c ) {
 		case ERR_ERROR:		return "Generic Error";
 		case ERR_EOF:		return "EOF";

@@ -2,9 +2,9 @@
 
 
 // ---------------------------------------
-// class HttpProcessor
+// class HttpConnection
 // ---------------------------------------
-HttpProcessor::HttpProcessor(bool clientSide)
+HttpConnection::HttpConnection(bool clientSide)
 		:mParseType(clientSide?HTTP_RESPONSE:HTTP_REQUEST),
 		mHttpParser(mParseType),
 		mbOutgoingKeepAlive(true),
@@ -17,23 +17,26 @@ HttpProcessor::HttpProcessor(bool clientSide)
 }
 
 
-HttpProcessor::~HttpProcessor() {
+HttpConnection::~HttpConnection()
+{
 }
 
-void HttpProcessor::reset(ParserCallback* p ) {
+void HttpConnection::reset(ParserCallback* p )
+{
 	if(!p)
 		p = dynamic_cast<ParserCallback*>(this);
+
 	mHttpParser.reset(p);
 }
 
-int HttpProcessor::send(const char* buf,size_t len)
+int HttpConnection::send(const char* buf,size_t len)
 {
 	mSendCount++;
 	return write(buf,len);
 }
 
 
-void HttpProcessor::OnRead(ssize_t nread, const char *buf)
+void HttpConnection::OnRead(ssize_t nread, const char *buf)
 {
 	if (nread < 0) {
 		fprintf(stderr, "Read error %s\n",  errName((ZQ::eloop::Handle::ElpeError)nread));
@@ -61,7 +64,7 @@ void HttpProcessor::OnRead(ssize_t nread, const char *buf)
 	onHttpDataReceived(nread);	
 }
 
-void HttpProcessor::OnWrote(ElpeError status)
+void HttpConnection::OnWrote(ElpeError status)
 {
 //	mbSending = false;
 	mSendCount--;

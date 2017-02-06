@@ -114,7 +114,8 @@ public:
 	} ElpeError;
 
 	static const char* errDesc(ElpeError err)  { return uv_strerror(err); }
-	static const char* errName(ElpeError err) { return uv_err_name(err); }
+	static const char* errName(ElpeError err) { return errName((int) err); }
+	static const char* errName(int errNum)    { return uv_err_name(errNum); }
 
 protected:
 	Handle();

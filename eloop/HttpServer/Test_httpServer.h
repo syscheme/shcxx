@@ -8,13 +8,13 @@
 // ---------------------------------------
 // class TestHttpHandleFactory
 // ---------------------------------------
-class TestHttpHandleFactory:public IHttpHandlerFactory
+class TestHttpHandleFactory: public HttpApplication
 {
 public:
 	TestHttpHandleFactory();
 	~TestHttpHandleFactory();
 
-	virtual IHttpHandler::Ptr create( HttpProcessor* processor );
+	virtual IHttpHandler::Ptr create( HttpConnection* processor );
 
 };
 
@@ -26,9 +26,8 @@ public:
 class TestHttpHandle : public IHttpHandler
 {
 public:
-	TestHttpHandle(HttpProcessor* processor);
+	TestHttpHandle(HttpConnection* processor);
 	~TestHttpHandle();
-
 
 	void Response();
 	void ResponseIndex();
@@ -45,7 +44,7 @@ public:
 	virtual void 	onWritable();
 
 private:
-	HttpProcessor* m_http;
+	HttpConnection* m_http;
 };
 
 

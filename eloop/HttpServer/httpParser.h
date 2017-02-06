@@ -1,11 +1,10 @@
+// TODO: merge into HTTP_MESSAGE_h
 #ifndef __HTTP_PARSER_h__
 #define __HTTP_PARSER_h__
 
 #include "httpMessage.h"
 #include <string>
 #include "http_parser.h"
-
-
 
 typedef enum _ErrorCode
 {
@@ -38,9 +37,10 @@ const char* ErrorCodeToStr( ErrorCode c );
 /*
 * Inhereit ParserCallback so that you can get the result of http message parsing
 */
-class ParserCallback{
+class ParserCallback
+{
 public:
-	virtual ~ParserCallback(){}
+	virtual ~ParserCallback() {}
 
 	/// this method is invoked when http header is completely parsed
 	/// You can get uri, method or code, header field and header value in HttpMessage

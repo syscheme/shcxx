@@ -9,19 +9,19 @@ using namespace ZQ::eloop;
 
 
 // ---------------------------------------
-// class HttpProcessor
+// class HttpConnection
 // ---------------------------------------
-class HttpProcessor:public TCP,public ParserCallback
+class HttpConnection: public TCP, public ParserCallback
 {
 public:
-	virtual ~HttpProcessor();
+	virtual ~HttpConnection();
 
 	int send(const char* buf,size_t len);
 	void setkeepAlive(bool alive){mbOutgoingKeepAlive = alive;}
 	bool getkeepAlive(){ return mbOutgoingKeepAlive;}
 
 protected:
-	HttpProcessor( bool clientSide );
+	HttpConnection( bool clientSide );
 	void			reset( ParserCallback* callback = NULL );
 	int getSendCount(){return mSendCount;}
 	
@@ -30,8 +30,8 @@ protected:
 	virtual void OnWrote(ElpeError status);
 
 private:
-	HttpProcessor( const HttpProcessor&);
-	HttpProcessor& operator=( const HttpProcessor&);
+	HttpConnection( const HttpConnection&);
+	HttpConnection& operator=( const HttpConnection&);
 
 protected:
 

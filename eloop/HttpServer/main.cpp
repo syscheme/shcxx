@@ -49,14 +49,14 @@ int main(int argc,char* argv[])
 	}
 
 
-	IHttpHandlerFactory::Ptr Test = new TestHttpHandleFactory();
+	HttpApplication::Ptr Test = new TestHttpHandleFactory();
 
 
 	HttpServer::HttpServerConfig conf;
 	HttpServer server(conf,*pLog);
 
-	server.addRule("/",Test);
-	server.addRule("/index.html",Test);
+	server.registerApp("/",Test);
+	server.registerApp("/index.html",Test);
 
 
 	server.init(loop);

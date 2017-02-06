@@ -1,9 +1,6 @@
 #ifndef __HTTP_MESSAGE_h__
 #define __HTTP_MESSAGE_h__
 
-
-
-
 #include <Locks.h>
 #include <sstream>
 #include <string>
@@ -13,11 +10,11 @@
 #include "eloop_lock.h"
 
 
-
 struct HttpCode2Str {
 	int 			code;
 	const char*		status;
 };
+
 static struct HttpCode2Str httpc2s[] = {
 	{100,"Continue"},
 	{101,"Switching Protocols"},
@@ -74,11 +71,8 @@ public:
 	}
 };
 
-
-
 static const char* httpDateStrWeekDay[] = {"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
 static const char* httpDateStrMonth[] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
-
 
 
 // ---------------------------------------
@@ -160,7 +154,6 @@ public:
 
 private:
 	friend class HttpParser;
-
 
 	http_parser_type	mType;//request or response
 	http_method			mMethod;

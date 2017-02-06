@@ -7,33 +7,36 @@
 #include <set>
 using namespace ZQ::eloop;
 
+class HttpServer;
 
 // ---------------------------------------
-// class HttpProcessor
+// class HttpConnection
 // ---------------------------------------
-class HttpProcessor: public TCP, public ParserCallback
+// present an accepted incomming connection
+class HttpConnection: public TCP, public ParserCallback
 {
 public:
-	virtual ~HttpProcessor();
+	virtual ~HttpConnection();
 
 	int send(const char* buf,size_t len);
 	void setkeepAlive(bool alive){mbOutgoingKeepAlive = alive;}
 
 protected:
-	HttpProcessor( bool clientSide );
+	HttpConnection(bool clientSide);
 	void			reset( ParserCallback* callback = NULL );
-	int getSendCount(){return mSendCount;}
+	int getSendCount() {return mSendCount;}
 	
 //	int 			sendChunk( BufferHelper& bh);
 	virtual void OnRead(ssize_t nread, const char *buf);
 	virtual void OnWrote(ElpeError status);
 
 private:
-	HttpProcessor( const HttpProcessor&);
-	HttpProcessor& operator=( const HttpProcessor&);
+	HttpConnection( const HttpConnection&);
+	HttpConnection& operator=( const HttpConnection&);
 
 protected:
 
+	/// error occured during data receiving or parsing stage
 	virtual void onHttpError(int err) {}
 
 	// onReqMsgSent is only used to notify that the sending buffer is free and not held by HttpClient any mre
@@ -73,58 +76,53 @@ public:
 };
 
 // ---------------------------------------
-// interface IHttpHandlerFactory
+// class HttpApplication
 // ---------------------------------------
-class IHttpHandlerFactory:public ZQ::common::SharedObject {
+// present an HTTP application that respond a URI mount
+// the major funcation of the application is to instantiaze a IHttpHandler
+class HttpApplication : public ZQ::common::SharedObject
+{
 public:
-	typedef ZQ::common::Pointer<IHttpHandlerFactory> Ptr;
-	virtual ~IHttpHandlerFactory() {}
+	typedef ZQ::common::Pointer<HttpApplication> Ptr;
+	virtual ~HttpApplication() {}
 	// NOTE: this method may be accessed by multi threads concurrently
-	virtual IHttpHandler::Ptr create( HttpProcessor* processor ) = 0;		
+	virtual IHttpHandler::Ptr create( HttpConnection* processor ) { return NULL; }		
 };
 
 // ---------------------------------------
-// class HttpServant
+// class HttpPassiveConn
 // ---------------------------------------
-class HttpServer;
-class HttpServant:public HttpProcessor
+class HttpPassiveConn : public HttpConnection
 {
 public:
-	HttpServant(HttpServer* server,ZQ::common::Log& logger);
-	~HttpServant();
+	HttpPassiveConn(HttpServer* server,ZQ::common::Log& logger);
+	~HttpPassiveConn();
 
 	bool			start();
 	void			clear();
 	const std::string& hint() const { return mHint; }
 
-private:
+protected:
 
+	// implementation of HttpConnection
 	virtual void	onHttpError( int err );
-
 	virtual void    onWritable();
-
 	virtual void	onHttpDataSent( bool keepAlive );
-
 	virtual void	onHttpDataReceived( size_t size );
-
 	virtual bool	onHttpMessage( const HttpMessage::Ptr msg);
-
 	virtual bool	onHttpBody( const char* data, size_t size);
-
 	virtual void	onHttpComplete();
 
+	// implementation of TCP
 	virtual void	onSocketConnected();
-
-
 
 private:
 	// NOTE: DO NOT INVOKE THIS METHOD unless you known what you are doing
 	void 			errorResponse( int code );
 	void initHint();
 
-
 private:
-	HttpServer*					m_server;
+	HttpServer*					_server;
 	IHttpHandler::Ptr			mHandler;
 	int64						mLastTouch;
 	
@@ -135,25 +133,23 @@ private:
 	std::string					mHint;
 };
 
-
-
-
 // ---------------------------------------
 // class HttpServer
 // ---------------------------------------
 class HttpServer:public TCP
 {
 public:
-	struct HttpServerConfig {
+	struct HttpServerConfig
+	{
 		HttpServerConfig() {
-			defaultServerName		= "LibAsYnc HtTp SeRVer";
+			serverName		= "LibAsYnc HtTp SeRVer";
 			httpHeaderAvailbleTimeout = 5* 60 * 1000;
 			keepAliveIdleMin		= 5 * 60 * 1000;
 			keepAliveIdleMax		= 10 * 60 *1000;
 			maxConns 				= 100 * 1000;
 		}
 
-		std::string defaultServerName;
+		std::string serverName;
 		uint64		httpHeaderAvailbleTimeout;
 		uint64		keepAliveIdleMin;
 		uint64		keepAliveIdleMax;
@@ -168,12 +164,14 @@ public:
 
 	void stop( );
 
-	bool addRule( const std::string& rule, IHttpHandlerFactory::Ptr factory );
+	// register an application to uri
+	//@param uriEx - the regular expression of uri
+	bool registerApp( const std::string& uriEx, HttpApplication::Ptr app);
 
-	IHttpHandler::Ptr getHandler( const std::string& uri, HttpProcessor* conn);
+	IHttpHandler::Ptr getHandler( const std::string& uri, HttpConnection* conn);
 
-	void	addServant( HttpServant* servant );
-	void	removeServant( HttpServant* servant );
+	void	addConn( HttpPassiveConn* servant );
+	void	delConn( HttpPassiveConn* servant );
 
 	HttpMessage::Ptr makeSimpleResponse( int code ) const;
 
@@ -181,14 +179,16 @@ protected:
 	virtual void doAccept(ElpeError status);
 
 private:
-	struct UrlRule {
-		std::string					rule;
+	typedef struct _UriMount
+	{
+		std::string					uriEx;
 		boost::regex				re;
-		IHttpHandlerFactory::Ptr	factory;	
-	};
-	std::vector<UrlRule>	mUrlRules;
+		HttpApplication::Ptr	app;	
+	} UriMount;
+
+	std::vector<UriMount>	_uriMounts;
 	HttpServerConfig		mConfig;
-	std::set<HttpServant*> mServants;
+	std::set<HttpPassiveConn*> mServants;
 	ZQ::common::Mutex		mLocker;
 	ZQ::common::Log&		mLogger;
 };

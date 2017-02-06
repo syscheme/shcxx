@@ -13,7 +13,7 @@ TestHttpHandleFactory::~TestHttpHandleFactory()
 
 }
 
-IHttpHandler::Ptr TestHttpHandleFactory::create( HttpProcessor* processor )
+IHttpHandler::Ptr TestHttpHandleFactory::create( HttpConnection* processor )
 {
 	IHttpHandler::Ptr handler = new TestHttpHandle(processor);
 	return handler;
@@ -26,7 +26,7 @@ IHttpHandler::Ptr TestHttpHandleFactory::create( HttpProcessor* processor )
 // ---------------------------------------
 // class TestHttpHandle
 // ---------------------------------------
-TestHttpHandle::TestHttpHandle(HttpProcessor* processor):m_http(processor)
+TestHttpHandle::TestHttpHandle(HttpConnection* processor):m_http(processor)
 {
 
 }

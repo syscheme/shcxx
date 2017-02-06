@@ -2,9 +2,9 @@
 
 
 // ---------------------------------------
-// class HttpProcessor
+// class HttpConnection
 // ---------------------------------------
-HttpProcessor::HttpProcessor(bool clientSide)
+HttpConnection::HttpConnection(bool clientSide)
 		:mParseType(clientSide?HTTP_RESPONSE:HTTP_REQUEST),
 		mHttpParser(mParseType),
 		mbOutgoingKeepAlive(true),
@@ -17,26 +17,26 @@ HttpProcessor::HttpProcessor(bool clientSide)
 }
 
 
-HttpProcessor::~HttpProcessor() {
+HttpConnection::~HttpConnection() {
 }
 
-void HttpProcessor::reset(ParserCallback* p ) {
+void HttpConnection::reset(ParserCallback* p ) {
 	if(!p)
 		p = dynamic_cast<ParserCallback*>(this);
 	mHttpParser.reset(p);
 }
 
-int HttpProcessor::send(const char* buf,size_t len)
+int HttpConnection::send(const char* buf,size_t len)
 {
 	mSendCount++;
 	return write(buf,len);
 }
 
 
-void HttpProcessor::OnRead(ssize_t nread, const char *buf)
+void HttpConnection::OnRead(ssize_t nread, const char *buf)
 {
 	if (nread < 0) {
-		fprintf(stderr, "OnRead() error %s\n",  errName(nread));
+		fprintf(stderr, "OnRead() error %s\n",  errName((int)nread));
 		onHttpError(ERR_RECVFAIL);
 		return;
 	}
@@ -62,7 +62,7 @@ void HttpProcessor::OnRead(ssize_t nread, const char *buf)
 	onHttpDataReceived(nread);	
 }
 
-void HttpProcessor::OnWrote(ElpeError status)
+void HttpConnection::OnWrote(ElpeError status)
 {
 //	mbSending = false;
 	mSendCount--;
@@ -83,11 +83,11 @@ void HttpProcessor::OnWrote(ElpeError status)
 }
 
 // ---------------------------------------
-// class HttpServant
+// class HttpPassiveConn
 // ---------------------------------------
-HttpServant::HttpServant(HttpServer* server,ZQ::common::Log& logger)
-		:m_server(server),
-		HttpProcessor(false),
+HttpPassiveConn::HttpPassiveConn(HttpServer* server,ZQ::common::Log& logger)
+		:_server(server),
+		HttpConnection(false),
 		mbError(false),
 		mHandler(0),
 		mLastTouch(0),
@@ -96,21 +96,21 @@ HttpServant::HttpServant(HttpServer* server,ZQ::common::Log& logger)
 
 }
 
-HttpServant::~HttpServant()
+HttpPassiveConn::~HttpPassiveConn()
 {
 
 }
 
-bool HttpServant::start( )
+bool HttpPassiveConn::start( )
 {
 	read_start();
 	initHint();
-	mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServant,"%s start to receive data"),mHint.c_str());
-	m_server->addServant(this);
+	mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpPassiveConn,"%s start to receive data"),mHint.c_str());
+	_server->addConn(this);
 	return true;
 }
 
-void HttpServant::initHint() {
+void HttpPassiveConn::initHint() {
 	char ip[17] = {0};
 	int port = 0;
 	getpeerIpPort(ip,port);
@@ -119,29 +119,29 @@ void HttpServant::initHint() {
 	mHint = oss.str();
 }
 
-void HttpServant::clear( ) {
-	m_server->removeServant(this);
+void HttpPassiveConn::clear( ) {
+	_server->delConn(this);
 	close();
 	delete this;
 }
 
-void HttpServant::onSocketConnected() {
+void HttpPassiveConn::onSocketConnected() {
 	if(!start() ) {
-		mLogger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpServant,"%s failed to start receiving data"), mHint.c_str());
+		mLogger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpPassiveConn,"%s failed to start receiving data"), mHint.c_str());
 		return;
 	}
-	mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServant,"%s start to receive data"),mHint.c_str());
+	mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpPassiveConn,"%s start to receive data"),mHint.c_str());
 }
 
-void HttpServant::errorResponse( int code ) {
-	mLogger(ZQ::common::Log::L_DEBUG,CLOGFMT(HttpServant,"errorResponse, code %d"), code);
-	HttpMessage::Ptr msg = m_server->makeSimpleResponse(code);
+void HttpPassiveConn::errorResponse( int code ) {
+	mLogger(ZQ::common::Log::L_DEBUG,CLOGFMT(HttpPassiveConn,"errorResponse, code %d"), code);
+	HttpMessage::Ptr msg = _server->makeSimpleResponse(code);
 	mbError = true;
 	std::string response = msg->toRaw();
 	send(response.c_str(),response.length());
 }
 
-void HttpServant::onHttpError( int err ) {
+void HttpPassiveConn::onHttpError( int err ) {
 
 	char locip[17] = { 0 };
 	int  locport = 0;
@@ -151,7 +151,7 @@ void HttpServant::onHttpError( int err ) {
 	int  peerport = 0;
 	getlocaleIpPort(locip,peerport);
 
-	mLogger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServant, "onHttpError [%p] [%s:%d => %s:%d], error[%s]"), 
+	mLogger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn, "onHttpError [%p] [%s:%d => %s:%d], error[%s]"), 
 		this, locip, locport, peerip, peerport, ErrorCodeToStr((ErrorCode)err));
 	if(mHandler)
 		mHandler->onHttpError(err);
@@ -160,7 +160,7 @@ void HttpServant::onHttpError( int err ) {
 		clear();
 }
 
-void HttpServant::onWritable()
+void HttpPassiveConn::onWritable()
 {
 	if(!mHandler) {			
 		return;
@@ -169,7 +169,7 @@ void HttpServant::onWritable()
 	mHandler->onWritable();
 }
 
-void HttpServant::onHttpDataSent( bool keepAlive ) {
+void HttpPassiveConn::onHttpDataSent( bool keepAlive ) {
 
 	char locip[17] = { 0 };
 	int  locport = 0;
@@ -178,7 +178,7 @@ void HttpServant::onHttpDataSent( bool keepAlive ) {
 	char peerip[17] = { 0 };
 	int  peerport = 0;
 	getlocaleIpPort(locip,peerport);
-	mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServant, "onHttpDataSent [%p] [%s:%d==>%s:%d]."), this, locip, locport, peerip, peerport);
+	mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpPassiveConn, "onHttpDataSent [%p] [%s:%d==>%s:%d]."), this, locip, locport, peerip, peerport);
 
 	if(mHandler != NULL) {			
 		mHandler->onHttpDataSent(keepAlive);
@@ -190,7 +190,7 @@ void HttpServant::onHttpDataSent( bool keepAlive ) {
 }
 
 
-void HttpServant::onHttpDataReceived( size_t size ) {
+void HttpPassiveConn::onHttpDataReceived( size_t size ) {
 	// NOTE something here
 	if(mHandler) {
 		mHandler->onHttpDataReceived(size);
@@ -198,18 +198,18 @@ void HttpServant::onHttpDataReceived( size_t size ) {
 	//start();//this may fail because a receiving call has been fired		
 }
 
-bool HttpServant::onHttpMessage( const HttpMessage::Ptr msg) {
+bool HttpPassiveConn::onHttpMessage( const HttpMessage::Ptr msg) {
 	mHeaderComplete = true;
 	if( msg->versionMajor() != 1 && msg->versionMinor() != 1 ) {
-		mLogger(ZQ::common::Log::L_WARNING, CLOGFMT( HttpServant,"onHttpMessage, unsupport http version[%u/%u], reject"),
+		mLogger(ZQ::common::Log::L_WARNING, CLOGFMT( HttpPassiveConn,"onHttpMessage, unsupport http version[%u/%u], reject"),
 			msg->versionMajor(), msg->versionMinor());
 		errorResponse(505);
 		return false;
 	}
-	mHandler = m_server->getHandler( msg->url(), this);
+	mHandler = _server->getHandler( msg->url(), this);
 	if(!mHandler) {
 		//should make a 404 response
-		mLogger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServant,"onHttpMessage failed to find a suitable handle to process url: %s"),
+		mLogger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"onHttpMessage failed to find a suitable handle to process url: %s"),
 			msg->url().c_str() );
 		errorResponse(404);
 		//close();
@@ -217,7 +217,7 @@ bool HttpServant::onHttpMessage( const HttpMessage::Ptr msg) {
 		return false;
 	} else {
 		if(! mHandler->onHttpMessage(msg) ) {
-			mLogger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServant,"onHttpMessage, user code return false in onHttpMessage, may user code want to abort the procedure, url:%s"), msg->url().c_str());
+			mLogger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"onHttpMessage, user code return false in onHttpMessage, may user code want to abort the procedure, url:%s"), msg->url().c_str());
 			mHandler = NULL;
 			return false;
 		}
@@ -225,15 +225,15 @@ bool HttpServant::onHttpMessage( const HttpMessage::Ptr msg) {
 	}		
 }
 
-bool HttpServant::onHttpBody( const char* data, size_t size) {
+bool HttpPassiveConn::onHttpBody( const char* data, size_t size) {
 
 	if(!mHandler) {
-		mLogger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServant,"http body received, but no handler is ready"));
+		mLogger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"http body received, but no handler is ready"));
 		errorResponse(500);
 		return false;
 	}
 	if(!mHandler->onHttpBody(data, size) ) {
-		mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServant,"handler refuse to continue after onHttpBody"));
+		mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpPassiveConn,"handler refuse to continue after onHttpBody"));
 		errorResponse(500);
 		mHandler = NULL;
 		return false;
@@ -241,7 +241,7 @@ bool HttpServant::onHttpBody( const char* data, size_t size) {
 	return true;
 }
 
-void HttpServant::onHttpComplete() {
+void HttpPassiveConn::onHttpComplete() {
 	if(!mHandler)
 		return;
 	mHandler->onHttpComplete();
@@ -279,13 +279,13 @@ void HttpServer::stop( )
 
 void HttpServer::doAccept(ElpeError status)
 {
-	if (status != ElpeError::elpeSuccess)
+	if (status != elpeSuccess)
 	{
 		fprintf(stderr, "doAccept()error %s\n", errDesc(status));
 		return;
 	}
 
-	HttpServant* client = new HttpServant(this,mLogger);
+	HttpPassiveConn* client = new HttpPassiveConn(this,mLogger);
 	client->init(get_loop());
 
 	if (accept((Stream*)client) == 0) {
@@ -300,44 +300,45 @@ void HttpServer::doAccept(ElpeError status)
 
 }
 
-bool HttpServer::addRule( const std::string& ruleStr, IHttpHandlerFactory::Ptr factory ) {
-	UrlRule rule;		
+bool HttpServer::registerApp( const std::string& ruleStr, HttpApplication::Ptr app ) {
+	UriMount uriEx;		
 	try {
-		rule.re.assign(ruleStr);
+		uriEx.re.assign(ruleStr);
 	}
 	catch( const boost::regex_error& ) {
-		mLogger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer,"failed to add [%s] as url rule"), ruleStr.c_str());
+		mLogger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer,"failed to add [%s] as url uriEx"), ruleStr.c_str());
 		return false;
 	}
-	rule.rule = ruleStr;
-	rule.factory = factory;
-	mUrlRules.push_back(rule);
+	uriEx.uriEx = ruleStr;
+	uriEx.app = app;
+	_uriMounts.push_back(uriEx);
 	return true;
 }
 
-IHttpHandler::Ptr HttpServer::getHandler( const std::string& uri, HttpProcessor* conn)
+IHttpHandler::Ptr HttpServer::getHandler( const std::string& uri, HttpConnection* conn)
 {
-	IHttpHandlerFactory::Ptr factory = NULL;
-	std::vector<UrlRule>::const_iterator it = mUrlRules.begin();
-	for( ; it != mUrlRules.end(); it ++ ) {
+	HttpApplication::Ptr app = NULL;
+	std::vector<UriMount>::const_iterator it = _uriMounts.begin();
+	for( ; it != _uriMounts.end(); it ++ ) {
 		if(boost::regex_match(uri,it->re))  {
-			factory = it->factory;
+			app = it->app;
 			break;
 		}
 	}
-	if(!factory) {
+
+	if (!app)
 		return NULL;
-	}
-	return factory->create(conn );
+
+	return app->create(conn );
 }
 
-void HttpServer::addServant( HttpServant* servant )
+void HttpServer::addConn( HttpPassiveConn* servant )
 {
 	ZQ::common::MutexGuard gd(mLocker);
 	mServants.insert( servant );
 }
 
-void HttpServer::removeServant( HttpServant* servant )
+void HttpServer::delConn( HttpPassiveConn* servant )
 {
 	ZQ::common::MutexGuard gd(mLocker);
 	mServants.erase(servant);
@@ -348,7 +349,7 @@ HttpMessage::Ptr HttpServer::makeSimpleResponse( int code ) const {
 	HttpMessage::Ptr msg = new HttpMessage(HTTP_RESPONSE);
 	msg->code(code);
 	msg->status(HttpMessage::code2status(code));
-	msg->header("Server", mConfig.defaultServerName );
+	msg->header("Server", mConfig.serverName );
 	msg->header("Date",HttpMessage::httpdate());
 	return msg;
 }
