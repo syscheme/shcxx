@@ -15,7 +15,7 @@ udpServer::~udpServer()
 void udpServer::OnSent(ElpeError status)
 {
 	if (status != ElpeError::elpeSuccess) {
-		fprintf(stderr, "Send error %s\n", Error(status).str());
+		fprintf(stderr, "Send error %s\n", Handle::errDesc(status));
 		return;
 	}
 }

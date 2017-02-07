@@ -10,7 +10,7 @@ public:
 	MyFileEvent() {}
 	~MyFileEvent() {}
 
-	virtual void OnFileEvent(const char *filename, fs_event events, ElpeError status)
+	virtual void OnFileEvent(const char *filename, _Event events, ElpeError status)
 	{
 		if (status != Handle::elpeSuccess)
 		{
@@ -18,7 +18,7 @@ public:
 			return;
 		}
 
-		if(events == Change)
+		if(events == fseChanged)
 			printf("the file %s has changed!\n",filename);
 	}
 };
@@ -65,7 +65,7 @@ public:
 	{
 		printf("Timer test\n");
 		MyFile* file = static_cast<MyFile *>(this->data);
-		file->open("file.txt", File::FileFlags::CREAT_RDWR, File::FileMode::RD_WR);
+		file->open("file.txt", File::CREAT_RDWR, File::RD_WR);
 		close();
 	}
 };

@@ -5,7 +5,7 @@
 void tcpClient::OnRead(ssize_t nread, const char *buf)
 {
 	if (nread < 0) {
-		fprintf(stderr, "Read error %s\n",  Error(nread).err_name());
+		fprintf(stderr, "Read error %s\n",  Handle::errName(nread));
 		close();
 		return;
 	}
@@ -21,7 +21,7 @@ void tcpClient::OnRead(ssize_t nread, const char *buf)
 void tcpClient::OnConnected(ElpeError status)
 {
 	if (status != ElpeError::elpeSuccess) {
-		fprintf(stderr, "on_connect error %s\n", Error(status).str());
+		fprintf(stderr, "on_connect error %s\n", Handle::errDesc(status));
 		return;
 	}
 	read_start();

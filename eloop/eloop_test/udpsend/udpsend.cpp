@@ -21,7 +21,7 @@ int udpsend::NativeSend4(const char *buf, size_t length)
 void udpsend::OnSent(ElpeError status)
 {
 	if (status != ElpeError::elpeSuccess) {
-		fprintf(stderr, "Send error %s\n",Error(status).str());
+		fprintf(stderr, "Send error %s\n",Handle::errDesc(status));
 		FileHandle* file = static_cast<FileHandle *>(this->data);
 		file->close();
 		return;
