@@ -96,7 +96,7 @@ private:
 class File
 {
 public:
-	enum OpenFlags {
+	enum FileFlags {
 		RDONLY       = O_RDONLY,
 		WRONLY       = O_WRONLY,
 		RDWR         = O_RDWR,
@@ -116,7 +116,7 @@ public:
 	File(Loop& loop);
 	File();
 
-	//@param flags - flag combination of OpenFlags
+	//@param flags - flag combination of FileFlags
 	//@param mode  - flag combination of FileMode
 	int open(const char* filename, uint flags, uint mode);
 	int read(size_t len, int64_t offset);

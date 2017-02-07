@@ -151,6 +151,7 @@ namespace ZQ {
 		}
 
 		int TCP::init_ex(Loop &loop, int flags) {
+			this->Handle::init(loop);
 			uv_tcp_t* tcp = (uv_tcp_t *)context_ptr();
 			return uv_tcp_init_ex(loop.context_ptr(), tcp, flags);
 		}
@@ -158,6 +159,11 @@ namespace ZQ {
 		int TCP::open(sock_t sock) {
 			uv_tcp_t* tcp = (uv_tcp_t *)context_ptr();
 			return uv_tcp_open(tcp, sock);
+		}
+		int TCP::connected_open(sock_t sock)
+		{
+			uv_tcp_t* tcp = (uv_tcp_t *)context_ptr();
+			return uv_tcp_connected_open(tcp,sock);
 		}
 
 		int TCP::nodelay(int enable) {
@@ -279,6 +285,7 @@ namespace ZQ {
 		}
 
 		int UDP::init_ex(Loop &loop, unsigned int flags) {
+			this->Handle::init(loop);
 			uv_udp_t* udp = (uv_udp_t *)context_ptr();
 			return uv_udp_init_ex(loop.context_ptr(), udp, flags);
 		}

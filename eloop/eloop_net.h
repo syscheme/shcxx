@@ -99,6 +99,7 @@ public:
 	int init(Loop &loop);
 	int init_ex(Loop &loop, int flags);
 	int open(sock_t sock);
+	int connected_open(sock_t sock);
 	int nodelay(int enable);
 	int keepalive(int enable, unsigned int delay);
 	int simultaneous_accepts(int enable);
