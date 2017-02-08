@@ -4,6 +4,8 @@
 #include "httpClient.h"
 #include <NativeThread.h>
 
+namespace ZQ {
+namespace eloop {
 // ---------------------------------------
 // class DownloadClient
 // ---------------------------------------
@@ -61,8 +63,6 @@ private:
 	DownloadThread*		_Thread;
 };
 
-
-
 // ---------------------------------------
 // class DownloadThread
 // ---------------------------------------
@@ -88,5 +88,5 @@ private:
 	int					_SessionCount;
 	std::string&		_url;
 };
-
+} }//namespace ZQ::eloop
 #endif

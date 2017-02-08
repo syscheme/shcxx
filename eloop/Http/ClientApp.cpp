@@ -62,21 +62,21 @@ int main(int argc,char* argv[])
 
 	ZQ::common::Log* pLog = new ZQ::common::FileLog(logFilePath.c_str(),7, 5,10240000);
 
-	DownloadThread* download[100];
+	ZQ::eloop::DownloadThread* download[100];
 
 	printf("ThreadCount = %d,SessionCount = %d,SessionInterval = %d\n",ThreadCount,SessionCount,SessionInterval);
 	for(int i = 0;i< ThreadCount;i++)
 	{
-		download[i] = new DownloadThread(url,*pLog,i,SessionInterval,SessionCount);
+		download[i] = new ZQ::eloop::DownloadThread(url,*pLog,i,SessionInterval,SessionCount);
 		download[i]->start();
 		(*pLog)(ZQ::common::Log::L_DEBUG,CLOGFMT(main,"the %d thread threadid = %d"),i,download[i]->id());
 		//Sleep(400);
 		//(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"%d the %d thread connection is successful"),download[i]->getCount(),i);
 	}
 
-	Loop loop(false);
+	ZQ::eloop::Loop loop(false);
 
-	DownloadClient* client = new DownloadClient(*pLog);
+	ZQ::eloop::DownloadClient* client = new ZQ::eloop::DownloadClient(*pLog);
 	client->init(loop);
 
 	 
@@ -85,7 +85,7 @@ int main(int argc,char* argv[])
 	std::string downloadurl = url.substr(0,url.find_last_of("/"));
 	downloadurl = downloadurl + "/download/hunan1.ts";
 	client->dohttp(downloadurl);
-	loop.run(Loop::Default);
+	loop.run(ZQ::eloop::Loop::Default);
 	while(1);
 	return 0;
 }

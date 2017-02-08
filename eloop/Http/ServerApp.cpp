@@ -1,4 +1,5 @@
 #include <FileLog.h>
+#include "httpServer.h"
 #include "TestHttpHandle.h"
 #include "getopt.h"
 #include <iostream>
@@ -21,14 +22,20 @@ int main(int argc,char* argv[])
 		return -1;
 	}
 
-	std::string logFilePath;
-	int ch = 0;
-	while((ch = getopt(argc,argv,"l:h:")) != EOF)
+	std::string logFilePath,host;
+	int ch = 0,threadCount = 5;
+	while((ch = getopt(argc,argv,"l:i:t:h:")) != EOF)
 	{
 		switch(ch)
 		{
 		case 'l':
 			logFilePath = optarg;
+			break;
+		case 'i':
+			host = optarg;
+			break;
+		case 't':
+			threadCount = atoi(optarg);
 			break;
 		case 'h':
 			usage();
@@ -38,7 +45,7 @@ int main(int argc,char* argv[])
 		}
 	}
 
-	Loop loop(true);
+	ZQ::eloop::Loop loop(true);
 
 	ZQ::common::Log* pLog = new ZQ::common::FileLog(logFilePath.c_str(),7, 5,10240000);
 	if (pLog == NULL)
@@ -47,21 +54,19 @@ int main(int argc,char* argv[])
 		return -1;
 	}
 
+	std::string ip = host.substr(0,host.find(":"));
+	int port = atoi((host.substr(host.find(":")+1)).c_str());
 
-	HttpApplication::Ptr Test = new TestHttpHandleFactory();
-
-
-	HttpServer::HttpServerConfig conf;
-	HttpServer server(conf,*pLog);
-
-	server.registerApp("/",Test);
-	server.registerApp("/index.html",Test);
+	ZQ::eloop::HttpBaseApplication* Test = new ZQ::eloop::TestHttpHandle::TestHttpHandleFactory();
 
 
-	server.init(loop);
-	server.startAt("192.168.81.28",9978);
+	ZQ::eloop::HttpServer::HttpServerConfig conf;
+	ZQ::eloop::HttpServer* server = new ZQ::eloop::SingleLoopHttpServer(conf,*pLog);
+
+	server->registerApp("/",Test);
+	server->registerApp("/index.html",Test);
 
 
-	loop.run(Loop::Default);
+	server->startAt(ip.c_str(),port);
 	return 0;
 }

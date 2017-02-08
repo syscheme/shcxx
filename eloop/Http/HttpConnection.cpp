@@ -2,6 +2,9 @@
 #include "http_parser.h"
 #include "httpMessage.h"
 
+
+namespace ZQ {
+namespace eloop {
 // ---------------------------------------
 // class HttpConnection
 // ---------------------------------------
@@ -105,9 +108,6 @@ void HttpConnection::OnWrote(ElpeError status)
 		onHttpEndSent(_bOutgoingKeepAlive);
 	}*/
 }
-
-//------------------------------------------------------------------------------------------------------------------------
-
 
 size_t HttpConnection::parse( const char* data, size_t size) {
 	return http_parser_execute(_Parser, _ParserSettings, data, size);
@@ -224,3 +224,5 @@ int HttpConnection::on_body(http_parser* parser, const char* at, size_t size){
 	HttpConnection* pThis = reinterpret_cast<HttpConnection*>(parser->data);
 	return pThis->onBody(at, size);
 }
+
+} }//namespace ZQ::eloop

@@ -62,8 +62,7 @@ class ZQ_ELOOP_API Idle;
 class ZQ_ELOOP_API Timer;
 class ZQ_ELOOP_API Async;
 class ZQ_ELOOP_API Signal;
-class ZQ_ELOOP_API Error;
-class ZQ_ELOOP_API Exception;
+class ZQ_ELOOP_API CpuInfo;
 
 // -----------------------------
 // class Handle
@@ -189,7 +188,8 @@ public:
 		elpe__EHOSTDOWN = UV__EHOSTDOWN,
 	} ElpeError;
 
-	static const char* errDesc(ElpeError err)  { return uv_strerror(err); }
+	static const char* errDesc(ElpeError err)  { return errDesc((int)err); }
+	static const char* errDesc(int err)  { return uv_strerror(err); }
 	static const char* errName(ElpeError err) { return errName((int) err); }
 	static const char* errName(int errNum)    { return uv_err_name(errNum); }
 
@@ -358,6 +358,21 @@ protected:
 
 private:
 	static void _cbSignal(uv_signal_t *signal, int signum);
+};
+
+// -----------------------------
+// class CpuInfo
+// -----------------------------
+class CpuInfo
+{
+public:
+	CpuInfo();
+	~CpuInfo();
+	int getCpuCount();
+
+private:
+	uv_cpu_info_t*	_info;
+	int				_count;
 };
 
 } } // namespace ZQ::eloop

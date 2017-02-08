@@ -9,6 +9,9 @@
 #include "eloop_lock.h"
 #include "http_parser.h"
 
+namespace ZQ {
+namespace eloop {
+
 struct HttpCode2Str {
 	int 			code;
 	const char*		status;
@@ -60,7 +63,7 @@ static struct HttpCode2Str httpc2s[] = {
 static std::map<int, std::string> code2statusmap;
 static std::string 				unknownstatus = "unkown";
 
-class Code2StatusMapInitializer {
+class Code2StatusMapInitializer{
 public:
 	Code2StatusMapInitializer() {
 		size_t count = sizeof( httpc2s ) / sizeof(httpc2s[0]);
@@ -72,6 +75,7 @@ public:
 
 static const char* httpDateStrWeekDay[] = {"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
 static const char* httpDateStrMonth[] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
+
 
 // -----------------------------------------------------
 // class HttpMessage
@@ -165,6 +169,8 @@ private:
 	std::string			_DummyHeaderValue;
 	int64				_BodyLength;//only valid if _bChunked == false
 	std::string 		_RawMessage;
+
 };
 
-#endif // __HTTP_MESSAGE_h__
+} }//namespace ZQ::eloop
+#endif

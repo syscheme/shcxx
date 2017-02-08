@@ -361,4 +361,17 @@ void Signal::_cbSignal(uv_signal_t *signal, int signum) {
 	}
 }
 
+CpuInfo::CpuInfo()
+{
+	uv_cpu_info(&_info,&_count);
+}
+CpuInfo::~CpuInfo()
+{
+	uv_free_cpu_info(_info,_count);
+}
+int CpuInfo::getCpuCount()
+{
+	return _count;
+}
+
 }} // namespace ZQ::eloop

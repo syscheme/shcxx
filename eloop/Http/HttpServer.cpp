@@ -1,6 +1,8 @@
 #include "httpServer.h"
 
 
+namespace ZQ {
+namespace eloop {
 // ---------------------------------------
 // class HttpPassiveConn
 // ---------------------------------------
@@ -170,9 +172,9 @@ HttpServer::HttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger)
 
 HttpServer::~HttpServer()
 {
-	stop();
+	//stop();
 }
-
+/*
 bool HttpServer::startAt( const char* ip, int port)
 {
 	if (bind4(ip,port) < 0)
@@ -209,8 +211,8 @@ void HttpServer::doAccept(ElpeError status)
 		client->clear();
 	}
 }
-
-bool HttpServer::registerApp( const std::string& ruleStr, HttpApplication::Ptr app ) {
+*/
+bool HttpServer::registerApp( const std::string& ruleStr, HttpBaseApplication::Ptr app ) {
 	UriMount uriEx;		
 	try {
 		uriEx.re.assign(ruleStr);
@@ -227,7 +229,7 @@ bool HttpServer::registerApp( const std::string& ruleStr, HttpApplication::Ptr a
 
 IHttpHandler::Ptr HttpServer::getHandler( const std::string& uri, HttpConnection& conn)
 {
-	HttpApplication::Ptr app = NULL;
+	HttpBaseApplication::Ptr app = NULL;
 	std::vector<UriMount>::const_iterator it = _uriMounts.begin();
 	for( ; it != _uriMounts.end(); it ++ ) {
 		if(boost::regex_match(uri,it->re))  {
@@ -263,3 +265,226 @@ HttpMessage::Ptr HttpServer::makeSimpleResponse( int code ) const {
 	msg->header("Date",HttpMessage::httpdate());
 	return msg;
 }
+
+
+
+// ---------------------------------------
+// class SingleLoopHttpServer
+// ---------------------------------------
+// Single event loop
+
+SingleLoopHttpServer::SingleLoopHttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger)
+			:HttpServer(conf,logger)
+{
+	init(_loop);
+}
+SingleLoopHttpServer::~SingleLoopHttpServer()
+{
+
+}
+bool SingleLoopHttpServer::startAt( const char* ip, int port)
+{
+	if (bind4(ip,port) < 0)
+		return false;
+
+	if (listen() < 0)
+		return false;
+	return _loop.run(ZQ::eloop::Loop::Default);
+}
+void SingleLoopHttpServer::stop()
+{
+	close();
+}
+
+void SingleLoopHttpServer::doAccept(ElpeError status)
+{
+	if (status != elpeSuccess)
+	{
+		fprintf(stderr, "doAccept()error %s\n", errDesc(status));
+		return;
+	}
+
+	HttpPassiveConn* client = new HttpPassiveConn(*this,_Logger);
+	client->init(get_loop());
+
+	if (accept((Stream*)client) == 0) {
+
+		client->start();
+		_Logger(ZQ::common::Log::L_INFO, CLOGFMT(SingleLoopHttpServer,"comes a new connection from [%s]"),client->hint().c_str());
+
+	}
+	else {
+		client->clear();
+	}
+}
+
+// ---------------------------------------
+// class MultipleLoopHttpServer
+// ---------------------------------------
+//Multiple event loop
+MultipleLoopHttpServer::MultipleLoopHttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger,int threadCount)
+			:HttpServer(conf,logger),
+			_bRunning(false),
+			_threadCount(threadCount),
+			_roundCount(0),
+			_socket(0)
+{
+	CpuInfo cpu;
+	int cpuCount = cpu.getCpuCount();
+	int j = 0;
+	setCpuAffinity(j);
+	for (int i = 0;i < _threadCount;i++)
+	{
+		ServantThread *pthread = new ServantThread(*this,_Logger);
+		j = (j+1) % cpuCount;
+		pthread->setCpuAffinity(j);
+		pthread->start();
+		_vecThread.push_back(pthread);
+	}
+}
+
+MultipleLoopHttpServer::~MultipleLoopHttpServer()
+{
+	std::vector<ServantThread*>::iterator iter;
+	for (iter=_vecThread.begin();iter!=_vecThread.end();iter++)  
+	{  
+		(*iter)->close();
+		delete *iter;
+		_vecThread.erase(iter++);
+	}
+	_bRunning = false;
+}
+
+bool MultipleLoopHttpServer::startAt( const char* ip, int port)
+{
+	struct sockaddr_in serv;
+
+	serv.sin_family=AF_INET;
+	serv.sin_port=htons(port);
+	serv.sin_addr.S_un.S_addr=inet_addr(ip);
+
+	WORD sockVersion = MAKEWORD(2,2);
+	WSADATA wsaData;
+	if(WSAStartup(sockVersion, &wsaData)!=0)
+	{
+		return 0;
+	}
+
+	_socket = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
+
+	int reuse_value = 1;
+	if( setsockopt(_socket, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse_value, sizeof(reuse_value)) != 0 )
+		return false;
+
+	if( _socket < 0 )
+		return false;
+
+
+	if(bind(_socket,(struct sockaddr*)&serv,sizeof(serv)) == -1)
+	{
+		printf("socket bind error!");
+		return false;
+	}
+	if (0 != listen(_socket,10000))
+	{
+		return false;
+	}
+	_bRunning = true;
+	return ZQ::common::NativeThread::start();
+}
+
+void MultipleLoopHttpServer::stop()
+{
+	closesocket(_socket);
+}
+
+int MultipleLoopHttpServer::run()
+{
+	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(MultipleLoopHttpServer,"server start"));
+	struct sockaddr_storage addr;
+	while( _bRunning ) {
+		socklen_t size= (socklen_t)sizeof( addr );
+		int sock = accept( _socket, (struct sockaddr*)&addr, &size);
+		if( sock < 0 )
+			break;
+
+		ServantThread* pthread = _vecThread[_roundCount];
+		pthread->addSocket(sock);
+		pthread->send();
+		_roundCount = (_roundCount + 1) % _threadCount;
+	}
+	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(MultipleLoopHttpServer,"server quit"));
+	return 0;
+}
+
+// ------------------------------------------------
+// class ServantThread
+// ------------------------------------------------
+ServantThread::ServantThread(HttpServer& server,ZQ::common::Log& logger)
+		:_Logger(logger),
+		_server(server)
+{
+	_loop = new Loop(false);
+}
+
+ServantThread::~ServantThread()
+{
+	if (_loop != NULL)
+	{
+		delete _loop;
+	}
+}
+
+Loop& ServantThread::getLoop()
+{
+	return *_loop;
+}
+
+void ServantThread::addSocket(int sock)
+{
+
+	ZQ::common::MutexGuard gd(_LockSocket);
+	_ListSocket.push_back(sock);
+}
+
+
+int ServantThread::run(void)
+{
+	ZQ::eloop::Async::init(*_loop);
+	_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer,"thread start run! ThreadId = %d"),id());
+	_loop->run(Loop::Default);
+	_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer,"thread quit! ThreadId = %d"),id());
+	return 0;
+}
+
+void ServantThread::OnAsync(void* data)
+{
+	printf("Async test\n");
+	ZQ::common::MutexGuard gd(_LockSocket);
+	while( !_ListSocket.empty())
+	{
+		HttpPassiveConn* client = new HttpPassiveConn(_server,_Logger);
+		int r = client->init(get_loop());
+		if (r != 0)
+		{
+			//printf("tcp init error:%s,name :%s\n", uv_strerror(r), uv_err_name(r));
+			_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(ServantThread,"OnAsync tcp init error:%s"),Handle::errDesc(r));
+		}
+
+		int sock = _ListSocket.back();
+		_ListSocket.pop_back();
+		printf("OnAsync sock = %d\n", sock);
+		r = client->connected_open(sock);
+		if (r != 0)
+		{
+			printf("open error! r = %d\n", r);
+			_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(ServantThread,"OnAsync open socke error: %s"),Handle::errDesc(r));
+		}
+
+		_Logger(ZQ::common::Log::L_INFO, CLOGFMT(httpServer,"comes a new connection from [%s]"),client->hint().c_str());
+		client->start();
+	}
+}
+
+
+} }//namespace ZQ::eloop

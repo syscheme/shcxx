@@ -5,11 +5,13 @@
 #include "eloop_net.h"
 #include <set>
 #include <assert.h>
+// #include "http_parser.h"
 
 struct http_parser;
 struct http_parser_settings;
 
-using namespace ZQ::eloop;
+namespace ZQ {
+namespace eloop {
 
 // ---------------------------------------
 // interface IHttpParseSink
@@ -53,20 +55,18 @@ public:
 	bool getkeepAlive(){ return _bOutgoingKeepAlive;}
 
 protected:
-
 	HttpConnection(bool clientSide);
-
-	void reset( IHttpParseSink* callback = NULL);
+	void			reset( IHttpParseSink* callback = NULL);
 	int getSendCount(){return _SendCount;}
 	
-	//	int sendChunk( BufferHelper& bh);
+//	int 			sendChunk( BufferHelper& bh);
 	virtual void OnRead(ssize_t nread, const char *buf);
 	virtual void OnWrote(ElpeError status);
+
 
 protected:
 	// onReqMsgSent is only used to notify that the sending buffer is free and not held by HttpClient any mre
 	virtual void onHttpDataSent(bool keepAlive) { }
-
 	// onHttpDataReceived is only used to notify that the receiving buffer is free and not held by HttpClient any mre
 	virtual void onHttpDataReceived(size_t size) { }
 
@@ -91,24 +91,26 @@ protected: // implementation of IHttpParseSink that also present the message rec
 
 private:
 
-	HttpMessage::Ptr         _CurrentParseMsg;
-	HttpMessage::MessgeType  _Type;
-
 	http_parser*             _Parser; // its type can be determined by clientSide
 	http_parser_settings*    _ParserSettings;
+	HttpMessage::Ptr         _CurrentParseMsg;
+	HttpMessage::MessgeType  _Type;
 	IHttpParseSink*			 _Callback;
 
 	bool				_Stopped;
 
 	std::string			_HeaderField;
 	std::string*		_HeaderValue;
+//	http_parser_type		_ParseType;
+//	HttpParser				_HttpParser;
 
 	HttpMessage::Ptr		_IncomingMsg;
 
 	int						_SendCount;
 	bool					_bOutgoingKeepAlive;
 
-private: 
+// from previouw HttpParser
+private:
 	enum ParseState {
 		STATE_INIT,
 		STATE_HEADERS,
@@ -116,10 +118,7 @@ private:
 		STATE_COMPLETE
 	};
 	ParseState			_ParserState;
-
 	size_t parse( const char* data, size_t size);
-
-	// callbacks of Node.js message parser
 	static int on_message_begin(http_parser* parser);
 	static int on_headers_complete(http_parser* parser);
 	static int on_message_complete(http_parser* parser);
@@ -137,6 +136,8 @@ private:
 	int		onHeaderField(const char* at, size_t size);
 	int		onHeaderValue(const char* at, size_t size);
 	int		onBody(const char* at, size_t size);
-};
 
-#endif // __HTTP_Connection_H__
+};
+} }//namespace ZQ::eloop
+
+#endif

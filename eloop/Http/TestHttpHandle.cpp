@@ -1,5 +1,8 @@
 #include "TestHttpHandle.h"
 
+namespace ZQ {
+namespace eloop {
+	/*
 // ---------------------------------------
 // class TestHttpHandleFactory
 // ---------------------------------------
@@ -16,7 +19,7 @@ IHttpHandler::Ptr TestHttpHandleFactory::create( HttpConnection& processor )
 {
 	IHttpHandler::Ptr handler = new TestHttpHandle(processor);
 	return handler;
-}
+}*/
 
 
 
@@ -25,7 +28,7 @@ IHttpHandler::Ptr TestHttpHandleFactory::create( HttpConnection& processor )
 // ---------------------------------------
 // class TestHttpHandle
 // ---------------------------------------
-TestHttpHandle::TestHttpHandle(HttpConnection& processor):m_http(processor)
+TestHttpHandle::TestHttpHandle(HttpConnection& conn):_conn(conn)
 {
 
 }
@@ -63,11 +66,11 @@ bool TestHttpHandle::onHeadersEnd( const HttpMessage::Ptr msg)
 	outmsg->contentLength(body.length());
 
 	std::string head = outmsg->toRaw();
-	m_http.send(head.c_str(),head.length());
+	_conn.send(head.c_str(),head.length());
 
-	m_http.send(body.c_str(),body.length());
+	_conn.send(body.c_str(),body.length());
 
-	m_http.setkeepAlive(false);
+	_conn.setkeepAlive(false);
 
 	return true;
 }
@@ -104,3 +107,4 @@ void TestHttpHandle::onWritable()
 {
 
 }
+} }//namespace ZQ::eloop

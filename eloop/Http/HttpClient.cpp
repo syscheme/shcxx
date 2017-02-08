@@ -1,6 +1,12 @@
 #include "httpClient.h"
 #include <urlstr.h>
 
+
+namespace ZQ {
+namespace eloop {
+// ---------------------------------------
+// class HttpClient
+// ---------------------------------------
 HttpClient::HttpClient()
 	:HttpConnection(true),
 	_SendMsg(NULL)
@@ -46,3 +52,4 @@ bool HttpClient::beginRequest( HttpMessage::Ptr msg, const std::string& url)
 	connect4(host,urlstr.getPort());
 	return true;
 }
+} }//namespace ZQ::eloop

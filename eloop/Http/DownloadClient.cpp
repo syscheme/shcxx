@@ -1,9 +1,7 @@
 #include "DownloadClient.h"
 
-
-
-
-
+namespace ZQ {
+namespace eloop {
 // ---------------------------------------
 // class EmptyClient
 // ---------------------------------------
@@ -60,7 +58,6 @@ void	EmptyClient::onHttpError( int error )
 {
 	_Thread->subtract();
 }
-
 
 
 // ---------------------------------------
@@ -196,3 +193,4 @@ int DownloadThread::getCount()
 	ZQ::common::MutexGuard gd(_LockerCount);
 	return _ConnectCount;
 }
+} }//namespace ZQ::eloop

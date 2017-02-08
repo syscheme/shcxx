@@ -4,6 +4,11 @@
 #include "httpMessage.h"
 #include "HttpConnection.h"
 
+namespace ZQ {
+namespace eloop {
+// ---------------------------------------
+// class HttpClient
+// ---------------------------------------
 class HttpClient : public HttpConnection {
 public:
 	HttpClient();
@@ -41,5 +46,5 @@ private:
 		HttpMessage::Ptr		_SendMsg;
 
 };
-
+} }//namespace ZQ::eloop
 #endif

@@ -3,22 +3,8 @@
 
 #include "httpServer.h"
 
-
-
-// ---------------------------------------
-// class TestHttpHandleFactory
-// ---------------------------------------
-class TestHttpHandleFactory: public HttpApplication
-{
-public:
-	TestHttpHandleFactory();
-	~TestHttpHandleFactory();
-
-	virtual IHttpHandler::Ptr create( HttpConnection& processor );
-
-};
-
-
+namespace ZQ {
+namespace eloop {
 
 // ---------------------------------------
 // class TestHttpHandle
@@ -26,7 +12,9 @@ public:
 class TestHttpHandle : public IHttpHandler
 {
 public:
-	TestHttpHandle(HttpConnection& processor);
+	typedef HttpApplication<TestHttpHandle> TestHttpHandleFactory;
+
+	TestHttpHandle(HttpConnection& conn);
 	~TestHttpHandle();
 
 	void Response();
@@ -44,16 +32,8 @@ public:
 	virtual void 	onWritable();
 
 private:
-	HttpConnection& m_http;
+	HttpConnection& _conn;
 };
 
-
-
-
-
-
-
-
-
-
+} }//namespace ZQ::eloop
 #endif

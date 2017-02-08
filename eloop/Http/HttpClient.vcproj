@@ -116,7 +116,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..;../libuv_1.9.1/include;../..;../HttpServer/"
+				AdditionalIncludeDirectories="..;../libuv_1.9.1/include;../.."
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -195,7 +195,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\httpClient.cpp"
+				RelativePath=".\HttpClient.cpp"
 				>
 			</File>
 			<File
@@ -225,7 +225,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\httpClient.h"
+				RelativePath=".\HttpClient.h"
 				>
 			</File>
 			<File
