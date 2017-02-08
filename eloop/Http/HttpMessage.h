@@ -60,7 +60,7 @@ static struct HttpCode2Str httpc2s[] = {
 static std::map<int, std::string> code2statusmap;
 static std::string 				unknownstatus = "unkown";
 
-class Code2StatusMapInitializer{
+class Code2StatusMapInitializer {
 public:
 	Code2StatusMapInitializer() {
 		size_t count = sizeof( httpc2s ) / sizeof(httpc2s[0]);
@@ -72,7 +72,6 @@ public:
 
 static const char* httpDateStrWeekDay[] = {"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
 static const char* httpDateStrMonth[] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
-
 
 // -----------------------------------------------------
 // class HttpMessage
@@ -166,125 +165,6 @@ private:
 	std::string			_DummyHeaderValue;
 	int64				_BodyLength;//only valid if _bChunked == false
 	std::string 		_RawMessage;
-
 };
 
-
-// ---------------------------------------
-// interface ParserCallback
-// ---------------------------------------
-/*
-* Inherit ParserCallback so that you can get the result of http message parsing
-*/
-class ParserCallback
-{
-public:
-	virtual ~ParserCallback() {}
-
-	/// this method is invoked when http header is completely parsed
-	/// You can get uri, method or code, header field and header value in HttpMessage
-	/// return true if you don't want to interrupt the parsing procedure
-	virtual bool onHttpMessage( const HttpMessage::Ptr msg) = 0;
-
-	/// this method is invoked when http body data is received and decoded
-	/// NOTE: this method may be called many times for one data buffer,
-	///		  So don' take this as the finish of the usage of you buffer passed into HttpClient
-	/// return true if you don't want to interrupt the parsing procedure
-	virtual bool onHttpBody( const char* data, size_t size) = 0;
-
-	/// the whole http message is decoded, that is no more data for current http message
-	virtual void onHttpComplete() = 0;
-
-	/// error occured during data receiving or parsing stage
-	virtual void onHttpError( int error ) = 0;
-};
-
-/*
-// ---------------------------------------
-// class HttpParser
-// ---------------------------------------
-class HttpParser
-{
-public:
-	HttpParser(http_parser_type type);
-	~HttpParser();
-
-	enum ParserState {
-		STATE_INIT,
-		STATE_HEADERS,
-		STATE_BODY,
-		STATE_COMPLETE
-	};
-
-
-	/// reset parser to initialized stage
-	void	reset( ParserCallback* cb );
-
-	///return value == size means successfully parsed,
-	/// or else, error occurred
-	size_t	parse( const char* data, size_t size);
-
-	/// stop current parsing procedure
-	bool	stopParsing() {
-		_Stopped = true;
-		return true;
-	}
-
-	/// check if headers are all parsed
-	bool	headerComplete() const { 
-		return _ParserState > STATE_HEADERS;
-	}
-	bool	httpComplete() const {
-		return _ParserState >= STATE_COMPLETE;
-	}
-	ParserState		state() const {
-		return _ParserState;
-	}
-
-	int		lastError() const;
-
-	HttpMessage::Ptr	currentHttpMessage() {
-		return _Message;
-	}
-
-
-private:
-	static int on_message_begin(http_parser* parser);
-	static int on_headers_complete(http_parser* parser);
-	static int on_message_complete(http_parser* parser);
-	static int on_uri(http_parser* parser,const char* at,size_t size);
-	static int on_status(http_parser* parser, const char* at, size_t size);
-	static int on_header_field(http_parser* parser, const char* at, size_t size);
-	static int on_header_value(http_parser* parser, const char* at, size_t size);
-	static int on_body(http_parser* parser, const char* at, size_t size);
-
-	int		onMessageBegin( );
-	int		onHeadersComplete();
-	int		onMessageComplete();
-	int		onUri(const char* at, size_t size);
-	int		onStatus(const char* at, size_t size);
-	int		onHeaderField(const char* at, size_t size);
-	int		onHeaderValue(const char* at, size_t size);
-	int		onBody(const char* at, size_t size);
-
-private:
-	http_parser			_Parser;
-	http_parser_type	_Type;
-	HttpMessage::Ptr	_Message;
-	bool				_Stopped;
-	ParserCallback*		_Callback;
-
-	std::string			_HeaderField;
-	std::string*		_HeaderValue;
-	http_parser_settings	_ParserSettings;
-	ParserState			_ParserState;
-};*/
-
-
-
-
-
-
-
-
-#endif
+#endif // __HTTP_MESSAGE_h__

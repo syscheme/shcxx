@@ -52,7 +52,7 @@ void HttpPassiveConn::errorResponse( int code ) {
 	send(response.c_str(),response.length());
 }
 
-void HttpPassiveConn::onHttpError( int err ) {
+void HttpPassiveConn::onParseError( int err ) {
 
 	char locip[17] = { 0 };
 	int  locport = 0;
@@ -62,10 +62,10 @@ void HttpPassiveConn::onHttpError( int err ) {
 	int  peerport = 0;
 	getpeerIpPort(locip,peerport);
 
-	//_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn, "onHttpError [%p] [%s:%d => %s:%d], error[%s]"), 
+	//_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn, "onParseError [%p] [%s:%d => %s:%d], error[%s]"), 
 //		this, locip, locport, peerip, peerport, ErrorCodeToStr((ErrorCode)err));
 	if(_Handler)
-		_Handler->onHttpError(err);
+		_Handler->onParseError(err);
 
 	if(getSendCount() <= 0)
 		clear();
@@ -109,10 +109,10 @@ void HttpPassiveConn::onHttpDataReceived( size_t size ) {
 	//start();//this may fail because a receiving call has been fired		
 }
 
-bool HttpPassiveConn::onHttpMessage( const HttpMessage::Ptr msg) {
+bool HttpPassiveConn::onHeadersEnd( const HttpMessage::Ptr msg) {
 	_HeaderComplete = true;
 	if( msg->versionMajor() != 1 && msg->versionMinor() != 1 ) {
-		_Logger(ZQ::common::Log::L_WARNING, CLOGFMT( HttpPassiveConn,"onHttpMessage, unsupport http version[%u/%u], reject"),
+		_Logger(ZQ::common::Log::L_WARNING, CLOGFMT( HttpPassiveConn,"onHeadersEnd, unsupport http version[%u/%u], reject"),
 			msg->versionMajor(), msg->versionMinor());
 		errorResponse(505);
 		return false;
@@ -120,15 +120,15 @@ bool HttpPassiveConn::onHttpMessage( const HttpMessage::Ptr msg) {
 	_Handler = _server.getHandler( msg->url(), *this);
 	if(!_Handler) {
 		//should make a 404 response
-		_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"onHttpMessage failed to find a suitable handle to process url: %s"),
+		_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"onHeadersEnd failed to find a suitable handle to process url: %s"),
 			msg->url().c_str() );
 		errorResponse(404);
 		//close();
 		//clear();
 		return false;
 	} else {
-		if(! _Handler->onHttpMessage(msg) ) {
-			_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"onHttpMessage, user code return false in onHttpMessage, may user code want to abort the procedure, url:%s"), msg->url().c_str());
+		if(! _Handler->onHeadersEnd(msg) ) {
+			_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"onHeadersEnd, user code return false in onHeadersEnd, may user code want to abort the procedure, url:%s"), msg->url().c_str());
 			_Handler = NULL;
 			return false;
 		}
@@ -136,15 +136,15 @@ bool HttpPassiveConn::onHttpMessage( const HttpMessage::Ptr msg) {
 	}		
 }
 
-bool HttpPassiveConn::onHttpBody( const char* data, size_t size) {
+bool HttpPassiveConn::onBodyData( const char* data, size_t size) {
 
 	if(!_Handler) {
 		_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"http body received, but no handler is ready"));
 		errorResponse(500);
 		return false;
 	}
-	if(!_Handler->onHttpBody(data, size) ) {
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpPassiveConn,"handler refuse to continue after onHttpBody"));
+	if(!_Handler->onBodyData(data, size) ) {
+		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpPassiveConn,"handler refuse to continue after onBodyData"));
 		errorResponse(500);
 		_Handler = NULL;
 		return false;
@@ -152,10 +152,10 @@ bool HttpPassiveConn::onHttpBody( const char* data, size_t size) {
 	return true;
 }
 
-void HttpPassiveConn::onHttpComplete() {
+void HttpPassiveConn::onMessageCompleted() {
 	if(!_Handler)
 		return;
-	_Handler->onHttpComplete();
+	_Handler->onMessageCompleted();
 }
 
 // ---------------------------------------

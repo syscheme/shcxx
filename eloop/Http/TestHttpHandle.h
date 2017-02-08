@@ -32,10 +32,10 @@ public:
 	void Response();
 	void ResponseIndex();
 
- 	virtual bool onHttpMessage( const HttpMessage::Ptr msg);
- 	virtual bool onHttpBody( const char* data, size_t size);
- 	virtual void onHttpComplete();
- 	virtual void onHttpError( int error );
+ 	virtual bool onHeadersEnd( const HttpMessage::Ptr msg);
+ 	virtual bool onBodyData( const char* data, size_t size);
+ 	virtual void onMessageCompleted();
+ 	virtual void onParseError( int error );
 
 	virtual void	onHttpDataSent(bool keepAlive);
 

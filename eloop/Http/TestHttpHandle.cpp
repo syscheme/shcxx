@@ -1,6 +1,5 @@
 #include "TestHttpHandle.h"
 
-
 // ---------------------------------------
 // class TestHttpHandleFactory
 // ---------------------------------------
@@ -47,7 +46,7 @@ void ResponseIndex()
 }
 
 
-bool TestHttpHandle::onHttpMessage( const HttpMessage::Ptr msg)
+bool TestHttpHandle::onHeadersEnd( const HttpMessage::Ptr msg)
 {
 	HttpMessage::Ptr outmsg = new HttpMessage(HttpMessage::HTTP_RESPONSE);
 
@@ -74,19 +73,19 @@ bool TestHttpHandle::onHttpMessage( const HttpMessage::Ptr msg)
 }
 
 
-bool TestHttpHandle::onHttpBody( const char* data, size_t size)
+bool TestHttpHandle::onBodyData( const char* data, size_t size)
 {
 	return true;
 }
 
 
-void TestHttpHandle::onHttpComplete()
+void TestHttpHandle::onMessageCompleted()
 {
 
 }
 
 
-void TestHttpHandle::onHttpError( int error )
+void TestHttpHandle::onParseError( int error )
 {
 
 }

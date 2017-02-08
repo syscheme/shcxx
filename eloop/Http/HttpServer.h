@@ -13,7 +13,7 @@ class HttpServer;
 // ---------------------------------------
 // interface IHttpHandler
 // ---------------------------------------
-class IHttpHandler: public ParserCallback, public virtual ZQ::common::SharedObject {
+class IHttpHandler: public IHttpParseSink, public virtual ZQ::common::SharedObject {
 public:
 	typedef ZQ::common::Pointer<IHttpHandler> Ptr;
 	virtual ~IHttpHandler() { }
@@ -56,13 +56,13 @@ public:
 protected:
 
 	// implementation of HttpConnection
-	virtual void	onHttpError( int err );
+	virtual void	onParseError( int err );
 	virtual void    onWritable();
 	virtual void	onHttpDataSent( bool keepAlive );
 	virtual void	onHttpDataReceived( size_t size );
-	virtual bool	onHttpMessage( const HttpMessage::Ptr msg);
-	virtual bool	onHttpBody( const char* data, size_t size);
-	virtual void	onHttpComplete();
+	virtual bool	onHeadersEnd( const HttpMessage::Ptr msg);
+	virtual bool	onBodyData( const char* data, size_t size);
+	virtual void	onMessageCompleted();
 
 private:
 	// NOTE: DO NOT INVOKE THIS METHOD unless you known what you are doing

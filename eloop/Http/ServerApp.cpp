@@ -1,6 +1,5 @@
 #include <FileLog.h>
-#include "httpServer.h"
-#include "Test_httpServer.h"
+#include "TestHttpHandle.h"
 #include "getopt.h"
 #include <iostream>
 

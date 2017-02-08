@@ -35,10 +35,10 @@ HttpConnection::~HttpConnection()
 	free(_ParserSettings);
 }
 
-void HttpConnection::reset(ParserCallback* p)
+void HttpConnection::reset(IHttpParseSink* p)
 {
 	if(!p)
-		p = dynamic_cast<ParserCallback*>(this);
+		p = dynamic_cast<IHttpParseSink*>(this);
 
 	_Callback	= p;
 
@@ -62,7 +62,7 @@ void HttpConnection::OnRead(ssize_t nread, const char *buf)
 {
 	if (nread < 0) {
 		fprintf(stderr, "Read error %s\n",  errName((ZQ::eloop::Handle::ElpeError)nread));
-		onHttpError(nread);
+		onParseError(nread);
 		return;
 	}
 	std::string str = buf;
@@ -70,7 +70,7 @@ void HttpConnection::OnRead(ssize_t nread, const char *buf)
 
 	size_t nparsed =parse(buf, nread);
 	if(nparsed != nread){
-		onHttpError((int)_Parser->http_errno);
+		onParseError((int)_Parser->http_errno);
 		return;
 	}
 	if(_ParserState < STATE_HEADERS){
@@ -93,7 +93,7 @@ void HttpConnection::OnWrote(ElpeError status)
 	if (status != elpeSuccess)
 	{
 		fprintf(stderr, "send error %s\n",  errDesc(status)); 
-		onHttpError(status);
+		onParseError(status);
 		return;
 	}
 	
@@ -128,7 +128,7 @@ int	HttpConnection::onHeadersComplete(){
 	_CurrentParseMsg->setVersion(_Parser->http_major, _Parser->http_minor);
 	_ParserState = STATE_BODY;
 	if(_Parser->http_errno == 0) {
-		if(!_Callback->onHttpMessage(_CurrentParseMsg))
+		if(!_Callback->onHeadersEnd(_CurrentParseMsg))
 			return -1;//user cancel parsing procedure
 		return 0;
 	}
@@ -137,7 +137,7 @@ int	HttpConnection::onHeadersComplete(){
 
 int	HttpConnection::onMessageComplete(){
 	assert(_Callback != NULL);
-	_Callback->onHttpComplete();
+	_Callback->onMessageCompleted();
 	_ParserState = STATE_COMPLETE;
 	_CurrentParseMsg = NULL;
 	return 0;
@@ -179,7 +179,7 @@ int	HttpConnection::onHeaderValue(const char* at, size_t size){
 
 int	HttpConnection::onBody(const char* at, size_t size){
 	assert(_Callback!=NULL);
-	if(!_Callback->onHttpBody(at, size))
+	if(!_Callback->onBodyData(at, size))
 		return -1;//user cancel parsing procedure
 	return 0;
 }

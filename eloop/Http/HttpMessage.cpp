@@ -5,8 +5,6 @@
 #include "httpMessage.h"
 
 
-
-
 // -----------------------------------------------------
 // class HttpMessage
 // -----------------------------------------------------
@@ -204,7 +202,7 @@ int HttpParser::lastError() const{
 	return (int)_Parser.http_errno;
 }
 
-void HttpParser::reset(ParserCallback* cb){
+void HttpParser::reset(IHttpParseSink* cb){
 	_Callback	= cb;
 	http_parser_init(&_Parser,_Type);
 	_Parser.data = reinterpret_cast<void*>(this);
@@ -234,7 +232,7 @@ int	HttpParser::onHeadersComplete(){
 	_Message->setVersion(_Parser.http_major, _Parser.http_minor);
 	_ParserState = STATE_BODY;
 	if(_Parser.http_errno == 0) {
-		if(!_Callback->onHttpMessage(_Message))
+		if(!_Callback->onHeadersEnd(_Message))
 			return -1;//user cancel parsing procedure
 		return 0;
 	}
@@ -243,7 +241,7 @@ int	HttpParser::onHeadersComplete(){
 
 int	HttpParser::onMessageComplete(){
 	assert(_Callback != NULL);
-	_Callback->onHttpComplete();
+	_Callback->onMessageCompleted();
 	_ParserState = STATE_COMPLETE;
 	_Message = NULL;
 	return 0;
@@ -285,7 +283,7 @@ int	HttpParser::onHeaderValue(const char* at, size_t size){
 
 int	HttpParser::onBody(const char* at, size_t size){
 	assert(_Callback!=NULL);
-	if(!_Callback->onHttpBody(at, size))
+	if(!_Callback->onBodyData(at, size))
 		return -1;//user cancel parsing procedure
 	return 0;
 }
