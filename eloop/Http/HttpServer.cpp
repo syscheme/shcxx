@@ -230,9 +230,18 @@ bool HttpServer::registerApp( const std::string& ruleStr, HttpBaseApplication::P
 IHttpHandler::Ptr HttpServer::getHandler( const std::string& uri, HttpConnection& conn)
 {
 	HttpBaseApplication::Ptr app = NULL;
+
+	// cut off the paramesters
+	std::string uriWithnoParams = uri;
+	size_t pos = uriWithnoParams.find_first_of("?#");
+	if (std::string::npos != pos)
+		uriWithnoParams = uriWithnoParams.substr(0, pos);
+
 	std::vector<UriMount>::const_iterator it = _uriMounts.begin();
-	for( ; it != _uriMounts.end(); it ++ ) {
-		if(boost::regex_match(uri,it->re))  {
+	for( ; it != _uriMounts.end(); it ++ )
+	{
+		if(boost::regex_match(uriWithnoParams, it->re))
+		{
 			app = it->app;
 			break;
 		}
