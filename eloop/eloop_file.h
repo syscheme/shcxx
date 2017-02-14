@@ -44,6 +44,17 @@ class ZQ_ELOOP_API Pipe;
 #  define FLAG(_F)  (1<<_F)
 #endif // FLAG
 
+#ifdef ZQ_OS_MSWIN
+
+	# ifndef S_IRUSR
+	#  define S_IRUSR _S_IREAD
+	# endif
+
+	# ifndef S_IWUSR
+	#  define S_IWUSR _S_IWRITE
+	# endif
+#endif
+
 // -----------------------------
 // class FileEvent
 // -----------------------------
@@ -107,9 +118,9 @@ public:
 	};
 
 	enum FileMode {
-		RD_WR = _S_IREAD | _S_IWRITE,
-		READ  = _S_IREAD,
-		WRITE = _S_IWRITE
+		RD_WR = S_IRUSR | S_IWUSR,
+		READ  = S_IRUSR,
+		WRITE = S_IWUSR
 	};
 
 public:
