@@ -212,6 +212,11 @@ bool NativeThread::isThread(void)
 	return ((_thrdID == GetCurrentThreadId())) ? true : false;
 }
 
+int NativeThread::setCpuAffinity(int cpuCount)
+{
+	return SetThreadAffinityMask(_hThread, cpuCount);
+}
+
 void NativeThread::terminate(int code /* = 0 */)
 {
 #ifdef _DEBUG
@@ -524,6 +529,15 @@ con:
         }
 	}
 	return res;
+}
+
+int NativeThread::setCpuAffinity(int cpuCount)
+{
+	cpu_set_t mask;  
+	CPU_ZERO(&mask);  
+	CPU_SET(cpuCount,&mask);
+
+	return pthread_setaffinity_np(_thrdID ,sizeof(mask),&mask);
 }
 
 #endif
