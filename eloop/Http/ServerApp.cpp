@@ -72,13 +72,10 @@ int main(int argc,char* argv[])
 
 	server->mount("/",Test);
 	server->mount("/index.html",Test);
+	server->mount("/download/hunan1.ts",Download);
+	server->mount("/getValue/cpu",util);
+	server->mount("/empty",empty);
 
-/*	server->registerApp("/",Test);
-	server->registerApp("/index.html",Test);
-	server->registerApp("/download/hunan1.ts",Download);
-	server->registerApp("/getValue/cpu",util);
-	server->registerApp("/empty",empty);
-*/
 
 	server->startAt(ip.c_str(),port);
 	signal.wait();
