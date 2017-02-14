@@ -146,8 +146,6 @@ public:
 	virtual void stop() = 0;
 	// register an application to uri
 	//@param uriEx - the regular expression of uri
-	//bool registerApp( const std::string& uriEx, HttpBaseApplication::Ptr app);
-	//HttpHandler::Ptr getHandler( const std::string& uri, HttpConnection& conn);
 
 	bool mount(const std::string& uriEx, HttpBaseApplication::Ptr app, const HttpHandler::Properties& props=HttpHandler::Properties(), const char* virtualSite =DEFAULT_SITE);
 
@@ -163,15 +161,6 @@ protected:
 	ZQ::common::Log&		_Logger;
 
 private:
-	typedef struct _UriMount
-	{
-		std::string					uriEx;
-		boost::regex				re;
-		HttpBaseApplication::Ptr	app;	
-	} UriMount;
-
-	std::vector<UriMount>	_uriMounts;
-
 	typedef struct _MountDir
 	{
 		std::string					uriEx;

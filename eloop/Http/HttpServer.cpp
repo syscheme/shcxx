@@ -160,39 +160,7 @@ HttpServer::~HttpServer()
 {
 	//stop();
 }
-/*
-bool HttpServer::registerApp( const std::string& ruleStr, HttpBaseApplication::Ptr app ) {
-	UriMount uriEx;		
-	try {
-		uriEx.re.assign(ruleStr);
-	}
-	catch( const boost::regex_error& ) {
-		_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer,"failed to add [%s] as url uriEx"), ruleStr.c_str());
-		return false;
-	}
-	uriEx.uriEx = ruleStr;
-	uriEx.app = app;
-	_uriMounts.push_back(uriEx);
-	return true;
-}
 
-HttpHandler::Ptr HttpServer::getHandler( const std::string& uri, HttpConnection& conn)
-{
-	HttpBaseApplication::Ptr app = NULL;
-	std::vector<UriMount>::const_iterator it = _uriMounts.begin();
-	for( ; it != _uriMounts.end(); it ++ ) {
-		if(boost::regex_match(uri,it->re))  {
-			app = it->app;
-			break;
-		}
-	}
-
-	if (!app)
-		return NULL;
-
-	return app->create(conn,app,_Logger);
-}
-*/
 bool HttpServer::mount(const std::string& ruleStr, HttpBaseApplication::Ptr app, const HttpHandler::Properties& props, const char* virtualSite)
 {
 	std::string vsite = (virtualSite && *virtualSite) ? virtualSite :DEFAULT_SITE;
@@ -212,7 +180,6 @@ bool HttpServer::mount(const std::string& ruleStr, HttpBaseApplication::Ptr app,
 	dir.props = props;
 
 	// address the virtual site
-	ZQ::common::MutexGuard gd(_Locker);
 	VSites::iterator itSite = _vsites.find(vsite);
 	if (_vsites.end() == itSite)
 	{
@@ -235,7 +202,6 @@ HttpHandler::Ptr HttpServer::createHandler(const std::string& uri, HttpConnectio
 		uriWithnoParams = uriWithnoParams.substr(0, pos);
 
 	// address the virtual site
-	ZQ::common::MutexGuard gd(_Locker);
 	VSites::const_iterator itSite = _vsites.find(virtualSite);
 	if (_vsites.end() == itSite)
 		itSite = _vsites.find(DEFAULT_SITE); // the default site
