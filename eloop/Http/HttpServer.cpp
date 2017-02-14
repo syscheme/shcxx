@@ -99,11 +99,10 @@ void HttpPassiveConn::onHttpDataSent( bool keepAlive ) {
 
 	if(!keepAlive && getSendCount() <= 0)
 		clear();
-
 }
 
-
-void HttpPassiveConn::onHttpDataReceived( size_t size ) {
+void HttpPassiveConn::onHttpDataReceived( size_t size )
+{
 	// NOTE something here
 	if(_Handler) {
 		_Handler->onHttpDataReceived(size);
@@ -111,16 +110,21 @@ void HttpPassiveConn::onHttpDataReceived( size_t size ) {
 	//start();//this may fail because a receiving call has been fired		
 }
 
-bool HttpPassiveConn::onHeadersEnd( const HttpMessage::Ptr msg) {
+bool HttpPassiveConn::onHeadersEnd( const HttpMessage::Ptr msg)
+{
 	_HeaderComplete = true;
-	if( msg->versionMajor() != 1 && msg->versionMinor() != 1 ) {
+	if( msg->versionMajor() != 1 && msg->versionMinor() != 1 )
+	{
 		_Logger(ZQ::common::Log::L_WARNING, CLOGFMT( HttpPassiveConn,"onHeadersEnd, unsupport http version[%u/%u], reject"),
 			msg->versionMajor(), msg->versionMinor());
 		errorResponse(505);
 		return false;
 	}
-	_Handler = _server.getHandler( msg->url(), *this);
-	if(!_Handler) {
+
+	std::string host = msg->header("Host");
+	_Handler = _server.createHandler(msg->url(), *this, host);
+	if(!_Handler)
+	{
 		//should make a 404 response
 		_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"onHeadersEnd failed to find a suitable handle to process url: %s"),
 			msg->url().c_str() );
@@ -128,14 +132,16 @@ bool HttpPassiveConn::onHeadersEnd( const HttpMessage::Ptr msg) {
 		//close();
 		//clear();
 		return false;
-	} else {
-		if(! _Handler->onHeadersEnd(msg) ) {
-			_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"onHeadersEnd, user code return false in onHeadersEnd, may user code want to abort the procedure, url:%s"), msg->url().c_str());
-			_Handler = NULL;
-			return false;
-		}
-		return true;
-	}		
+	}
+	
+	if(! _Handler->onHeadersEnd(msg) )
+	{
+		_Handler = NULL;
+		_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"onHeadersEnd, user code return false in onHeadersEnd, may user code want to abort the procedure, url:%s"), msg->url().c_str());
+		return false;
+	}
+
+	return true;
 }
 
 bool HttpPassiveConn::onBodyData( const char* data, size_t size) {
@@ -167,7 +173,7 @@ HttpServer::HttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger)
 		:_Config(conf),
 		_Logger(logger)
 {
-
+	_vsites.insert(VSites::value_type(DEFAULT_SITE, MountDirs()));
 }
 
 HttpServer::~HttpServer()
@@ -212,22 +218,39 @@ void HttpServer::doAccept(ElpeError status)
 	}
 }
 */
-bool HttpServer::registerApp( const std::string& ruleStr, HttpBaseApplication::Ptr app ) {
-	UriMount uriEx;		
+
+bool HttpServer::mount(const std::string& ruleStr, HttpBaseApplication::Ptr app, const HttpHandler::Properties& props, const char* virtualSite)
+{
+	std::string vsite = (virtualSite && *virtualSite) ? virtualSite :DEFAULT_SITE;
+
+	MountDir dir;
 	try {
-		uriEx.re.assign(ruleStr);
+		dir.re.assign(ruleStr);
 	}
-	catch( const boost::regex_error& ) {
-		_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer,"failed to add [%s] as url uriEx"), ruleStr.c_str());
+	catch( const boost::regex_error& )
+	{
+		_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer, "mount() failed to add [%s:%s] as url uriEx"), vsite.c_str(), ruleStr.c_str());
 		return false;
 	}
-	uriEx.uriEx = ruleStr;
-	uriEx.app = app;
-	_uriMounts.push_back(uriEx);
+
+	dir.uriEx = ruleStr;
+	dir.app = app;
+	dir.props = props;
+
+	// address the virtual site
+	ZQ::common::MutexGuard gd(_Locker);
+	VSites::iterator itSite = _vsites.find(vsite);
+	if (_vsites.end() == itSite)
+	{
+		_vsites.insert(VSites::value_type(vsite, MountDirs()));
+		itSite = _vsites.find(vsite);
+	}
+
+	itSite->second.push_back(dir);
 	return true;
 }
 
-IHttpHandler::Ptr HttpServer::getHandler( const std::string& uri, HttpConnection& conn)
+HttpHandler::Ptr HttpServer::createHandler(const std::string& uri, HttpConnection& conn, const std::string& virtualSite)
 {
 	HttpBaseApplication::Ptr app = NULL;
 
@@ -237,20 +260,26 @@ IHttpHandler::Ptr HttpServer::getHandler( const std::string& uri, HttpConnection
 	if (std::string::npos != pos)
 		uriWithnoParams = uriWithnoParams.substr(0, pos);
 
-	std::vector<UriMount>::const_iterator it = _uriMounts.begin();
-	for( ; it != _uriMounts.end(); it ++ )
+	// address the virtual site
+	ZQ::common::MutexGuard gd(_Locker);
+	VSites::const_iterator itSite = _vsites.find(virtualSite);
+	if (_vsites.end() == itSite)
+		itSite = _vsites.find(DEFAULT_SITE); // the default site
+
+	HttpHandler::Ptr handler;
+
+	MountDirs::const_iterator it = itSite->second.begin();
+	for( ; it != itSite->second.end(); it++)
 	{
 		if(boost::regex_match(uriWithnoParams, it->re))
 		{
-			app = it->app;
+			if (it->app)
+				handler = it->app->create(conn, it->props);
 			break;
 		}
 	}
 
-	if (!app)
-		return NULL;
-
-	return app->create(conn);
+	return handler;
 }
 
 void HttpServer::addConn( HttpPassiveConn* servant )

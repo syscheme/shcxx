@@ -141,12 +141,14 @@ public:
 			return stricmp(lhr.c_str(),rhs.c_str()) < 0;
 		}
 	};
+
 	typedef std::map<std::string,std::string,caseInsensativeCmp> HEADERS;
 
 	inline unsigned int versionMajor() const { return _VerMajor; }
 	inline unsigned int versionMinor() const { return _VerMinor; }
 
-	void setVersion( unsigned int major, unsigned int minor) {
+	void setVersion( unsigned int major, unsigned int minor)
+	{
 		_VerMajor = major;
 		_VerMinor = minor;
 	}

@@ -9,13 +9,15 @@ namespace eloop {
 // ---------------------------------------
 // class TestHttpHandle
 // ---------------------------------------
-class TestHttpHandle : public IHttpHandler
+class TestHttpHandle : public HttpHandler
 {
 public:
-	typedef HttpApplication<TestHttpHandle> TestHttpHandleFactory;
+	typedef HttpApplication<TestHttpHandle> App;
 
-	TestHttpHandle(HttpConnection& conn);
-	~TestHttpHandle();
+	TestHttpHandle(HttpConnection& conn, const Properties& dirProps, const Properties& appProps)
+		: HttpHandler(conn, dirProps, appProps) {}
+
+	~TestHttpHandle() {}
 
 	void Response();
 	void ResponseIndex();
@@ -26,13 +28,8 @@ public:
  	virtual void onParseError( int error );
 
 	virtual void	onHttpDataSent(bool keepAlive);
-
 	virtual void	onHttpDataReceived( size_t size );
-
 	virtual void 	onWritable();
-
-private:
-	HttpConnection& _conn;
 };
 
 } }//namespace ZQ::eloop

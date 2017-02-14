@@ -57,14 +57,14 @@ int main(int argc,char* argv[])
 	std::string ip = host.substr(0,host.find(":"));
 	int port = atoi((host.substr(host.find(":")+1)).c_str());
 
-	ZQ::eloop::HttpBaseApplication* Test = new ZQ::eloop::TestHttpHandle::TestHttpHandleFactory();
+	ZQ::eloop::HttpBaseApplication* Test = new ZQ::eloop::TestHttpHandle::App();
 
 
 	ZQ::eloop::HttpServer::HttpServerConfig conf;
 	ZQ::eloop::HttpServer* server = new ZQ::eloop::SingleLoopHttpServer(conf,*pLog);
 
-	server->registerApp("/",Test);
-	server->registerApp("/index.html",Test);
+	server->mount("/",Test);
+	server->mount("/index.html",Test);
 
 
 	server->startAt(ip.c_str(),port);

@@ -2,52 +2,17 @@
 
 namespace ZQ {
 namespace eloop {
-	/*
-// ---------------------------------------
-// class TestHttpHandleFactory
-// ---------------------------------------
-TestHttpHandleFactory::TestHttpHandleFactory()
-{
-
-}
-TestHttpHandleFactory::~TestHttpHandleFactory()
-{
-
-}
-
-IHttpHandler::Ptr TestHttpHandleFactory::create( HttpConnection& processor )
-{
-	IHttpHandler::Ptr handler = new TestHttpHandle(processor);
-	return handler;
-}*/
-
-
-
-
 
 // ---------------------------------------
 // class TestHttpHandle
 // ---------------------------------------
-TestHttpHandle::TestHttpHandle(HttpConnection& conn):_conn(conn)
-{
-
-}
-
-TestHttpHandle::~TestHttpHandle()
-{
-
-}
-
 void Response()
 {
-
 }
 
 void ResponseIndex()
 {
-
 }
-
 
 bool TestHttpHandle::onHeadersEnd( const HttpMessage::Ptr msg)
 {

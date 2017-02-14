@@ -8,52 +8,77 @@
 #include <boost/regex.hpp>
 #include <set>
 
-
 namespace ZQ {
 namespace eloop {
 
 class HttpServer;
 class ServantThread;
+
 // ---------------------------------------
-// interface IHttpHandler
+// class HttpHandler
 // ---------------------------------------
-class IHttpHandler: public IHttpParseSink, public virtual ZQ::common::SharedObject {
+class HttpHandler: public IHttpParseSink, public virtual ZQ::common::SharedObject
+{
+	friend class HttpPassiveConn;
+	
 public:
-	typedef ZQ::common::Pointer<IHttpHandler> Ptr;
-	virtual ~IHttpHandler() { }
+	typedef std::map<std::string, std::string> Properties;
+	typedef ZQ::common::Pointer<HttpHandler> Ptr;
+	virtual ~HttpHandler() {}
 
-	virtual void	onHttpDataSent(bool keepAlive) = 0;
+protected: // hatched by HttpApplication
+	HttpHandler(HttpConnection& conn, const Properties& dirProps, const Properties& appProps)
+		: _conn(conn), _dirProps(dirProps), _appProps(appProps) {}
 
-	virtual void	onHttpDataReceived( size_t size ) = 0;
+protected:
+	virtual void	onHttpDataSent(bool keepAlive) {};
+	virtual void	onHttpDataReceived( size_t size ) {};
+	virtual void 	onWritable() {};
 
-	virtual void 	onWritable() = 0;
+	HttpConnection& _conn;
+	Properties _dirProps, _appProps;
 };
 
 // ---------------------------------------
 // class HttpBaseApplication
 // ---------------------------------------
 // present an HTTP application that respond a URI mount
-// the major funcation of the application is to instantiaze a IHttpHandler
+// the major funcation of the application is to instantiaze a HttpHandler
 class HttpBaseApplication : public ZQ::common::SharedObject
 {
 public:
 	typedef ZQ::common::Pointer<HttpBaseApplication> Ptr;
+
+public:
+	HttpBaseApplication(const HttpHandler::Properties& appProps = HttpHandler::Properties()): _appProps(appProps) {}
 	virtual ~HttpBaseApplication() {}
-	// NOTE: this method may be accessed by multi threads concurrently
-	virtual IHttpHandler::Ptr create( HttpConnection& conn ) { return NULL; }		
+
+	virtual HttpHandler::Ptr create( HttpConnection& conn, const HttpHandler::Properties& dirProps) { return NULL; }
+
+protected:
+	HttpHandler::Properties _appProps;
 };
 
+// ---------------------------------------
+// template HttpApplication
+// ---------------------------------------
+// present an HTTP application that respond a URI mount
+// the major funcation of the application is to instantiaze a HttpHandler
 template <class Handler>
-class HttpApplication: public HttpBaseApplication
+class HttpApplication : public HttpBaseApplication
 {
 public:
 	typedef ZQ::common::Pointer<HttpApplication> Ptr;
 	typedef Handler HandlerT;
-	HttpApplication(){}
-	~HttpApplication(){}
 
-	virtual IHttpHandler::Ptr create( HttpConnection& conn ) { return new HandlerT(conn); }
+public:
+	HttpApplication(const HttpHandler::Properties& appProps = HttpHandler::Properties()): _appProps(appProps) {}
+	virtual ~HttpApplication() {}
 
+	virtual HttpHandler::Ptr create( HttpConnection& conn, const HttpHandler::Properties& dirProps) { return new HandlerT(conn, dirProps, _appProps); }
+
+protected:
+	HttpHandler::Properties _appProps;
 };
 
 // ---------------------------------------
@@ -88,7 +113,7 @@ private:
 
 private:
 	HttpServer&					_server;
-	IHttpHandler::Ptr			_Handler;
+	HttpHandler::Ptr			_Handler;
 	int64						_LastTouch;
 	
 	ZQ::common::Log&			_Logger;
@@ -97,6 +122,8 @@ private:
 
 	std::string					_Hint;
 };
+
+#define DEFAULT_SITE "."
 
 // ---------------------------------------
 // class HttpServer
@@ -130,9 +157,9 @@ public:
 
 	// register an application to uri
 	//@param uriEx - the regular expression of uri
-	bool registerApp( const std::string& uriEx, HttpBaseApplication::Ptr app);
+	bool mount(const std::string& uriEx, HttpBaseApplication::Ptr app, const HttpHandler::Properties& props=HttpHandler::Properties(), const char* virtualSite =DEFAULT_SITE);
 
-	IHttpHandler::Ptr getHandler( const std::string& uri, HttpConnection& conn);
+	HttpHandler::Ptr createHandler( const std::string& uri, HttpConnection& conn, const std::string& virtualSite = std::string(DEFAULT_SITE));
 
 	void	addConn( HttpPassiveConn* servant );
 	void	delConn( HttpPassiveConn* servant );
@@ -143,14 +170,18 @@ protected:
 	ZQ::common::Log&		_Logger;
 
 private:
-	typedef struct _UriMount
+	typedef struct _MountDir
 	{
 		std::string					uriEx;
 		boost::regex				re;
-		HttpBaseApplication::Ptr	app;	
-	} UriMount;
+		HttpBaseApplication::Ptr	app;
+		HttpHandler::Properties     props;
+	} MountDir;
 
-	std::vector<UriMount>	_uriMounts;
+	typedef std::vector<MountDir> MountDirs;
+	typedef std::map<std::string, MountDirs> VSites;
+
+	VSites _vsites;
 	HttpServerConfig		_Config;
 	std::set<HttpPassiveConn*> _PassiveConn;
 	ZQ::common::Mutex		_Locker;

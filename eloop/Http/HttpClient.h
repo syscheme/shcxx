@@ -6,45 +6,45 @@
 
 namespace ZQ {
 namespace eloop {
+
 // ---------------------------------------
 // class HttpClient
 // ---------------------------------------
-class HttpClient : public HttpConnection {
+class HttpClient : public HttpConnection
+{
 public:
 	HttpClient();
-	virtual void OnConnected(ElpeError status);
+	virtual ~HttpClient(void);
+
 	bool beginRequest( HttpMessage::Ptr msg, const std::string& url);
 
 private:
-	//disallow copy construction
+	//disallow copier constructions
 	HttpClient(const HttpClient&);
 	HttpClient& operator=(const HttpClient&);
 
-public:
-	virtual ~HttpClient(void);
+protected: // overrides
+	virtual void OnConnected(ElpeError status);
 
-
-protected:
 	// onReqMsgSent is only used to notify that the sending buffer is free and not held by HttpClient any mre
 	virtual void	onHttpDataSent(bool keepAlive) { }
 
 	// onHttpDataReceived is only used to notify that the receiving buffer is free and not held by HttpClient any mre
 	virtual void	onHttpDataReceived( size_t size ) { }
 
-	virtual bool	onHttpMessage( const HttpMessage::Ptr msg) { 
+	virtual bool	onHttpMessage( const HttpMessage::Ptr msg)
+	{ 
 		abort();
 		return false; 
 	}
 
 	virtual bool	onHttpBody( const char* data, size_t size) { return false; }
-
 	virtual void	onHttpComplete() { }
-
 	virtual void	onHttpError( int error ) { }
 
 private:
-		HttpMessage::Ptr		_SendMsg;
-
+	HttpMessage::Ptr		_SendMsg;
 };
+
 } }//namespace ZQ::eloop
 #endif
