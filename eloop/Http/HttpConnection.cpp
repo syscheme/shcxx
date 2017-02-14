@@ -8,9 +8,10 @@ namespace eloop {
 // ---------------------------------------
 // class HttpConnection
 // ---------------------------------------
-HttpConnection::HttpConnection(bool clientSide)
+HttpConnection::HttpConnection(bool clientSide,ZQ::common::Log& logger)
 		:_Type(clientSide?HttpMessage::MSG_RESPONSE:HttpMessage::MSG_REQUEST),
 		_Parser(NULL),
+		_Logger(logger),
 		_ParserSettings(NULL)
 {
 	_Parser = (http_parser*)malloc(sizeof(http_parser));
@@ -42,7 +43,6 @@ void HttpConnection::reset(IHttpParseSink* p)
 
 	http_parser_init(_Parser,(http_parser_type)_Type);
 	_Parser->data = reinterpret_cast<void*>(this);
-	_Stopped = false;
 	_HeaderField.clear();
 	_HeaderValue = NULL;
 	_ParserState = STATE_INIT;

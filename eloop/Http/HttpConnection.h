@@ -5,7 +5,7 @@
 #include "eloop_net.h"
 #include <set>
 #include <assert.h>
-// #include "http_parser.h"
+
 
 struct http_parser;
 struct http_parser_settings;
@@ -50,15 +50,10 @@ private:
 public:
 	virtual ~HttpConnection();
 
-//	int send(const char* buf,size_t len);
-//	void setkeepAlive(bool alive){_bOutgoingKeepAlive = alive;}
-//	bool getkeepAlive(){ return _bOutgoingKeepAlive;}
-
 protected:
-	HttpConnection(bool clientSide);
+	HttpConnection(bool clientSide,ZQ::common::Log& logger);
 	void reset( IHttpParseSink* callback = NULL);
 	
-//	int 			sendChunk( BufferHelper& bh);
 	virtual void OnRead(ssize_t nread, const char *buf);
 	virtual void OnWrote(ElpeError status);
 	virtual void OnClose();
@@ -91,14 +86,12 @@ protected: // implementation of IHttpParseSink that also present the message rec
 	virtual void onParseError( int error,const char* errorDescription ) {}
 
 private:
-
+	ZQ::common::Log&		 _Logger;
 	http_parser*             _Parser; // its type can be determined by clientSide
 	http_parser_settings*    _ParserSettings;
 	HttpMessage::Ptr         _CurrentParseMsg;
 	HttpMessage::MessgeType  _Type;
 	IHttpParseSink*			 _Callback;
-
-	bool				_Stopped;
 
 	std::string			_HeaderField;
 	std::string*		_HeaderValue;

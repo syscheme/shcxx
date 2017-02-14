@@ -8,7 +8,7 @@ namespace eloop {
 // ---------------------------------------
 HttpPassiveConn::HttpPassiveConn(HttpServer& server,ZQ::common::Log& logger)
 		:_server(server),
-		HttpConnection(false),
+		HttpConnection(false,logger),
 		_bError(false),
 		_Handler(0),
 		_LastTouch(0),
