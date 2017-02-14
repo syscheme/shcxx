@@ -1,5 +1,5 @@
 #include <FileLog.h>
-#include "httpServer.h"
+#include "HttpServer.h"
 #include "TestHttpHandle.h"
 #include "getopt.h"
 #include <iostream>
@@ -23,7 +23,7 @@ int main(int argc,char* argv[])
 	}
 
 	std::string logFilePath,host;
-	int ch = 0,threadCount = 5;
+	int ch = 0,threadCount = 4;
 	while((ch = getopt(argc,argv,"l:i:t:h:")) != EOF)
 	{
 		switch(ch)
@@ -45,8 +45,6 @@ int main(int argc,char* argv[])
 		}
 	}
 
-	ZQ::eloop::Loop loop(true);
-
 	ZQ::common::Log* pLog = new ZQ::common::FileLog(logFilePath.c_str(),7, 5,10240000);
 	if (pLog == NULL)
 	{
@@ -57,16 +55,33 @@ int main(int argc,char* argv[])
 	std::string ip = host.substr(0,host.find(":"));
 	int port = atoi((host.substr(host.find(":")+1)).c_str());
 
-	ZQ::eloop::HttpBaseApplication* Test = new ZQ::eloop::TestHttpHandle::App();
-
+	ZQ::eloop::HttpBaseApplication::Ptr Test = new ZQ::eloop::TestHttpHandle::TestHttpHandleFactory();
+	ZQ::eloop::HttpBaseApplication::Ptr Download = new ZQ::eloop::DownloadeHandle::DownloadeHandleFactory();
+	ZQ::eloop::HttpBaseApplication::Ptr util = new ZQ::eloop::UtilHandle::UtilHandleFactory();
+	ZQ::eloop::HttpBaseApplication::Ptr empty = new ZQ::eloop::EmptyHttpHandle::EmptyHttpHandleFactory();
+	
 
 	ZQ::eloop::HttpServer::HttpServerConfig conf;
-	ZQ::eloop::HttpServer* server = new ZQ::eloop::SingleLoopHttpServer(conf,*pLog);
+	SYS::SingleObject signal;
+	ZQ::eloop::HttpServer* server;
+	if(threadCount <= 0)
+		server = new ZQ::eloop::SingleLoopHttpServer(conf,*pLog,signal);
+	else
+		server = new ZQ::eloop::MultipleLoopHttpServer(conf,*pLog,threadCount,signal);
+
 
 	server->mount("/",Test);
 	server->mount("/index.html",Test);
 
+/*	server->registerApp("/",Test);
+	server->registerApp("/index.html",Test);
+	server->registerApp("/download/hunan1.ts",Download);
+	server->registerApp("/getValue/cpu",util);
+	server->registerApp("/empty",empty);
+*/
 
 	server->startAt(ip.c_str(),port);
+	signal.wait();
+	delete server;
 	return 0;
 }

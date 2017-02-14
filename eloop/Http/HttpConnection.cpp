@@ -1,6 +1,6 @@
 #include "HttpConnection.h"
 #include "http_parser.h"
-#include "httpMessage.h"
+#include "HttpMessage.h"
 
 
 namespace ZQ {
@@ -9,14 +9,9 @@ namespace eloop {
 // class HttpConnection
 // ---------------------------------------
 HttpConnection::HttpConnection(bool clientSide)
-		:_Type(clientSide?HttpMessage::HTTP_RESPONSE:HttpMessage::HTTP_REQUEST),
-		_bOutgoingKeepAlive(true),
+		:_Type(clientSide?HttpMessage::MSG_RESPONSE:HttpMessage::MSG_REQUEST),
 		_Parser(NULL),
-		_ParserSettings(NULL),
-//		mbSending(false),
-		_SendCount(0),
-		_IncomingMsg(NULL)
-
+		_ParserSettings(NULL)
 {
 	_Parser = (http_parser*)malloc(sizeof(http_parser));
 	_ParserSettings = (http_parser_settings*)malloc(sizeof(http_parser_settings));
@@ -54,34 +49,25 @@ void HttpConnection::reset(IHttpParseSink* p)
 	_CurrentParseMsg = new HttpMessage(_Type);
 }
 
-int HttpConnection::send(const char* buf,size_t len)
-{
-	_SendCount++;
-	return write(buf,len);
-}
-
-
 void HttpConnection::OnRead(ssize_t nread, const char *buf)
 {
 	if (nread < 0) {
-		fprintf(stderr, "Read error %s\n",  errName((ZQ::eloop::Handle::ElpeError)nread));
-		onParseError(nread);
+		//fprintf(stderr, "Read error %s\n",  errName(nread));
+		std::string desc = "Read error:";
+		desc.append(errDesc(nread));
+		onParseError(nread,desc.c_str());
 		return;
 	}
-	std::string str = buf;
+//	std::string str = buf;
 //	printf("recv data:%s,len = %d,size = %d\n", buf,nread,str.size());
 
 	size_t nparsed =parse(buf, nread);
 	if(nparsed != nread){
-		onParseError((int)_Parser->http_errno);
+		std::string parsedesc = "parse error:";
+		parsedesc.append(http_errno_description((http_errno)_Parser->http_errno));
+		onParseError((int)_Parser->http_errno,parsedesc.c_str());
 		return;
 	}
-	if(_ParserState < STATE_HEADERS){
-		if(_IncomingMsg != NULL)
-			assert(false);
-		return;
-	} 
-	_IncomingMsg = _CurrentParseMsg;		
 
 	if( _ParserState >= STATE_COMPLETE) {
 		reset();
@@ -91,22 +77,31 @@ void HttpConnection::OnRead(ssize_t nread, const char *buf)
 
 void HttpConnection::OnWrote(ElpeError status)
 {
-//	mbSending = false;
-	_SendCount--;
 	if (status != elpeSuccess)
 	{
-		fprintf(stderr, "send error %s\n",  errDesc(status)); 
-		onParseError(status);
+		//fprintf(stderr, "send error %s\n",  errDesc(status));
+		std::string desc = "send error:";
+		desc.append(errDesc(status));
+		onParseError(status,desc.c_str());
 		return;
 	}
 	
-	// if whole http raw message has been sent
-	// mOutgoingMsg should be NULL
-	onHttpDataSent(_bOutgoingKeepAlive);
-/*
-	if( mOutgoingMsg == NULL ) {
-		onHttpEndSent(_bOutgoingKeepAlive);
-	}*/
+	onHttpDataSent();
+}
+
+void HttpConnection::OnClose()
+{
+	delete this;
+}
+
+void HttpConnection::OnShutdown(ElpeError status)
+{
+	if (status != elpeSuccess)
+	{
+		fprintf(stderr, "shutdown error %s\n",  errDesc(status));
+		//return;
+	}
+	close();
 }
 
 size_t HttpConnection::parse( const char* data, size_t size) {

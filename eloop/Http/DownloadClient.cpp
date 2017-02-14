@@ -6,7 +6,7 @@ namespace eloop {
 // class EmptyClient
 // ---------------------------------------
 EmptyClient::EmptyClient(ZQ::common::Log& logger,DownloadThread* thread)
-:_Logger(logger),_Thread(thread)
+:_Logger(logger),_Thread(thread),_count(0)
 {
 
 }
@@ -19,7 +19,7 @@ EmptyClient::~EmptyClient()
 void EmptyClient::dohttp(std::string& url)
 {
 
-	HttpMessage::Ptr msg = new HttpMessage(HttpMessage::HTTP_REQUEST);
+	HttpMessage::Ptr msg = new HttpMessage(HttpMessage::MSG_REQUEST);
 	msg->method(HTTP_POST);
 	msg->url("*");
 
@@ -32,31 +32,34 @@ void EmptyClient::dohttp(std::string& url)
 void EmptyClient::OnConnected(ElpeError status)
 {
 	HttpClient::OnConnected(status);
-	_Thread->add();
+	//_Thread->add();
 }
 
 
-bool EmptyClient::onHttpMessage( const HttpMessage::Ptr msg)
+bool EmptyClient::onHeadersEnd( const HttpMessage::Ptr msg)
 {
 	_Response = msg;
 	return true;
 }
 
-bool	EmptyClient::onHttpBody( const char* data, size_t size)
+bool EmptyClient::onBodyData( const char* data, size_t size)
 {
 	//_RespBody.append(data,size);
-
+	//_count = _count + size;
+	//printf("body = %s\n,len = %d\n",data,size);
 	return true;
 }
 
-void	EmptyClient::onHttpComplete()
+void	EmptyClient::onMessageCompleted()
 {
-	
+	printf("parser end! _count = %d\n",_count);
 }
 
-void	EmptyClient::onHttpError( int error )
+void	EmptyClient::onParseError(  int error,const char* errorDescription  )
 {
-	_Thread->subtract();
+	printf("EmptyClient %s\n",errorDescription);
+	shutdown();
+	//_Thread->subtract();
 }
 
 
@@ -77,7 +80,7 @@ DownloadClient::~DownloadClient()
 void DownloadClient::dohttp(std::string& url)
 {
 
-	HttpMessage::Ptr msg = new HttpMessage(HttpMessage::HTTP_REQUEST);
+	HttpMessage::Ptr msg = new HttpMessage(HttpMessage::MSG_REQUEST);
 	msg->method(HTTP_POST);
 	msg->url("*");
 	
@@ -99,13 +102,13 @@ void DownloadClient::dohttp(std::string& url)
 }
 
 
-bool DownloadClient::onHttpMessage( const HttpMessage::Ptr msg)
+bool DownloadClient::onHeadersEnd( const HttpMessage::Ptr msg)
 {
 	_Response = msg;
 	return true;
 }
 
-bool DownloadClient::onHttpBody( const char* data, size_t size)
+bool DownloadClient::onBodyData( const char* data, size_t size)
 {
 	//_RespBody.append(data,size);
 
@@ -117,14 +120,18 @@ bool DownloadClient::onHttpBody( const char* data, size_t size)
 	return true;
 }
 
-void DownloadClient::onHttpComplete()
+void DownloadClient::onMessageCompleted()
 {
+	printf("DownloadClient http end!\n");
 	closefile();
+	shutdown();
 }
 
-void DownloadClient::onHttpError( int error )
+void DownloadClient::onParseError(  int error,const char* errorDescription )
 {
+	printf("DownloadClient %s\n",errorDescription);
 	closefile();
+	shutdown();
 }
 
 void DownloadClient::closefile()
@@ -163,13 +170,13 @@ int DownloadThread::run()
 		port = _Count*_SessionCount + i +50000;
 		EmptyClient* client = new EmptyClient(_Logger,this);
 		client->init(loop);
-		_Logger(ZQ::common::Log::L_DEBUG,CLOGFMT(DownloadClient,"creat session id =%d,SessionCount=%d"),port-50000,_SessionCount);
+		_Logger(ZQ::common::Log::L_DEBUG,CLOGFMT(DownloadClient,"current thread SessionCount=%d,creat session id =%d"),_SessionCount,port-50000);
 	//	if (client->bind4("192.168.81.28",port) != 0)
 	//	{
 	//		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(DownloadClient,"bind port %d error!"),port);
 	//	}
 		client->dohttp(_url);
-		Sleep(_IntervalTime);
+		sleep(_IntervalTime);
 	}
 
 	loop.run(Loop::Default);

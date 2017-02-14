@@ -1,7 +1,7 @@
 #ifndef __HTTP_Connection_H__
 #define __HTTP_Connection_H__
 
-#include "httpMessage.h"
+#include "HttpMessage.h"
 #include "eloop_net.h"
 #include <set>
 #include <assert.h>
@@ -35,7 +35,7 @@ public:
 	virtual void onMessageCompleted() = 0;
 
 	/// error occured during data receiving or parsing stage
-	virtual void onParseError( int error ) = 0;
+	virtual void onParseError( int error,const char* errorDescription ) = 0;
 };
 
 // ---------------------------------------
@@ -50,23 +50,24 @@ private:
 public:
 	virtual ~HttpConnection();
 
-	int send(const char* buf,size_t len);
-	void setkeepAlive(bool alive){_bOutgoingKeepAlive = alive;}
-	bool getkeepAlive(){ return _bOutgoingKeepAlive;}
+//	int send(const char* buf,size_t len);
+//	void setkeepAlive(bool alive){_bOutgoingKeepAlive = alive;}
+//	bool getkeepAlive(){ return _bOutgoingKeepAlive;}
 
 protected:
 	HttpConnection(bool clientSide);
-	void			reset( IHttpParseSink* callback = NULL);
-	int getSendCount(){return _SendCount;}
+	void reset( IHttpParseSink* callback = NULL);
 	
 //	int 			sendChunk( BufferHelper& bh);
 	virtual void OnRead(ssize_t nread, const char *buf);
 	virtual void OnWrote(ElpeError status);
+	virtual void OnClose();
+	virtual void OnShutdown(ElpeError status);
 
 
 protected:
 	// onReqMsgSent is only used to notify that the sending buffer is free and not held by HttpClient any mre
-	virtual void onHttpDataSent(bool keepAlive) { }
+	virtual void onHttpDataSent() { }
 	// onHttpDataReceived is only used to notify that the receiving buffer is free and not held by HttpClient any mre
 	virtual void onHttpDataReceived(size_t size) { }
 
@@ -87,7 +88,7 @@ protected: // implementation of IHttpParseSink that also present the message rec
 	virtual void onMessageCompleted() {}
 
 	/// error occured during data receiving or parsing stage
-	virtual void onParseError( int error ) {}
+	virtual void onParseError( int error,const char* errorDescription ) {}
 
 private:
 
@@ -101,15 +102,7 @@ private:
 
 	std::string			_HeaderField;
 	std::string*		_HeaderValue;
-//	http_parser_type		_ParseType;
-//	HttpParser				_HttpParser;
 
-	HttpMessage::Ptr		_IncomingMsg;
-
-	int						_SendCount;
-	bool					_bOutgoingKeepAlive;
-
-// from previouw HttpParser
 private:
 	enum ParseState {
 		STATE_INIT,

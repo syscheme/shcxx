@@ -1,7 +1,7 @@
 #ifndef __DOWNLOAD_CLIENT_h__
 #define __DOWNLOAD_CLIENT_h__
 
-#include "httpClient.h"
+#include "HttpClient.h"
 #include <NativeThread.h>
 
 namespace ZQ {
@@ -18,13 +18,13 @@ public:
 	void dohttp(std::string& url);
 	void closefile();
 
-	virtual bool	onHttpMessage( const HttpMessage::Ptr msg);
+	virtual bool	onHeadersEnd( const HttpMessage::Ptr msg);
 
-	virtual bool	onHttpBody( const char* data, size_t size);
+	virtual bool	onBodyData( const char* data, size_t size);
 
-	virtual void	onHttpComplete();
+	virtual void	onMessageCompleted();
 
-	virtual void	onHttpError( int error );
+	virtual void	onParseError( int error,const char* errorDescription );
 
 private:
 	ZQ::common::Log&	_Logger;
@@ -48,19 +48,20 @@ public:
 
 	virtual void OnConnected(ElpeError status);
 
-	virtual bool	onHttpMessage( const HttpMessage::Ptr msg);
+	virtual bool	onHeadersEnd( const HttpMessage::Ptr msg);
 
-	virtual bool	onHttpBody( const char* data, size_t size);
+	virtual bool	onBodyData( const char* data, size_t size);
 
-	virtual void	onHttpComplete();
+	virtual void	onMessageCompleted();
 
-	virtual void	onHttpError( int error );
+	virtual void	onParseError( int error,const char* errorDescription );
 
 private:
 	ZQ::common::Log&	_Logger;
 	HttpMessage::Ptr	_Response;
 	std::string			_RespBody;
 	DownloadThread*		_Thread;
+	int					_count;
 };
 
 // ---------------------------------------

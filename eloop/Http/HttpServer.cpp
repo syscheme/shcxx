@@ -1,4 +1,4 @@
-#include "httpServer.h"
+#include "HttpServer.h"
 
 
 namespace ZQ {
@@ -40,21 +40,15 @@ void HttpPassiveConn::initHint() {
 	_Hint = oss.str();
 }
 
-void HttpPassiveConn::clear( ) {
-	_server.delConn(this);
-	close();
-	delete this;
-}
-
 void HttpPassiveConn::errorResponse( int code ) {
 	_Logger(ZQ::common::Log::L_DEBUG,CLOGFMT(HttpPassiveConn,"errorResponse, code %d"), code);
 	HttpMessage::Ptr msg = _server.makeSimpleResponse(code);
 	_bError = true;
 	std::string response = msg->toRaw();
-	send(response.c_str(),response.length());
+	write(response.c_str(),response.length());
 }
 
-void HttpPassiveConn::onParseError( int err ) {
+void HttpPassiveConn::onParseError(int error,const char* errorDescription) {
 
 	char locip[17] = { 0 };
 	int  locport = 0;
@@ -62,47 +56,40 @@ void HttpPassiveConn::onParseError( int err ) {
 
 	char peerip[17] = { 0 };
 	int  peerport = 0;
-	getpeerIpPort(locip,peerport);
+	getpeerIpPort(peerip,peerport);
 
-	//_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn, "onParseError [%p] [%s:%d => %s:%d], error[%s]"), 
-//		this, locip, locport, peerip, peerport, ErrorCodeToStr((ErrorCode)err));
+	_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn, "onParseError [%p] [%s:%d => %s:%d], errorCode[%d],Description[%s]"), 
+		this, locip, locport, peerip, peerport,error,errorDescription);
 	if(_Handler)
-		_Handler->onParseError(err);
+		_Handler->onParseError(error,errorDescription);
 
-	if(getSendCount() <= 0)
-		clear();
+	shutdown();
 }
 
-void HttpPassiveConn::onWritable()
+void HttpPassiveConn::OnClose()
 {
-	if(!_Handler) {			
-		return;
-	}
-
-	_Handler->onWritable();
+	_server.delConn(this);
+	delete this;
 }
 
-void HttpPassiveConn::onHttpDataSent( bool keepAlive ) {
+void HttpPassiveConn::onHttpDataSent() {
 
-	char locip[17] = { 0 };
+/*	char locip[17] = { 0 };
 	int  locport = 0;
 	getlocaleIpPort(locip,locport);
 
 	char peerip[17] = { 0 };
 	int  peerport = 0;
-	getpeerIpPort(locip,peerport);
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpPassiveConn, "onHttpDataSent [%p] [%s:%d==>%s:%d]."), this, locip, locport, peerip, peerport);
+	getpeerIpPort(peerip,peerport);
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpPassiveConn, "onHttpDataSent [%p] [%s:%d==>%s:%d]."), this, locip, locport, peerip, peerport);*/
 
 	if(_Handler != NULL) {			
-		_Handler->onHttpDataSent(keepAlive);
+		_Handler->onHttpDataSent();
 	}
-
-	if(!keepAlive && getSendCount() <= 0)
-		clear();
 }
 
-void HttpPassiveConn::onHttpDataReceived( size_t size )
-{
+
+void HttpPassiveConn::onHttpDataReceived( size_t size ) {
 	// NOTE something here
 	if(_Handler) {
 		_Handler->onHttpDataReceived(size);
@@ -110,21 +97,16 @@ void HttpPassiveConn::onHttpDataReceived( size_t size )
 	//start();//this may fail because a receiving call has been fired		
 }
 
-bool HttpPassiveConn::onHeadersEnd( const HttpMessage::Ptr msg)
-{
+bool HttpPassiveConn::onHeadersEnd( const HttpMessage::Ptr msg) {
 	_HeaderComplete = true;
-	if( msg->versionMajor() != 1 && msg->versionMinor() != 1 )
-	{
+	if( msg->versionMajor() != 1 && msg->versionMinor() != 1 ) {
 		_Logger(ZQ::common::Log::L_WARNING, CLOGFMT( HttpPassiveConn,"onHeadersEnd, unsupport http version[%u/%u], reject"),
 			msg->versionMajor(), msg->versionMinor());
 		errorResponse(505);
 		return false;
 	}
-
-	std::string host = msg->header("Host");
-	_Handler = _server.createHandler(msg->url(), *this, host);
-	if(!_Handler)
-	{
+	_Handler = _server.createHandler( msg->url(), *this);
+	if(!_Handler) {
 		//should make a 404 response
 		_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"onHeadersEnd failed to find a suitable handle to process url: %s"),
 			msg->url().c_str() );
@@ -132,16 +114,14 @@ bool HttpPassiveConn::onHeadersEnd( const HttpMessage::Ptr msg)
 		//close();
 		//clear();
 		return false;
-	}
-	
-	if(! _Handler->onHeadersEnd(msg) )
-	{
-		_Handler = NULL;
-		_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"onHeadersEnd, user code return false in onHeadersEnd, may user code want to abort the procedure, url:%s"), msg->url().c_str());
-		return false;
-	}
-
-	return true;
+	} else {
+		if(! _Handler->onHeadersEnd(msg) ) {
+			_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"onHeadersEnd, user code return false in onHeadersEnd, may user code want to abort the procedure, url:%s"), msg->url().c_str());
+			_Handler = NULL;
+			return false;
+		}
+		return true;
+	}		
 }
 
 bool HttpPassiveConn::onBodyData( const char* data, size_t size) {
@@ -173,7 +153,7 @@ HttpServer::HttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger)
 		:_Config(conf),
 		_Logger(logger)
 {
-	_vsites.insert(VSites::value_type(DEFAULT_SITE, MountDirs()));
+
 }
 
 HttpServer::~HttpServer()
@@ -181,44 +161,38 @@ HttpServer::~HttpServer()
 	//stop();
 }
 /*
-bool HttpServer::startAt( const char* ip, int port)
-{
-	if (bind4(ip,port) < 0)
+bool HttpServer::registerApp( const std::string& ruleStr, HttpBaseApplication::Ptr app ) {
+	UriMount uriEx;		
+	try {
+		uriEx.re.assign(ruleStr);
+	}
+	catch( const boost::regex_error& ) {
+		_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer,"failed to add [%s] as url uriEx"), ruleStr.c_str());
 		return false;
-	
-	if (listen() < 0)
-		return false;
+	}
+	uriEx.uriEx = ruleStr;
+	uriEx.app = app;
+	_uriMounts.push_back(uriEx);
 	return true;
 }
 
-void HttpServer::stop( )
+HttpHandler::Ptr HttpServer::getHandler( const std::string& uri, HttpConnection& conn)
 {
-	close();
-}
-
-void HttpServer::doAccept(ElpeError status)
-{
-	if (status != elpeSuccess)
-	{
-		fprintf(stderr, "doAccept()error %s\n", errDesc(status));
-		return;
+	HttpBaseApplication::Ptr app = NULL;
+	std::vector<UriMount>::const_iterator it = _uriMounts.begin();
+	for( ; it != _uriMounts.end(); it ++ ) {
+		if(boost::regex_match(uri,it->re))  {
+			app = it->app;
+			break;
+		}
 	}
 
-	HttpPassiveConn* client = new HttpPassiveConn(*this,_Logger);
-	client->init(get_loop());
+	if (!app)
+		return NULL;
 
-	if (accept((Stream*)client) == 0) {
-
-		client->start();
-		_Logger(ZQ::common::Log::L_INFO, CLOGFMT(httpServer,"comes a new connection from [%s]"),client->hint().c_str());
-		
-	}
-	else {
-		client->clear();
-	}
+	return app->create(conn,app,_Logger);
 }
 */
-
 bool HttpServer::mount(const std::string& ruleStr, HttpBaseApplication::Ptr app, const HttpHandler::Properties& props, const char* virtualSite)
 {
 	std::string vsite = (virtualSite && *virtualSite) ? virtualSite :DEFAULT_SITE;
@@ -274,7 +248,7 @@ HttpHandler::Ptr HttpServer::createHandler(const std::string& uri, HttpConnectio
 		if(boost::regex_match(uriWithnoParams, it->re))
 		{
 			if (it->app)
-				handler = it->app->create(conn, it->props);
+				handler = it->app->create(conn,_Logger,it->props);
 			break;
 		}
 	}
@@ -282,21 +256,24 @@ HttpHandler::Ptr HttpServer::createHandler(const std::string& uri, HttpConnectio
 	return handler;
 }
 
+
 void HttpServer::addConn( HttpPassiveConn* servant )
 {
 	ZQ::common::MutexGuard gd(_Locker);
 	_PassiveConn.insert( servant );
+	_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer,"connect count = %d"),_PassiveConn.size());
 }
 
 void HttpServer::delConn( HttpPassiveConn* servant )
 {
 	ZQ::common::MutexGuard gd(_Locker);
 	_PassiveConn.erase(servant);
+	_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer,"connect count = %d"),_PassiveConn.size());
 }
 
 
 HttpMessage::Ptr HttpServer::makeSimpleResponse( int code ) const {
-	HttpMessage::Ptr msg = new HttpMessage(HttpMessage::HTTP_RESPONSE);
+	HttpMessage::Ptr msg = new HttpMessage(HttpMessage::MSG_RESPONSE);
 	msg->code(code);
 	msg->status(HttpMessage::code2status(code));
 	msg->header("Server", _Config.serverName );
@@ -304,21 +281,20 @@ HttpMessage::Ptr HttpServer::makeSimpleResponse( int code ) const {
 	return msg;
 }
 
-
-
 // ---------------------------------------
 // class SingleLoopHttpServer
 // ---------------------------------------
 // Single event loop
 
-SingleLoopHttpServer::SingleLoopHttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger)
-			:HttpServer(conf,logger)
+SingleLoopHttpServer::SingleLoopHttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger,SYS::SingleObject& signal)
+			:HttpServer(conf,logger),
+			_signal(signal)
 {
 	init(_loop);
 }
 SingleLoopHttpServer::~SingleLoopHttpServer()
 {
-
+	_loop.close();
 }
 bool SingleLoopHttpServer::startAt( const char* ip, int port)
 {
@@ -352,7 +328,7 @@ void SingleLoopHttpServer::doAccept(ElpeError status)
 
 	}
 	else {
-		client->clear();
+		client->shutdown();
 	}
 }
 
@@ -360,22 +336,29 @@ void SingleLoopHttpServer::doAccept(ElpeError status)
 // class MultipleLoopHttpServer
 // ---------------------------------------
 //Multiple event loop
-MultipleLoopHttpServer::MultipleLoopHttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger,int threadCount)
+MultipleLoopHttpServer::MultipleLoopHttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger,int threadCount,SYS::SingleObject& signal)
 			:HttpServer(conf,logger),
 			_bRunning(false),
 			_threadCount(threadCount),
 			_roundCount(0),
-			_socket(0)
+			_socket(0),
+			_signal(signal)
 {
 	CpuInfo cpu;
 	int cpuCount = cpu.getCpuCount();
-	int j = 0;
-	setCpuAffinity(j);
+	int mask = 1,j = 1,n = 1;
+	setCpuAffinity(mask);
 	for (int i = 0;i < _threadCount;i++)
 	{
 		ServantThread *pthread = new ServantThread(*this,_Logger);
-		j = (j+1) % cpuCount;
-		pthread->setCpuAffinity(j);
+		
+		mask = j<<n;
+		printf("mask = %d , n = %d\n",mask,n);
+		pthread->setCpuAffinity(mask);
+		n++;
+		if (n == cpuCount)
+			n = 0;
+		
 		pthread->start();
 		_vecThread.push_back(pthread);
 	}
@@ -387,7 +370,6 @@ MultipleLoopHttpServer::~MultipleLoopHttpServer()
 	for (iter=_vecThread.begin();iter!=_vecThread.end();iter++)  
 	{  
 		(*iter)->close();
-		delete *iter;
 		_vecThread.erase(iter++);
 	}
 	_bRunning = false;
@@ -395,18 +377,14 @@ MultipleLoopHttpServer::~MultipleLoopHttpServer()
 
 bool MultipleLoopHttpServer::startAt( const char* ip, int port)
 {
-	struct sockaddr_in serv;
 
-	serv.sin_family=AF_INET;
-	serv.sin_port=htons(port);
-	serv.sin_addr.S_un.S_addr=inet_addr(ip);
-
-	WORD sockVersion = MAKEWORD(2,2);
+#ifdef ZQ_OS_MSWIN
 	WSADATA wsaData;
-	if(WSAStartup(sockVersion, &wsaData)!=0)
+	if(WSAStartup(MAKEWORD(2,2), &wsaData)!=0)
 	{
 		return 0;
 	}
+#endif
 
 	_socket = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
 
@@ -417,7 +395,10 @@ bool MultipleLoopHttpServer::startAt( const char* ip, int port)
 	if( _socket < 0 )
 		return false;
 
-
+	struct sockaddr_in serv;
+	serv.sin_family=AF_INET;
+	serv.sin_port=htons(port);
+	serv.sin_addr.s_addr=inet_addr(ip);
 	if(bind(_socket,(struct sockaddr*)&serv,sizeof(serv)) == -1)
 	{
 		printf("socket bind error!");
@@ -433,7 +414,16 @@ bool MultipleLoopHttpServer::startAt( const char* ip, int port)
 
 void MultipleLoopHttpServer::stop()
 {
+#ifdef ZQ_OS_MSWIN
 	closesocket(_socket);
+	//clean WSA env
+	WSACleanup(); 
+#else
+	// stop a blocking call
+	shutdown(_socket, SHUT_RDWR);
+	close(_socket);
+#endif
+	_socket = 0;
 }
 
 int MultipleLoopHttpServer::run()
@@ -452,6 +442,7 @@ int MultipleLoopHttpServer::run()
 		_roundCount = (_roundCount + 1) % _threadCount;
 	}
 	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(MultipleLoopHttpServer,"server quit"));
+	_signal.signal();
 	return 0;
 }
 
@@ -467,6 +458,7 @@ ServantThread::ServantThread(HttpServer& server,ZQ::common::Log& logger)
 
 ServantThread::~ServantThread()
 {
+	_loop->close();
 	if (_loop != NULL)
 	{
 		delete _loop;
@@ -480,7 +472,6 @@ Loop& ServantThread::getLoop()
 
 void ServantThread::addSocket(int sock)
 {
-
 	ZQ::common::MutexGuard gd(_LockSocket);
 	_ListSocket.push_back(sock);
 }
@@ -488,16 +479,15 @@ void ServantThread::addSocket(int sock)
 
 int ServantThread::run(void)
 {
-	ZQ::eloop::Async::init(*_loop);
+	Async::init(*_loop);
 	_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer,"thread start run! ThreadId = %d"),id());
 	_loop->run(Loop::Default);
 	_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer,"thread quit! ThreadId = %d"),id());
 	return 0;
 }
 
-void ServantThread::OnAsync(void* data)
+void ServantThread::OnAsync()
 {
-	printf("Async test\n");
 	ZQ::common::MutexGuard gd(_LockSocket);
 	while( !_ListSocket.empty())
 	{
@@ -511,7 +501,7 @@ void ServantThread::OnAsync(void* data)
 
 		int sock = _ListSocket.back();
 		_ListSocket.pop_back();
-		printf("OnAsync sock = %d\n", sock);
+		//printf("OnAsync sock = %d\n", sock);
 		r = client->connected_open(sock);
 		if (r != 0)
 		{
@@ -523,6 +513,5 @@ void ServantThread::OnAsync(void* data)
 		client->start();
 	}
 }
-
 
 } }//namespace ZQ::eloop

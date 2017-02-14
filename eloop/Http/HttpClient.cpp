@@ -1,4 +1,4 @@
-#include "httpClient.h"
+#include "HttpClient.h"
 #include <urlstr.h>
 
 
@@ -21,13 +21,13 @@ HttpClient::~HttpClient()
 
 void HttpClient::OnConnected(ElpeError status)
 {
-	if (status != ElpeError::elpeSuccess) {
+	if (status != elpeSuccess) {
 		fprintf(stderr, "on_connect error %s\n", errDesc(status));
 		return;
 	}
 	read_start();
 	std::string str = _SendMsg->toRaw();
-	send(str.c_str(),str.length());
+	write(str.c_str(),str.length());
 }
 
 
