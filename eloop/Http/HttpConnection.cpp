@@ -1,7 +1,7 @@
 #include "HttpConnection.h"
 #include "http_parser.h"
 #include "HttpMessage.h"
-
+#include <assert.h>
 
 namespace ZQ {
 namespace eloop {
@@ -79,7 +79,6 @@ void HttpConnection::OnWrote(ElpeError status)
 {
 	if (status != elpeSuccess)
 	{
-		//fprintf(stderr, "send error %s\n",  errDesc(status));
 		std::string desc = "send error:";
 		desc.append(errDesc(status));
 		onParseError(status,desc.c_str());
@@ -98,8 +97,8 @@ void HttpConnection::OnShutdown(ElpeError status)
 {
 	if (status != elpeSuccess)
 	{
-		fprintf(stderr, "shutdown error %s\n",  errDesc(status));
-		//return;
+		//fprintf(stderr, "shutdown error %s\n",  errDesc(status));
+		_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpPassiveConn,"shutdown error %s"),errDesc(status));
 	}
 	close();
 }

@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <time.h>
-#include <assert.h>
 #include "http_parser.h"
 #include "HttpMessage.h"
 

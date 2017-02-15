@@ -4,7 +4,6 @@
 #include "HttpMessage.h"
 #include "eloop_net.h"
 #include <set>
-#include <assert.h>
 
 
 struct http_parser;

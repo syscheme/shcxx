@@ -58,7 +58,7 @@ void HttpPassiveConn::onParseError(int error,const char* errorDescription) {
 	int  peerport = 0;
 	getpeerIpPort(peerip,peerport);
 
-	_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn, "onParseError [%p] [%s:%d => %s:%d], errorCode[%d],Description[%s]"), 
+	_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpPassiveConn, "onParseError [%p] [%s:%d => %s:%d], errorCode[%d],Description[%s]"), 
 		this, locip, locport, peerip, peerport,error,errorDescription);
 	if(_Handler)
 		_Handler->onParseError(error,errorDescription);
@@ -227,14 +227,14 @@ void HttpServer::addConn( HttpPassiveConn* servant )
 {
 	ZQ::common::MutexGuard gd(_Locker);
 	_PassiveConn.insert( servant );
-	_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer,"connect count = %d"),_PassiveConn.size());
+	_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer,"add connect count = %d"),_PassiveConn.size());
 }
 
 void HttpServer::delConn( HttpPassiveConn* servant )
 {
 	ZQ::common::MutexGuard gd(_Locker);
 	_PassiveConn.erase(servant);
-	_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer,"connect count = %d"),_PassiveConn.size());
+	_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer,"delete connect count = %d"),_PassiveConn.size());
 }
 
 
@@ -338,7 +338,7 @@ MultipleLoopHttpServer::~MultipleLoopHttpServer()
 		(*iter)->close();
 		_vecThread.erase(iter++);
 	}
-	_bRunning = false;
+	stop();
 }
 
 bool MultipleLoopHttpServer::startAt( const char* ip, int port)
@@ -380,6 +380,7 @@ bool MultipleLoopHttpServer::startAt( const char* ip, int port)
 
 void MultipleLoopHttpServer::stop()
 {
+	_bRunning = false;
 #ifdef ZQ_OS_MSWIN
 	closesocket(_socket);
 	//clean WSA env
