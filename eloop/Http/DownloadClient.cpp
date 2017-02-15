@@ -6,7 +6,7 @@ namespace eloop {
 // class EmptyClient
 // ---------------------------------------
 EmptyClient::EmptyClient(ZQ::common::Log& logger,DownloadThread* thread)
-:_Logger(logger),_Thread(thread),_count(0)
+:HttpClient(logger),_Logger(logger),_Thread(thread),_count(0)
 {
 
 }
@@ -67,7 +67,7 @@ void	EmptyClient::onParseError(  int error,const char* errorDescription  )
 // class DownloadClient
 // ---------------------------------------
 DownloadClient::DownloadClient(ZQ::common::Log& logger)
-:_fp(NULL),_Logger(logger)
+:HttpClient(logger),_fp(NULL),_Logger(logger)
 {
 
 }

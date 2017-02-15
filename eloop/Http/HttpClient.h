@@ -11,7 +11,7 @@ namespace eloop {
 // ---------------------------------------
 class HttpClient : public HttpConnection {
 public:
-	HttpClient();
+	HttpClient(ZQ::common::Log& logger);
 	virtual void OnConnected(ElpeError status);
 	bool beginRequest( HttpMessage::Ptr msg, const std::string& url);
 

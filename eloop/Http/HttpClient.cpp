@@ -7,8 +7,8 @@ namespace eloop {
 // ---------------------------------------
 // class HttpClient
 // ---------------------------------------
-HttpClient::HttpClient()
-	:HttpConnection(true),
+HttpClient::HttpClient(ZQ::common::Log& logger)
+	:HttpConnection(true,logger),
 	_SendMsg(NULL)
 {
 
