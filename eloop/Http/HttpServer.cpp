@@ -69,6 +69,7 @@ void HttpPassiveConn::onParseError(int error,const char* errorDescription) {
 void HttpPassiveConn::OnClose()
 {
 	_server.delConn(this);
+	_Handler = NULL;
 	delete this;
 }
 
@@ -111,8 +112,6 @@ bool HttpPassiveConn::onHeadersEnd( const HttpMessage::Ptr msg) {
 		_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"onHeadersEnd failed to find a suitable handle to process url: %s"),
 			msg->url().c_str() );
 		errorResponse(404);
-		//close();
-		//clear();
 		return false;
 	} else {
 		if(! _Handler->onHeadersEnd(msg) ) {

@@ -115,6 +115,8 @@ DownloadeHandle::DownloadeHandle(HttpConnection& conn,ZQ::common::Log& logger,co
 
 DownloadeHandle::~DownloadeHandle()
 {
+	printf("The normal exit\n");
+	close();
 	free(_buf);
 }
 
@@ -153,6 +155,10 @@ bool DownloadeHandle::onHeadersEnd( const HttpMessage::Ptr msg)
 	printf("content length = %ld\n",size);
 
 	outmsg->contentLength(size);
+
+// 	printf("Suspended for 10 seconds!\n");
+// 	SYS::sleep(10000);
+// 	printf("Suspend the end!\n");
 
 	std::string head = outmsg->toRaw();
 	_conn.write(head.c_str(),head.length());

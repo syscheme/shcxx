@@ -213,15 +213,15 @@ public:
 	int send_buffer_size(int *value);
 	int recv_buffer_size(int *value);
 	int fileno(fd_t* fd);
+	void _deleteContext();
 	Loop& get_loop();
 
 protected:
-	virtual void OnClose(Handle *handle){}
+	virtual void OnClose(){}
 	uv_handle_t *context_ptr();
 	
 
 private:
-	void _deleteContext();
 	static void _cbClose(uv_handle_t *uvhandle);
 
 	uv_any_handle* context;

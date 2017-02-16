@@ -11,14 +11,13 @@ Handle::Handle():data(NULL),context(NULL),_loop(NULL) {
 }
 
 Handle::~Handle() {
-	if (context != NULL) {
-/*		if (is_active()) {
+
+	if (context != NULL)
+	{
+		if (is_active()) {
 			close();
 			uv_run(context->handle.loop, UV_RUN_DEFAULT);
-		}*/
-		close();
-		uv_run(context->handle.loop, UV_RUN_DEFAULT);
-		
+		}
 	}
 }
 
@@ -35,8 +34,10 @@ void Handle::_cbClose(uv_handle_t *uvhandle)
 {
 	Handle *h = static_cast<Handle *>(uvhandle->data);
 	if (NULL != h)
-		h->OnClose(h);
-	h->_deleteContext();
+	{
+		h->_deleteContext();
+		h->OnClose();
+	}
 }
 
 Handle& Handle::operator=(Handle &other) {
