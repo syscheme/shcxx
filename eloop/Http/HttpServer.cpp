@@ -1,5 +1,9 @@
+#include <ZQ_common_conf.h>
 #include "HttpServer.h"
 
+#ifdef ZQ_OS_LINUX
+#include <signal.h>
+#endif
 
 namespace ZQ {
 namespace eloop {
@@ -349,7 +353,11 @@ bool MultipleLoopHttpServer::startAt( const char* ip, int port)
 	{
 		return 0;
 	}
+#else
+	//Ignore SIGPIPE signal
+	signal(SIGPIPE, SIG_IGN);
 #endif
+
 
 	_socket = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
 
