@@ -27,6 +27,14 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/snmp/ModuleMIB.cpp $
 // 
+// 42    2/09/17 4:03p Hui.shao
+// to consider instanceId of service
+// 
+// 41    2/09/17 2:48p Dejian.fei
+// 
+// 39    2/08/17 3:34p Dejian.fei
+// add getJson
+// 
 // 38    12/27/16 5:13p Dejian.fei
 // 
 // 37    11/30/15 4:54p Ketao.zhang
@@ -221,6 +229,28 @@ Oid::I_t ModuleMIB::oidOfServiceType(const char* serviceTypeName)
 	return 0;
 }
 
+Oid::I_t ModuleMIB::componentIdOfService(const char* serviceTypeName, uint8 instanceId)
+{
+	Oid::I_t oidb = oidOfServiceType(serviceTypeName);
+	instanceId %=10; // only allow to be in range[0,9]
+	return oidb + (instanceId*10);
+}
+
+const ModuleMIB::ServiceOidIdx* ModuleMIB::mibByServiceType(const char* serviceTypeName)
+{
+	const ZQ::SNMP::ModuleMIB::ServiceOidIdx* svcMib = NULL;
+	for (size_t i=0; NULL != gMibSvcs[i].mibsvc; i++)
+	{
+		if (0 == stricmp(gMibSvcs[i].svcTypeName, serviceTypeName))
+		{
+			svcMib = &gMibSvcs[i];
+			break;
+		}			
+	}
+
+	return svcMib;
+}
+
 
 ModuleMIB::ModuleMIB(ZQ::common::Log& log, Oid::I_t componentTypeId, Oid::I_t moduleId, uint32 componentInstId)
 : _log(log), _moduleOid(OID_TIANSHAN_SVCFAMILY, ZQSNMP_OID_LEN_TIANSHAN_SVCFAMILY),
@@ -362,7 +392,7 @@ SNMPObject::Ptr ModuleMIB::getObject(const Oid& subOid)
 	ChildrenMap::iterator it = _childrenMap.find(subOid.str());
 	if (_childrenMap.end() == it)
 		return NULL;
-
+	//_log(ZQ::common::Log::L_DEBUG, CLOGFMT(ModuleMIB, "getObject() varname[%s]"),it->second->_varname.c_str());
 	return it->second;
 }
 
@@ -653,7 +683,6 @@ SNMPError ModuleMIB::nextVar(SNMPVariable::List& vlist)
 
 	if (_flags_VERBOSE & VFLG_VERBOSE_MIB)
 		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(ModuleMIB, "nextVar() Oid[%s] is next to [%s]"), tmpOid.str().c_str(), requestedOid.c_str());
-
 	return ModuleMIB::readVars(vlist);
 }
 
@@ -716,7 +745,7 @@ SNMPError ModuleMIB::vars2Json(SNMPVariable::List& vlist)
 	Oid::I_t fieldId= (Oid::I_t) SNMPObject::vf_Value;
 
 	std::string subOidList;
-
+	//_log(ZQ::common::Log::L_DEBUG, CLOGFMT(ModuleMIB, "ModuleMIB::vars2Json() vlist size is %d"),vlist.size());
 	for (size_t i =0; i < vlist.size(); i++)
 	{
 		if (NULL == vlist[i])
@@ -728,7 +757,7 @@ SNMPError ModuleMIB::vars2Json(SNMPVariable::List& vlist)
 				_log(ZQ::common::Log::L_WARNING, CLOGFMT(ModuleMIB, "vars2Json() invalid oid[%s] requested"), vlist[i]->oid().str().c_str());
 			return se_NoSuchName;
 		}
-
+		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(ModuleMIB, "ModuleMIB::vars2Json() sOid is:[%s]"),sOid.str().c_str());
 		ZQ::common::MutexGuard g(_lock);
 		std::string jsonstr = subtreeInJson(sOid);
 		if (jsonstr.empty())
@@ -737,9 +766,8 @@ SNMPError ModuleMIB::vars2Json(SNMPVariable::List& vlist)
 				_log(ZQ::common::Log::L_WARNING, CLOGFMT(ModuleMIB, "vars2Json() NULL object of oid[%s] requested"), vlist[i]->oid().str().c_str());
 			return se_NoSuchName;
 		}
-
 		jsonstr = std::string("{") + jsonstr + "}";
-
+		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(ModuleMIB, "ModuleMIB::vars2Json() Get json string:[%s]"),jsonstr.c_str());
 		vlist[i]->setValueByMemRange(AsnType_String, MemRange((void*)jsonstr.c_str(), jsonstr.length()));
 		subOidList += sOid.str() + ", ";
 	}
@@ -752,14 +780,15 @@ SNMPError ModuleMIB::vars2Json(SNMPVariable::List& vlist)
 std::string ModuleMIB::subtreeInJson(Oid cOid)
 {
 	SNMPObject::Ptr obj = getObject(cOid);
-	if (NULL == obj)
+	if (NULL == obj){
+		_log(ZQ::common::Log::L_ERROR, CLOGFMT(ModuleMIB, "ModuleMIB::subtreeInJson() getObject failed"));
 		return "";
-
+	}
 	std::string jsonstr;
-
 	// case 1. this is a table
 	if (obj->_vtype == AsnType_String && 0 == ((std::string*)obj->_vaddr)->compare(0, sizeof(TAG_TABLE_NODE)-1, TAG_TABLE_NODE))
 	{
+		//_log(ZQ::common::Log::L_DEBUG, CLOGFMT(ModuleMIB, "subtreeInJson() formatting table:obj[%s] oid[%s]"), obj->name().c_str(), cOid.str().c_str());
 		Oid tabOid = cOid;
 		jsonstr = std::string("\"") + obj->name() +"\":{";
 		int lastColId = -1;
@@ -779,11 +808,15 @@ std::string ModuleMIB::subtreeInJson(Oid cOid)
 				// start a column here, close the previous first
 				if (!colvals.empty())
 					colvals = colvals.substr(0, colvals.length()-1); // cut off the last comma
+				
 				jsonstr += colvals;
 				colvals = "";
+				
 				if (lastColId >0)
 					jsonstr += "],";
+
 				lastColId = colId;
+				
 				std::string colname = cell->name();
 				size_t pos = colname.find("#");
 				if (std::string::npos != pos)
@@ -791,7 +824,7 @@ std::string ModuleMIB::subtreeInJson(Oid cOid)
 
 				jsonstr += std::string("\"") +colname +"\":[";
 			}
-			colvals += cell->val2json() + ",";	
+			colvals += cell->val2json() + ",";
 		}
 
 		// close the last column
@@ -805,6 +838,7 @@ std::string ModuleMIB::subtreeInJson(Oid cOid)
 		return jsonstr;
 	}
 
+	//_log(ZQ::common::Log::L_DEBUG, CLOGFMT(ModuleMIB, "subtreeInJson() formatting value:obj[%s] oid[%s]"), obj->name().c_str(), cOid.str().c_str());
 	jsonstr = std::string("\"") + obj->name() +"\":";
 
 	Oid thisOid = cOid;
@@ -812,12 +846,13 @@ std::string ModuleMIB::subtreeInJson(Oid cOid)
 	if (!thisOid.isDescendant(nOid))
 		return jsonstr + obj->val2json();
 
-	jsonstr += std::string("{\"_v\":") + obj->val2json();
+	jsonstr += std::string("{\"" TAG_RESERVED_PREFIX "v\":") + obj->val2json();
 
 	for (; cOid.isDescendant(nOid); nOid = nextOid(nOid))
 		jsonstr +=  std::string(",") + subtreeInJson(nOid);
 
 	jsonstr += "}";
+	_log(ZQ::common::Log::L_INFO, CLOGFMT(ModuleMIB, "ModuleMIB::subtreeInJson() Get json string: %s"),jsonstr.c_str());
 	return jsonstr; //TODO: cut off the last comma
 }
 
@@ -945,7 +980,6 @@ std::string SNMPObject::val2json()
 //		json += "\"" + _varname + "\":";
 		json += buf;
 	}
-
 	return json;
 }
 

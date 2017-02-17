@@ -32,7 +32,7 @@ public:
 };
 
 VarContainer vc;
-
+#ifdef ZQ_OS_MSWIN
 int SNMP_unitTest()
 {
 	FileLog log("SnmpTrace.log", Log::L_DEBUG);
@@ -179,9 +179,9 @@ int testAgent()
 	ModuleMIB mmib(log, 1000);
 
 	uint32 var_uint32 = 32, var2=57, var3=9033;
-	mmib.addObject(new SNMPObject("abc", var_uint32, false), Oid(".1"));
-	mmib.addObject(new SNMPObject("var2", var2, false),      Oid(".2"));
-	mmib.addObject(new SNMPObject("var3", var3, false),      Oid(".3"));
+	mmib.addObject(new SNMPObject("rtspProxy-Version", var_uint32, false));
+	mmib.addObject(new SNMPObject("rtspProxy-Statistics-Average-Process-Latency", var2, false));
+	mmib.addObject(new SNMPObject("rtspProxy-Statistics-Measure-Reset", var3, false));
 
 	SubAgent ag(log, mmib, 5000);
 	ag.start();
@@ -215,8 +215,38 @@ int testAgent()
 	ag.stop();
 	return 0;
 }
+#endif
+int simAgentServer()
+{
+	FileLog log("SubAgentServer.log", Log::L_DEBUG);
+	ModuleMIB mmib(log, 1000);
+
+	uint32 var_uint32 = 32, var2=57, var3=9033;
+	mmib.addObject(new SNMPObject("rtspProxy-Version", var_uint32, false));
+	mmib.addObject(new SNMPObject("rtspProxy-Statistics-Average-Process-Latency", var2, false));
+	mmib.addObject(new SNMPObject("rtspProxy-Statistics-Measure-Reset", var3, false));
+	SubAgent ag(log, mmib, 5000);
+	ag.start();
+	SYS::sleep(600*1000);
+
+	return 0;
+}
+
+int testSnmpAgentClient()
+{
+	FileLog log("SnmpAgentClient.log", Log::L_DEBUG);
+	SnmpAgent ag(log);
+	ag.start();
+	log(ZQ::common::Log::L_DEBUG, CLOGFMT(testSnmpAgentClient, "getJson [%s]"),ag.getJSON("rtspProxy","rtspProxy-Statistics-Average-Process-Latency").c_str());
+	log(ZQ::common::Log::L_DEBUG, CLOGFMT(testSnmpAgentClient, "getJson [%s]"),ag.getJSON("rtspProxy","rtspProxy-Statistics-455-per-10min").c_str());
+	log(ZQ::common::Log::L_DEBUG, CLOGFMT(testSnmpAgentClient, "getJson [%s]"),ag.getJSON("rtspProxy","rtspCrStat-SessionCount").c_str());
+	log(ZQ::common::Log::L_DEBUG, CLOGFMT(testSnmpAgentClient, "getJson [%s]"),ag.getJSON("rtspProxy","rtspProxy-RequestProcess-threads").c_str());
+	log(ZQ::common::Log::L_DEBUG, CLOGFMT(testSnmpAgentClient, "getJson [%s]"),ag.getJSON("rtspProxy","icTable").c_str());
+	return 0; 
+}
 
 int main()
 {
-	return SNMP_unitTest();
+	//return simAgentServer();
+	return testSnmpAgentClient();
 }

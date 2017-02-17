@@ -27,6 +27,19 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/snmp/SubAgent.cpp $
 // 
+// 38    2/13/17 5:29p Dejian.fei
+// 
+// 37    2/13/17 3:21p Hui.shao
+// SnmpAgent:: async query
+// 
+// 36    2/09/17 4:03p Hui.shao
+// to consider instanceId of service
+// 
+// 35    2/09/17 2:48p Dejian.fei
+// 
+// 33    2/08/17 3:34p Dejian.fei
+// add getJson
+// 
 // 32    1/15/16 9:42a Li.huang
 // 
 // 31    12/29/15 3:20p Li.huang
@@ -619,6 +632,7 @@ bool Subagent::processMessage(const uint8* request, int len, std::string& respon
 	return false;
 }
 */
+
 // -----------------------------
 // class SnmpAgent
 // -----------------------------
@@ -649,69 +663,174 @@ size_t SnmpAgent::processMessage(const ZQ::common::InetHostAddress& peerAddr, ui
 	if (_bQuit)
 		return 0;
 
-	OnQueryResult(peerAddr, peerPort, header, vlist);
+	//removed: OnQueryResult(peerAddr, peerPort, header, vlist);
+	{
+		ZQ::common::MutexGuard g(_awaitLock);
+		AwaitMap::iterator it = _awaitMap.find(header.cseq);
+		if (_awaitMap.end() == it)
+		{
+			if (0 == (ModuleMIB::_flags_VERBOSE & ModuleMIB::VFLG_MUTE_ERRS_AGENT))
+				_log(ZQ::common::Log::L_WARNING, CLOGFMT(SnmpAgent, "processMessage() ignored result(%d) from SubAgent[%s/%d]"), header.cseq, peerAddr.getHostAddress(), peerPort);
+			return 0;
+		}
+
+		it->second->header = header;
+		it->second->stampResponsed = ZQ::common::now();
+		it->second->vlist = vlist;
+
+		if (ModuleMIB::_flags_VERBOSE & ModuleMIB::VFLG_VERBOSE_AGENT)
+			_log(ZQ::common::Log::L_INFO, CLOGFMT(SnmpAgent, "processMessage() processed result(%d) from SubAgent[%s/%d] took %dmsec"), header.cseq, peerAddr.getHostAddress(), peerPort, (int)(it->second->stampResponsed - it->second->stampRequested));
+
+		it->second->OnResult();
+
+		_awaitMap.erase(it->first);
+	}
+
 	return 0; // always no response
 }
 
-void SnmpAgent::OnQueryResult(const ZQ::common::InetHostAddress& serverAddr, int serverPort, BaseAgent::Msgheader header, const SNMPVariable::List& vlist)
+// -----------------------------
+// class SyncQueryCB
+// -----------------------------
+class SyncQueryCB : public SnmpAgent::QueryCB
 {
-	ZQ::common::MutexGuard g(_awaitLock);
-	AwaitMap::iterator it = _awaitMap.find(header.cseq);
-	if (_awaitMap.end() == it)
+public:
+	typedef ZQ::common::Pointer< SyncQueryCB > Ptr;
+	SyncQueryCB(SnmpAgent& agent) : _agent(agent) {}
+	bool wait(timeout_t timeout=TIMEOUT_INF) { return _event.wait(timeout); }
+
+	virtual void OnResult() { _event.signal(); }
+	virtual void OnError(int errCode) {}
+
+	SnmpAgent&        _agent;
+	ZQ::common::Event _event;
+};
+
+static ZQ::common::InetHostAddress loopbackAddr("127.0.0.1");
+uint32 SnmpAgent::getJSON_async(SnmpAgent::QueryCB::Ptr cbQuery, const char* serviceType, const char* varname, uint instanceId)
+{
+	SNMPVariable::List vlist;
+	// step 1. search MIB for var oid by serviceType, moduleId and varname		
+	const ZQ::SNMP::ModuleMIB::ServiceOidIdx* svcMib = ModuleMIB::mibByServiceType(serviceType);
+	Oid moduleOid = ModuleMIB::productRootOid();
+ 	if (NULL ==svcMib || NULL == svcMib->svcTypeName || NULL == svcMib->mibsvc)
+ 		return 0;
+
+	Oid::I_t oidI_t = ModuleMIB::componentIdOfService(serviceType, instanceId);
+	moduleOid.append(oidI_t); 
+	//moduleOid.append(moduleId);
+	Oid oid;
+	for (size_t i = 0; NULL != svcMib->mibsvc[i].varname && '\0' != svcMib->mibsvc[i].varname[0]; i++)
 	{
-		if (0 == (ModuleMIB::_flags_VERBOSE & ModuleMIB::VFLG_MUTE_ERRS_AGENT))
-			_log(ZQ::common::Log::L_WARNING, CLOGFMT(SnmpAgent, "OnQueryResult() ignored result(%d) from SubAgent[%s/%d]"), header.cseq, serverAddr.getHostAddress(), serverPort);
-		return;
+		if (0 == strcmp(varname, svcMib->mibsvc[i].varname))
+		{
+			oid = moduleOid + Oid(svcMib->mibsvc[i].strSubOid);
+			break;
+		}
 	}
-    it->second.header = header;
-	it->second.stampResponsed = ZQ::common::now();
-	it->second.vlist = vlist;
 
-	if (ModuleMIB::_flags_VERBOSE & ModuleMIB::VFLG_VERBOSE_AGENT)
-		_log(ZQ::common::Log::L_INFO, CLOGFMT(SnmpAgent, "OnQueryResult() processed result(%d) from SubAgent[%s/%d] took %dmsec"), header.cseq, serverAddr.getHostAddress(), serverPort, (int)(it->second.stampResponsed - it->second.stampRequested));
+	if (oid.isNil())
+	{
+		_log(ZQ::common::Log::L_ERROR, CLOGFMT(SnmpAgent, "getJSON() oid is Nil,Now moduleOid:[%s]"),moduleOid.str().c_str());
+		return 0;
+	}
 
-	if (NULL == it->second.pEvent)
-		return;
+	//Oid oid(".1.3.6.1.4.1.22839.4.1.1000.2.1.44");
+	_log(ZQ::common::Log::L_DEBUG, CLOGFMT(SnmpAgent, "getJSON() oid:[%s]"),oid.str().c_str());
+	SNMPVariable::Ptr var = new SNMPVariable();
+	var->setOid(oid); //snmp_set_var_objid  -> SnmpVar.cpp function setOid
+	
+	// put a dummy value
+	uint32 tmp =0;
+	MemRange mr(&tmp, sizeof(tmp));
+	var->setValueByMemRange(ASN_INTEGER, mr);
 
-	it->second.pEvent->signal();
+	vlist.push_back(var);
+	
+	uint componentOid = oid[ZQSNMP_OID_OFFSET_COMPONENT_ID];
+	uint moduleId    = oid[ZQSNMP_OID_OFFSET_MODULE_ID];
+	int serverPort = portOfModule(oidI_t, moduleId);
+	
+	// step 2. call sendQuery(pdu=ZQSNMP_PDU_GETJSON) to issue a UDP message to the subAgent
+	uint cSeq = sendQuery(cbQuery, loopbackAddr, serverPort, ZQSNMP_PDU_GETJSON, vlist);
+	if (cSeq <=0)
+	{
+		_log(ZQ::common::Log::L_ERROR, CLOGFMT(getJSON, "failed send to SubAgent[%s/%d]"), loopbackAddr.getHostAddress(), serverPort);
+		return 0;
+	}
+
+	return cSeq;
+}
+
+std::string SnmpAgent::getJSON(const char* serviceType, const char* varname, uint instanceId)
+{
+	SyncQueryCB::Ptr cbQuery = new SyncQueryCB(*this);
+	if (NULL == cbQuery)
+	{
+		_log(ZQ::common::Log::L_ERROR, CLOGFMT(SnmpAgent, "getJSON() failed allocate cbQuery"));
+		return "";
+	}
+
+	uint cSeq = getJSON_async(cbQuery, serviceType, varname, instanceId);
+	if (0 == cSeq)
+		return "";
+
+	// step 3. wait for response
+	if (!cbQuery->wait(getTimeout()))
+	{
+		_log(ZQ::common::Log::L_ERROR, CLOGFMT(getJSON, "resp(%d) timeout[%d]"), cSeq, getTimeout());
+		_log.flush();
+		return "";
+	}
+
+	std::string jsonstr;
+	if (cbQuery->vlist.size() >0 && AsnType_String == cbQuery->vlist[0]->type())
+	{
+		MemRange mr =  cbQuery->vlist[0]->getValueByMemRange();
+		jsonstr.assign((const char*)mr.first, mr.second);
+	}
+
+	return jsonstr;
 }
 
 // return cSeq
-uint32 SnmpAgent::sendQuery(const ZQ::common::InetHostAddress& serverAddr, int serverPort, uint8 pdu, SNMPVariable::List& vlist, ZQ::common::Event::Ptr eventArrived)
+uint32 SnmpAgent::sendQuery(QueryCB::Ptr cbQuery, const ZQ::common::InetHostAddress& serverAddr, int serverPort, uint8 pdu, SNMPVariable::List& vlist)
 {
-	Query aq;
-	memset(&aq.header, 0, sizeof(aq.header));
-	aq.header.pdu = pdu;
-	aq.header.cseq = lastCSeq();
-	aq.stampRequested = ZQ::common::now();
-	aq.pEvent = eventArrived;
+	if (!cbQuery)
+		return 0;
+
+	memset(&cbQuery->header, 0, sizeof(cbQuery->header));
+	cbQuery->header.pdu = pdu;
+	cbQuery->header.cseq = lastCSeq();
+	cbQuery->stampRequested = ZQ::common::now();
+	// cbQuery->pEvent = eventArrived;
 
 	uint8 msg[ZQSNMP_MSG_LEN_MAX];
 	memset(msg, 0, sizeof(msg));
 
 	// step 1. compose the request
-	size_t msglen = encodeMessage(msg, sizeof(msg), aq.header, vlist);
+	size_t msglen = encodeMessage(msg, sizeof(msg), cbQuery->header, vlist);
 	if (msglen <=0)
 	{
 		if (0 == (ModuleMIB::_flags_VERBOSE & ModuleMIB::VFLG_MUTE_ERRS_AGENT))
-			_log(ZQ::common::Log::L_ERROR, CLOGFMT(SnmpAgent, "sendQuery() failed to compose out-going request"));
+			_log(ZQ::common::Log::L_ERROR, CLOGFMT(SnmpAgent, "sendQuery() req(%d) failed to compose"), cbQuery->header.cseq);
 		return 0;
 	}
 
 	if (!_soUdp.isPending(ZQ::common::Socket::pendingOutput, _timeout))
 	{
 		if (0 == (ModuleMIB::_flags_VERBOSE & ModuleMIB::VFLG_MUTE_ERRS_AGENT))
-			_log(ZQ::common::Log::L_ERROR, CLOGFMT(SnmpAgent, "sendQuery() udp timed out[%d] prior to sending"), _timeout);
+			_log(ZQ::common::Log::L_ERROR, CLOGFMT(SnmpAgent, "sendQuery() req(%d) udp timed out[%d] prior to sending"), cbQuery->header.cseq, _timeout);
 		return 0;
 	}
 
 	ZQ::common::MutexGuard g(_awaitLock);
-	_awaitMap[aq.header.cseq] = aq;
+	_awaitMap[cbQuery->header.cseq] = cbQuery;
 
 	if (_soUdp.sendto(msg, msglen, serverAddr, serverPort) <=0)
 	{
 		if (0 == (ModuleMIB::_flags_VERBOSE & ModuleMIB::VFLG_MUTE_ERRS_AGENT))
-			_log(ZQ::common::Log::L_ERROR, CLOGFMT(SnmpAgent, "sendQuery() failed send to SubAgent[%s/%d] len[%d]"), serverAddr.getHostAddress(), serverPort, msglen);
+			_log(ZQ::common::Log::L_ERROR, CLOGFMT(SnmpAgent, "sendQuery() req(%d) failed send to SubAgent[%s/%d] len[%d]"), cbQuery->header.cseq, serverAddr.getHostAddress(), serverPort, msglen);
 		return 0;
 	}
 
@@ -726,23 +845,8 @@ uint32 SnmpAgent::sendQuery(const ZQ::common::InetHostAddress& serverAddr, int s
 	 _log(ZQ::common::Log::L_ERROR, CLOGFMT(SnmpAgent, "receiveFrom() failed receiver[%d]"),msgLength);
 */
 	if (ModuleMIB::_flags_VERBOSE & ModuleMIB::VFLG_VERBOSE_AGENT)
-		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(SnmpAgent, "sendQuery() query(%d) sent to SubAgent[%s/%d] msglen[%d]"), aq.header.cseq, serverAddr.getHostAddress(), serverPort, msglen);
-	return aq.header.cseq;
-}
-
-bool SnmpAgent::getResponse(uint32 cSeq, Query& query)
-{
-	ZQ::common::MutexGuard g(_awaitLock);
-	AwaitMap::iterator it = _awaitMap.find(cSeq);
-	if (_awaitMap.end() == it)
-	{
-		if (0 == (ModuleMIB::_flags_VERBOSE & ModuleMIB::VFLG_MUTE_ERRS_AGENT))
-			_log(ZQ::common::Log::L_WARNING, CLOGFMT(SnmpAgent, "getResponse() query[%d] is not in the await list"), cSeq);
-		return false;
-	}
-
-	query = it->second;
-	return true;
+		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(SnmpAgent, "sendQuery() req(%d) sent to SubAgent[%s/%d] msglen[%d]"), cbQuery->header.cseq, serverAddr.getHostAddress(), serverPort, msglen);
+	return cbQuery->header.cseq;
 }
 
 // -----------------------------

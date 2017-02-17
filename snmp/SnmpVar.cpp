@@ -27,6 +27,10 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/snmp/SnmpVar.cpp $
 // 
+// 31    2/09/17 4:03p Hui.shao
+// 
+// 30    12/26/16 2:49p Hui.shao
+// 
 // 29    11/30/15 4:54p Ketao.zhang
 // check in  merge git
 // 
@@ -290,7 +294,7 @@ void SNMPVariable::setOid(const Oid& fullOid)
 // from ZQSnmpUtil///////////////////////
 static size_t encode(uint8* stream, int maxLen, const uint8* value, const uint32 vlen)
 {
-	if (NULL == stream || NULL == value || maxLen < (sizeof(uint32) + vlen))
+	if (NULL == stream || NULL == value || maxLen < (int)(sizeof(uint32) + vlen))
 		return 0;
 
 	uint8* p = stream;
