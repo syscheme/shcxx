@@ -55,6 +55,8 @@ Handle& Handle::operator=(Handle &other) {
 void Handle::init(Loop &loop) {
 	
 	_loop = &loop;
+	if (context != NULL)
+		return;
 	context = new uv_any_handle;
 	context->handle.data = static_cast<void *>(this);
 }
