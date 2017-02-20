@@ -12,8 +12,8 @@ void usage() {
 		<< "  -h								display this screen\n"
 		<< std::endl;
 }
-
-
+char gchar64_1024[64*1024] = {0};
+//extern gchar64_1024;
 int main(int argc,char* argv[])
 {
 	if (argc < 2)
@@ -51,6 +51,13 @@ int main(int argc,char* argv[])
 		printf("Failed to create a log file %s.\n",logFilePath.c_str());
 		return -1;
 	}
+
+	FILE* fp = fopen("D:\\vedio\\test.txt","rb");
+	//FILE* fp = fopen("/home/zhixiang.zhu/temp/test.txt","rb");
+	int ret = fread(gchar64_1024,1,65536,fp);
+	fclose(fp);
+	//std::string body = gchar64_1024;
+	printf("send body size = %d,ret = %d\n",sizeof(gchar64_1024),ret);
 
 	std::string ip = host.substr(0,host.find(":"));
 	int port = atoi((host.substr(host.find(":")+1)).c_str());

@@ -52,16 +52,14 @@ void HttpConnection::reset(IHttpParseSink* p)
 void HttpConnection::OnRead(ssize_t nread, const char *buf)
 {
 	if (nread < 0) {
-		//fprintf(stderr, "Read error %s\n",  errName(nread));
 		std::string desc = "Read error:";
 		desc.append(errDesc(nread));
 		onParseError(nread,desc.c_str());
 		return;
 	}
-//	std::string str = buf;
-//	printf("recv data:%s,len = %d,size = %d\n", buf,nread,str.size());
 
 	size_t nparsed =parse(buf, nread);
+
 	if(nparsed != nread){
 		std::string parsedesc = "parse error:";
 		parsedesc.append(http_errno_description((http_errno)_Parser->http_errno));
@@ -72,6 +70,7 @@ void HttpConnection::OnRead(ssize_t nread, const char *buf)
 	if( _ParserState >= STATE_COMPLETE) {
 		reset();
 	}
+
 	onHttpDataReceived(nread);	
 }
 
@@ -122,6 +121,7 @@ int	HttpConnection::onHeadersComplete(){
 	_CurrentParseMsg->setVersion(_Parser->http_major, _Parser->http_minor);
 	_ParserState = STATE_BODY;
 	if(_Parser->http_errno == 0) {
+		assert(_Callback != NULL);
 		if(!_Callback->onHeadersEnd(_CurrentParseMsg))
 			return -1;//user cancel parsing procedure
 		return 0;

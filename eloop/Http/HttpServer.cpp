@@ -1,6 +1,6 @@
 #include <ZQ_common_conf.h>
 #include "HttpServer.h"
-
+#include <fcntl.h>
 #ifdef ZQ_OS_LINUX
 #include <signal.h>
 #endif
@@ -210,8 +210,8 @@ HttpHandler::Ptr HttpServer::createHandler(const std::string& uri, HttpConnectio
 		itSite = _vsites.find(DEFAULT_SITE); // the default site
 
 	HttpHandler::Ptr handler;
-
 	MountDirs::const_iterator it = itSite->second.begin();
+
 	for( ; it != itSite->second.end(); it++)
 	{
 		if(boost::regex_match(uriWithnoParams, it->re))
@@ -221,7 +221,6 @@ HttpHandler::Ptr HttpServer::createHandler(const std::string& uri, HttpConnectio
 			break;
 		}
 	}
-
 	return handler;
 }
 
@@ -230,6 +229,7 @@ void HttpServer::addConn( HttpPassiveConn* servant )
 {
 	ZQ::common::MutexGuard gd(_Locker);
 	_PassiveConn.insert( servant );
+	printf("add connect count = %d\n",_PassiveConn.size());
 	_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer,"add connect count = %d"),_PassiveConn.size());
 }
 
@@ -237,6 +237,7 @@ void HttpServer::delConn( HttpPassiveConn* servant )
 {
 	ZQ::common::MutexGuard gd(_Locker);
 	_PassiveConn.erase(servant);
+	printf("delete connect count = %d\n",_PassiveConn.size());
 	_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer,"delete connect count = %d"),_PassiveConn.size());
 }
 
@@ -315,18 +316,16 @@ MultipleLoopHttpServer::MultipleLoopHttpServer( const HttpServerConfig& conf,ZQ:
 {
 	CpuInfo cpu;
 	int cpuCount = cpu.getCpuCount();
-	int mask = 1,j = 1,n = 1;
-	setCpuAffinity(mask);
+	int cpuId = 0;
+	setCpuAffinity(cpuId);
 	for (int i = 0;i < _threadCount;i++)
 	{
 		ServantThread *pthread = new ServantThread(*this,_Logger);
 		
-		mask = j<<n;
-		printf("mask = %d , n = %d\n",mask,n);
-		pthread->setCpuAffinity(mask);
-		n++;
-		if (n == cpuCount)
-			n = 0;
+		cpuId++;
+		cpuId = cpuId % cpuCount;
+		printf("cpuId = %d,cpuCount = %d,mask = %d\n",cpuId,cpuCount,1<<cpuId);
+		pthread->setCpuAffinity(cpuId);
 		
 		pthread->start();
 		_vecThread.push_back(pthread);
@@ -377,7 +376,7 @@ bool MultipleLoopHttpServer::startAt( const char* ip, int port)
 		printf("socket bind error!");
 		return false;
 	}
-	if (0 != listen(_socket,10000))
+	if (0 != listen(_socket,100000))
 	{
 		return false;
 	}
@@ -410,9 +409,22 @@ int MultipleLoopHttpServer::run()
 		if( sock < 0 )
 			break;
 
+		/*int flags = fcntl(sock, F_GETFL, 0);
+		if ( -1 == flags)
+		{
+			closesocket(sock);
+			continue;
+		}
+		if( -1 == fcntl(sock, F_SETFL, flags | O_NONBLOCK) )
+		{
+			closesocket(sock);
+			continue;
+		}*/
+
 		ServantThread* pthread = _vecThread[_roundCount];
 		pthread->addSocket(sock);
 		pthread->send();
+		printf("send sock = %d\n", sock);
 		_roundCount = (_roundCount + 1) % _threadCount;
 	}
 	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(MultipleLoopHttpServer,"server quit"));
@@ -463,6 +475,7 @@ int ServantThread::run(void)
 void ServantThread::OnAsync()
 {
 	ZQ::common::MutexGuard gd(_LockSocket);
+
 	while( !_ListSocket.empty())
 	{
 		HttpPassiveConn* client = new HttpPassiveConn(_server,_Logger);
@@ -475,7 +488,7 @@ void ServantThread::OnAsync()
 
 		int sock = _ListSocket.back();
 		_ListSocket.pop_back();
-		//printf("OnAsync sock = %d\n", sock);
+		printf("OnAsync sock = %d\n", sock);
 		r = client->connected_open(sock);
 		if (r != 0)
 		{

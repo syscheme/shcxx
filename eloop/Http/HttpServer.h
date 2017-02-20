@@ -13,6 +13,7 @@
 namespace ZQ {
 namespace eloop {
 
+#define DEFAULT_SITE "."
 class HttpServer;
 class ServantThread;
 // ---------------------------------------
@@ -67,7 +68,7 @@ public:
 	HttpApplication(const HttpHandler::Properties& appProps = HttpHandler::Properties()): _appProps(appProps) {}
 	virtual ~HttpApplication() {}
 
-	virtual HttpHandler::Ptr create( HttpConnection& conn,ZQ::common::Log& logger, const HttpHandler::Properties& dirProps) { return new HandlerT(conn,logger,dirProps, _appProps); }
+	virtual HttpHandler::Ptr create( HttpConnection& conn,ZQ::common::Log& logger, const HttpHandler::Properties& dirProps) { return new HandlerT(conn,logger,dirProps, _appProps);}
 
 protected:
 	HttpHandler::Properties _appProps;
@@ -113,7 +114,7 @@ private:
 
 	std::string					_Hint;
 };
-#define DEFAULT_SITE "."
+
 
 // ---------------------------------------
 // class HttpServer

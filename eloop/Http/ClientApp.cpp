@@ -75,7 +75,7 @@ int main(int argc,char* argv[])
 		//(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"%d the %d thread connection is successful"),download[i]->getCount(),i);
 	}
 
-	ZQ::eloop::Loop loop(false);
+/*	ZQ::eloop::Loop loop(false);
 
 	ZQ::eloop::DownloadClient* client = new ZQ::eloop::DownloadClient(*pLog);
 	client->init(loop);
@@ -87,7 +87,10 @@ int main(int argc,char* argv[])
 	/*ZQ::eloop::EmptyClient* client = new ZQ::eloop::EmptyClient(*pLog,NULL);
 	client->init(loop);
 	client->dohttp(url);*/
+//	loop.run(ZQ::eloop::Loop::Default);
 
-	loop.run(ZQ::eloop::Loop::Default);
+
+	while(1)
+		SYS::sleep(100000);
 	return 0;
 }

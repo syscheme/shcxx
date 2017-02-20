@@ -110,6 +110,9 @@ public:
 	virtual void	onHttpDataSent();
 	virtual void	onHttpDataReceived( size_t size );
 
+private:
+	int64	_callCount;
+	int64	_CurrentTime;
 };
 
 
