@@ -212,9 +212,10 @@ bool NativeThread::isThread(void)
 	return ((_thrdID == GetCurrentThreadId())) ? true : false;
 }
 
-int NativeThread::setCpuAffinity(int cpuCount)
+int NativeThread::setCpuAffinity(int cpuId)
 {
-	return SetThreadAffinityMask(_hThread, cpuCount);
+	DWORD_PTR mask = 1 << cpuId;
+	return SetThreadAffinityMask(_hThread, mask);
 }
 
 void NativeThread::terminate(int code /* = 0 */)
@@ -531,11 +532,18 @@ con:
 	return res;
 }
 
-int NativeThread::setCpuAffinity(int cpuCount)
+int NativeThread::setCpuAffinity(int cpuId)
 {
+	int policy;
+	struct sched_param param;
+
+	pthread_getschedparam(pthread_self(), &policy, &param);
+	param.sched_priority = sched_get_priority_max(policy);
+	pthread_setschedparam(pthread_self(), policy, &param);
+
 	cpu_set_t mask;  
 	CPU_ZERO(&mask);  
-	CPU_SET(cpuCount,&mask);
+	CPU_SET(cpuId,&mask);
 
 	return pthread_setaffinity_np(_thrdID ,sizeof(mask),&mask);
 }

@@ -250,7 +250,7 @@ public:
 	/// A thread affinity mask is a bit vector in which each bit represents a logical processor that a thread is allowed to run on.
 	/// If the function succeeds, the return value is the thread's previous affinity mask.
 	/// If the function fails, the return value is zero. To get extended error information, call GetLastError.
-	int setCpuAffinity(int cpuCount);
+	int setCpuAffinity(int cpuId);
 };
 
 
