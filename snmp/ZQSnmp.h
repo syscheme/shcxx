@@ -27,6 +27,21 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/snmp/ZQSnmp.h $
 // 
+// 66    2/13/17 5:29p Dejian.fei
+// 
+// 65    2/13/17 5:02p Hui.shao
+// 
+// 64    2/13/17 3:21p Hui.shao
+// SnmpAgent:: async query
+// 
+// 63    2/09/17 4:03p Hui.shao
+// to consider instanceId of service
+// 
+// 62    2/09/17 2:48p Dejian.fei
+// 
+// 60    2/08/17 3:34p Dejian.fei
+// add getJson
+// 
 // 59    12/27/16 3:36p Li.huang
 // correct to take "reference" instead of "void*"
 // 
@@ -233,11 +248,7 @@ class ZQ_SNMP_API SNMPObject;   // the wrapper of local address that will be exp
 class ZQ_SNMP_API ModuleMIB;    // the MIB collection of this module
 class ZQ_SNMP_API SubAgent;     // the communicator with SNMP agent
 class ZQ_SNMP_API BaseAgent;
-
-#ifdef _DEBUG
 class ZQ_SNMP_API SnmpAgent;
-#endif // _DEBUG
-
 // ---------------------------------------
 // Constants per SNMP_VENDOR:
 // PDU type, SNMP errors
@@ -454,12 +465,10 @@ public:
 		vf_VarName =2,
 		vf_Access  =3
 	} FieldId;
-
 protected:
 	SNMPObject(const std::string& varname, void* vaddr, AsnType vtype, bool readOnly =true)
 		: _varname(varname), _vtype(vtype), _readonly(readOnly), _vaddr(vaddr)
 	{}
-
 public:
 	SNMPObject(const std::string& varname, int32& vInt32, bool readOnly =true)
 		: _varname(varname), _vtype(AsnType_Int32), _readonly(readOnly), _vaddr(&vInt32)
@@ -710,6 +719,8 @@ public:
 	// static void setComponentMIBIndices(const MIBE* mibe);
 	static Oid productRootOid();
 	static Oid::I_t oidOfServiceType(const char* serviceTypeName);
+	static Oid::I_t componentIdOfService(const char* serviceTypeName, uint8 instanceId=0);
+	static const ServiceOidIdx* mibByServiceType(const char* serviceTypeName);
 
 	Oid moduleOid() const { return _moduleOid; }
 	Oid::I_t componentId() const;
@@ -736,7 +747,7 @@ public:
 	// lookup the subOid
 	Oid nextOid(const Oid& subOidFrom);
 	Oid firstOid();
-	std::string ModuleMIB::subtreeInJson(Oid cOid);
+	std::string subtreeInJson(Oid cOid);
 	// access by SNMPVarList
 	SNMPError readVars(SNMPVariable::List& vlist);
 	SNMPError nextVar(SNMPVariable::List& vlist);
@@ -845,52 +856,43 @@ protected: // impl of BaseAgent
 	std::string _logDir;
 	uint32      _loggingMask;
 
-protected:
-	typedef struct _Query
+public: // about SNMP query
+
+	class QueryCB : virtual public ZQ::common::SharedObject
 	{
+		friend class SnmpAgent;
+
+	public:
+		typedef ZQ::common::Pointer< QueryCB > Ptr;
+		enum _Err { qe_OK=0, qe_Cancelled };
+
+		~QueryCB() { OnError(qe_Cancelled); }
+
 		BaseAgent::Msgheader header;
 		int64 stampRequested, stampResponsed;
-		ZQ::common::Event::Ptr pEvent;
 		SNMPVariable::List vlist;
-	} Query;
 
-	typedef ZQ::common::LRUMap< uint32, Query > AwaitMap;
+	protected:
+		virtual void OnResult() {}
+		virtual void OnError(int errCode) {}
+	};
+
+	//@return cseq
+	uint32 getJSON_async(QueryCB::Ptr cbQuery, const char* serviceType, const char* varname, uint instanceId =0);
+
+	//@return the json result
+	std::string getJSON(const char* serviceType, const char* varname, uint instanceId =0);
+
+protected: // about SNMP query
+	
+	typedef ZQ::common::LRUMap< uint32, QueryCB::Ptr > AwaitMap;
 	AwaitMap _awaitMap;
 	ZQ::common::Mutex _awaitLock;
 
-	void OnQueryResult(const ZQ::common::InetHostAddress& serverAddr, int serverPort, BaseAgent::Msgheader header, const SNMPVariable::List& vlist);
-	std::string getJSON(const char* serviceType, uint moduleId, const char* varname)
-	{
-		/*
-		ZQ::SNMP::SNMPVariable::List vlist;
-		ZQ::common::Event::Ptr eventArrived = new ZQ::common::Event();
-		// step 1. search MIB for var oid by serviceType, moduleId and varname
-		Oid::I_t oidI_t =  oidOfServiceType(serviceType);
-		// step 2. call sendQuery(pdu=ZQSNMP_PDU_GETJSON) to issue a UDP message to the subAgent	
-		uint cSeq = sendQuery(_bindAddr.c_str(),_bindPort,ZQSNMP_PDU_GETJSON,vlist,eventArrived);
-		if (0 == cSeq)
-		{
-			log(ZQ::common::Log::L_ERROR, CLOGFMT(getJSON, "failed send to SubAgent[%s/%d]"), _bindAddr, _bindPort);
-			return "";
-		}
-		// step 3. wait for response
-		Query result;
-		if (!eventArrived->wait(getTimeout()) || !getResponse(cSeq, result))
-		{
-			log(ZQ::common::Log::L_ERROR, CLOGFMT(getJSON, "failed to receive response(%d) from SubAgent[%s/%d] timeout[%d]"), cSeq, serverAddr.getHostAddress(), serverPort, getTimeout());
-			//err = se_GenericError;
-			log.flush();
-			return "";
-		}
-		std::string jsonstr; // should be the string body from query response
-		return jsonstr;
-		*/
-		return "";
-	}
-	
 	//@ return cSeq
-	uint32 sendQuery(const ZQ::common::InetHostAddress& serverAddr, int serverPort, uint8 pdu, SNMPVariable::List& vlist, ZQ::common::Event::Ptr eventArrived=NULL);
-	bool getResponse(uint32 cSeq, Query& query);
+	uint32 sendQuery(QueryCB::Ptr cbQuery, const ZQ::common::InetHostAddress& serverAddr, int serverPort, uint8 pdu, SNMPVariable::List& vlist);
+	// virtual void OnQueryResult(const ZQ::common::InetHostAddress& serverAddr, int serverPort, BaseAgent::Msgheader header, const SNMPVariable::List& vlist);
+	// bool getResponse(uint32 cSeq, Query& query);
 
 protected:
 	typedef struct _ModuleInfo
@@ -916,8 +918,8 @@ protected:
 	ServiceInfoList _serviceList;
 
 	bool nextModule(uint componentOid, uint& moduleOid) const;
-
 };
+
 // -----------------------------
 // class SubAgent
 // -----------------------------

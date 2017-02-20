@@ -27,6 +27,11 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/snmp/Agent_netsnmp.cpp $
 // 
+// 6     2/13/17 5:26p Dejian.fei
+// snmp  Async
+// 
+// 5     12/26/16 2:49p Hui.shao
+// 
 // 4     1/15/16 9:42a Li.huang
 // 
 // 3     12/30/15 4:34p Li.huang
@@ -125,6 +130,7 @@ SnmpAgent_netsnmp::SnmpAgent_netsnmp()
 	_log(ZQ::common::Log::L_NOTICE, CLOGFMT(SnmpAgent, "===================== initialize ======================"));
 
 	loadServiceConfiguration();
+
 	ZQ::SNMP::Oid rootOid = ZQ::SNMP::ModuleMIB::productRootOid();
 
 	//prepare root oid	
@@ -242,6 +248,23 @@ bool copyVarlist(netsnmp_variable_list* destList, netsnmp_variable_list *srcList
 	return true;
 }
 // -----------------------------
+// class SyncQueryCB
+// -----------------------------
+//  public ZQ::SNMP::SnmpAgent
+class SyncQueryCB : public ZQ::SNMP::SnmpAgent::QueryCB
+{
+public:
+	typedef ZQ::common::Pointer< SyncQueryCB > Ptr;
+	SyncQueryCB(ZQ::SNMP::SnmpAgent& agent) : _agent(agent) {}
+	bool wait(timeout_t timeout=TIMEOUT_INF) { return _event.wait(timeout); }
+
+	virtual void OnResult() { _event.signal(); }
+	virtual void OnError(int errCode) {}
+
+	ZQ::SNMP::SnmpAgent&        _agent;
+	ZQ::common::Event _event;
+};
+// -----------------------------
 // handler ZQSnmp_handler()
 // -----------------------------
 // When exported function will be called during DLL loading and initialization
@@ -339,39 +362,46 @@ bool copyVarlist(netsnmp_variable_list* destList, netsnmp_variable_list *srcList
 		log(ZQ::common::Log::L_DEBUG, CLOGFMT(SnmpAgent_netsnmp, "handler[%p] read vars[%d]from [%s:%d] PDU[%s]"), handler, vlist.size(),serverAddr.getHostAddress(), serverPort, GetPduType(pdu).c_str());
 
 		// step 3. sending the query
-		uint cSeq = agent->sendQuery(serverAddr, serverPort, pdu, vlist, eventArrived);
+		SyncQueryCB::Ptr cbQuery = new SyncQueryCB(*agent);
+		if (NULL == cbQuery)
+		{
+			log(ZQ::common::Log::L_ERROR, CLOGFMT(SnmpAgent, "handler() failed allocate cbQuery"));
+			return SNMP_ERR_RESOURCEUNAVAILABLE;
+		}
+
+		uint cSeq = agent->sendQuery(cbQuery,serverAddr, serverPort, pdu, vlist);
 		if (0 == cSeq)
 		{
 			log(ZQ::common::Log::L_ERROR, CLOGFMT(SnmpAgent_netsnmp, "failed send to SubAgent[%s/%d]"), serverAddr.getHostAddress(), serverPort);
 			return SNMP_ERR_RESOURCEUNAVAILABLE;
 		}
 
-		// step 4. receiving the result
-		Query result;
-		if (!eventArrived->wait(agent->getTimeout()) || !agent->getResponse(cSeq, result))
+		// step 3. wait for response
+		// step 4. receiving the cbQuery
+		if (!cbQuery->wait(agent->getTimeout()))
 		{
 			log(ZQ::common::Log::L_ERROR, CLOGFMT(SnmpAgent_netsnmp, "failed to receive response(%d) from SubAgent[%s/%d] timeout[%d]"), cSeq, serverAddr.getHostAddress(), serverPort, agent->getTimeout());
-			//err = se_GenericError;
 			log.flush();
 			return SNMP_ERR_RESOURCEUNAVAILABLE;
 		}
 
-		// step 5. copy the result.vlist into req->requestvb
-		// step 5.1 chain up the result.vlist
-		result.vlist[result.vlist.size()-1]->data()->next_variable = NULL;
-		for (int i = result.vlist.size()-2; i >=0; i--)
-			result.vlist[i]->data()->next_variable = result.vlist[i+1]->data();
+
+		// step 5. copy the  cbQuery->vlist into req->requestvb
+		// step 5.1 chain up the  cbQuery->vlist
+		cbQuery->vlist[cbQuery->vlist.size()-1]->data()->next_variable = NULL;
+		for (int i =  cbQuery->vlist.size()-2; i >=0; i--)
+			cbQuery->vlist[i]->data()->next_variable =  cbQuery->vlist[i+1]->data();
 
 		// step 5.2 make the response to clone the list
-//		req->requestvb = snmp_clone_varbind(result.vlist[0]->data());
+//		req->requestvb = snmp_clone_varbind(cbQuery->vlist[0]->data());
 
-		copyVarlist(req->requestvb, result.vlist[0]->data());
+		copyVarlist(req->requestvb,  cbQuery->vlist[0]->data());
   
 		std::string respStr = reqdesc(req);
-		log(ZQ::common::Log::L_INFO, CLOGFMT(SnmpAgent_netsnmp, "handler[%p]txn[%s]response[%s] cseq(%d) responded [%d] errorcode[%d]variables by inquirying %s/%d"),handler, reqtxn.c_str(), respStr.c_str(),cSeq, (int)result.vlist.size(), err,serverAddr.getHostAddress(), serverPort);
+		log(ZQ::common::Log::L_INFO, CLOGFMT(SnmpAgent_netsnmp, "handler[%p]txn[%s]response[%s] cseq(%d) responded [%d] errorcode[%d]variables by inquirying %s/%d"),handler, reqtxn.c_str(), respStr.c_str(),cSeq, (int)cbQuery->vlist.size(), err,serverAddr.getHostAddress(), serverPort);
 		log.flush();
 
-		err = result.header.error;
+		err = cbQuery->header.error;
 		if (SNMP_ERR_NOERROR != err)
 		{
 			log(ZQ::common::Log::L_ERROR, CLOGFMT(SnmpAgent_netsnmp, "txn[%s]error[%u]"), reqtxn.c_str(),err);

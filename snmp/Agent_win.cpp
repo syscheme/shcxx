@@ -62,6 +62,15 @@ protected:
 
 	ZQ::common::FileLog _flog;
 
+	class SyncQueryCB : public SnmpAgent::QueryCB
+	{
+	public:
+		typedef ZQ::common::Pointer< SyncQueryCB > Ptr;
+		bool wait(timeout_t timeout=TIMEOUT_INF) { return _event.wait(timeout); }
+		virtual void OnResult() { _event.signal(); }
+		ZQ::common::Event _event;
+	};
+
 private:
     struct MibRegion
     {
@@ -260,7 +269,7 @@ void SnmpAgent_win::loadServiceConfiguration()
     _log(ZQ::common::Log::L_INFO, CLOGFMT(SnmpAgent, "loadServiceConfiguration() read %d services"), _serviceList.size());
 }
 
-bool SnmpAgent::nextModule(UINT componentOid, UINT& moduleOid) const
+bool SnmpAgent::nextModule(uint componentOid, uint& moduleOid) const
 {
     for (size_t iSvc = 0; iSvc < _serviceList.size(); iSvc++)
     {
@@ -285,6 +294,20 @@ bool SnmpAgent::nextModule(UINT componentOid, UINT& moduleOid) const
 
     return false;
 }
+
+
+// -----------------------------
+// class SyncQueryCB
+// -----------------------------
+class SyncQueryCB : public SnmpAgent::QueryCB
+{
+public:
+	typedef ZQ::common::Pointer< SyncQueryCB > Ptr;
+	bool wait(timeout_t timeout=TIMEOUT_INF) { return _event.wait(timeout); }
+	virtual void OnResult() { _event.signal(); }
+	ZQ::common::Event _event;
+};
+
 
 /*
 SNMPError SnmpAgent_win::doQuery(BYTE pdutype, SnmpVarBindList* pVbl, AsnInteger32* pErrStat, AsnInteger32* pErrIdx)
@@ -482,10 +505,10 @@ SNMPError SnmpAgent_win::doQuery(BYTE pdutype, SnmpVarBindList* pVbl, AsnInteger
 
 			vlist.push_back(var);
 
-			ZQ::common::Event::Ptr eventArrived = new ZQ::common::Event();
-			if (NULL == eventArrived)
+			SyncQueryCB::Ptr cbQ = new SyncQueryCB();
+			if (!cbQ)
 			{
-				_log(ZQ::common::Log::L_ERROR, CLOGFMT(SnmpAgent, "doQuery() failed allocate Event"));
+				_log(ZQ::common::Log::L_ERROR, CLOGFMT(SnmpAgent_win, "doQuery() failed allocate SyncQueryCB"));
 				err = se_GenericError;
 				break;
 			}
@@ -493,7 +516,7 @@ SNMPError SnmpAgent_win::doQuery(BYTE pdutype, SnmpVarBindList* pVbl, AsnInteger
 			if (_bQuit)
 				break;
 
-			uint cSeq = sendQuery(serverAddr, serverPort, pdutype, vlist, eventArrived);
+			uint cSeq = sendQuery(cbQ, serverAddr, serverPort, pdutype, vlist);
 			if (0 == cSeq)
 			{
 				_log(ZQ::common::Log::L_ERROR, CLOGFMT(SnmpAgent, "doQuery() failed send to SubAgent[%s/%d]"), serverAddr.getHostAddress(), serverPort);
@@ -501,8 +524,7 @@ SNMPError SnmpAgent_win::doQuery(BYTE pdutype, SnmpVarBindList* pVbl, AsnInteger
 				break;
 			}
 
-			Query result;
-			if (_bQuit || !eventArrived->wait(_timeout) || !getResponse(cSeq, result))
+			if (_bQuit || !cbQ->wait(_timeout))
 			{
 				_log(ZQ::common::Log::L_ERROR, CLOGFMT(SnmpAgent, "doQuery() failed receive response(%d) from SubAgent[%s/%d] timeout[%d]"), cSeq, serverAddr.getHostAddress(), serverPort, _timeout);
 				err = se_GenericError;
@@ -511,9 +533,9 @@ SNMPError SnmpAgent_win::doQuery(BYTE pdutype, SnmpVarBindList* pVbl, AsnInteger
 
 			// step 6. copy the result to pVbl[i]
 			SnmpUtilVarBindFree(pVar);
-			SnmpUtilAsnAnyCpy(&pVar->value, result.vlist[0]->data());
+			SnmpUtilAsnAnyCpy(&pVar->value, cbQ->vlist[0]->data());
 
-			oid = result.vlist[0]->oid();
+			oid = cbQ->vlist[0]->oid();
 			UINT oidbuf[ZQSNMP_OID_LEN_MAX];
 			AsnObjectIdentifier aoid;
 			aoid.ids = oidbuf;
@@ -522,7 +544,7 @@ SNMPError SnmpAgent_win::doQuery(BYTE pdutype, SnmpVarBindList* pVbl, AsnInteger
 				oidbuf[i] = oid[i];
 			SnmpUtilOidCpy(&pVar->name, &aoid);
 
-			err = result.header.error;
+			err = cbQ->header.error;
 
 		} while(0);
 
