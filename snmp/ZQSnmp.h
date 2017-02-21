@@ -246,8 +246,11 @@ class ZQ_SNMP_API SNMPVariable; // the abstraction of Windows/netsnmp SNMP varia
 
 class ZQ_SNMP_API SNMPObject;   // the wrapper of local address that will be exposed
 class ZQ_SNMP_API ModuleMIB;    // the MIB collection of this module
+//class ZQ_SNMP_API Subagent;     // THIS CLASS SHOULD BE CLEANED
 class ZQ_SNMP_API SubAgent;     // the communicator with SNMP agent
 class ZQ_SNMP_API BaseAgent;
+
+#ifdef _DEBUG
 class ZQ_SNMP_API SnmpAgent;
 // ---------------------------------------
 // Constants per SNMP_VENDOR:

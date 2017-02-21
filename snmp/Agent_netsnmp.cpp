@@ -130,24 +130,6 @@ SnmpAgent_netsnmp::SnmpAgent_netsnmp()
 	_log(ZQ::common::Log::L_NOTICE, CLOGFMT(SnmpAgent, "===================== initialize ======================"));
 
 	loadServiceConfiguration();
-
-	ZQ::SNMP::Oid rootOid = ZQ::SNMP::ModuleMIB::productRootOid();
-
-	//prepare root oid	
-	oid rOid[ZQSNMP_OID_LEN_MAX];
-	size_t len =0;
-	for (len =0; len < rootOid.length(); len++)
-		rOid[len] = rootOid[len];
-
-	_reginfo = netsnmp_create_handler_registration(
-		"ZQSnmp", handler,
-		rOid, len, HANDLER_CAN_RWRITE);
-
-	if (_reginfo)
-	{
-		_reginfo->my_reg_void = this;
-		netsnmp_register_handler(_reginfo);
-	}
 }
 
 bool SnmpAgent_netsnmp::loadInitConfiguration()
