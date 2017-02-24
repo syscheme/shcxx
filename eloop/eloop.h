@@ -366,13 +366,17 @@ private:
 class CpuInfo
 {
 public:
+	typedef uv_cpu_info_t cpu_info;
 	CpuInfo();
 	~CpuInfo();
 	int getCpuCount();
+	cpu_info*	getCpuInfo();
+	void		freeCpuInfo(); 
 
 private:
-	uv_cpu_info_t*	_info;
+	cpu_info*		_info;
 	int				_count;
+	bool			_bIsAccess;
 };
 
 } } // namespace ZQ::eloop

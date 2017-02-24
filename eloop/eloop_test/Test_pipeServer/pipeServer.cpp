@@ -11,7 +11,7 @@ public:
 	virtual void doAccept(ElpeError status)
 	{
 		if (status != ElpeError::elpeSuccess) {
-			fprintf(stderr, "New connection error %s\n", Error(status).str());
+			fprintf(stderr, "New connection error %s\n",Handle::errDesc(status));
 			return;
 		}
 
@@ -50,14 +50,14 @@ int main()
 	r = server.bind(TEST_PIPENAME);
 	if (r != 0)
 	{
-		fprintf(stderr, "Bind error %s\n", Error(r).str());
+		fprintf(stderr, "Bind error %s\n", Handle::errDesc(r));
 		return 1;
 	}
 
 	r = server.listen();
 	if (r != 0)
 	{
-		fprintf(stderr, "Listen error %s\n", Error(r).str());
+		fprintf(stderr, "Listen error %s\n", Handle::errDesc(r));
 		return 1;
 	}
 

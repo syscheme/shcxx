@@ -25,7 +25,7 @@ int main(void)
 			idle = cpu2[i].cpu_times.idle;
 			total = cpu2[i].cpu_times.user + cpu2[i].cpu_times.sys + cpu2[i].cpu_times.nice + cpu2[i].cpu_times.irq + cpu2[i].cpu_times.idle;
 			percent =100*(1-(float)idle/total);
-			std::cout <<"cpu " << i <<"usage percent: "<< percent << "%"<<std::endl;
+			std::cout <<"cpu " << i <<" usage percent: "<< percent << "%"<<std::endl;
 		}
 		
 		SYS::sleep(3000);

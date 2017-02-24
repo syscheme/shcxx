@@ -365,16 +365,45 @@ void Signal::_cbSignal(uv_signal_t *signal, int signum) {
 }
 
 CpuInfo::CpuInfo()
+	:_count(0),
+	_info(NULL),
+	_bIsAccess(false)
 {
-	uv_cpu_info(&_info,&_count);
+	getCpuInfo();
 }
+
 CpuInfo::~CpuInfo()
 {
-	uv_free_cpu_info(_info,_count);
+	freeCpuInfo();
 }
+
 int CpuInfo::getCpuCount()
 {
 	return _count;
+}
+
+CpuInfo::cpu_info* CpuInfo::getCpuInfo()
+{
+	if (_bIsAccess)
+	{
+		freeCpuInfo();
+	}
+	int ret = uv_cpu_info(&_info,&_count);
+	if (ret != 0)
+		return NULL;
+	_bIsAccess = true;
+	return _info;
+}
+
+void CpuInfo::freeCpuInfo()
+{
+	if (_bIsAccess)
+	{
+		uv_free_cpu_info(_info,_count);
+		_info = NULL;
+		_count = 0;
+		_bIsAccess =false;
+	}
 }
 
 }} // namespace ZQ::eloop
