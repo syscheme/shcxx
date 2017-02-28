@@ -159,6 +159,7 @@ public:
 	HttpMessage::Ptr makeSimpleResponse( int code ) const;
 
 protected:
+	HttpServerConfig		_Config;
 	ZQ::common::Log&		_Logger;
 
 private:
@@ -175,7 +176,6 @@ private:
 
 	VSites _vsites;
 
-	HttpServerConfig		_Config;
 	std::set<HttpPassiveConn*> _PassiveConn;
 	ZQ::common::Mutex		_Locker;
 	SYS::SingleObject		_single;
@@ -188,7 +188,7 @@ private:
 class SingleLoopHttpServer:public TCP,public HttpServer
 {
 public:
-	SingleLoopHttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger,SYS::SingleObject& signal);
+	SingleLoopHttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger);
 	~SingleLoopHttpServer();
 
 public:
@@ -198,7 +198,6 @@ public:
 
 private:
 	ZQ::eloop::Loop _loop;
-	SYS::SingleObject& _signal;
 };
 
 // ---------------------------------------
@@ -208,7 +207,7 @@ private:
 class MultipleLoopHttpServer:public HttpServer,public ZQ::common::NativeThread
 {
 public:
-	MultipleLoopHttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger,int threadCount,SYS::SingleObject& signal);
+	MultipleLoopHttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger,int threadCount);
 	~MultipleLoopHttpServer();
 
 public:
@@ -222,7 +221,6 @@ private:
 	std::vector<ServantThread*> _vecThread;
 	int		_roundCount;
 	int		_threadCount;
-	SYS::SingleObject& _signal;
 };
 
 // ---------------------------------------

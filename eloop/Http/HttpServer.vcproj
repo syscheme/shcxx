@@ -116,7 +116,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..;../libuv_1.9.1/include;../..;&quot;$(RegExppKit)&quot;"
+				AdditionalIncludeDirectories="./LibHttp;..;../libuv_1.9.1/include;../..;&quot;$(RegExppKit)&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -184,22 +184,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\http_parser.c"
-				>
-			</File>
-			<File
-				RelativePath=".\HttpConnection.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\HttpMessage.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\HttpServer.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\ServerApp.cpp"
 				>
 			</File>
@@ -215,22 +199,6 @@
 			>
 			<File
 				RelativePath="..\..\getopt.h"
-				>
-			</File>
-			<File
-				RelativePath=".\http_parser.h"
-				>
-			</File>
-			<File
-				RelativePath=".\HttpConnection.h"
-				>
-			</File>
-			<File
-				RelativePath=".\HttpMessage.h"
-				>
-			</File>
-			<File
-				RelativePath=".\HttpServer.h"
 				>
 			</File>
 			<File

@@ -256,9 +256,8 @@ HttpMessage::Ptr HttpServer::makeSimpleResponse( int code ) const {
 // ---------------------------------------
 // Single event loop
 
-SingleLoopHttpServer::SingleLoopHttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger,SYS::SingleObject& signal)
-			:HttpServer(conf,logger),
-			_signal(signal)
+SingleLoopHttpServer::SingleLoopHttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger)
+			:HttpServer(conf,logger)
 {
 	init(_loop);
 }
@@ -306,13 +305,12 @@ void SingleLoopHttpServer::doAccept(ElpeError status)
 // class MultipleLoopHttpServer
 // ---------------------------------------
 //Multiple event loop
-MultipleLoopHttpServer::MultipleLoopHttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger,int threadCount,SYS::SingleObject& signal)
+MultipleLoopHttpServer::MultipleLoopHttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger,int threadCount)
 			:HttpServer(conf,logger),
 			_bRunning(false),
 			_threadCount(threadCount),
 			_roundCount(0),
-			_socket(0),
-			_signal(signal)
+			_socket(0)
 {
 	CpuInfo cpu;
 	int cpuCount = cpu.getCpuCount();
@@ -376,7 +374,7 @@ bool MultipleLoopHttpServer::startAt( const char* ip, int port)
 		printf("socket bind error!");
 		return false;
 	}
-	if (0 != listen(_socket,100000))
+	if (0 != listen(_socket,_Config.maxConns))
 	{
 		return false;
 	}
@@ -428,7 +426,6 @@ int MultipleLoopHttpServer::run()
 		_roundCount = (_roundCount + 1) % _threadCount;
 	}
 	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(MultipleLoopHttpServer,"server quit"));
-	_signal.signal();
 	return 0;
 }
 
