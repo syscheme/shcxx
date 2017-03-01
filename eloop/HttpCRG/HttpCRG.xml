@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<TianShan>
+
+<Definitions src="TianShanDef.xml">
+</Definitions>
+	
+<default>
+
+	<!-- CrashDump can help devoloper diagnose the program when it crashed
+			if you set enable to "1" you must make sure that the path is accessible
+			path: crashdump path
+			enabled: 1 to enable crashDump
+  --> 
+  <CrashDump enabled="1" path="${TianShanCrashDumpDir}" /> 
+  
+</default>
+  
+<!--  configurations of the HttpCRG service 
+      attributes:
+          hexDump  - 1 for dump the incoming message in hex; 0 in text
+          fnLimit  - file number limit per process(work on linux only).
+                     minimal value is 1024.
+-->
+<HttpCRG hexDump="0" fnLimit="10240">
+  
+	<!--The HttpCRP process threadpool size
+        attributes:
+           size: the threadpool size
+           maxPendingRequest: the max pending request limit
+  -->
+  <ThreadPool size="150" maxPendingRequest="100"/>
+  
+  <!--The local bind information of the HttpCRG
+			attributes:
+				ip: the bind ip of this HttpCRG
+				port: the bind port of this HttpCRG
+	-->
+  <Bind ip="${ServerNetIf}"  port="10080"/>
+
+  <!-- Plugins consume HTTP event and send messages to other destination.
+       attributes:
+           populatePath - The path of plug-in module with wildcard.
+           configDir    - The config file's directory path for plug-ins.
+           logDir       - The log file's directory path for plug-ins.
+		
+  -->
+  <Plugins populatePath="" configDir="${TianShanHomeDir}\etc" logDir="${TianShanLogDir}">
+  <!-- Addition plug-ins
+       attribute:
+           image        - The full path of the plug-in module.	
+  -->
+  <Module image="${TianShanHomeDir}\modules\CRM_C2Locator.dll" /> 
+  <Module image="${TianShanHomeDir}\modules\CRM_A3.dll" /> 
+  <Module image="${TianShanHomeDir}\modules\CRM_3dServer.dll" />
+  </Plugins>
+        
+</HttpCRG>
+
+</TianShan>
