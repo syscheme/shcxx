@@ -89,6 +89,13 @@ public:
 		MSG_BOTH = HTTP_BOTH 
 	} MessgeType;
 
+	typedef enum _HttpMethod{
+		HTTPDELETE	= HTTP_DELETE,
+		GET			= HTTP_GET,
+		POST		= HTTP_POST,
+		PUT			= HTTP_PUT
+	}HttpMethod;
+
 public:
 	HttpMessage(MessgeType type);
 	virtual ~HttpMessage();
@@ -97,8 +104,8 @@ public:
 	static const std::string& code2status(int code);
 	static std::string httpdate( int deltaInSecond = 0 );
 
-	http_method method() const;
-	void		method(http_method mtd);
+	HttpMethod method() const;
+	void		method(HttpMethod mtd);
 
 	const std::string& url() const;
 	void		url(const std::string& url);
@@ -160,7 +167,7 @@ private:
 
 	ZQ::common::Mutex	_Locker;
 	http_parser_type	_Type;//request or response
-	http_method			_Method;
+	HttpMethod			_Method;
 	std::string			_Uri;
 	std::string			_Status;
 	int					_Code;//status code

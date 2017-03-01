@@ -12,7 +12,7 @@ namespace eloop {
 // -----------------------------------------------------
 HttpMessage::HttpMessage(MessgeType type)
 		:_Type((http_parser_type)type),
-		_Method(HTTP_GET),
+		_Method(GET),
 		_Code(0),
 		_bChunked(false),
 		_bKeepAlive(false),
@@ -59,11 +59,11 @@ const std::string& HttpMessage::code2status( int code ) {
 	return unknownstatus;
 }
 
-http_method HttpMessage::method() const{
+HttpMessage::HttpMethod HttpMessage::method() const{
 	return _Method;
 }
 
-void HttpMessage::method(http_method mtd){
+void HttpMessage::method(HttpMethod mtd){
 	_Method = mtd;
 }
 
@@ -142,7 +142,7 @@ std::string HttpMessage::toRaw()
 	if( !_RawMessage.empty())
 		return _RawMessage;
 	if(_Type != HTTP_RESPONSE ) {
-		oss<< http_method_str(_Method) << " " << _Uri << " " << "HTTP/1.1"<< line_term;
+		oss<< http_method_str((http_method)_Method) << " " << _Uri << " " << "HTTP/1.1"<< line_term;
 	} else {
 		oss<<"HTTP/1.1" <<" " <<_Code<<" "<<_Status<<line_term;
 	}

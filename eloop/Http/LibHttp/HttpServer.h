@@ -126,6 +126,8 @@ public:
 	{
 		HttpServerConfig() {
 			serverName		= "Eloop Http Server";
+			host			= "127.0.0.1";
+			port			= 8888;
 			httpHeaderAvailbleTimeout = 5* 60 * 1000;
 			keepAliveIdleMin		= 5 * 60 * 1000;
 			keepAliveIdleMax		= 10 * 60 *1000;
@@ -133,6 +135,8 @@ public:
 		}
 
 		std::string serverName;
+		std::string	host;
+		uint64		port;
 		uint64		httpHeaderAvailbleTimeout;
 		uint64		keepAliveIdleMin;
 		uint64		keepAliveIdleMax;
@@ -143,7 +147,7 @@ public:
 	HttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger);
 	~HttpServer();
 
-	virtual bool startAt( const char* ip, int port) = 0;
+	virtual bool startAt() = 0;
 	virtual void stop() = 0;
 	// register an application to uri
 	//@param uriEx - the regular expression of uri
@@ -192,7 +196,7 @@ public:
 	~SingleLoopHttpServer();
 
 public:
-	virtual bool startAt( const char* ip, int port);
+	virtual bool startAt();
 	virtual void stop();
 	virtual void doAccept(ElpeError status);
 
@@ -211,7 +215,7 @@ public:
 	~MultipleLoopHttpServer();
 
 public:
-	virtual bool startAt( const char* ip, int port);
+	virtual bool startAt();
 	virtual void stop();
 	virtual int run(void);
 

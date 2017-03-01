@@ -265,9 +265,9 @@ SingleLoopHttpServer::~SingleLoopHttpServer()
 {
 	_loop.close();
 }
-bool SingleLoopHttpServer::startAt( const char* ip, int port)
+bool SingleLoopHttpServer::startAt()
 {
-	if (bind4(ip,port) < 0)
+	if (bind4(_Config.host.c_str(),_Config.port) < 0)
 		return false;
 
 	if (listen() < 0)
@@ -341,7 +341,7 @@ MultipleLoopHttpServer::~MultipleLoopHttpServer()
 	stop();
 }
 
-bool MultipleLoopHttpServer::startAt( const char* ip, int port)
+bool MultipleLoopHttpServer::startAt()
 {
 
 #ifdef ZQ_OS_MSWIN
@@ -367,8 +367,8 @@ bool MultipleLoopHttpServer::startAt( const char* ip, int port)
 
 	struct sockaddr_in serv;
 	serv.sin_family=AF_INET;
-	serv.sin_port=htons(port);
-	serv.sin_addr.s_addr=inet_addr(ip);
+	serv.sin_port=htons(_Config.port);
+	serv.sin_addr.s_addr=inet_addr(_Config.host.c_str());
 	if(bind(_socket,(struct sockaddr*)&serv,sizeof(serv)) == -1)
 	{
 		printf("socket bind error!");

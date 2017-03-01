@@ -117,7 +117,7 @@ int	HttpConnection::onHeadersComplete(){
 	_CurrentParseMsg->keepAlive((_Parser->flags & F_CONNECTION_KEEP_ALIVE) != 0);
 	_CurrentParseMsg->chunked((_Parser->flags & F_CHUNKED) != 0 );
 	_CurrentParseMsg->code((int)_Parser->status_code);
-	_CurrentParseMsg->method((http_method)_Parser->method);
+	_CurrentParseMsg->method((HttpMessage::HttpMethod)_Parser->method);
 	_CurrentParseMsg->setVersion(_Parser->http_major, _Parser->http_minor);
 	_ParserState = STATE_BODY;
 	if(_Parser->http_errno == 0) {

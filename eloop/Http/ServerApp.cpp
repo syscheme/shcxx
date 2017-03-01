@@ -69,6 +69,8 @@ int main(int argc,char* argv[])
 	
 
 	ZQ::eloop::HttpServer::HttpServerConfig conf;
+	conf.host = ip;
+	conf.port = port;
 	ZQ::eloop::HttpServer* server;
 	if(threadCount <= 0)
 		server = new ZQ::eloop::SingleLoopHttpServer(conf,*pLog);
@@ -83,6 +85,6 @@ int main(int argc,char* argv[])
 	server->mount("/empty",empty);
 
 
-	server->startAt(ip.c_str(),port);
+	server->startAt();
 	return 0;
 }
