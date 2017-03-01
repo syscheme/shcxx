@@ -92,7 +92,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			OutputDirectory="$(ZQProjsPath)\TianShan\bin\"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
 			CharacterSet="2"
@@ -117,7 +117,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="../../HttpEngine;../libuv_1.9.1/include;..;../Http/LibHttp;&quot;$(ZQProjsPath)\common\&quot;;&quot;$(ZQProjsPath)\tianshan\ice&quot;;&quot;$(ZQProjsPath)\tianshan\include&quot;;&quot;$(ZQProjsPath)\tianshan\common&quot;;&quot;$(ZQProjsPath)\TianShan\Shell\ZQCfgpkg&quot;;&quot;$(ZQProjsPath)\TianShan\Shell\ZQAPPShell&quot;;&quot;$(ZQProjsPath)\TianShan\Shell\ZQSNMPManPkg&quot;;&quot;$(ExpatPath)\include&quot;;&quot;$(RegExppKit)&quot;;&quot;$(ICE_ROOT)\include&quot;;&quot;$(ZQProjsPath)\tianshan\common\snmp&quot;"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_WIN32_WINNT=0x0502;WITH_ICESTORM"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -135,7 +135,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="snmpapi.lib ws2_32.lib"
+				AdditionalDependencies="snmpapi.lib ws2_32.lib ZQSnmp.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;$(ZQProjsPath)\tianshan\bin&quot;;&quot;$(RegExPPKit)\bin\x86&quot;;&quot;$(ICE_ROOT)\lib&quot;"
 				GenerateDebugInformation="true"
@@ -194,6 +194,14 @@
 				RelativePath=".\HttpCRGConfig.cpp"
 				>
 			</File>
+			<File
+				RelativePath="..\..\MiniDump.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\ZQServiceAppMain.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="CRGw"
@@ -240,6 +248,10 @@
 			</File>
 			<File
 				RelativePath=".\HttpCRGConfig.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\MiniDump.h"
 				>
 			</File>
 			<File

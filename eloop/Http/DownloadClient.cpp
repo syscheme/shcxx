@@ -20,7 +20,7 @@ void EmptyClient::dohttp(std::string& url)
 {
 
 	HttpMessage::Ptr msg = new HttpMessage(HttpMessage::MSG_REQUEST);
-	msg->method(HTTP_POST);
+	msg->method(HttpMessage::POST);
 	msg->url("*");
 
 //	printf("url = %s\n",url.c_str());
@@ -81,7 +81,7 @@ void DownloadClient::dohttp(std::string& url)
 {
 
 	HttpMessage::Ptr msg = new HttpMessage(HttpMessage::MSG_REQUEST);
-	msg->method(HTTP_POST);
+	msg->method(HttpMessage::POST);
 	msg->url("*");
 	
 

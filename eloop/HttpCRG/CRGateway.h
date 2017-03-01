@@ -1,10 +1,10 @@
 #ifndef __CRGateway_H__
 #define __CRGateway_H__
+#include "HttpServer.h"
+#include "selector.h"
 #include "CRMInterface.h"
 #include <list>
 #include <vector>
-#include "selector.h"
-#include "HttpServer.h"
 namespace CRG{
 
 // ---------------------------------------
