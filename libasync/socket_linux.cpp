@@ -17,6 +17,13 @@ namespace LibAsync {
 	}
 	*/
 
+	int Socket::lastError() const {
+		int err = 0;
+		socklen_t size = sizeof(err);
+		getsockopt( mSocket, SOL_SOCKET, SO_ERROR, (void*)&err, &size);
+		return err;
+	}
+
 	bool Socket::isOpened() const
 	{
 		return ( -1 != mSocket);
@@ -133,7 +140,7 @@ namespace LibAsync {
 						continue;
 					}
 				}
-				onSocketError(ERR_CONNREFUSED);
+				onSocketError(lastError());
 				close();
 				return false;
 			}
@@ -307,7 +314,7 @@ namespace LibAsync {
 					Socket::Ptr sockPtr (this);
 					mLoop.unregisterEvent(sockPtr, mSocketEvetns);
 				}
-				onSocketError(LibAsync::ERR_ERROR);
+				onSocketError(lastError());
 			}
 			// this false is not real false , just use to out the while loop in event loop 
 			return false;
@@ -382,7 +389,7 @@ namespace LibAsync {
 				mbAlive = false;
 				mRecedSize = 0;
 				mRecValid = true;
-				onSocketError(ERR_EOF3);
+				onSocketError(lastError());
 				break;
 			}
 			else
@@ -406,7 +413,7 @@ namespace LibAsync {
 				mLoop.registerEvent(sockPtr, mSocketEvetns);
 				mRecedSize = 0;
 				mRecValid = true;
-				onSocketError(ERR_RECVFAIL);
+				onSocketError(lastError());
 				break;
 			}
 		}
@@ -501,7 +508,7 @@ namespace LibAsync {
 				mLoop.registerEvent(sockPtr, mSocketEvetns);
 				mSentSize = 0;
 				mSendValid = true;
-				onSocketError(ERR_SENDFAIL);
+				onSocketError(lastError());
 				sendSucc = false;
 				break;
 			}//else

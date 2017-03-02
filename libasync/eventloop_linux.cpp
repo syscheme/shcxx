@@ -140,7 +140,7 @@ void EventLoop::processEvent( int64 expireAt )
 			unregisterEvent(sock, sock->mSocketEvetns);
 			if( !sock->socketShutdownStaus() )
 			{
-				sock->onSocketError(ERR_EPOLLEXCEPTION);
+				sock->onSocketError(sock->lastError());
 			}
 			else
 			{
@@ -196,7 +196,7 @@ void EventLoop::processEvent( int64 expireAt )
 			
 			if( !sock->socketShutdownStaus() )
 			{
-				sock->onSocketError(ERR_EPOLLEXCEPTION);
+				sock->onSocketError(sock->lastError());
 			}
 			else
 			{
