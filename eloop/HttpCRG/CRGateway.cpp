@@ -506,44 +506,49 @@ void RequestWriter::setContent(const char* data, size_t len)
 // ---------------------------------------
 // class Response
 // --------------------------------------
-Response::Response()
+Response::Response(ZQ::eloop::HttpConnection& conn)
 	:_msg(NULL),
-	_statusCode(200)
+	_statusCode(200),
+	_conn(conn)
 {
 
 }
 
-bool Response::init(const ZQ::eloop::HttpMessage::Ptr msg)
+bool Response::init()
 {
-	if(msg == NULL)
-		return false;
-
 	clear();
-	_msg = msg;
+	_msg = new ZQ::eloop::HttpMessage(ZQ::eloop::HttpMessage::MSG_RESPONSE);;
 
 	return true;
 }
 void Response::send()
 {
-/*	if(_msg)
+	if(_msg)
 	{
-		_msg->setStatus(_statusCode, _reasonPhrase.c_str());
+		_msg->code(_statusCode);
+		_msg->status(_reasonPhrase);
 
+		_msg->keepAlive(true);
+		_msg->header("Server","HttpCRG");
+		_msg->header("Date",ZQ::eloop::HttpMessage::httpdate());
 		// reset the content length
-		_headers["Content-Length"] = ZQHttp::Util::int2str(_content.size());
+		_msg->contentLength(_content.size());
 
 		std::map<std::string, std::string, ICaseLess>::const_iterator it;
 		for(it = _headers.begin(); it != _headers.end(); ++it)
 		{
-			_msg->setHeader(it->first.c_str(), it->second.c_str());
+			_msg->header(it->first.c_str(), it->second.c_str());
 		}
-		_msg->headerPrepared();
+
+		std::string senddata = _msg->toRaw();
+
 		if(!_content.empty())
 		{
-			_msg->addContent(_content.data(), _content.size());
+			senddata.append(_content);
 		}
-		_msg->complete();
-	}*/
+
+		_conn.write(senddata.c_str(),senddata.size());
+	}
 }
 void Response::clear()
 {
@@ -623,8 +628,9 @@ void Response::setContent(const char* data, size_t len)
 // ---------------------------------------
 
 ClientRequestHandler::ClientRequestHandler(ZQ::eloop::HttpConnection& conn,ZQ::common::Log& logger,const ZQ::eloop::HttpHandler::Properties& dirProps, const ZQ::eloop::HttpHandler::Properties& appProps,CRMManager* crmMgr)
-:ZQ::eloop::HttpHandler(conn,logger,dirProps, appProps),
-_crmMgr(crmMgr)
+	:ZQ::eloop::HttpHandler(conn,logger,dirProps, appProps),
+	_crmMgr(crmMgr),
+	_resp(conn)
 {
 
 }
@@ -632,7 +638,7 @@ _crmMgr(crmMgr)
 bool ClientRequestHandler::onHeadersEnd( const ZQ::eloop::HttpMessage::Ptr msg)
 {
 	_req.init(msg);
-	_resp.init(msg);
+	_resp.init();
 	char ip[17] = {0};
 	int port = 0;
 	_conn.getpeerIpPort(ip,port);
@@ -691,16 +697,16 @@ ZQ::eloop::HttpHandler::Ptr CRHandlerFactory::create( ZQ::eloop::HttpConnection&
 // ---------------------------------------
 // class CRGateway
 // ---------------------------------------
-CRGateway::CRGateway(ZQ::common::Log& log,ZQ::eloop::HttpServer::HttpServerConfig& conf,int threadCount)
+CRGateway::CRGateway(ZQ::common::Log& log,ZQ::eloop::HttpServer::HttpServerConfig& conf)
 	:_log(log),
 	_modMgr(NULL),
 	_crHandlerFac(NULL),
 	_httpserver(NULL)
 {
-	if(threadCount <= 0)
+	if(conf.threadCount <= 0)
 		_httpserver = new ZQ::eloop::SingleLoopHttpServer(conf,log);
 	else
-		_httpserver = new ZQ::eloop::MultipleLoopHttpServer(conf,log,threadCount);
+		_httpserver = new ZQ::eloop::MultipleLoopHttpServer(conf,log);
 }
 
 CRGateway::~CRGateway()

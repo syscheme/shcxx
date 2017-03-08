@@ -132,11 +132,13 @@ public:
 			keepAliveIdleMin		= 5 * 60 * 1000;
 			keepAliveIdleMax		= 10 * 60 *1000;
 			maxConns 				= 100 * 1000;
+			threadCount				= 0;
 		}
 
 		std::string serverName;
 		std::string	host;
 		uint64		port;
+		int			threadCount;
 		uint64		httpHeaderAvailbleTimeout;
 		uint64		keepAliveIdleMin;
 		uint64		keepAliveIdleMax;
@@ -211,7 +213,7 @@ private:
 class MultipleLoopHttpServer:public HttpServer,public ZQ::common::NativeThread
 {
 public:
-	MultipleLoopHttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger,int threadCount);
+	MultipleLoopHttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger);
 	~MultipleLoopHttpServer();
 
 public:
@@ -224,7 +226,6 @@ private:
 	int		_socket;
 	std::vector<ServantThread*> _vecThread;
 	int		_roundCount;
-	int		_threadCount;
 };
 
 // ---------------------------------------

@@ -135,8 +135,8 @@ private:
 class Response: public IResponse
 {
 public:
-	Response();
-	bool init(const ZQ::eloop::HttpMessage::Ptr msg);
+	Response(ZQ::eloop::HttpConnection& conn);
+	bool init();
 	void clear();
 	void send();
 
@@ -159,6 +159,7 @@ private:
 	std::string _reasonPhrase;
 	std::map<std::string, std::string, ICaseLess> _headers;
 	std::string _content;
+	ZQ::eloop::HttpConnection& _conn;
 };
 
 // ---------------------------------------
@@ -211,7 +212,7 @@ private:
 class CRGateway
 {
 public:
-	CRGateway(ZQ::common::Log& log,ZQ::eloop::HttpServer::HttpServerConfig& conf,int threadCount);
+	CRGateway(ZQ::common::Log& log,ZQ::eloop::HttpServer::HttpServerConfig& conf);
 	~CRGateway();
 
 	void setModEnv(const std::string& confFolder, const std::string& logFolder);

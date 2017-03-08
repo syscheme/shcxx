@@ -71,11 +71,12 @@ int main(int argc,char* argv[])
 	ZQ::eloop::HttpServer::HttpServerConfig conf;
 	conf.host = ip;
 	conf.port = port;
+	conf.threadCount = threadCount;
 	ZQ::eloop::HttpServer* server;
 	if(threadCount <= 0)
 		server = new ZQ::eloop::SingleLoopHttpServer(conf,*pLog);
 	else
-		server = new ZQ::eloop::MultipleLoopHttpServer(conf,*pLog,threadCount);
+		server = new ZQ::eloop::MultipleLoopHttpServer(conf,*pLog);
 
 
 	server->mount("/",Test);
@@ -86,5 +87,7 @@ int main(int argc,char* argv[])
 
 
 	server->startAt();
+	while(1)
+		SYS::sleep(10000);
 	return 0;
 }

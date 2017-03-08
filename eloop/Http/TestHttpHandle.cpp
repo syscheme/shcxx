@@ -70,12 +70,12 @@ bool TestHttpHandle::onHeadersEnd( const HttpMessage::Ptr msg)
 
 	std::string body = "Welcome to tinyweb. <a href=\"index.html\">index.html</a>";
 
-	outmsg->contentLength(body.length());
+	outmsg->contentLength(body.size());
 
 	std::string head = outmsg->toRaw();
-	_conn.write(head.c_str(),head.length());
+	_conn.write(head.c_str(),head.size());
 
-	_conn.write(body.c_str(),body.length());
+	_conn.write(body.c_str(),body.size());
 
 	//_conn.setkeepAlive(false);
 

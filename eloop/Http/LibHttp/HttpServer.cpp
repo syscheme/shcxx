@@ -305,10 +305,9 @@ void SingleLoopHttpServer::doAccept(ElpeError status)
 // class MultipleLoopHttpServer
 // ---------------------------------------
 //Multiple event loop
-MultipleLoopHttpServer::MultipleLoopHttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger,int threadCount)
+MultipleLoopHttpServer::MultipleLoopHttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger)
 			:HttpServer(conf,logger),
 			_bRunning(false),
-			_threadCount(threadCount),
 			_roundCount(0),
 			_socket(0)
 {
@@ -316,7 +315,7 @@ MultipleLoopHttpServer::MultipleLoopHttpServer( const HttpServerConfig& conf,ZQ:
 	int cpuCount = cpu.getCpuCount();
 	int cpuId = 0;
 	setCpuAffinity(cpuId);
-	for (int i = 0;i < _threadCount;i++)
+	for (int i = 0;i < conf.threadCount;i++)
 	{
 		ServantThread *pthread = new ServantThread(*this,_Logger);
 		
@@ -423,7 +422,7 @@ int MultipleLoopHttpServer::run()
 		pthread->addSocket(sock);
 		pthread->send();
 		printf("send sock = %d\n", sock);
-		_roundCount = (_roundCount + 1) % _threadCount;
+		_roundCount = (_roundCount + 1) % _Config.threadCount;
 	}
 	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(MultipleLoopHttpServer,"server quit"));
 	return 0;

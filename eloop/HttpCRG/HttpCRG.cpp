@@ -180,9 +180,10 @@ namespace ZQTianShan{
 			ZQ::eloop::HttpServer::HttpServerConfig conf;
 			conf.host = gConfig._bind.ip;
 			conf.port = gConfig._bind.port;
+			conf.threadCount = 4;
 
 			//step 3. init HttpCRG
-			_crg = new CRG::CRGateway(*m_pReporter,conf,4);
+			_crg = new CRG::CRGateway(*m_pReporter,conf);
 
 
 			_crg->setModEnv(gConfig._pluginsConfig.configDir, gConfig._pluginsConfig.logDir);
@@ -352,13 +353,13 @@ namespace ZQTianShan{
 
 		void HttpCRGService::snmp_resetStat(const uint32&)
 		{
-//			ZQHttp::EngineStatistics& stat = ZQHttp::getEngineStatistics();
-//			stat.reset();
+/*			ZQHttp::EngineStatistics& stat = ZQHttp::getEngineStatistics();
+			stat.reset();
 
 			static char stampStrSince[48];
-//			ZQ::common::TimeUtil::TimeToUTC(stat._mesureSince, stampStrSince, sizeof(stampStrSince)-2, true);
+			ZQ::common::TimeUtil::TimeToUTC(stat._mesureSince, stampStrSince, sizeof(stampStrSince)-2, true);
 			_pServiceMib->addObject(new ZQ::SNMP::SNMPObject("httpStat-Since", stampStrSince));
-			(*m_pReporter)(ZQ::common::Log::L_INFO, CLOGFMT(HttpCRGService, "snmp_resetStat() counters has been reset"));
+			(*m_pReporter)(ZQ::common::Log::L_INFO, CLOGFMT(HttpCRGService, "snmp_resetStat() counters has been reset"));*/
 		}
 
 	} // namespace HttpCRG

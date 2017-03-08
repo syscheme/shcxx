@@ -258,6 +258,10 @@
 				RelativePath="..\..\HttpEngine\selector.h"
 				>
 			</File>
+			<File
+				RelativePath=".\ZQResource.h"
+				>
+			</File>
 		</Filter>
 	</Files>
 	<Globals>
