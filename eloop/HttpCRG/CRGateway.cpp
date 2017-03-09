@@ -1,5 +1,11 @@
 #include "CRGateway.h"
 
+#ifdef ZQ_OS_LINUX
+extern "C"
+{
+#include <dlfcn.h>
+}
+#endif
 
 namespace CRG{
 

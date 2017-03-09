@@ -1,5 +1,6 @@
 #ifndef __CRGateway_H__
 #define __CRGateway_H__
+#include "ZQ_common_conf.h"
 #include "HttpServer.h"
 #include "selector.h"
 #include "CRMInterface.h"
