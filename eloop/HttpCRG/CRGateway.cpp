@@ -649,18 +649,21 @@ bool ClientRequestHandler::onHeadersEnd( const ZQ::eloop::HttpMessage::Ptr msg)
 	int port = 0;
 	_conn.getpeerIpPort(ip,port);
 	_req.setClientEndpoint(ip,port);
+	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(ClientRequestHandler,"onHeadersEnd [%s:%d]"),ip,port);
 	return true;
 }
 bool ClientRequestHandler::onBodyData( const char* data, size_t size)
 {
 	if(data)
 	{
+		_Logger(ZQ::common::Log::L_INFO, CLOGFMT(ClientRequestHandler,"onBodyData [%s][%d]"),data,size);
 		_postedData.append(data,size);
 	}
 	return true;
 }
 void ClientRequestHandler::onMessageCompleted()
 {
+	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(ClientRequestHandler,"onMessageCompleted"));
 	_req.setContent(_postedData.data(), _postedData.size());
 	_crmMgr->processRequestSync(&_req, &_resp);
 	// fill the response object
