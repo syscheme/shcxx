@@ -553,6 +553,8 @@ void Response::send()
 		{
 			senddata.append(_content);
 		}
+		_Logger(ZQ::common::Log::L_INFO, CLOGFMT(Response,"content length:[%d] size [%d] data:[%s]"),_content.length(),_content.size(),_content.c_str());
+
 		_Logger(ZQ::common::Log::L_INFO, CLOGFMT(Response,"send data:[%s]"),senddata.c_str());
 		_conn.write(senddata.c_str(),senddata.size());
 	}
