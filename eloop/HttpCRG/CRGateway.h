@@ -136,7 +136,7 @@ private:
 class Response: public IResponse
 {
 public:
-	Response(ZQ::eloop::HttpConnection& conn);
+	Response(ZQ::eloop::HttpConnection& conn,ZQ::common::Log& logger);
 	bool init();
 	void clear();
 	void send();
@@ -161,6 +161,7 @@ private:
 	std::map<std::string, std::string, ICaseLess> _headers;
 	std::string _content;
 	ZQ::eloop::HttpConnection& _conn;
+	ZQ::common::Log& _Logger;
 };
 
 // ---------------------------------------

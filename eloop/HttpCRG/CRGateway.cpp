@@ -512,9 +512,10 @@ void RequestWriter::setContent(const char* data, size_t len)
 // ---------------------------------------
 // class Response
 // --------------------------------------
-Response::Response(ZQ::eloop::HttpConnection& conn)
+Response::Response(ZQ::eloop::HttpConnection& conn,ZQ::common::Log& logger)
 	:_msg(NULL),
 	_statusCode(200),
+	_Logger(logger),
 	_conn(conn)
 {
 
@@ -552,7 +553,7 @@ void Response::send()
 		{
 			senddata.append(_content);
 		}
-
+		_Logger(ZQ::common::Log::L_INFO, CLOGFMT(Response,"send data:[%s]"),senddata.c_str());
 		_conn.write(senddata.c_str(),senddata.size());
 	}
 }
@@ -607,6 +608,7 @@ void Response::setStatus(int statusCode, const char* reasonPhrase)
 	{
 		_reasonPhrase.clear();
 	}
+	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(Response,"setStatus:statusCode[%d],reasonPhrase[%s]"),_statusCode,_reasonPhrase.c_str());
 }
 
 // set a NULL value to clear the header
@@ -636,7 +638,7 @@ void Response::setContent(const char* data, size_t len)
 ClientRequestHandler::ClientRequestHandler(ZQ::eloop::HttpConnection& conn,ZQ::common::Log& logger,const ZQ::eloop::HttpHandler::Properties& dirProps, const ZQ::eloop::HttpHandler::Properties& appProps,CRMManager* crmMgr)
 	:ZQ::eloop::HttpHandler(conn,logger,dirProps, appProps),
 	_crmMgr(crmMgr),
-	_resp(conn)
+	_resp(conn,logger)
 {
 
 }
