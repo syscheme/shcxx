@@ -2,7 +2,7 @@
 #include <iostream>
 #include "getopt.h"
 #include "Download.h"
-
+#include "eloop.h"
 
 
 void usage() {

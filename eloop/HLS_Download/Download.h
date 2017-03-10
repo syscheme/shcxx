@@ -1,7 +1,7 @@
 #ifndef __DOWNLOAD_h__
 #define __DOWNLOAD_h__
 
-#include "HttpClient.h"
+#include "../Http/LibHttp/HttpClient.h"
 #include <NativeThread.h>
 #include <vector>
 #include <string>
