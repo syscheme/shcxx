@@ -1,7 +1,8 @@
 #ifndef __DOWNLOAD_CLIENT_h__
 #define __DOWNLOAD_CLIENT_h__
 
-#include "HttpClient.h"
+#include "HttpMessage.h"
+#include "LibHttp/HttpClient.h"
 #include <NativeThread.h>
 
 namespace ZQ {
