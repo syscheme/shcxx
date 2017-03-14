@@ -81,14 +81,10 @@ int main(int argc,char* argv[])
 
 	ZQ::eloop::Loop loop(false);
 
-	ZQ::eloop::Session* fetch = new ZQ::eloop::Session(*pLog);
-	fetch->init(loop);
-	//fetch->dohttp(m3u8);
+	ZQ::eloop::fetchm3u8* session = new ZQ::eloop::fetchm3u8(*pLog);
+	session->init(loop);
+	session->getm3u8(m3u8);
 
-
-	/*ZQ::eloop::EmptyClient* client = new ZQ::eloop::EmptyClient(*pLog,NULL);
-	client->init(loop);
-	client->dohttp(url);*/
 	loop.run(ZQ::eloop::Loop::Default);
 
 
