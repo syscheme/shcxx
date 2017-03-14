@@ -90,7 +90,7 @@ public:
 protected:
 
 	// implementation of HttpConnection
-	virtual void	onParseError( int error,const char* errorDescription );
+	virtual void	onError( int error,const char* errorDescription );
 	virtual void	onHttpDataSent();
 	virtual void	onHttpDataReceived( size_t size );
 	virtual bool	onHeadersEnd( const HttpMessage::Ptr msg);

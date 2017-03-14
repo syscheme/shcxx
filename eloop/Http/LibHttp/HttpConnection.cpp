@@ -24,6 +24,8 @@ HttpConnection::HttpConnection(bool clientSide,ZQ::common::Log& logger)
 	_ParserSettings->on_message_complete	= HttpConnection::on_message_complete;
 	_ParserSettings->on_status				= HttpConnection::on_status;
 	_ParserSettings->on_url					= HttpConnection::on_uri;
+	_ParserSettings->on_chunk_header		= HttpConnection::on_chunk_header;
+	_ParserSettings->on_chunk_complete		= HttpConnection::on_chunk_complete;
 	reset();
 }
 
@@ -54,7 +56,7 @@ void HttpConnection::OnRead(ssize_t nread, const char *buf)
 	if (nread < 0) {
 		std::string desc = "Read error:";
 		desc.append(errDesc(nread));
-		onParseError(nread,desc.c_str());
+		onError(nread,desc.c_str());
 		return;
 	}
 
@@ -63,7 +65,7 @@ void HttpConnection::OnRead(ssize_t nread, const char *buf)
 	if(nparsed != nread){
 		std::string parsedesc = "parse error:";
 		parsedesc.append(http_errno_description((http_errno)_Parser->http_errno));
-		onParseError((int)_Parser->http_errno,parsedesc.c_str());
+		onError((int)_Parser->http_errno,parsedesc.c_str());
 		return;
 	}
 
@@ -80,7 +82,7 @@ void HttpConnection::OnWrote(ElpeError status)
 	{
 		std::string desc = "send error:";
 		desc.append(errDesc(status));
-		onParseError(status,desc.c_str());
+		onError(status,desc.c_str());
 		return;
 	}
 	
@@ -178,6 +180,17 @@ int	HttpConnection::onBody(const char* at, size_t size){
 	return 0;
 }
 
+int	HttpConnection::onChunkHeader()
+{
+	printf("#####################onChunkHeader\n");
+	return 0;
+}
+
+int	HttpConnection::onChunkComplete()
+{
+	printf("****************onChunkComplete\n");
+	return 0;
+}
 
 int HttpConnection::on_message_begin(http_parser* parser){
 	HttpConnection* pThis = reinterpret_cast<HttpConnection*>(parser->data);
@@ -217,6 +230,18 @@ int HttpConnection::on_header_value(http_parser* parser, const char* at, size_t 
 int HttpConnection::on_body(http_parser* parser, const char* at, size_t size){
 	HttpConnection* pThis = reinterpret_cast<HttpConnection*>(parser->data);
 	return pThis->onBody(at, size);
+}
+
+int HttpConnection::on_chunk_header(http_parser* parser)
+{
+	HttpConnection* pThis = reinterpret_cast<HttpConnection*>(parser->data);
+	return pThis->onChunkHeader();
+}
+
+int HttpConnection::on_chunk_complete(http_parser* parser)
+{
+	HttpConnection* pThis = reinterpret_cast<HttpConnection*>(parser->data);
+	return pThis->onChunkComplete();
 }
 
 } }//namespace ZQ::eloop

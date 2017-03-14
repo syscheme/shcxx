@@ -52,7 +52,7 @@ void HttpPassiveConn::errorResponse( int code ) {
 	write(response.c_str(),response.length());
 }
 
-void HttpPassiveConn::onParseError(int error,const char* errorDescription) {
+void HttpPassiveConn::onError(int error,const char* errorDescription) {
 
 	char locip[17] = { 0 };
 	int  locport = 0;
@@ -62,10 +62,10 @@ void HttpPassiveConn::onParseError(int error,const char* errorDescription) {
 	int  peerport = 0;
 	getpeerIpPort(peerip,peerport);
 
-	_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpPassiveConn, "onParseError [%p] [%s:%d => %s:%d], errorCode[%d],Description[%s]"), 
+	_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpPassiveConn, "onError [%p] [%s:%d => %s:%d], errorCode[%d],Description[%s]"), 
 		this, locip, locport, peerip, peerport,error,errorDescription);
 	if(_Handler)
-		_Handler->onParseError(error,errorDescription);
+		_Handler->onError(error,errorDescription);
 
 	shutdown();
 }

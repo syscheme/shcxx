@@ -32,7 +32,6 @@ protected:
 	virtual void	onHttpDataReceived( size_t size ) { }
 
 	virtual bool	onHeadersEnd( const HttpMessage::Ptr msg) { 
-		abort();
 		return false; 
 	}
 
@@ -40,10 +39,11 @@ protected:
 
 	virtual void	onMessageCompleted() { }
 
-	virtual void	onParseError( int error,const char* errorDescription ) { }
+	virtual void	onError( int error,const char* errorDescription );
 
 private:
-		HttpMessage::Ptr		_SendMsg;
+	HttpMessage::Ptr		_SendMsg;
+	ZQ::common::Log&		_Logger;
 
 };
 } }//namespace ZQ::eloop

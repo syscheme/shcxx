@@ -95,7 +95,7 @@ void TestHttpHandle::onMessageCompleted()
 }
 
 
-void TestHttpHandle::onParseError( int error,const char* errorDescription )
+void TestHttpHandle::onError( int error,const char* errorDescription )
 {
 
 }
@@ -197,7 +197,7 @@ void DownloadeHandle::onMessageCompleted()
 }
 
 
-void DownloadeHandle::onParseError( int error,const char* errorDescription )
+void DownloadeHandle::onError( int error,const char* errorDescription )
 {
 
 }
@@ -286,7 +286,7 @@ void UtilHandle::onMessageCompleted()
 
 }
 
-void UtilHandle::onParseError( int error,const char* errorDescription )
+void UtilHandle::onError( int error,const char* errorDescription )
 {
 
 }
@@ -362,7 +362,7 @@ void EmptyHttpHandle::onMessageCompleted()
 
 }
 
-void EmptyHttpHandle::onParseError( int error,const char* errorDescription )
+void EmptyHttpHandle::onError( int error,const char* errorDescription )
 {
 
 }

@@ -34,7 +34,7 @@ public:
 	virtual void onMessageCompleted() = 0;
 
 	/// error occured during data receiving or parsing stage
-	virtual void onParseError( int error,const char* errorDescription ) = 0;
+	virtual void onError( int error,const char* errorDescription ) = 0;
 };
 
 // ---------------------------------------
@@ -82,7 +82,7 @@ protected: // implementation of IHttpParseSink that also present the message rec
 	virtual void onMessageCompleted() {}
 
 	/// error occured during data receiving or parsing stage
-	virtual void onParseError( int error,const char* errorDescription ) {}
+	virtual void onError( int error,const char* errorDescription ) {}
 
 private:
 	ZQ::common::Log&		 _Logger;
@@ -113,6 +113,9 @@ private:
 	static int on_header_value(http_parser* parser, const char* at, size_t size);
 	static int on_body(http_parser* parser, const char* at, size_t size);
 
+	static int on_chunk_header(http_parser* parser);
+	static int on_chunk_complete(http_parser* parser);
+
 	int		onMessageBegin( );
 	int		onHeadersComplete();
 	int		onMessageComplete();
@@ -121,6 +124,9 @@ private:
 	int		onHeaderField(const char* at, size_t size);
 	int		onHeaderValue(const char* at, size_t size);
 	int		onBody(const char* at, size_t size);
+
+	int		onChunkHeader();
+	int		onChunkComplete();
 
 };
 } }//namespace ZQ::eloop
