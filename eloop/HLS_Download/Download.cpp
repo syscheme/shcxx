@@ -10,11 +10,9 @@ namespace ZQ {
 Download::Download(ZQ::common::Log& logger)
 	:HttpClient(logger),_Logger(logger)
 {
-
 }
 Download::~Download()
 {
-
 }
 
 void Download::dohttp(std::string& url,std::string filenaem)
@@ -24,8 +22,6 @@ void Download::dohttp(std::string& url,std::string filenaem)
 	msg->method(HttpMessage::GET);
 	msg->url("*");
 
-	//	printf("url = %s\n",url.c_str());
-	//beginRequest(msg,"http://192.168.81.28:9978/empty");
 	if (beginRequest(msg,url))
 	{
 		_startTime = ZQ::common::now();
@@ -48,73 +44,54 @@ bool Download::onBodyData( const char* data, size_t size)
 void Download::onMessageCompleted()
 {
 	_totalTime = ZQ::common::now() - _startTime;
-	double speed = _totalSize * 8/_totalSize;
+	
+	double speed = _totalSize * 8/_totalTime;
 	printf("download complete:%s,size:%dByte,bitrate:%dkbps\n",_CurrentDownloadFileName.c_str(),_totalSize,speed);
 }
 
 void Download::onError( int error,const char* errorDescription )
 {
 	printf("Download onError\n");
+	shutdown();
 }
 // ---------------------------------------
-// class fetchm3u8
+// class Session
 // ---------------------------------------
-fetchm3u8::fetchm3u8(ZQ::common::Log& logger)
+Session::Session(ZQ::common::Log& logger)
 :HttpClient(logger),_Logger(logger)
 {
 
 }
-fetchm3u8::~fetchm3u8()
+Session::~Session()
 {
 
 }
 
-void fetchm3u8::getm3u8(std::string& m3u8url)
+void Session::dohttp(std::string& m3u8url)
 {
-
+	_RespBody.str("");
 	_baseurl = m3u8url.substr(0,m3u8url.find_last_of("/"));
-
 
 	HttpMessage::Ptr msg = new HttpMessage(HttpMessage::MSG_REQUEST);
 	msg->method(HttpMessage::GET);
 	msg->url("*");
 
-	//	printf("url = %s\n",url.c_str());
-	//beginRequest(msg,"http://192.168.81.28:9978/empty");
 	beginRequest(msg,m3u8url);
 }
-/*
-int fetchm3u8::DownloadCurrentFile()
+
+bool Session::onHeadersEnd( const HttpMessage::Ptr msg)
 {
-	HttpMessage::Ptr msg = new HttpMessage(HttpMessage::MSG_REQUEST);
-	msg->method(HttpMessage::GET);
-	std::string path = _basePath + "/" + _CurrentDownloadFileName;
-	msg->url(path);
-
-//	msg->header("Host",host);
-	msg->header("Connection", "Keep-Alive");
-
-	printf("downloading:%s,path:%s\n",_CurrentDownloadFileName.c_str(),path.c_str());
-	std::string str = msg->toRaw();
-	return write(str.c_str(),str.length());
-}*/
-
-
-bool fetchm3u8::onHeadersEnd( const HttpMessage::Ptr msg)
-{
-	//_Response = msg;
-
 	return true;
 }
 
-bool fetchm3u8::onBodyData( const char* data, size_t size)
+bool Session::onBodyData( const char* data, size_t size)
 {
 	_RespBody << data;
 
 	return true;
 }
 
-void fetchm3u8::onMessageCompleted()
+void Session::onMessageCompleted()
 {
 
 	std::string outstr;
@@ -125,16 +102,18 @@ void fetchm3u8::onMessageCompleted()
 
 		Download* d = new Download(_Logger);
 		std::string str = _baseurl + "/" + outstr;
+		printf("str = %s\n",str.c_str());
+		d->init(get_loop());
 		d->dohttp(str,outstr);
 	}
 	_RespBody.str("");
 
 }
 
-void fetchm3u8::onError( int error,const char* errorDescription )
+void Session::onError( int error,const char* errorDescription )
 {
 	printf("fetchm3u8 onError\n");
-
+	shutdown();
 }
 
 

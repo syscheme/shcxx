@@ -37,16 +37,15 @@ private:
 };
 
 // ---------------------------------------
-// class fetchm3u8
+// class Session
 // ---------------------------------------
-class fetchm3u8:public HttpClient
+class Session:public HttpClient
 {
 public:
-	fetchm3u8(ZQ::common::Log& logger);
-	~fetchm3u8();
+	Session(ZQ::common::Log& logger);
+	~Session();
 
-	void getm3u8(std::string& m3u8url);
-//	int  DownloadCurrentFile();
+	void dohttp(std::string& m3u8url);
 
 	virtual bool	onHeadersEnd( const HttpMessage::Ptr msg);
 
@@ -58,10 +57,7 @@ public:
 
 private:
 	ZQ::common::Log&	_Logger;
-//	bool				_fetchm3u8Completed;
-	HttpMessage::Ptr	_Response;
 	std::stringstream	_RespBody;
-//	std::list<std::string> _file;
 	std::string			_baseurl;
 };
 

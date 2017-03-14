@@ -81,9 +81,9 @@ int main(int argc,char* argv[])
 
 	ZQ::eloop::Loop loop(false);
 
-	ZQ::eloop::fetchm3u8* session = new ZQ::eloop::fetchm3u8(*pLog);
+	ZQ::eloop::Session* session = new ZQ::eloop::Session(*pLog);
 	session->init(loop);
-	session->getm3u8(m3u8);
+	session->dohttp(m3u8);
 
 	loop.run(ZQ::eloop::Loop::Default);
 
