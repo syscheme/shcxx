@@ -81,9 +81,9 @@ int main(int argc,char* argv[])
 
 	ZQ::eloop::Loop loop(false);
 
-	ZQ::eloop::Download* fetch = new ZQ::eloop::Download(*pLog);
+	ZQ::eloop::Session* fetch = new ZQ::eloop::Session(*pLog);
 	fetch->init(loop);
-	fetch->dohttp(m3u8);
+	//fetch->dohttp(m3u8);
 
 
 	/*ZQ::eloop::EmptyClient* client = new ZQ::eloop::EmptyClient(*pLog,NULL);

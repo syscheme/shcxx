@@ -3,23 +3,23 @@
 
 #include "../Http/LibHttp/HttpClient.h"
 #include <NativeThread.h>
-#include <vector>
+#include <list>
 #include <string>
 
 namespace ZQ {
 	namespace eloop {
 
-/*
 // ---------------------------------------
-// class fetchm3u8
+// class Download
 // ---------------------------------------
-class fetchm3u8:public HttpClient
+class Session:public HttpClient
 {
 public:
-	fetchm3u8(ZQ::common::Log& logger);
-	~fetchm3u8();
+	Session(ZQ::common::Log& logger);
+	~Session();
 
-	void dohttp(std::string& url);
+	void fetchm3u8(std::string& m3u8url);
+	int  DownloadCurrentFile();
 
 	virtual bool	onHeadersEnd( const HttpMessage::Ptr msg);
 
@@ -27,38 +27,19 @@ public:
 
 	virtual void	onMessageCompleted();
 
-	virtual void	onParseError( int error,const char* errorDescription );
+	virtual void	onError( int error,const char* errorDescription );
 
 private:
 	ZQ::common::Log&	_Logger;
+	bool				_fetchm3u8Completed;
 	HttpMessage::Ptr	_Response;
-	std::string			_RespBody;
-	std::vector<std::string> _m3u8file;
-};
-*/
-// ---------------------------------------
-// class DownloadClient
-// ---------------------------------------
-class Download:public HttpClient
-{
-public:
-	Download(ZQ::common::Log& logger);
-	~Download();
-
-	void dohttp(std::string& url);
-
-	virtual bool	onHeadersEnd( const HttpMessage::Ptr msg);
-
-	virtual bool	onBodyData( const char* data, size_t size);
-
-	virtual void	onMessageCompleted();
-
-	virtual void	onParseError( int error,const char* errorDescription );
-
-private:
-	ZQ::common::Log&	_Logger;
-	HttpMessage::Ptr	_Response;
-	std::string			_RespBody;
+	std::stringstream	_RespBody;
+	std::list<std::string> _file;
+	std::string			_basePath;
+	std::string			_CurrentDownloadFileName;
+	int64				_startTime;
+	int64				_totalTime;			//ms
+	int64				_totalSize;
 };
 
 
