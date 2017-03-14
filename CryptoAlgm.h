@@ -27,6 +27,11 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/CryptoAlgm.h $
 // 
+// 3     3/13/17 5:43p Hui.shao
+// 
+// 2     3/13/17 4:56p Hui.shao
+// drafted md5 and hmac_sha1
+// 
 // 1     8/24/16 3:47p Hui.shao
 // created
 // ===========================================================================
@@ -48,7 +53,9 @@ namespace ZQ {
 namespace common {
 
 class ZQ_COMMON_API CRC32;
+class ZQ_COMMON_API MD5;
 class ZQ_COMMON_API SHA1;
+class ZQ_COMMON_API HMAC_SHA1;
 
 // -----------------------------
 // class CRC32
@@ -73,6 +80,41 @@ protected:
 };
 
 // -----------------------------
+// class MD5
+// -----------------------------
+#define MD5_DIGEST_LENGTH	(16)
+class MD5
+{
+public:
+	typedef uint8 Digest[MD5_DIGEST_LENGTH];
+
+	static std::string Digest2Str(const Digest digest);
+	static std::string MD5ofString(const char* str);
+	static std::string MD5ofFile(const char* filename);
+
+	// Methods
+public:
+	MD5() { reset(); }
+
+	void	reset();
+	void	update(uint8* data, uint32 len);
+	void	finalize();
+	uint8*	digest() const { return (uint8*)_digest; }
+	std::string toString() const { return Digest2Str(_digest); }
+
+private:
+	void	encode(uint8* dest, uint32* src, uint32 nLength);
+	void	decode(uint32* dest, uint8* src, uint32 nLength);
+	void    transfrom (uint8* block);
+
+	uint32		_states[4];
+	uint32		_counts[2];
+	uint8		_buf[MD5_DIGEST_LENGTH*4];
+	Digest		_digest;
+	bool		_finalized;
+};
+
+// -----------------------------
 // class SHA1
 // -----------------------------
 // Define this if your machine is LITTLE_ENDIAN, otherwise #undef it: 
@@ -80,18 +122,19 @@ protected:
 // 20061122 Modify it _BIG_ENDIAN_ definition in makefile, not use LITTLE_ENDIAN
 class SHA1
 {
-public:
-	typedef uint32	  quadbyte;	// 4 byte type
-	typedef uint8	  byte;	// single byte type
-
 #define SHA1_BLOCK_LENGTH	(64)
 #define SHA1_DIGEST_LENGTH	(20)
 
+public:
+	typedef uint32	  quadbyte;	// 4 byte type
+	typedef uint8	  byte;	// single byte type
+	typedef uint8     Digest[SHA1_DIGEST_LENGTH];
+
 	SHA1() { SHA1_Init(&_ctx); }
 	void update(const byte* data, uint len) { SHA1_Update(&_ctx, data, len); }
-	void get(byte digest[SHA1_DIGEST_LENGTH]) { SHA1_Final(digest, &_ctx); } 
+	void get(Digest digest) { SHA1_Final(digest, &_ctx); } 
 
-protected:
+private:  // the original c-implemetations, DO NOT change
 	friend class HMAC_SHA1;
 	// The SHA1 structure:
 	typedef struct _SHA_CTX {
@@ -102,15 +145,12 @@ protected:
 
 	CTX _ctx;
 
-private:
-
 	static void SHA1_Init(CTX *context);
-	static void SHA1_Update(CTX *context, const byte *data, unsigned int len);
-	static void SHA1_Final(byte digest[SHA1_DIGEST_LENGTH], CTX* context);
-	static void SHA1_Transform(quadbyte state[5], byte buffer[64]);
+	static void SHA1_Update(CTX *context, const byte *data, uint32 len);
+	static void SHA1_Final(Digest digest, CTX* context);
+	static void SHA1_Transform(quadbyte state[5], byte buffer[SHA1_BLOCK_LENGTH]);
 };
 
-/*
 // -----------------------------
 // class HMAC_SHA1
 // -----------------------------
@@ -120,33 +160,35 @@ private:
 class HMAC_SHA1
 {
 public:
-	HMAC_SHA1() { HMAC_SHA1_Init(&_ctx); }
-	void update(const byte* data, uint len) { SHA1_Update(&_ctx, data, len); }
-	void get(byte digest[SHA1_DIGEST_LENGTH]) { SHA1_Final(digest, &_ctx); } 
+	HMAC_SHA1(uint8 *key, uint key_len);
+	void update(const byte* data, uint len);
+	void get(SHA1::Digest digest);
 
-protected:
-	// The HMAC_SHA1 structure:
-	typedef struct{
-		unsigned char	ipad[HMAC_SHA1_BLOCK_LENGTH];
-		unsigned char	opad[HMAC_SHA1_BLOCK_LENGTH];
+	//@output digest - the result digest
+	static void calcSignature(uint8 *data, uint32 data_len, uint8 *key, uint32 key_len, SHA1::Digest digest);
+
+private:  // the original c-implemetations, DO NOT change
+
+	typedef struct
+	{
+		uint8	ipad[HMAC_SHA1_BLOCK_LENGTH];
+		uint8	opad[HMAC_SHA1_BLOCK_LENGTH];
 		SHA1::CTX	shactx;
-		unsigned char	key[HMAC_SHA1_BLOCK_LENGTH];
+		uint8	key[HMAC_SHA1_BLOCK_LENGTH];
 		unsigned int	keylen;
 		unsigned int	hashkey;
 	} CTX;
 
+	CTX _ctx;
+
 	static void HMAC_SHA1_Init(CTX *ctx);
-	static void HMAC_SHA1_UpdateKey(CTX *ctx, unsigned char *key, unsigned int keylen);
+	static void HMAC_SHA1_UpdateKey(CTX *ctx, uint8 *key, uint32 keylen);
 	static void HMAC_SHA1_EndKey(CTX *ctx);
 	static void HMAC_SHA1_StartMessage(CTX *ctx);
-	static void HMAC_SHA1_UpdateMessage(CTX *ctx, unsigned char *data, unsigned int datalen);
-	static void HMAC_SHA1_EndMessage(unsigned char *out, CTX *ctx);
+	static void HMAC_SHA1_UpdateMessage(CTX *ctx, const uint8 *data, uint32 datalen);
+	static void HMAC_SHA1_EndMessage(uint8 *out, CTX *ctx);
 	static void HMAC_SHA1_Done(CTX *ctx);
-	static void hmac_sha1(unsigned char *text, unsigned int text_len,
-		unsigned char *key,  unsigned int key_len,
-		unsigned char *digest);
 };
-*/
 
 }} // namespaces
 
