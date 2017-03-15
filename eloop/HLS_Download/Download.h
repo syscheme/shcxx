@@ -42,7 +42,7 @@ private:
 class Session:public HttpClient
 {
 public:
-	Session(ZQ::common::Log& logger);
+	Session(ZQ::common::Log& logger,std::string bitrate);
 	~Session();
 
 	void dohttp(std::string& m3u8url);
@@ -59,18 +59,9 @@ private:
 	ZQ::common::Log&	_Logger;
 	std::stringstream	_RespBody;
 	std::string			_baseurl;
+	std::string			_m3u8file;
+	std::string			_bitrate;
 };
-
-// ---------------------------------------
-// class Session
-// ---------------------------------------
-/*
-class Session
-{
-	Session();
-	~Session();
-};
-*/
 
 // ---------------------------------------
 // class DownloadThread

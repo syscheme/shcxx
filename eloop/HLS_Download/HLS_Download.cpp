@@ -1,5 +1,6 @@
 #include <FileLog.h>
 #include <iostream>
+#include <fstream>
 #include "getopt.h"
 #include "Download.h"
 #include "eloop.h"
@@ -10,6 +11,7 @@ void usage() {
 	std::cout << "Usage: httpclient [option] [arg]\n\n"
 		<< "Options:\n"
 		<< "  -l <log file>							The log file output path\n"
+		<< "  -r <bitrate>							bitrate, default is 3.75mbps\n"
 		<< "  -t <thread count>					    thread count\n"
 		<< "  -s <Session count>					session count\n"
 		<< "  -i <Session Interval>					The session time interval\n"
@@ -28,19 +30,24 @@ int main(int argc,char* argv[])
 		return -1;
 	}
 
-	std::string logFilePath,url;
+	std::string logFilePath,urlFile;
 	int ThreadCount= 10,ThreadInterval = 0,SessionCount = 1000,SessionInterval = 5;
-	long int bitrate = 3750000;
+	std::string bitrate = "3750000";
+	urlFile = "../download/hls";
+	logFilePath = "../logs/hlsdownload.log";
 	int ch = 0;
-	while((ch = getopt(argc,argv,"l:u:t:s:i:h:")) != EOF)
+	while((ch = getopt(argc,argv,"f:l:r:t:s:i:h:")) != EOF)
 	{
 		switch(ch)
 		{
 		case 'l':
 			logFilePath = optarg;
 			break;
-		case 'u':
-			url = optarg;
+		case 'f':
+			urlFile = optarg;
+			break;
+		case 'r':
+			bitrate = optarg;
 			break;
 		case 't':
 			ThreadCount = atoi(optarg);;
@@ -61,7 +68,7 @@ int main(int argc,char* argv[])
 			break;
 		}
 	}
-	std::string m3u8 = "http://192.168.1.173:12000/assets?file=/HLS/HUNAN2999/2500000/index.m3u8&rate=375400";
+//	std::string m3u8 = "http://192.168.1.173:12000/assets?file=/HLS/HUNAN2999/2500000/index.m3u8&rate=375400";
 	ZQ::common::Log* pLog = new ZQ::common::FileLog(logFilePath.c_str(),7, 5,10240000);
 
 /*
@@ -81,9 +88,17 @@ int main(int argc,char* argv[])
 
 	ZQ::eloop::Loop loop(false);
 
-	ZQ::eloop::Session* session = new ZQ::eloop::Session(*pLog);
-	session->init(loop);
-	session->dohttp(m3u8);
+	std::ifstream fin;
+	std::string m3u8;
+	fin.open(urlFile.c_str());
+	while (!fin.eof())
+	{
+		getline(fin,m3u8);
+		ZQ::eloop::Session* session = new ZQ::eloop::Session(*pLog,bitrate);
+		session->init(loop);
+		session->dohttp(m3u8);
+	}
+	fin.close();
 
 	loop.run(ZQ::eloop::Loop::Default);
 

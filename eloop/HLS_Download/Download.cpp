@@ -45,20 +45,23 @@ void Download::onMessageCompleted()
 {
 	_totalTime = ZQ::common::now() - _startTime;
 	
-	double speed = _totalSize * 8/_totalTime;
+	int64 speed = _totalSize * 8/_totalTime;
 	printf("download complete:%s,size:%dByte,bitrate:%dkbps\n",_CurrentDownloadFileName.c_str(),_totalSize,speed);
 }
 
 void Download::onError( int error,const char* errorDescription )
 {
-	printf("Download onError\n");
+	if (error != elpe__EOF)
+	{
+		printf("Download Error,errorCode[%d],Description:%s\n",error,errorDescription);
+	}
 	shutdown();
 }
 // ---------------------------------------
 // class Session
 // ---------------------------------------
-Session::Session(ZQ::common::Log& logger)
-:HttpClient(logger),_Logger(logger)
+Session::Session(ZQ::common::Log& logger,std::string bitrate)
+:HttpClient(logger),_Logger(logger),_bitrate(bitrate)
 {
 
 }
@@ -71,12 +74,13 @@ void Session::dohttp(std::string& m3u8url)
 {
 	_RespBody.str("");
 	_baseurl = m3u8url.substr(0,m3u8url.find_last_of("/"));
+	std::string fetchm3u8 = m3u8url + "&rate="+ _bitrate;
 
 	HttpMessage::Ptr msg = new HttpMessage(HttpMessage::MSG_REQUEST);
 	msg->method(HttpMessage::GET);
 	msg->url("*");
 
-	beginRequest(msg,m3u8url);
+	beginRequest(msg,fetchm3u8);
 }
 
 bool Session::onHeadersEnd( const HttpMessage::Ptr msg)
@@ -101,8 +105,8 @@ void Session::onMessageCompleted()
 			continue;
 
 		Download* d = new Download(_Logger);
-		std::string str = _baseurl + "/" + outstr;
-		printf("str = %s\n",str.c_str());
+		std::string str = _baseurl + "/" + outstr + "&rate="+ _bitrate;
+		//printf("str = %s\n",str.c_str());
 		d->init(get_loop());
 		d->dohttp(str,outstr);
 	}
@@ -112,7 +116,10 @@ void Session::onMessageCompleted()
 
 void Session::onError( int error,const char* errorDescription )
 {
-	printf("fetchm3u8 onError\n");
+	if (error != elpe__EOF)
+	{
+		printf("Session Error,errorCode[%d],Description:%s\n",error,errorDescription);
+	}
 	shutdown();
 }
 
