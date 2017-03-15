@@ -35,7 +35,7 @@ int main(int argc,char* argv[])
 	bitrate = "3750000";
 
 	int ch = 0;
-	while((ch = getopt(argc,argv,"f:l:r:c:i:h:")) != EOF)
+	while((ch = getopt(argc,argv,"f:l:r:c:i:h")) != EOF)
 	{
 		switch(ch)
 		{
@@ -84,12 +84,18 @@ int main(int argc,char* argv[])
 
 	std::ifstream fin;
 	std::string m3u8;
+	size_t n = 0;
 	fin.open(urlFile.c_str());
 	while (!fin.eof())
 	{
 		getline(fin,m3u8);
 		if (m3u8.empty())
 			continue;
+		n = m3u8.find_last_not_of(" \r\n\t");
+		if (n != m3u8.npos)
+		{
+			m3u8.erase(n+1,m3u8.size()-n);
+		}
 		(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"m3u8:%s"),m3u8.c_str());
 		ZQ::eloop::Session* session = new ZQ::eloop::Session(*pLog,bitrate);
 		session->init(loop);
