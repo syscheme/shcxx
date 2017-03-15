@@ -29,7 +29,8 @@ void HttpClient::OnConnected(ElpeError status)
 	}
 	read_start();
 	std::string str = _SendMsg->toRaw();
-	printf("OnConnected,send str = %s\n",str.c_str());
+	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(HttpClient,"OnConnected,send str = %s"),str.c_str());
+	//printf("OnConnected,send str = %s\n",str.c_str());
 	write(str.c_str(),str.length());
 	_SendMsg = NULL;
 }
