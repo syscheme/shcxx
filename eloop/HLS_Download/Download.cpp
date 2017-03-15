@@ -25,6 +25,7 @@ void Download::dohttp(std::string& url,std::string filenaem)
 	if (beginRequest(msg,url))
 	{
 		_startTime = ZQ::common::now();
+		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"downloading:%s,url:%s\n"),_CurrentDownloadFileName.c_str(),url.c_str());
 		printf("downloading:%s,url:%s\n",_CurrentDownloadFileName.c_str(),url.c_str());
 	}	
 }
@@ -46,11 +47,13 @@ void Download::onMessageCompleted()
 	_totalTime = ZQ::common::now() - _startTime;
 	
 	int64 speed = _totalSize * 8/_totalTime;
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,size:%dByte,bitrate:%dkbps\n"),_CurrentDownloadFileName.c_str(),_totalSize,speed);
 	printf("download complete:%s,size:%dByte,bitrate:%dkbps\n",_CurrentDownloadFileName.c_str(),_totalSize,speed);
 }
 
 void Download::onError( int error,const char* errorDescription )
 {
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s\n"),error,errorDescription);
 	if (error != elpe__EOF)
 	{
 		printf("Download Error,errorCode[%d],Description:%s\n",error,errorDescription);

@@ -94,6 +94,9 @@ int main(int argc,char* argv[])
 	while (!fin.eof())
 	{
 		getline(fin,m3u8);
+		if (m3u8.empty())
+			continue;
+		(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"m3u8:%s\n"),m3u8.c_str());
 		ZQ::eloop::Session* session = new ZQ::eloop::Session(*pLog,bitrate);
 		session->init(loop);
 		session->dohttp(m3u8);
