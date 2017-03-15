@@ -25,10 +25,21 @@ void Download::dohttp(std::string& url,std::string filenaem)
 	if (beginRequest(msg,url))
 	{
 		_startTime = ZQ::common::now();
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"downloading:%s,url:%s\n"),_CurrentDownloadFileName.c_str(),url.c_str());
+		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"downloading:%s,url:%s"),_CurrentDownloadFileName.c_str(),url.c_str());
 		printf("downloading:%s,url:%s\n",_CurrentDownloadFileName.c_str(),url.c_str());
 	}	
 }
+
+void Download::onHttpDataSent()
+{
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"send suc."));
+}
+
+void Download::onHttpDataReceived( size_t size )
+{
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"recv data size = %d."),size);
+}
+
 
 bool Download::onHeadersEnd( const HttpMessage::Ptr msg)
 {
@@ -47,13 +58,13 @@ void Download::onMessageCompleted()
 	_totalTime = ZQ::common::now() - _startTime;
 	
 	int64 speed = _totalSize * 8/_totalTime;
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,size:%dByte,bitrate:%dkbps\n"),_CurrentDownloadFileName.c_str(),_totalSize,speed);
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,size:%dByte,bitrate:%dkbps"),_CurrentDownloadFileName.c_str(),_totalSize,speed);
 	printf("download complete:%s,size:%dByte,bitrate:%dkbps\n",_CurrentDownloadFileName.c_str(),_totalSize,speed);
 }
 
 void Download::onError( int error,const char* errorDescription )
 {
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s\n"),error,errorDescription);
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s"),error,errorDescription);
 	if (error != elpe__EOF)
 	{
 		printf("Download Error,errorCode[%d],Description:%s\n",error,errorDescription);
@@ -84,6 +95,16 @@ void Session::dohttp(std::string& m3u8url)
 	msg->url("*");
 
 	beginRequest(msg,fetchm3u8);
+}
+
+void Session::onHttpDataSent()
+{
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"send suc."));
+}
+
+void Session::onHttpDataReceived( size_t size )
+{
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"recv data size = %d."),size);
 }
 
 bool Session::onHeadersEnd( const HttpMessage::Ptr msg)

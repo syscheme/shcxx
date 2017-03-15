@@ -8,15 +8,13 @@
 
 void usage() {
 
-	std::cout << "Usage: httpclient [option] [arg]\n\n"
+	std::cout << "Usage: HLSDownload [option] [arg]\n\n"
 		<< "Options:\n"
-		<< "  -l <log file>							The log file output path\n"
+		<< "  -f <url file>							url file default is \"../download/hls\"\n"
+		<< "  -l <log file>							The log file output path.default is \"../logs/hlsdownload.log\"\n"
 		<< "  -r <bitrate>							bitrate, default is 3.75mbps\n"
-		<< "  -t <thread count>					    thread count\n"
-		<< "  -s <Session count>					session count\n"
-		<< "  -i <Session Interval>					The session time interval\n"
-		<< "  -n <Thread Interval>					The thread time interval\n"
-		<< "  -r <Download speed>					Download speed\n"
+		<< "  -c <loop count>						loop count default is 4"
+		<< "  -i <Session Interval>					The session time interval default is 50 ms\n"
 		<< "  -h									display this screen\n"
 		<< std::endl;
 }
@@ -24,39 +22,34 @@ void usage() {
 int main(int argc,char* argv[])
 {
 
-	if (argc < 2)
+/*	if (argc < 2)
 	{
 		usage();
 		return -1;
 	}
-
-	std::string logFilePath,urlFile;
-	int ThreadCount= 10,ThreadInterval = 0,SessionCount = 1000,SessionInterval = 5;
-	std::string bitrate = "3750000";
+*/
+	std::string logFilePath,urlFile,bitrate;
+	int LoopCount= 1,SessionInterval = 50;  //ms
 	urlFile = "../download/hls";
 	logFilePath = "../logs/hlsdownload.log";
+	bitrate = "3750000";
+
 	int ch = 0;
-	while((ch = getopt(argc,argv,"f:l:r:t:s:i:h:")) != EOF)
+	while((ch = getopt(argc,argv,"f:l:r:c:i:h:")) != EOF)
 	{
 		switch(ch)
 		{
-		case 'l':
-			logFilePath = optarg;
-			break;
 		case 'f':
 			urlFile = optarg;
+			break;
+		case 'l':
+			logFilePath = optarg;
 			break;
 		case 'r':
 			bitrate = optarg;
 			break;
-		case 't':
-			ThreadCount = atoi(optarg);;
-			break;
-		case 's':
-			SessionCount = atoi(optarg);
-			break;
-		case 'n':
-			ThreadInterval = atoi(optarg);
+		case 'c':
+			LoopCount = atoi(optarg);;
 			break;
 		case 'i':
 			SessionInterval = atoi(optarg);
@@ -71,8 +64,9 @@ int main(int argc,char* argv[])
 //	std::string m3u8 = "http://192.168.1.173:12000/assets?file=/HLS/HUNAN2999/2500000/index.m3u8&rate=375400";
 	ZQ::common::Log* pLog = new ZQ::common::FileLog(logFilePath.c_str(),7, 5,10240000);
 
-/*
-	//ZQ::eloop::DownloadThread* download[100];
+
+/*	int ThreadCount = 5;
+	ZQ::eloop::DownloadThread* download[5];
 
 	//printf("ThreadCount = %d,SessionCount = %d,SessionInterval = %d\n",ThreadCount,SessionCount,SessionInterval);
 	(*pLog)(ZQ::common::Log::L_DEBUG,CLOGFMT(main,"ThreadCount = %d,SessionCount = %d,SessionInterval = %d"),ThreadCount,SessionCount,SessionInterval);
@@ -96,10 +90,11 @@ int main(int argc,char* argv[])
 		getline(fin,m3u8);
 		if (m3u8.empty())
 			continue;
-		(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"m3u8:%s\n"),m3u8.c_str());
+		(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"m3u8:%s"),m3u8.c_str());
 		ZQ::eloop::Session* session = new ZQ::eloop::Session(*pLog,bitrate);
 		session->init(loop);
 		session->dohttp(m3u8);
+		SYS::sleep(SessionInterval);
 	}
 	fin.close();
 

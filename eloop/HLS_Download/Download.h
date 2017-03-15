@@ -20,6 +20,11 @@ public:
 	Download(ZQ::common::Log& logger);
 	~Download();
 	void dohttp(std::string& url,std::string filenaem);
+
+	virtual void	onHttpDataSent();
+
+	virtual void	onHttpDataReceived( size_t size );
+
 	virtual bool	onHeadersEnd( const HttpMessage::Ptr msg);
 
 	virtual bool	onBodyData( const char* data, size_t size);
@@ -46,6 +51,10 @@ public:
 	~Session();
 
 	void dohttp(std::string& m3u8url);
+
+	virtual void	onHttpDataSent();
+
+	virtual void	onHttpDataReceived( size_t size );
 
 	virtual bool	onHeadersEnd( const HttpMessage::Ptr msg);
 
