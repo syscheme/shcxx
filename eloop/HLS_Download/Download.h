@@ -78,7 +78,9 @@ private:
 class DownloadThread:public ZQ::common::NativeThread
 {
 public:
-	DownloadThread(std::string& url,ZQ::common::Log& logger,int count,int interval,int session);
+	typedef std::list<std::string> M3u8List;
+public:
+	DownloadThread(ZQ::common::Log& logger,M3u8List m3u8list,std::string& bitrate,int interval,int loopcount);
 	~DownloadThread();
 
 	virtual int run(void);
@@ -86,12 +88,10 @@ public:
 
 private:
 	ZQ::common::Log&	_Logger;
-	int					_Count;
-	int					_ConnectCount;
-	ZQ::common::Mutex	_LockerCount;
 	int					_IntervalTime;
-	int					_SessionCount;
-	std::string&		_url;
+	int					_loopCount;
+	M3u8List			_m3u8list;
+	std::string&		_bitrate;
 };
 
 } }//namespace ZQ::eloop

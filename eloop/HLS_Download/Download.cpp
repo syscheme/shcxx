@@ -32,12 +32,12 @@ void Download::dohttp(std::string& url,std::string filenaem)
 
 void Download::onHttpDataSent()
 {
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"send suc."));
+	//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"send suc."));
 }
 
 void Download::onHttpDataReceived( size_t size )
 {
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"recv data size = %d."),size);
+	//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"recv data size = %d."),size);
 }
 
 
@@ -99,12 +99,12 @@ void Session::dohttp(std::string& m3u8url)
 
 void Session::onHttpDataSent()
 {
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"send suc."));
+	//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"send suc."));
 }
 
 void Session::onHttpDataReceived( size_t size )
 {
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"recv data size = %d."),size);
+	//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"recv data size = %d."),size);
 }
 
 bool Session::onHeadersEnd( const HttpMessage::Ptr msg)
@@ -114,7 +114,9 @@ bool Session::onHeadersEnd( const HttpMessage::Ptr msg)
 
 bool Session::onBodyData( const char* data, size_t size)
 {
-	_RespBody << data;
+	std::string body;
+	body.append(data,size);
+	_RespBody << body;
 
 	return true;
 }
@@ -142,6 +144,7 @@ void Session::onError( int error,const char* errorDescription )
 {
 	if (error != elpe__EOF)
 	{
+		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"Session Error,errorCode[%d],Description:%s"),error,errorDescription);
 		printf("Session Error,errorCode[%d],Description:%s\n",error,errorDescription);
 	}
 	shutdown();
@@ -151,9 +154,12 @@ void Session::onError( int error,const char* errorDescription )
 // ---------------------------------------
 // class DownloadThread
 // ---------------------------------------
-DownloadThread::DownloadThread(std::string& url,ZQ::common::Log& logger,int count,int interval,int session)
+DownloadThread::DownloadThread(ZQ::common::Log& logger,M3u8List m3u8list,std::string& bitrate,int interval,int loopcount)
 	:_Logger(logger),
-	_url(url)
+	_m3u8list(m3u8list),
+	_bitrate(bitrate),
+	_IntervalTime(interval),
+	_loopCount(loopcount)
 {
 
 }
@@ -165,7 +171,23 @@ DownloadThread::~DownloadThread()
 
 int DownloadThread::run(void)
 {
-
+	Loop loop(false);
+	M3u8List::iterator it;
+	std::string m3u8;
+	for(it = _m3u8list.begin();it!=_m3u8list.end();it++)
+	{
+		m3u8 = _m3u8list.front();
+		for(int i=0;i< _loopCount;i++)
+		{
+			ZQ::eloop::Session* s = new ZQ::eloop::Session(_Logger,_bitrate);
+			s->init(loop);
+			s->dohttp(m3u8);
+			SYS::sleep(_IntervalTime);
+		}
+		_m3u8list.pop_front();
+	}
+	_m3u8list.clear();
+	loop.run(Loop::Default);
 	return 0;
 }
 
