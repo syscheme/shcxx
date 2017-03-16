@@ -120,11 +120,11 @@ int main(int argc,char* argv[])
 		(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"urlFile = %d,"),urlFile.c_str());
 		(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"thereadCount = %d,bitrate = %s,LoopCount=%d,SessionInterval=%d"),ThreadList.size(),bitrate.c_str(),LoopCount,SessionInterval);
 
-		std::list<ZQ::eloop::DownloadThread::M3u8List>::iterator it;
-		for (it = ThreadList.begin();it != ThreadList.end();it++)
+		while(!ThreadList.empty())
 		{
-			ZQ::eloop::DownloadThread* download = new ZQ::eloop::DownloadThread(*pLog,*it,bitrate,SessionInterval,LoopCount);
+			ZQ::eloop::DownloadThread* download = new ZQ::eloop::DownloadThread(*pLog,ThreadList.front(),bitrate,SessionInterval,LoopCount);
 			download->start();
+			ThreadList.pop_front();
 		}
 	}
 	else

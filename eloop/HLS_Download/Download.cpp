@@ -132,7 +132,7 @@ void Session::onMessageCompleted()
 
 		Download* d = new Download(_Logger);
 		std::string str = _baseurl + "/" + outstr + "&rate="+ _bitrate;
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"outstr:%s"),str.c_str());
+		//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"outstr:%s"),str.c_str());
 		d->init(get_loop());
 		d->dohttp(str,outstr);
 	}
@@ -174,7 +174,7 @@ int DownloadThread::run(void)
 	Loop loop(false);
 	M3u8List::iterator it;
 	std::string m3u8;
-	for(it = _m3u8list.begin();it!=_m3u8list.end();it++)
+	while(!_m3u8list.empty())
 	{
 		m3u8 = _m3u8list.front();
 		for(int i=0;i< _loopCount;i++)
@@ -182,6 +182,7 @@ int DownloadThread::run(void)
 			ZQ::eloop::Session* s = new ZQ::eloop::Session(_Logger,_bitrate);
 			s->init(loop);
 			s->dohttp(m3u8);
+			_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(DownloadThread,"m3u8:%s"),m3u8.c_str());
 			SYS::sleep(_IntervalTime);
 		}
 		_m3u8list.pop_front();
