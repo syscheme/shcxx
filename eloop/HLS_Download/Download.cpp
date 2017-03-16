@@ -132,7 +132,7 @@ void Session::onMessageCompleted()
 
 		Download* d = new Download(_Logger);
 		std::string str = _baseurl + "/" + outstr + "&rate="+ _bitrate;
-		//printf("str = %s\n",str.c_str());
+		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"outstr:%s"),str.c_str());
 		d->init(get_loop());
 		d->dohttp(str,outstr);
 	}

@@ -12,8 +12,9 @@ void usage() {
 		<< "Options:\n"
 		<< "  -f <url file>							url file default is \"../download/hls\"\n"
 		<< "  -l <log file>							The log file output path.default is \"../logs/hlsdownload.log\"\n"
+		<< "  -t <thread count>					    thread count.default is 5.\n"
 		<< "  -r <bitrate>							bitrate, default is 3.75mbps\n"
-		<< "  -c <loop count>						loop count default is 4"
+		<< "  -c <loop count>						loop count default is 4.\n"
 		<< "  -i <Session Interval>					The session time interval default is 50 ms\n"
 		<< "  -h									display this screen\n"
 		<< std::endl;
@@ -29,7 +30,7 @@ int main(int argc,char* argv[])
 	}
 */
 	std::string logFilePath,urlFile,bitrate;
-	int threadCount,LoopCount= 1,SessionInterval = 50;  //ms
+	int threadCount = 5,LoopCount= 1,SessionInterval = 50;  //ms
 	urlFile = "../download/hls";
 	logFilePath = "../logs/hlsdownload.log";
 	bitrate = "3750000";
