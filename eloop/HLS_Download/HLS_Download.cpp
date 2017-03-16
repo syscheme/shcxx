@@ -84,74 +84,77 @@ int main(int argc,char* argv[])
 			total++;
 	}
 	fm3u8.close();
-	meanValue = total/threadCount + 1;
 
-
-	std::ifstream fin;
-	fin.open(urlFile.c_str());
-	int i = 1,n = 0;
-	while (!fin.eof())
+	if (total > 100)
 	{
-		getline(fin,m3u8);
-		if (m3u8.empty())
-			continue;
-		n = m3u8.find_last_not_of(" \r\n\t");
-		if (n != m3u8.npos)
+		meanValue = total/threadCount + 1;
+
+		std::ifstream fin;
+		fin.open(urlFile.c_str());
+		int i = 1,n = 0;
+		while (!fin.eof())
 		{
-			m3u8.erase(n+1,m3u8.size()-n);
+			getline(fin,m3u8);
+			if (m3u8.empty())
+				continue;
+			n = m3u8.find_last_not_of(" \r\n\t");
+			if (n != m3u8.npos)
+			{
+				m3u8.erase(n+1,m3u8.size()-n);
+			}
+			m3u8list.push_back(m3u8);
+			if (i%meanValue == 0)
+			{
+				ThreadList.push_back(m3u8list);
+				m3u8list.clear();
+			}
+			i++;
 		}
-		m3u8list.push_back(m3u8);
-		if (i%meanValue == 0)
+		if (!m3u8list.empty())
 		{
 			ThreadList.push_back(m3u8list);
 			m3u8list.clear();
 		}
-		i++;
-	}
-	if (!m3u8list.empty())
-	{
-		ThreadList.push_back(m3u8list);
-		m3u8list.clear();
-	}
-	printf("total = %d,threadCount = %d,meanValue = %d,ThreadList = %d\n",total,threadCount,meanValue,ThreadList.size());
+		printf("total = %d,threadCount = %d,meanValue = %d,ThreadList = %d\n",total,threadCount,meanValue,ThreadList.size());
 
-	(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"urlFile = %d,"),urlFile.c_str());
-	(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"thereadCount = %d,bitrate = %s,LoopCount=%d,SessionInterval=%d"),ThreadList.size(),bitrate.c_str(),LoopCount,SessionInterval);
+		(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"urlFile = %d,"),urlFile.c_str());
+		(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"thereadCount = %d,bitrate = %s,LoopCount=%d,SessionInterval=%d"),ThreadList.size(),bitrate.c_str(),LoopCount,SessionInterval);
 
-	std::list<ZQ::eloop::DownloadThread::M3u8List>::iterator it;
-	for (it = ThreadList.begin();it != ThreadList.end();it++)
-	{
-		ZQ::eloop::DownloadThread* download = new ZQ::eloop::DownloadThread(*pLog,*it,bitrate,SessionInterval,LoopCount);
-		download->start();
-	}
-
-/*
-	ZQ::eloop::Loop loop(false);
-
-	std::ifstream fin;
-	std::string m3u8;
-	size_t n = 0;
-	fin.open(urlFile.c_str());
-	while (!fin.eof())
-	{
-		getline(fin,m3u8);
-		if (m3u8.empty())
-			continue;
-		n = m3u8.find_last_not_of(" \r\n\t");
-		if (n != m3u8.npos)
+		std::list<ZQ::eloop::DownloadThread::M3u8List>::iterator it;
+		for (it = ThreadList.begin();it != ThreadList.end();it++)
 		{
-			m3u8.erase(n+1,m3u8.size()-n);
+			ZQ::eloop::DownloadThread* download = new ZQ::eloop::DownloadThread(*pLog,*it,bitrate,SessionInterval,LoopCount);
+			download->start();
 		}
-		(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"m3u8:%s"),m3u8.c_str());
-		ZQ::eloop::Session* session = new ZQ::eloop::Session(*pLog,bitrate);
-		session->init(loop);
-		session->dohttp(m3u8);
-		SYS::sleep(SessionInterval);
 	}
-	fin.close();
+	else
+	{
+		
+		ZQ::eloop::Loop loop(false);
 
-	loop.run(ZQ::eloop::Loop::Default);
-*/
+		std::ifstream fin;
+		size_t n = 0;
+		fin.open(urlFile.c_str());
+		while (!fin.eof())
+		{
+			getline(fin,m3u8);
+			if (m3u8.empty())
+				continue;
+			n = m3u8.find_last_not_of(" \r\n\t");
+			if (n != m3u8.npos)
+			{
+				m3u8.erase(n+1,m3u8.size()-n);
+			}
+			(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"m3u8:%s"),m3u8.c_str());
+			ZQ::eloop::Session* session = new ZQ::eloop::Session(*pLog,bitrate);
+			session->init(loop);
+			session->dohttp(m3u8);
+			SYS::sleep(SessionInterval);
+		}
+		fin.close();
+
+		loop.run(ZQ::eloop::Loop::Default);
+	}
 
 	while(1)
 		SYS::sleep(100000);
