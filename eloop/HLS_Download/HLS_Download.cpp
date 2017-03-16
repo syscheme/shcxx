@@ -119,12 +119,17 @@ int main(int argc,char* argv[])
 
 		(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"urlFile = %d,"),urlFile.c_str());
 		(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"thereadCount = %d,bitrate = %s,LoopCount=%d,SessionInterval=%d"),ThreadList.size(),bitrate.c_str(),LoopCount,SessionInterval);
-
+		std::vector<ZQ::common::NativeThread*> ThreadVec;
 		while(!ThreadList.empty())
 		{
 			ZQ::eloop::DownloadThread* download = new ZQ::eloop::DownloadThread(*pLog,ThreadList.front(),bitrate,SessionInterval,LoopCount);
 			download->start();
 			ThreadList.pop_front();
+			ThreadVec.push_back(download);
+		}
+		for(int m =0;m<ThreadVec.size();m++)
+		{
+			ThreadVec[m]->waitHandle(-1);
 		}
 	}
 	else
@@ -155,8 +160,5 @@ int main(int argc,char* argv[])
 
 		loop.run(ZQ::eloop::Loop::Default);
 	}
-
-	while(1)
-		SYS::sleep(100000);
 	return 0;
 }
