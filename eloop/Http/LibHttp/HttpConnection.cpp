@@ -182,13 +182,11 @@ int	HttpConnection::onBody(const char* at, size_t size){
 
 int	HttpConnection::onChunkHeader(http_parser* parser)
 {
-	printf("-------------------onChunkHeader len = %d\n",parser->content_length);
 	return 0;
 }
 
 int	HttpConnection::onChunkComplete(http_parser* parser)
 {
-	printf("*************onChunkComplete\n");
 	return 0;
 }
 
