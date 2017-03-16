@@ -180,15 +180,15 @@ int	HttpConnection::onBody(const char* at, size_t size){
 	return 0;
 }
 
-int	HttpConnection::onChunkHeader()
+int	HttpConnection::onChunkHeader(http_parser* parser)
 {
-	printf("#####################onChunkHeader\n");
+	printf("-------------------onChunkHeader len = %d\n",parser->content_length);
 	return 0;
 }
 
-int	HttpConnection::onChunkComplete()
+int	HttpConnection::onChunkComplete(http_parser* parser)
 {
-	printf("****************onChunkComplete\n");
+	printf("*************onChunkComplete\n");
 	return 0;
 }
 
@@ -235,13 +235,13 @@ int HttpConnection::on_body(http_parser* parser, const char* at, size_t size){
 int HttpConnection::on_chunk_header(http_parser* parser)
 {
 	HttpConnection* pThis = reinterpret_cast<HttpConnection*>(parser->data);
-	return pThis->onChunkHeader();
+	return pThis->onChunkHeader(parser);
 }
 
 int HttpConnection::on_chunk_complete(http_parser* parser)
 {
 	HttpConnection* pThis = reinterpret_cast<HttpConnection*>(parser->data);
-	return pThis->onChunkComplete();
+	return pThis->onChunkComplete(parser);
 }
 
 } }//namespace ZQ::eloop

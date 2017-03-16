@@ -24,7 +24,7 @@ int main(int argc,char* argv[])
 
 	std::string logFilePath,host;
 	int ch = 0,threadCount = 4;
-	while((ch = getopt(argc,argv,"l:i:t:h:")) != EOF)
+	while((ch = getopt(argc,argv,"l:i:t:h")) != EOF)
 	{
 		switch(ch)
 		{

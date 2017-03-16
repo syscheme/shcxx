@@ -58,15 +58,15 @@ void Download::onMessageCompleted()
 	_totalTime = ZQ::common::now() - _startTime;
 	
 	int64 speed = _totalSize * 8/_totalTime;
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,size:%dByte,bitrate:%dkbps"),_CurrentDownloadFileName.c_str(),_totalSize,speed);
-	printf("download complete:%s,size:%dByte,bitrate:%dkbps\n",_CurrentDownloadFileName.c_str(),_totalSize,speed);
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,size:%dByte,take:%dms,bitrate:%dkbps"),_CurrentDownloadFileName.c_str(),_totalSize,_totalTime,speed);
+	printf("download complete:%s,size:%dByte,take:%dms,bitrate:%dkbps\n",_CurrentDownloadFileName.c_str(),_totalSize,_totalTime,speed);
 }
 
 void Download::onError( int error,const char* errorDescription )
 {
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s"),error,errorDescription);
 	if (error != elpe__EOF)
 	{
+		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s"),error,errorDescription);
 		printf("Download Error,errorCode[%d],Description:%s\n",error,errorDescription);
 	}
 	shutdown();

@@ -30,7 +30,7 @@ int main(int argc,char* argv[])
 	std::string logFilePath,url;
 	int ThreadCount= 10,ThreadInterval = 0,SessionCount = 1000,SessionInterval = 5;
 	int ch = 0;
-	while((ch = getopt(argc,argv,"l:u:t:s:i:h:")) != EOF)
+	while((ch = getopt(argc,argv,"l:u:t:s:i:h")) != EOF)
 	{
 		switch(ch)
 		{

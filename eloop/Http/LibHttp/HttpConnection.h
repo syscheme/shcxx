@@ -125,8 +125,8 @@ private:
 	int		onHeaderValue(const char* at, size_t size);
 	int		onBody(const char* at, size_t size);
 
-	int		onChunkHeader();
-	int		onChunkComplete();
+	int		onChunkHeader(http_parser* parser);
+	int		onChunkComplete(http_parser* parser);
 
 };
 } }//namespace ZQ::eloop

@@ -61,11 +61,23 @@ int main(int argc,char* argv[])
 			break;
 		}
 	}
-//	std::string m3u8 = "http://192.168.1.173:12000/assets?file=/HLS/HUNAN2999/2500000/index.m3u8&rate=375400";
+
+
 	ZQ::common::Log* pLog = new ZQ::common::FileLog(logFilePath.c_str(),7, 5,10240000);
 
+/*	int i = 0;
+	while (!fin.eof())
+	{
+		getline(fin,m3u8);
+		if (m3u8.empty())
+			continue;
+		std::stringstream ss;
 
-/*	int ThreadCount = 5;
+	}
+
+
+
+	int ThreadCount = 5;
 	ZQ::eloop::DownloadThread* download[5];
 
 	//printf("ThreadCount = %d,SessionCount = %d,SessionInterval = %d\n",ThreadCount,SessionCount,SessionInterval);
@@ -77,8 +89,8 @@ int main(int argc,char* argv[])
 		(*pLog)(ZQ::common::Log::L_DEBUG,CLOGFMT(main,"the %d thread threadid = %d"),i,download->id());
 		//SYS::sleep(400);
 		//(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"%d the %d thread connection is successful"),download[i]->getCount(),i);
-	}
-*/
+	}*/
+
 
 	ZQ::eloop::Loop loop(false);
 
