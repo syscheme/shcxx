@@ -85,7 +85,7 @@ int main(int argc,char* argv[])
 	}
 	fm3u8.close();
 
-	if (total > 100)
+	if (total > threadCount)
 	{
 		meanValue = total/threadCount + 1;
 
