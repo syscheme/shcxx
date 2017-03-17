@@ -160,5 +160,7 @@ int main(int argc,char* argv[])
 
 		loop.run(ZQ::eloop::Loop::Default);
 	}
+	(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"The main thread to exit!"));
+	pLog->flush();
 	return 0;
 }

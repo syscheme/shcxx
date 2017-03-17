@@ -7,17 +7,23 @@ namespace ZQ {
 // ---------------------------------------
 // class Download
 // ---------------------------------------
-Download::Download(ZQ::common::Log& logger)
-	:HttpClient(logger),_Logger(logger)
+Download::Download(ZQ::common::Log& logger,std::string baseurl,std::string bitrate,std::list<std::string> file)
+	:HttpClient(logger),
+	_Logger(logger),
+	_baseurl(baseurl),
+	_bitrate(bitrate),
+	_file(file)
 {
 }
 Download::~Download()
 {
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"The destructor to exit!"));
 }
 
-void Download::dohttp(std::string& url,std::string filenaem)
+void Download::dohttp()
 {
-	_CurrentDownloadFileName = filenaem;
+	_CurrentDownloadFileName = _file.front();
+	std::string& url = _baseurl + "/" + _CurrentDownloadFileName + "&rate="+ _bitrate;
 	HttpMessage::Ptr msg = new HttpMessage(HttpMessage::MSG_REQUEST);
 	msg->method(HttpMessage::GET);
 	msg->url("*");
@@ -60,6 +66,14 @@ void Download::onMessageCompleted()
 	int64 speed = _totalSize * 8/_totalTime;
 	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,size:%dByte,take:%dms,bitrate:%dkbps"),_CurrentDownloadFileName.c_str(),_totalSize,_totalTime,speed);
 	printf("download complete:%s,size:%dByte,take:%dms,bitrate:%dkbps\n",_CurrentDownloadFileName.c_str(),_totalSize,_totalTime,speed);
+	_file.pop_front();
+	if (!_file.empty())
+	{
+		Download* d = new Download(_Logger,_baseurl,_bitrate,_file);
+		//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"outstr:%s"),str.c_str());
+		d->init(get_loop());
+		d->dohttp();
+	}
 }
 
 void Download::onError( int error,const char* errorDescription )
@@ -123,21 +137,23 @@ bool Session::onBodyData( const char* data, size_t size)
 
 void Session::onMessageCompleted()
 {
-
+	std::list<std::string> file;
 	std::string outstr;
 	while(std::getline(_RespBody,outstr))
 	{
 		if (outstr.find("#") != outstr.npos)
 			continue;
-
-		Download* d = new Download(_Logger);
-		std::string str = _baseurl + "/" + outstr + "&rate="+ _bitrate;
-		//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"outstr:%s"),str.c_str());
-		d->init(get_loop());
-		d->dohttp(str,outstr);
+		file.push_back(outstr);
 	}
 	_RespBody.str("");
 
+	if (!file.empty())
+	{
+		Download* d = new Download(_Logger,_baseurl,_bitrate,file);
+		//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"outstr:%s"),str.c_str());
+		d->init(get_loop());
+		d->dohttp();
+	}
 }
 
 void Session::onError( int error,const char* errorDescription )

@@ -17,9 +17,9 @@ namespace ZQ {
 class Download:public HttpClient
 {
 public:
-	Download(ZQ::common::Log& logger);
+	Download(ZQ::common::Log& logger,std::string baseurl,std::string bitrate,std::list<std::string> file);
 	~Download();
-	void dohttp(std::string& url,std::string filenaem);
+	void dohttp();
 
 	virtual void	onHttpDataSent();
 
@@ -39,6 +39,10 @@ private:
 	int64				_totalTime;			//ms
 	int64				_totalSize;
 	std::string	_CurrentDownloadFileName;
+	std::string			_baseurl;
+	std::string			_bitrate;
+	std::list<std::string>  _file;
+
 };
 
 // ---------------------------------------
