@@ -28,12 +28,16 @@ void Download::dohttp()
 	msg->method(HttpMessage::GET);
 	msg->url("*");
 
-	if (beginRequest(msg,url))
-	{
-		_startTime = ZQ::common::now();
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"downloading:%s,url:%s"),_CurrentDownloadFileName.c_str(),url.c_str());
-		printf("downloading:%s,url:%s\n",_CurrentDownloadFileName.c_str(),url.c_str());
-	}	
+	beginRequest(msg,url);	
+}
+
+void Download::OnConnected(ElpeError status)
+{
+	HttpClient::OnConnected(status);
+	_startTime = ZQ::common::now();
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"downloading:%s,url:%s"),_CurrentDownloadFileName.c_str());
+	printf("downloading:%s,url:%s\n",_CurrentDownloadFileName.c_str());
+
 }
 
 void Download::onHttpDataSent()

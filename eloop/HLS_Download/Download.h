@@ -20,6 +20,7 @@ public:
 	Download(ZQ::common::Log& logger,std::string baseurl,std::string bitrate,std::list<std::string> file);
 	~Download();
 	void dohttp();
+	virtual void OnConnected(ElpeError status);
 
 	virtual void	onHttpDataSent();
 
