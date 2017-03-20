@@ -17,7 +17,25 @@ namespace ZQ {
 class Download:public HttpClient
 {
 public:
-	Download(ZQ::common::Log& logger,std::string baseurl,std::string bitrate,std::list<std::string> file);
+	typedef struct statistics
+	{
+		statistics() {
+			CompletionTime = 0;
+			allStartTime = 0;
+			allSize = 0;
+			allInterval = 0;
+			MaxInterval = 0;
+			fileTotal = 0;
+		}
+		int64				CompletionTime;
+		int64				allStartTime;
+		int64				allSize;
+		int64				allInterval;
+		int64				MaxInterval;
+		int64				fileTotal;
+	}Statistics;
+public:
+	Download(ZQ::common::Log& logger,std::string baseurl,std::string bitrate,Statistics stat,std::list<std::string> file);
 	~Download();
 	void dohttp();
 	virtual void OnConnected(ElpeError status);
@@ -36,9 +54,9 @@ public:
 
 private:
 	ZQ::common::Log&	_Logger;
-	int64				_startTime;
-	int64				_totalTime;			//ms
+	int64				_startTime;			//ms	
 	int64				_totalSize;
+	Statistics			_stat;
 	std::string	_CurrentDownloadFileName;
 	std::string			_baseurl;
 	std::string			_bitrate;
