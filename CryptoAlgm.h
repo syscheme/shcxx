@@ -27,6 +27,13 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/CryptoAlgm.h $
 // 
+// 6     3/15/17 9:39a Hui.shao
+// base64 codec
+// 
+// 5     3/14/17 4:53p Hui.shao
+// 
+// 4     3/14/17 2:29p Hui.shao
+// 
 // 3     3/13/17 5:43p Hui.shao
 // 
 // 2     3/13/17 4:56p Hui.shao
@@ -126,48 +133,44 @@ class SHA1
 #define SHA1_DIGEST_LENGTH	(20)
 
 public:
-	typedef uint32	  quadbyte;	// 4 byte type
-	typedef uint8	  byte;	// single byte type
 	typedef uint8     Digest[SHA1_DIGEST_LENGTH];
 
 	SHA1() { SHA1_Init(&_ctx); }
-	void update(const byte* data, uint len) { SHA1_Update(&_ctx, data, len); }
+	void update(const uint8* data, uint len) { SHA1_Update(&_ctx, data, len); }
 	void get(Digest digest) { SHA1_Final(digest, &_ctx); } 
+
+	typedef struct _SHA_CTX {
+		uint32	state[5];
+		uint32	count[2];
+		uint8	buffer[SHA1_BLOCK_LENGTH];
+	} CTX;
 
 private:  // the original c-implemetations, DO NOT change
 	friend class HMAC_SHA1;
 	// The SHA1 structure:
-	typedef struct _SHA_CTX {
-		quadbyte	state[5];
-		quadbyte	count[2];
-		byte	    buffer[SHA1_BLOCK_LENGTH];
-	} CTX;
-
 	CTX _ctx;
 
 	static void SHA1_Init(CTX *context);
-	static void SHA1_Update(CTX *context, const byte *data, uint32 len);
+	static void SHA1_Update(CTX *context, const uint8 *data, uint32 len);
 	static void SHA1_Final(Digest digest, CTX* context);
-	static void SHA1_Transform(quadbyte state[5], byte buffer[SHA1_BLOCK_LENGTH]);
+	static void SHA1_Transform(uint32 state[5], uint8 buffer[SHA1_BLOCK_LENGTH]);
 };
 
 // -----------------------------
 // class HMAC_SHA1
 // -----------------------------
-#define HMAC_SHA1_DIGEST_LENGTH	(20)
-#define HMAC_SHA1_BLOCK_LENGTH	(64)
+#define HMAC_SHA1_DIGEST_LENGTH	 SHA1_DIGEST_LENGTH
+#define HMAC_SHA1_BLOCK_LENGTH	 SHA1_BLOCK_LENGTH
 
 class HMAC_SHA1
 {
 public:
 	HMAC_SHA1(uint8 *key, uint key_len);
-	void update(const byte* data, uint len);
+	void update(const uint8* data, uint len);
 	void get(SHA1::Digest digest);
 
 	//@output digest - the result digest
 	static void calcSignature(uint8 *data, uint32 data_len, uint8 *key, uint32 key_len, SHA1::Digest digest);
-
-private:  // the original c-implemetations, DO NOT change
 
 	typedef struct
 	{
@@ -179,8 +182,9 @@ private:  // the original c-implemetations, DO NOT change
 		unsigned int	hashkey;
 	} CTX;
 
-	CTX _ctx;
+private:  // the original c-implemetations, DO NOT change
 
+	CTX _ctx;
 	static void HMAC_SHA1_Init(CTX *ctx);
 	static void HMAC_SHA1_UpdateKey(CTX *ctx, uint8 *key, uint32 keylen);
 	static void HMAC_SHA1_EndKey(CTX *ctx);
@@ -188,6 +192,17 @@ private:  // the original c-implemetations, DO NOT change
 	static void HMAC_SHA1_UpdateMessage(CTX *ctx, const uint8 *data, uint32 datalen);
 	static void HMAC_SHA1_EndMessage(uint8 *out, CTX *ctx);
 	static void HMAC_SHA1_Done(CTX *ctx);
+};
+
+// -----------------------------
+// class Base64
+// -----------------------------
+class Base64
+{
+public:
+	static std::string encode(const uint8* data, size_t len);
+	static bool decode(const char* src, OUT uint8 *data, IN OUT size_t& datalen);
+	static bool decode(const std::string& src, OUT uint8 *data, IN OUT size_t& datalen);
 };
 
 }} // namespaces

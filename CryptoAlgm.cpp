@@ -27,6 +27,11 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/CryptoAlgm.cpp $
 // 
+// 5     3/15/17 9:39a Hui.shao
+// base64 codec
+// 
+// 4     3/14/17 4:53p Hui.shao
+// 
 // 3     3/13/17 5:43p Hui.shao
 // 
 // 2     3/13/17 4:56p Hui.shao
@@ -399,7 +404,7 @@ void MD5::finalize()
 	padLen = (index < 56) ? (56 - index) : (120 - index);
 	update(PADDING, padLen);
 
-	// Append length (before padding)
+	// Append len (before padding)
 	update (bits, 8);
 
 	// Store state in digest
@@ -412,7 +417,7 @@ void MD5::finalize()
 
 #define rotate_left(x, n) ((((uint32)x) << n) | (((uint32)x) >> n))
 
-#define F(x, y, z)        (((uint32)x) & ((uint32)y) | (~((uint32)x) & ((uint32)z)))
+#define F(x, y, z)        ((((uint32)x) & ((uint32)y)) | ((~((uint32)x) & ((uint32)z))))
 #define G(x, y, z)        ((((uint32)x) & ((uint32)z)) | (((uint32)y) & ~((uint32)z)))
 #define H(x, y, z)        (((uint32)x) ^ ((uint32)y) ^ ((uint32)z))
 #define I(x, y, z)        (((uint32)y) ^ (((uint32)x) | ~((uint32)z)))
@@ -696,6 +701,164 @@ void HMAC_SHA1::calcSignature(uint8 *data, uint32 data_len, uint8 *key, uint32 k
 	HMAC_SHA1 hmac(key, key_len);
 	hmac.update(data, data_len);
 	hmac.get(digest); 
+}
+
+// -----------------------------
+// class Base64
+// -----------------------------
+// base64 Encoding/Decoding Table
+static const char table64[]= "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+static uint8 ultouc(unsigned long ulnum)
+{
+#ifdef __INTEL_COMPILER
+#  pragma warning(push)
+#  pragma warning(disable:810) // conversion may lose significant bits
+#endif
+
+	return (uint8)(ulnum & (unsigned long) 0xFF);
+
+#ifdef __INTEL_COMPILER
+#  pragma warning(pop)
+#endif
+}
+
+static void decodeQuantum(uint8 *dest, const char *src)
+{
+	const char *s, *p;
+	unsigned long i, v, x = 0;
+
+	for (i = 0, s = src; i < 4; i++, s++)
+	{
+		v = 0;
+		p = table64;
+		while(*p && (*p != *s)) { v++;	p++; }
+
+		if (*p == *s)
+			x = (x << 6) + v;
+		else if(*s == '=')
+			x = (x << 6);
+	}
+
+	dest[2] = ultouc(x & 0xFFUL);
+	x >>= 8;
+	dest[1] = ultouc(x & 0xFFUL);
+	x >>= 8;
+	dest[0] = ultouc(x & 0xFFUL);
+}
+
+bool Base64::decode(const std::string& src, OUT uint8 *data, IN OUT size_t& datalen)
+{
+	return decode(src.c_str(), data, datalen);
+}
+
+bool Base64::decode(const char* src, OUT uint8 *data, IN OUT size_t& datalen)
+{
+	if (NULL == data)
+		return false;
+
+	// detemine the input len
+	size_t len = 0;
+	while((src[len] != '=') && src[len])
+		len++;
+
+	// a maximum of two = padding characters is allowed
+	size_t equalsTerm = 0;
+	if (src[len] == '=')
+	{
+		equalsTerm++;
+		if(src[len+equalsTerm] == '=')
+			equalsTerm++;
+	}
+
+	size_t numQuantums = (len + equalsTerm) / 4;
+
+	// Don't allocate a buffer if the decoded len is 0
+	if(numQuantums <= 0)
+		return true;
+
+	size_t rawlen = (numQuantums * 3) - equalsTerm;
+	uint8 *dest = data, *tail = data + datalen;
+
+	size_t i;
+	// Decode all but the last quantum (which may not decode to a multiple of 3 bytes) 
+	for (i = 0; i < (numQuantums - 1) && dest < (tail-3); i++)
+	{
+		if (dest >= (data + datalen - 3))
+			break; // output overflow
+
+		decodeQuantum(dest, src);
+		dest += 3; src += 4;
+	}
+
+	// This final decode may actually read slightly past the end of the buffer
+	// if the input string is missing pad bytes.  This will almost always be
+	// harmless.
+	uint8 lastQuantum[3];
+	decodeQuantum(lastQuantum, src);
+
+	for(i = 0; (i < 3 - equalsTerm) && dest < tail; i++)
+		*dest++ = lastQuantum[i];
+
+	datalen = dest - data;
+	return true;
+}
+
+std::string Base64::encode(const uint8* data, size_t len)
+{
+	std::string str;
+	int i;
+
+	if(len <=0)
+		len = strlen((const char*)data);
+
+	str.resize(len*4/3+4);
+
+	while (len > 0) 
+	{
+		// determine the input 3 bytes
+		uint8 ibuf[3];
+		int inputparts;
+		for (i = inputparts = 0; i < 3; i++) 
+		{
+			if (len > 0) 
+			{
+				inputparts++;
+				ibuf[i] = (uint8) *data ++;
+				len--;
+			}
+			else ibuf[i] = 0;
+		}
+
+		// convert to the output 4 bytes
+		uint8 obuf[4];
+		obuf[0] = (uint8) ((ibuf[0] & 0xFC) >> 2);
+		obuf[1] = (uint8) (((ibuf[0] & 0x03) << 4) | ((ibuf[1] & 0xF0) >> 4));
+		obuf[2] = (uint8) (((ibuf[1] & 0x0F) << 2) | ((ibuf[2] & 0xC0) >> 6));
+		obuf[3] = (uint8) (ibuf[2] & 0x3F);
+
+		// format the chars
+		char dstr[6];
+		switch(inputparts)
+		{
+		case 1: // only one byte read
+			snprintf(dstr, sizeof(dstr)-1, "%c%c==", table64[obuf[0]], table64[obuf[1]]);
+			break;
+
+		case 2: // two bytes read
+			snprintf(dstr, sizeof(dstr)-1, "%c%c%c=", table64[obuf[0]], table64[obuf[1]], table64[obuf[2]]);
+			break;
+
+		default:
+			snprintf(dstr, sizeof(dstr)-1, "%c%c%c%c", table64[obuf[0]], table64[obuf[1]], table64[obuf[2]], table64[obuf[3]] );
+			break;
+		}
+
+		// append to the output
+		str += dstr;
+	}
+
+	return str;
 }
 
 }} // namespaces
