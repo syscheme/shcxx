@@ -117,7 +117,7 @@ int main(int argc,char* argv[])
 		}
 		printf("total = %d,threadCount = %d,meanValue = %d,ThreadList = %d\n",total,threadCount,meanValue,ThreadList.size());
 
-		(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"urlFile = %d,"),urlFile.c_str());
+		(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"urlFile = %s,"),urlFile.c_str());
 		(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"thereadCount = %d,bitrate = %s,LoopCount=%d,SessionInterval=%d"),ThreadList.size(),bitrate.c_str(),LoopCount,SessionInterval);
 		std::vector<ZQ::common::NativeThread*> ThreadVec;
 		while(!ThreadList.empty())

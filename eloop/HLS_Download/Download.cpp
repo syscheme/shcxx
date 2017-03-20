@@ -23,7 +23,7 @@ Download::~Download()
 void Download::dohttp()
 {
 	_CurrentDownloadFileName = _file.front();
-	std::string& url = _baseurl + "/" + _CurrentDownloadFileName + "&rate="+ _bitrate;
+	std::string url = _baseurl + "/" + _CurrentDownloadFileName + "&rate="+ _bitrate;
 	HttpMessage::Ptr msg = new HttpMessage(HttpMessage::MSG_REQUEST);
 	msg->method(HttpMessage::GET);
 	msg->url("*");
@@ -35,8 +35,9 @@ void Download::OnConnected(ElpeError status)
 {
 	HttpClient::OnConnected(status);
 	_startTime = ZQ::common::now();
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"downloading:%s,url:%s"),_CurrentDownloadFileName.c_str());
-	printf("downloading:%s,url:%s\n",_CurrentDownloadFileName.c_str());
+	std::string url = _baseurl + "/" + _CurrentDownloadFileName;
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"downloading:%s"),url.c_str());
+	printf("downloading:%s\n",url.c_str());
 
 }
 
@@ -68,8 +69,9 @@ void Download::onMessageCompleted()
 	_totalTime = ZQ::common::now() - _startTime;
 	
 	int64 speed = _totalSize * 8/_totalTime;
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,size:%dByte,take:%dms,bitrate:%dkbps"),_CurrentDownloadFileName.c_str(),_totalSize,_totalTime,speed);
-	printf("download complete:%s,size:%dByte,take:%dms,bitrate:%dkbps\n",_CurrentDownloadFileName.c_str(),_totalSize,_totalTime,speed);
+	std::string url = _baseurl + "/" + _CurrentDownloadFileName;
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,size:%dByte,take:%dms,bitrate:%dkbps"),url.c_str(),_totalSize,_totalTime,speed);
+	printf("download complete:%s,size:%dByte,take:%dms,bitrate:%dkbps\n",url.c_str(),_totalSize,_totalTime,speed);
 	_file.pop_front();
 	if (!_file.empty())
 	{
