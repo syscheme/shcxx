@@ -26,6 +26,9 @@ public:
 			allInterval = 0;
 			MaxInterval = 0;
 			fileTotal = 0;
+			prevFile = "";
+			file1 = "";
+			file2 = "";
 		}
 		int64				CompletionTime;
 		int64				allStartTime;
@@ -33,6 +36,9 @@ public:
 		int64				allInterval;
 		int64				MaxInterval;
 		int64				fileTotal;
+		std::string			prevFile;
+		std::string			file1;
+		std::string			file2;
 	}Statistics;
 public:
 	Download(ZQ::common::Log& logger,std::string baseurl,std::string bitrate,Statistics stat,std::list<std::string> file);

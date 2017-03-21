@@ -62,8 +62,11 @@ bool Download::onHeadersEnd( const HttpMessage::Ptr msg)
 		if (_stat.MaxInterval < interval)
 		{
 			_stat.MaxInterval = interval;
+			_stat.file1 = _stat.prevFile;
+			_stat.file2 = _CurrentDownloadFileName;
 		}	
 	}
+	_stat.prevFile = _CurrentDownloadFileName;
 	_totalSize = 0;
 	return true;
 }
@@ -97,10 +100,11 @@ void Download::onMessageCompleted()
 	{
 		int64 tm = ZQ::common::now() - _stat.allStartTime;
 		int64 sp = _stat.allSize * 8/tm;
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"%d files downloaded to complete,size:%dByte,take:%dms,bitrate:%dkbps"),_stat.fileTotal,_stat.allSize,tm,sp);
-
 		int64 Average = _stat.allInterval /(_stat.fileTotal - 1);
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Average interval: %d ms,Maximum interval: %d ms "),Average,_stat.MaxInterval);
+		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"%d files downloaded to complete,directory:%s,size:%dByte,take:%dms,bitrate:%dkbps,Average interval: %d ms,The maximum time between %s and %s is : %d ms"),_baseurl.c_str(),_stat.fileTotal,_stat.allSize,tm,sp,Average,_stat.file1.c_str(),_stat.file2.c_str(),_stat.MaxInterval);
+
+		
+//		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Average interval: %d ms,Maximum interval: %d ms "),);
 	}
 }
 
