@@ -24,6 +24,8 @@ void HttpClient::OnConnected(ElpeError status)
 {
 	if (status != elpeSuccess) {
 		fprintf(stderr, "on_connect error %s\n", errDesc(status));
+		std::string desc = "on_connect error:";
+		desc.append(errDesc(status));
 		onError(status,errDesc(status));
 		return;
 	}

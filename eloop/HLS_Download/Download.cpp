@@ -113,9 +113,11 @@ void Download::onMessageCompleted()
 
 void Download::onError( int error,const char* errorDescription )
 {
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s,url:%s,file:%s"),error,errorDescription,_baseurl.c_str(),_CurrentDownloadFileName.c_str());
+	
 	if (!_completed)
 	{
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s,url:%s,file:%s"),error,errorDescription,_baseurl.c_str(),_CurrentDownloadFileName.c_str());
+		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"_completed is false,url:%s,file:%s"),_baseurl.c_str(),_CurrentDownloadFileName.c_str());
 		if (!_file.empty())
 		{
 			Download* d = new Download(_Logger,_baseurl,_bitrate,_stat,_file);
@@ -137,8 +139,8 @@ void Download::onError( int error,const char* errorDescription )
 	
 	if (error != elpe__EOF)
 	{
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s"),error,errorDescription);
-		printf("Download Error,errorCode[%d],Description:%s\n",error,errorDescription);
+		//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s"),error,errorDescription);
+		//printf("Download Error,errorCode[%d],Description:%s\n",error,errorDescription);
 	}
 	shutdown();
 }
@@ -204,13 +206,14 @@ void Session::onMessageCompleted()
 	}
 	_RespBody.str("");
 
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"Session start,baseurl:%s,The total number of files is %d!"),_baseurl.c_str(),file.size());
+
 	if (!file.empty())
 	{
 		Download::Statistics stat;
 		stat.allStartTime = ZQ::common::now();
 		stat.fileTotal = file.size();
 		Download* d = new Download(_Logger,_baseurl,_bitrate,stat,file);
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"Session start,The total number of files is %d!"),file.size());
 		d->init(get_loop());
 		d->dohttp();
 	}
@@ -218,9 +221,9 @@ void Session::onMessageCompleted()
 
 void Session::onError( int error,const char* errorDescription )
 {
-	if (error != elpe__EOF)
+//	if (error != elpe__EOF)
 	{
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"Session Error,errorCode[%d],Description:%s"),error,errorDescription);
+		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"Session Error,baseurl:%s,errorCode[%d],Description:%s"),_baseurl.c_str(),error,errorDescription);
 		printf("Session Error,errorCode[%d],Description:%s\n",error,errorDescription);
 	}
 	shutdown();

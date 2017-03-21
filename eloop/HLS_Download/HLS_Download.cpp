@@ -130,6 +130,7 @@ int main(int argc,char* argv[])
 		for(int m =0;m<ThreadVec.size();m++)
 		{
 			ThreadVec[m]->waitHandle(-1);
+			(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"The %d thread exit! thread id:%d"),m,ThreadVec[m]->id());
 		}
 	}
 	else
