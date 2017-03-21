@@ -81,6 +81,7 @@ public:
 	~Session();
 
 	void dohttp(std::string& m3u8url);
+	virtual void OnConnected(ElpeError status);
 
 	virtual void	onHttpDataSent();
 

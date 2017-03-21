@@ -20,7 +20,7 @@ Download::Download(ZQ::common::Log& logger,std::string baseurl,std::string bitra
 }
 Download::~Download()
 {
-	//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"The destructor to exit!"));
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"The Download destructor to exit!"));
 }
 
 void Download::dohttp()
@@ -154,7 +154,7 @@ Session::Session(ZQ::common::Log& logger,std::string bitrate)
 }
 Session::~Session()
 {
-
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"The Session destructor to exit!"));
 }
 
 void Session::dohttp(std::string& m3u8url)
@@ -170,9 +170,16 @@ void Session::dohttp(std::string& m3u8url)
 	beginRequest(msg,fetchm3u8);
 }
 
+void Session::OnConnected(ElpeError status)
+{
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"Session OnConnected,baseurl:%s"),_baseurl.c_str());
+	HttpClient::OnConnected(status);
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"Session start,baseurl:%s"),_baseurl.c_str());
+}
+
 void Session::onHttpDataSent()
 {
-	//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"send suc."));
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"send suc."));
 }
 
 void Session::onHttpDataReceived( size_t size )
@@ -206,7 +213,7 @@ void Session::onMessageCompleted()
 	}
 	_RespBody.str("");
 
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"Session start,baseurl:%s,The total number of files is %d!"),_baseurl.c_str(),file.size());
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"Session onMessageCompleted,baseurl:%s,The total number of files is %d!"),_baseurl.c_str(),file.size());
 
 	if (!file.empty())
 	{
