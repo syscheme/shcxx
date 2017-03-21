@@ -67,6 +67,7 @@ private:
 	std::string			_baseurl;
 	std::string			_bitrate;
 	std::list<std::string>  _file;
+	bool				_completed;
 
 };
 

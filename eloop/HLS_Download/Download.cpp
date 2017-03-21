@@ -13,6 +13,8 @@ Download::Download(ZQ::common::Log& logger,std::string baseurl,std::string bitra
 	_baseurl(baseurl),
 	_bitrate(bitrate),
 	_stat(stat),
+	_totalSize(0),
+	_completed(false),
 	_file(file)
 {
 }
@@ -79,6 +81,7 @@ bool Download::onBodyData( const char* data, size_t size)
 
 void Download::onMessageCompleted()
 {
+	_completed = true;
 	_stat.allSize += _totalSize;
 	int64 totalTime = ZQ::common::now() - _startTime;
 
@@ -110,6 +113,28 @@ void Download::onMessageCompleted()
 
 void Download::onError( int error,const char* errorDescription )
 {
+	if (!_completed)
+	{
+		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s,url:%s,file:%s"),error,errorDescription,_baseurl.c_str(),_CurrentDownloadFileName.c_str());
+		if (!_file.empty())
+		{
+			Download* d = new Download(_Logger,_baseurl,_bitrate,_stat,_file);
+			//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"outstr:%s"),str.c_str());
+			d->init(get_loop());
+			d->dohttp();
+		}
+		else
+		{
+			int64 tm = ZQ::common::now() - _stat.allStartTime;
+			int64 sp = _stat.allSize * 8/tm;
+			int64 Average = _stat.allInterval /(_stat.fileTotal - 1);
+			_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"%d files downloaded to complete,directory:%s,size:%dByte,take:%dms,bitrate:%dkbps,Average interval: %d ms,The maximum time between %s and %s is : %d ms"),_stat.fileTotal,_baseurl.c_str(),_stat.allSize,tm,sp,Average,_stat.file1.c_str(),_stat.file2.c_str(),_stat.MaxInterval);
+
+
+			//		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Average interval: %d ms,Maximum interval: %d ms "),);
+		}
+	}
+	
 	if (error != elpe__EOF)
 	{
 		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s"),error,errorDescription);
@@ -185,7 +210,7 @@ void Session::onMessageCompleted()
 		stat.allStartTime = ZQ::common::now();
 		stat.fileTotal = file.size();
 		Download* d = new Download(_Logger,_baseurl,_bitrate,stat,file);
-		//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"outstr:%s"),str.c_str());
+		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"Session start,The total number of files is %d!"),file.size());
 		d->init(get_loop());
 		d->dohttp();
 	}

@@ -67,7 +67,7 @@ int main(int argc,char* argv[])
 		}
 	}
 
-	ZQ::common::Log* pLog = new ZQ::common::FileLog(logFilePath.c_str(),7, 5,10240000);
+	ZQ::common::Log* pLog = new ZQ::common::FileLog(logFilePath.c_str(),7,10,52428800);
 
 	ZQ::eloop::DownloadThread::M3u8List m3u8list;
 	std::list<ZQ::eloop::DownloadThread::M3u8List> ThreadList;
