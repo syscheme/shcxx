@@ -1,9 +1,14 @@
+#include <ZQ_common_conf.h>
 #include <FileLog.h>
 #include <iostream>
 #include <fstream>
 #include "getopt.h"
 #include "Download.h"
 #include "eloop.h"
+
+#ifdef ZQ_OS_LINUX
+#include <sys/resource.h>
+#endif
 
 
 void usage() {
@@ -68,6 +73,13 @@ int main(int argc,char* argv[])
 	}
 
 	ZQ::common::Log* pLog = new ZQ::common::FileLog(logFilePath.c_str(),7,10,52428800);
+
+#ifdef ZQ_OS_LINUX
+	struct rlimit rlim;
+	rlim.rlim_cur = 64*1024;
+	rlim.rlim_max = 640*1024;
+	setrlimit( RLIMIT_NOFILE, &rlim);
+#endif
 
 	ZQ::eloop::DownloadThread::M3u8List m3u8list;
 	std::list<ZQ::eloop::DownloadThread::M3u8List> ThreadList;
