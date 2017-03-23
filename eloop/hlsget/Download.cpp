@@ -20,7 +20,7 @@ Download::Download(ZQ::common::Log& logger,std::string baseurl,std::string bitra
 }
 Download::~Download()
 {
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"The Download destructor to exit!"));
+	//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"The Download destructor to exit!"));
 }
 
 void Download::dohttp()
@@ -113,7 +113,7 @@ void Download::onMessageCompleted()
 
 void Download::onError( int error,const char* errorDescription )
 {
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s,url:%s,file:%s"),error,errorDescription,_baseurl.c_str(),_CurrentDownloadFileName.c_str());
+	//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s,url:%s,file:%s"),error,errorDescription,_baseurl.c_str(),_CurrentDownloadFileName.c_str());
 	
 	if (!_completed)
 	{
@@ -139,8 +139,8 @@ void Download::onError( int error,const char* errorDescription )
 	
 	if (error != elpe__EOF)
 	{
-		//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s"),error,errorDescription);
-		//printf("Download Error,errorCode[%d],Description:%s\n",error,errorDescription);
+		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s"),error,errorDescription);
+		printf("Download Error,errorCode[%d],Description:%s\n",error,errorDescription);
 	}
 	shutdown();
 }
@@ -154,7 +154,7 @@ Session::Session(ZQ::common::Log& logger,std::string bitrate)
 }
 Session::~Session()
 {
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"The Session destructor to exit!"));
+	//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"The Session destructor to exit!"));
 }
 
 void Session::dohttp(std::string& m3u8url)
@@ -173,14 +173,14 @@ void Session::dohttp(std::string& m3u8url)
 
 void Session::OnConnected(ElpeError status)
 {
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"Session OnConnected,baseurl:%s"),_baseurl.c_str());
+//	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"Session OnConnected,baseurl:%s"),_baseurl.c_str());
 	HttpClient::OnConnected(status);
 	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"Session start,baseurl:%s"),_baseurl.c_str());
 }
 
 void Session::onHttpDataSent()
 {
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"send suc."));
+//	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"send suc."));
 }
 
 void Session::onHttpDataReceived( size_t size )
@@ -231,7 +231,7 @@ void Session::onMessageCompleted()
 
 void Session::onError( int error,const char* errorDescription )
 {
-//	if (error != elpe__EOF)
+	if (error != elpe__EOF)
 	{
 		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"Session Error,baseurl:%s,errorCode[%d],Description:%s"),_baseurl.c_str(),error,errorDescription);
 		printf("Session Error,errorCode[%d],Description:%s\n",error,errorDescription);
