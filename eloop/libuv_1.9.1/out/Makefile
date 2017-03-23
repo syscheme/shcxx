@@ -11,7 +11,7 @@ srcdir := ..
 abs_srcdir := $(abspath $(srcdir))
 
 # The name of the builddir.
-builddir_name ?= /home/zhixiang.zhu/ZQprojs/Common/eloop/libuv_1.9.1/out
+builddir_name ?= .
 
 # The V=1 flag on command line makes us verbosely print command lines.
 ifdef V
@@ -21,7 +21,7 @@ else
 endif
 
 # Specify BUILDTYPE=Release on the command line for a release build.
-BUILDTYPE ?= Debug
+BUILDTYPE ?= Release
 
 # Directory all our build output goes into.
 # Note that this must be two directories beneath src/ for unit tests to pass,
@@ -318,7 +318,7 @@ ifeq ($(strip $(foreach prefix,$(NO_LOAD),\
 endif
 
 quiet_cmd_regen_makefile = ACTION Regenerating $@
-cmd_regen_makefile = cd $(srcdir); ./gyp_uv.py -fmake --ignore-environment "--toplevel-dir=." -I/home/zhixiang.zhu/ZQprojs/Common/eloop/libuv_1.9.1/common.gypi "--depth=." "-Goutput_dir=/home/zhixiang.zhu/ZQprojs/Common/eloop/libuv_1.9.1/out" "--generator-output=/home/zhixiang.zhu/ZQprojs/Common/eloop/libuv_1.9.1/out" "-Dhost_arch=x64" "-Dtarget_arch=x64" "-Duv_library=static_library" uv.gyp
+cmd_regen_makefile = cd $(srcdir); ./gyp_uv.py -fmake --ignore-environment "--toplevel-dir=." -I../common.gypi "--depth=." "-Goutput_dir=." "--generator-output=." "-Dhost_arch=x64" "-Dtarget_arch=x64" "-Duv_library=static_library" uv.gyp
 Makefile: $(srcdir)/uv.gyp $(srcdir)/common.gypi
 	$(call do_cmd,regen_makefile)
 
