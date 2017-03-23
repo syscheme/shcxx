@@ -167,6 +167,7 @@ void Session::dohttp(std::string& m3u8url)
 	msg->method(HttpMessage::GET);
 	msg->url("*");
 
+	printf("downloading:%s\n",_baseurl.c_str());
 	beginRequest(msg,fetchm3u8);
 }
 
@@ -214,6 +215,8 @@ void Session::onMessageCompleted()
 	_RespBody.str("");
 
 	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"Session onMessageCompleted,baseurl:%s,The total number of files is %d!"),_baseurl.c_str(),file.size());
+
+	printf("download complete:%s\n",_baseurl.c_str());
 
 	if (!file.empty())
 	{

@@ -19,7 +19,7 @@ void usage() {
 		<< "  -l <log file>							The log file output path.default is \"../logs/hlsdownload.log\"\n"
 		<< "  -t <thread count>					    thread count.default is 5.\n"
 		<< "  -r <bitrate>							bitrate, default is 3.75mbps\n"
-		<< "  -c <loop count>						loop count default is 4.\n"
+		<< "  -c <loop count>						loop count default is 1.\n"
 		<< "  -i <Session Interval>					The session time interval default is 50 ms\n"
 		<< "  -h									display this screen\n"
 		<< std::endl;
