@@ -309,7 +309,7 @@ namespace LibAsync {
     int HttpProcessor::sendBody_direct(const LibAsync::AsyncBufferS &bufs) {
         if(!canSendBody()) {
             assert(false && "invalid state");
-            return false;
+            return 0;
         }
 		BufferHelper bh(bufs);
 		if(bh.size() ==0) {
@@ -317,7 +317,7 @@ namespace LibAsync {
 		}
         if(!mOutgoingMsg->hasContentBody() ) {
             assert( false && "http message do not have a content body");
-            return false;
+            return 0;
         }
 
 		if( !mOutgoingMsg->chunked() ) {
