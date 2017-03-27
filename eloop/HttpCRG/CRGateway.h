@@ -175,7 +175,7 @@ public:
 	virtual bool onHeadersEnd( const ZQ::eloop::HttpMessage::Ptr msg);
 	virtual bool onBodyData( const char* data, size_t size);
 	virtual void onMessageCompleted();
-	virtual void onParseError( int error,const char* errorDescription );
+	virtual void onError( int error,const char* errorDescription );
 
 	virtual void	onHttpDataSent();
 	virtual void	onHttpDataReceived( size_t size );

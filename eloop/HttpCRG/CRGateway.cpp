@@ -673,7 +673,7 @@ void ClientRequestHandler::onMessageCompleted()
 	// fill the response object
 	_resp.send();
 }
-void ClientRequestHandler::onParseError( int error,const char* errorDescription )
+void ClientRequestHandler::onError( int error,const char* errorDescription )
 {
 
 }
