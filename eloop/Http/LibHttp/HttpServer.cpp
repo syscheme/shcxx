@@ -156,7 +156,10 @@ HttpServer::HttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger)
 		:_Config(conf),
 		_Logger(logger)
 {
-
+#ifdef ZQ_OS_LINUX
+	//Ignore SIGPIPE signal
+	signal(SIGPIPE, SIG_IGN);
+#endif
 }
 
 HttpServer::~HttpServer()
@@ -349,9 +352,6 @@ bool MultipleLoopHttpServer::startAt()
 	{
 		return 0;
 	}
-#else
-	//Ignore SIGPIPE signal
-	signal(SIGPIPE, SIG_IGN);
 #endif
 
 
