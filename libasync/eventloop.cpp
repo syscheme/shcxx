@@ -280,6 +280,9 @@ namespace LibAsync {
 	}
 
 	void Timer::onTimerEvent() {
+		if(mTarget == 0) {
+			return;//means Timer has been cancelled
+		}
 		if(mFuncCB) {
 			mFuncCB();
 		} else {
