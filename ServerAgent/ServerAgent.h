@@ -9,6 +9,8 @@ using namespace ZQ::SNMP;
 namespace ZQ {
 namespace eloop {
 
+#define MAXLENGTH 1024
+#define COUNTS    10
 	// ---------------------------------------
 	// class LoadFile
 	// ---------------------------------------

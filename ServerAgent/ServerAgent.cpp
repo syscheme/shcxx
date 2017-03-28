@@ -1,8 +1,6 @@
 #include "ServerAgent.h"
 #include "snmp/ZQSnmp.h"
 #include <fstream>
-#define MAXLENGTH 1024
-#define COUNTS    10
 namespace ZQ {
 namespace eloop {
 
@@ -142,10 +140,16 @@ LoadFile::LoadFile(HttpConnection& conn,ZQ::common::Log& logger,const Properties
 	Properties::const_iterator it = appProps.find("homedir");
 	if( it != appProps.end()){
 		_homedir = it->second;
+		if(_homedir[_homedir.length()] != '/'){
+			_homedir += "/";
+		}
 	}
 	it = appProps.find("sourcedir");
 	if( it != appProps.end()){
 		_sourcedir = it->second;
+		if(_sourcedir[_sourcedir.length()] != '/'){
+			_sourcedir += "/";
+		}
 	}
 	//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(ServerAgent, "set home [%s] _sourcedir [%s]"),_homedir.c_str(),_sourcedir.c_str());
 }
@@ -166,6 +170,7 @@ bool LoadFile::onHeadersEnd( const HttpMessage::Ptr msg)
 	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(ServerAgent, "current url [%s]!"),url.c_str());
 	std::string body = "404 Not found";
 	//head
+	int code = 200;
 	int fileSize = 0;
 	outmsg->keepAlive(true);
 	outmsg->header("Access-Control-Allow-Origin","*");
@@ -210,30 +215,35 @@ bool LoadFile::onHeadersEnd( const HttpMessage::Ptr msg)
 				fseek(_curfile,0,SEEK_END);     //定位到文件末   
 				fileSize = ftell(_curfile);
 				rewind(_curfile);
-				outmsg->code(200);
-				outmsg->status(HttpMessage::code2status(code));
 			}else{
-				outmsg->code(404);
-				outmsg->status(HttpMessage::code2status(code));
+				code = 404;
+				body += "open file " + filePath2 + "failed";
 				_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(ServerAgent, "open file [%s] is failed!"),filePath2.c_str());
 			}
+		}else{
+			code = 400;
+			body += "Url is invalid";
+			_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(ServerAgent, "prefix:[%s] is invalid"),prefix);
 		}
+	}else
+	{
+		code = 400;
+		body += "unkown message type: " + std::string(getway);
+		_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(ServerAgent, "unkown message type:"),body.c_str());
+	}
+	outmsg->code(code);
+	outmsg->status(HttpMessage::code2status(code));
+	if(_curfile){
 		outmsg->contentLength(fileSize);
 		std::string head = outmsg->toRaw();
 		_conn.write(head.c_str(),head.length());
-	}else
-	{
-		body += "unkown message type: " + std::string(getway);
-		outmsg->code(404);
-		outmsg->status(HttpMessage::code2status(code));
-		outmsg->contentLength(fileSize);
+	} else{
+		outmsg->contentLength(body.length());
 		std::string head = outmsg->toRaw();
 		_conn.write(head.c_str(),head.length());
 		//sent error body
 		_conn.write(body.c_str(),body.length());
-		_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(ServerAgent, "unkown message type:"),body.c_str());
 	}
-
 	return true;
 }
 
