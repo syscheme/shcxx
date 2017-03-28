@@ -147,7 +147,7 @@ LoadFile::LoadFile(HttpConnection& conn,ZQ::common::Log& logger,const Properties
 	if( it != appProps.end()){
 		_sourcedir = it->second;
 	}
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(ServerAgent, "set home [%s] _sourcedir [%s]"),_homedir.c_str(),_sourcedir.c_str());
+	//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(ServerAgent, "set home [%s] _sourcedir [%s]"),_homedir.c_str(),_sourcedir.c_str());
 }
 
 LoadFile::~LoadFile()
@@ -166,10 +166,7 @@ bool LoadFile::onHeadersEnd( const HttpMessage::Ptr msg)
 	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(ServerAgent, "current url [%s]!"),url.c_str());
 	std::string body = "404 Not found";
 	//head
-	int code = 200;
 	int fileSize = 0;
-	outmsg->code(code);
-	outmsg->status(HttpMessage::code2status(code));
 	outmsg->keepAlive(true);
 	outmsg->header("Access-Control-Allow-Origin","*");
 	outmsg->header("Access-Control-Allow-Methods","POST,GET");
@@ -203,26 +200,39 @@ bool LoadFile::onHeadersEnd( const HttpMessage::Ptr msg)
 				filePath2 = _sourcedir + path + file + "/" +suffix;
 			}
 			_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(ServerAgent, "file path1 [%s] path2 [%s]"),filePath.c_str(),filePath2.c_str());
+			//will search file at _homedir
 			_curfile = fopen(filePath.c_str(), "rb");
-			if(_curfile == NULL){ 
+			if(_curfile == NULL){
+				//if don't find at _homedir; will search file at _sourcedir
 				_curfile = fopen(filePath2.c_str(), "rb");
 			}
 			if(_curfile != NULL){
 				fseek(_curfile,0,SEEK_END);     //定位到文件末   
 				fileSize = ftell(_curfile);
 				rewind(_curfile);
+				outmsg->code(200);
+				outmsg->status(HttpMessage::code2status(code));
 			}else{
+				outmsg->code(404);
+				outmsg->status(HttpMessage::code2status(code));
 				_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(ServerAgent, "open file [%s] is failed!"),filePath2.c_str());
 			}
 		}
+		outmsg->contentLength(fileSize);
+		std::string head = outmsg->toRaw();
+		_conn.write(head.c_str(),head.length());
 	}else
 	{
 		body += "unkown message type: " + std::string(getway);
+		outmsg->code(404);
+		outmsg->status(HttpMessage::code2status(code));
+		outmsg->contentLength(fileSize);
+		std::string head = outmsg->toRaw();
+		_conn.write(head.c_str(),head.length());
+		//sent error body
+		_conn.write(body.c_str(),body.length());
 		_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(ServerAgent, "unkown message type:"),body.c_str());
 	}
-	outmsg->contentLength(fileSize);
-	std::string head = outmsg->toRaw();
-	_conn.write(head.c_str(),head.length());
 
 	return true;
 }
@@ -230,24 +240,16 @@ bool LoadFile::onHeadersEnd( const HttpMessage::Ptr msg)
 void LoadFile::onHttpDataSent()
 {
 	char buf[MAXLENGTH*COUNTS];
-	memset(buf,0,MAXLENGTH*COUNTS);
-	/*
+	//memset(buf,0,MAXLENGTH*COUNTS);
+	int ret = 0;
 	if(_curfile){
-		int ret = fread(buf,1,COUNTS*MAXLENGTH,_curfile);
-		if(ret)
-		{
-			printf("[%d] [%s]\n",ret,buf);
-			_conn.write(buf,ret);
-		}else{
-			fclose(_curfile);
-			_curfile = NULL;
-		}
-	}*/
-	if(_curfile){
-		fgets(buf,MAXLENGTH*COUNTS,_curfile);
-		if(strlen(buf)){
+		//fgets(buf,MAXLENGTH*COUNTS,_curfile);
+		//ret = strlen(buf);
+		ret = fread(&buf,1,COUNTS*MAXLENGTH,_curfile);
+		if(ret){
 			//printf("[%d] [%s]\n",strlen(buf),buf);
-			_conn.write(buf,strlen(buf));
+			_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(ServerAgent, "size: %d"),ret);
+			_conn.write(buf,ret);
 		} else{
 			fclose(_curfile);
 			_curfile = NULL;
