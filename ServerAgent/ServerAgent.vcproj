@@ -136,7 +136,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="eloop.lib ws2_32.lib ZQSnmp.lib"
+				AdditionalDependencies="eloop.lib ws2_32.lib ZQSnmp.lib libHttp.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;$(ZQProjsPath)\TianShan\bin\&quot;;&quot;$(RegexPPKit)\bin\x86&quot;"
 				GenerateDebugInformation="true"
@@ -184,76 +184,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\eloop\Http\LibHttp\http_parser.c"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						ObjectFile="$(IntDir)\$(InputName)1.obj"
-						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						ObjectFile="$(IntDir)\$(InputName)1.obj"
-						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\eloop\Http\LibHttp\HttpConnection.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						ObjectFile="$(IntDir)\$(InputName)1.obj"
-						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						ObjectFile="$(IntDir)\$(InputName)1.obj"
-						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\eloop\Http\LibHttp\HttpMessage.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						ObjectFile="$(IntDir)\$(InputName)1.obj"
-						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						ObjectFile="$(IntDir)\$(InputName)1.obj"
-						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\eloop\Http\LibHttp\HttpServer.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\ServerAgent.cpp"
 				>
 			</File>
@@ -269,22 +199,6 @@
 			>
 			<File
 				RelativePath="..\getopt.h"
-				>
-			</File>
-			<File
-				RelativePath="..\eloop\Http\LibHttp\http_parser.h"
-				>
-			</File>
-			<File
-				RelativePath="..\eloop\Http\LibHttp\HttpConnection.h"
-				>
-			</File>
-			<File
-				RelativePath="..\eloop\Http\LibHttp\HttpMessage.h"
-				>
-			</File>
-			<File
-				RelativePath="..\eloop\Http\LibHttp\HttpServer.h"
 				>
 			</File>
 			<File
