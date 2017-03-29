@@ -21,6 +21,8 @@ void usage() {
 		<< "  -r <bitrate>							bitrate, default is 3.75mbps\n"
 		<< "  -c <loop count>						loop count default is 1.\n"
 		<< "  -i <Session Interval>					The session time interval default is 50 ms\n"
+		<< "  -o <Server Object>					The server object is Aqua or EdgeFE. default is \"EdgeFE\"\n"
+		<< "  -s <speed limit>						Local speed limit, the default is -1 that is not limited\n"
 		<< "  -h									display this screen\n"
 		<< std::endl;
 }
@@ -40,9 +42,11 @@ int main(int argc,char* argv[])
 	logFilePath = "../logs/hlsdownload.log";
 	bitrate = "3750000";
 	int meanValue = 300;
+	std::string objServer = "EdgeFE";
+	int64 limit = -1; 
 
 	int ch = 0;
-	while((ch = getopt(argc,argv,"f:l:r:t:c:i:h")) != EOF)
+	while((ch = getopt(argc,argv,"f:l:r:t:c:i:o:s:h")) != EOF)
 	{
 		switch(ch)
 		{
@@ -64,6 +68,12 @@ int main(int argc,char* argv[])
 		case 'i':
 			SessionInterval = atoi(optarg);
 			break;
+		case 'o':
+			objServer = optarg;
+			break;
+		case 's':
+			limit = atoi(optarg);
+			break;
 		case 'h':
 			usage();
 			return 0;
@@ -73,6 +83,16 @@ int main(int argc,char* argv[])
 	}
 
 	ZQ::common::Log* pLog = new ZQ::common::FileLog(logFilePath.c_str(),7,10,52428800);
+
+	ZQ::eloop::Download::ObjServer obj;
+	if (objServer.find("EdgeFe") != objServer.npos)
+		obj = ZQ::eloop::Download::EdgeFE;
+	else if (objServer.find("Aqua") != objServer.npos)
+		obj = ZQ::eloop::Download::Aqua;
+	else
+		obj =  ZQ::eloop::Download::Def;
+	
+	
 
 #ifdef ZQ_OS_LINUX
 	struct rlimit rlim;
@@ -134,7 +154,7 @@ int main(int argc,char* argv[])
 		std::vector<ZQ::common::NativeThread*> ThreadVec;
 		while(!ThreadList.empty())
 		{
-			ZQ::eloop::DownloadThread* download = new ZQ::eloop::DownloadThread(*pLog,ThreadList.front(),bitrate,SessionInterval,LoopCount);
+			ZQ::eloop::DownloadThread* download = new ZQ::eloop::DownloadThread(*pLog,ThreadList.front(),bitrate,SessionInterval,LoopCount,limit,obj);
 			download->start();
 			ThreadList.pop_front();
 			ThreadVec.push_back(download);
@@ -163,11 +183,14 @@ int main(int argc,char* argv[])
 			{
 				m3u8.erase(n+1,m3u8.size()-n);
 			}
-			(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"m3u8:%s"),m3u8.c_str());
-			ZQ::eloop::Session* session = new ZQ::eloop::Session(*pLog,bitrate);
-			session->init(loop);
-			session->dohttp(m3u8);
-			SYS::sleep(SessionInterval);
+			for (int i=0;i< LoopCount;i++)
+			{
+				(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"m3u8:%s"),m3u8.c_str());
+				ZQ::eloop::Session* session = new ZQ::eloop::Session(*pLog,bitrate,limit,obj);
+				session->init(loop);
+				session->dohttp(m3u8);
+				SYS::sleep(SessionInterval);
+			}
 		}
 		fin.close();
 

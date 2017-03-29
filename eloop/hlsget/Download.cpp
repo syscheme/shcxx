@@ -7,14 +7,14 @@ namespace ZQ {
 // ---------------------------------------
 // class Download
 // ---------------------------------------
-Download::Download(ZQ::common::Log& logger,std::string baseurl,std::string bitrate,Statistics stat,std::list<std::string> file)
+Download::Download(ZQ::common::Log& logger,std::string baseurl,std::string bitrate,Statistics stat,std::list<std::string> file,Download::ObjServer objserver)
 	:HttpClient(logger),
 	_Logger(logger),
 	_baseurl(baseurl),
 	_bitrate(bitrate),
 	_stat(stat),
 	_totalSize(0),
-	_completed(false),
+	_objServer(objserver),
 	_file(file)
 {
 }
@@ -26,7 +26,12 @@ Download::~Download()
 void Download::dohttp()
 {
 	_CurrentDownloadFileName = _file.front();
-	std::string url = _baseurl + "/" + _CurrentDownloadFileName + "&rate="+ _bitrate;
+	std::string url = _baseurl + "/" + _CurrentDownloadFileName;
+	if(_objServer == EdgeFE)
+	{
+		url = url + "&rate="+ _bitrate;
+	}
+	 
 	HttpMessage::Ptr msg = new HttpMessage(HttpMessage::MSG_REQUEST);
 	msg->method(HttpMessage::GET);
 	msg->url("*");
@@ -81,7 +86,7 @@ bool Download::onBodyData( const char* data, size_t size)
 
 void Download::onMessageCompleted()
 {
-	_completed = true;
+	//_completed = true;
 	_stat.allSize += _totalSize;
 	int64 totalTime = ZQ::common::now() - _startTime;
 
@@ -94,7 +99,7 @@ void Download::onMessageCompleted()
 	_file.pop_front();
 	if (!_file.empty())
 	{
-		Download* d = new Download(_Logger,_baseurl,_bitrate,_stat,_file);
+		Download* d = new Download(_Logger,_baseurl,_bitrate,_stat,_file,_objServer);
 		//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"outstr:%s"),str.c_str());
 		d->init(get_loop());
 		d->dohttp();
@@ -114,7 +119,7 @@ void Download::onMessageCompleted()
 void Download::onError( int error,const char* errorDescription )
 {
 	//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s,url:%s,file:%s"),error,errorDescription,_baseurl.c_str(),_CurrentDownloadFileName.c_str());
-	
+/*	
 	if (!_completed)
 	{
 		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"_completed is false,url:%s,file:%s"),_baseurl.c_str(),_CurrentDownloadFileName.c_str());
@@ -136,7 +141,7 @@ void Download::onError( int error,const char* errorDescription )
 			//		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Average interval: %d ms,Maximum interval: %d ms "),);
 		}
 	}
-	
+*/
 	if (error != elpe__EOF)
 	{
 		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s"),error,errorDescription);
@@ -144,11 +149,213 @@ void Download::onError( int error,const char* errorDescription )
 	}
 	shutdown();
 }
+
+//-------------------------------------
+// clasee Transmission
+//--------------------------------------
+Transmission::Transmission(ZQ::common::Log& logger,std::string baseurl,std::string bitrate,Download::Statistics stat,std::list<std::string> file,int64 limit,Download::ObjServer objserver)
+:_startTime(0),
+_Logger(logger),
+_bitrate(bitrate),
+_baseurl(baseurl),
+_stat(stat),
+_file(file),
+_limit(limit),
+_objserver(objserver),
+_completed(false)
+{
+
+}
+
+Transmission::~Transmission()
+{
+
+}
+
+void Transmission::HeadersEnd(std::string currentFile)
+{
+	if (_stat.CompletionTime != 0)
+	{
+		int64 interval = ZQ::common::now() -_stat.CompletionTime;
+		_stat.allInterval += interval;
+		if (_stat.MaxInterval < interval)
+		{
+			_stat.MaxInterval = interval;
+			_stat.file1 = _stat.prevFile;
+			_stat.file2 = currentFile;
+		}	
+	}
+	_stat.prevFile = currentFile;
+}
+
+void Transmission::MessageCompleted(int64 totalSize)
+{
+	_stat.allSize += totalSize;
+	_stat.CompletionTime = ZQ::common::now();
+	_completed = true;
+	_file.pop_front();
+
+	//reset timer;
+	_total += totalSize;
+	int64 ideal = _total*8*1000 / _limit;			//ms
+	int64 realTime = ZQ::common::now() - _startTime;
+	int64 sl = ideal - realTime;
+	if (sl > 0)
+		start(sl,-1);//set_repeat(sl);
+	else
+		start(0,-1);//set_repeat(0);
+}
+
+void Transmission::DownloadError(const std::string& currentFile)
+{
+	if (!_completed)
+	{
+		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"_completed is false,url:%s,file:%s"),_baseurl.c_str(),currentFile.c_str());
+	}
+	stop();
+	close();
+}
+
+void Transmission::OnClose()
+{
+	delete this;
+}
+
+void Transmission::OnTimer()
+{
+	if (_startTime == 0)
+	{
+		_startTime = ZQ::common::now();
+	}
+	if (!_file.empty())
+	{
+		_completed = false;
+		ControlDownload* d = new ControlDownload(_Logger,*this);
+		d->init(get_loop());
+		d->dohttp(_file.front());
+		//set_repeat(-1);
+		//stop();
+	}
+	else
+	{
+		int64 tm = ZQ::common::now() - _stat.allStartTime;
+		int64 sp = _stat.allSize * 8/tm;
+		int64 Average = _stat.allInterval /(_stat.fileTotal - 1);
+		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"%d files downloaded to complete,directory:%s,size:%dByte,take:%dms,bitrate:%dkbps,Average interval: %d ms,The maximum time between %s and %s is : %d ms"),_stat.fileTotal,_baseurl.c_str(),_stat.allSize,tm,sp,Average,_stat.file1.c_str(),_stat.file2.c_str(),_stat.MaxInterval);
+		close();
+	}
+}
+
+const std::string& Transmission::getBitrate() const
+{
+	return _bitrate;
+}
+const std::string& Transmission::getBaseurl() const
+{
+	return _baseurl;
+}
+const Download::ObjServer& Transmission::getObjServer() const
+{
+	return _objserver;
+}
+
+//-------------------------------------
+// clasee ControlDownload
+//-------------------------------------
+ControlDownload::ControlDownload(ZQ::common::Log& logger,Transmission& trans)
+	:HttpClient(logger),
+	_Logger(logger),
+	_trans(trans)
+{
+
+}
+
+ControlDownload::~ControlDownload()
+{
+
+}
+
+void ControlDownload::dohttp(const std::string& filename)
+{
+	_filename = filename;
+	std::string url = _trans.getBaseurl() + "/" + filename;
+	if (_trans.getObjServer() == Download::EdgeFE)
+	{
+		url = url + "&rate="+ _trans.getBitrate();
+	}
+
+	HttpMessage::Ptr msg = new HttpMessage(HttpMessage::MSG_REQUEST);
+	msg->method(HttpMessage::GET);
+	msg->url("*");
+
+	beginRequest(msg,url);
+}
+
+void ControlDownload::OnConnected(ElpeError status)
+{
+	HttpClient::OnConnected(status);
+	_startTime = ZQ::common::now();
+	std::string url = _trans.getBaseurl() + "/" + _filename;
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"downloading:%s"),url.c_str());
+	printf("downloading:%s\n",url.c_str());
+}
+
+void ControlDownload::onHttpDataSent()
+{
+
+}
+
+void ControlDownload::onHttpDataReceived( size_t size )
+{
+
+}
+
+bool ControlDownload::onHeadersEnd( const HttpMessage::Ptr msg)
+{
+	_trans.HeadersEnd(_filename);
+	_totalSize = 0;
+	return true;
+}
+
+bool ControlDownload::onBodyData( const char* data, size_t size)
+{
+	_totalSize += size;
+	return true;
+}
+
+void ControlDownload::onMessageCompleted()
+{
+	_trans.MessageCompleted(_totalSize);
+
+	int64 totalTime = ZQ::common::now() - _startTime; 
+
+	int64 speed = _totalSize * 8/totalTime;
+	std::string url = _trans.getBaseurl() + "/" + _filename;
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,size:%dByte,take:%dms,bitrate:%dkbps"),url.c_str(),_totalSize,totalTime,speed);
+	printf("download complete:%s,size:%dByte,take:%dms,bitrate:%dkbps\n",url.c_str(),_totalSize,totalTime,speed);
+
+}
+
+void ControlDownload::onError( int error,const char* errorDescription )
+{
+	//_trans.DownloadError(_filename);
+	if (error != elpe__EOF)
+	{
+		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s"),error,errorDescription);
+		printf("Download Error,errorCode[%d],Description:%s\n",error,errorDescription);
+	}
+	shutdown();
+}
+
 // ---------------------------------------
 // class Session
 // ---------------------------------------
-Session::Session(ZQ::common::Log& logger,std::string bitrate)
-:HttpClient(logger),_Logger(logger),_bitrate(bitrate)
+Session::Session(ZQ::common::Log& logger,std::string bitrate,int64 limit,Download::ObjServer objserver)
+	:HttpClient(logger),
+	_Logger(logger),
+	_bitrate(bitrate),
+	_limit(limit),
+	_objServer(objserver)
 {
 
 }
@@ -160,9 +367,13 @@ Session::~Session()
 void Session::dohttp(std::string& m3u8url)
 {
 	_RespBody.str("");
-	_baseurl = m3u8url.substr(0,m3u8url.find_last_of("/"));
-	std::string fetchm3u8 = m3u8url + "&rate="+ _bitrate;
-
+	_baseurl = m3u8url.substr(0,m3u8url.find_last_of("/"));	
+	std::string fetchm3u8 = m3u8url;
+	if (_objServer == Download::EdgeFE)
+	{
+		fetchm3u8 = fetchm3u8 + "&rate="+ _bitrate; 
+	}
+	
 	HttpMessage::Ptr msg = new HttpMessage(HttpMessage::MSG_REQUEST);
 	msg->method(HttpMessage::GET);
 	msg->url("*");
@@ -223,9 +434,18 @@ void Session::onMessageCompleted()
 		Download::Statistics stat;
 		stat.allStartTime = ZQ::common::now();
 		stat.fileTotal = file.size();
-		Download* d = new Download(_Logger,_baseurl,_bitrate,stat,file);
-		d->init(get_loop());
-		d->dohttp();
+		if (_limit > 0)
+		{
+			Transmission * t = new Transmission(_Logger,_baseurl,_bitrate,stat,file,_limit,_objServer);
+			t->init(get_loop());
+			t->start(0,-1);
+		}
+		else
+		{
+			Download* d = new Download(_Logger,_baseurl,_bitrate,stat,file,_objServer);
+			d->init(get_loop());
+			d->dohttp();
+		}
 	}
 }
 
@@ -239,16 +459,17 @@ void Session::onError( int error,const char* errorDescription )
 	shutdown();
 }
 
-
 // ---------------------------------------
 // class DownloadThread
 // ---------------------------------------
-DownloadThread::DownloadThread(ZQ::common::Log& logger,M3u8List m3u8list,std::string& bitrate,int interval,int loopcount)
+DownloadThread::DownloadThread(ZQ::common::Log& logger,M3u8List m3u8list,std::string& bitrate,int interval,int loopcount,int64 limit,Download::ObjServer objserver)
 	:_Logger(logger),
 	_m3u8list(m3u8list),
 	_bitrate(bitrate),
 	_IntervalTime(interval),
-	_loopCount(loopcount)
+	_loopCount(loopcount),
+	_limit(limit),
+	_objServer(objserver)
 {
 
 }
@@ -268,7 +489,7 @@ int DownloadThread::run(void)
 		m3u8 = _m3u8list.front();
 		for(int i=0;i< _loopCount;i++)
 		{
-			ZQ::eloop::Session* s = new ZQ::eloop::Session(_Logger,_bitrate);
+			ZQ::eloop::Session* s = new ZQ::eloop::Session(_Logger,_bitrate,_limit,_objServer);
 			s->init(loop);
 			s->dohttp(m3u8);
 			_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(DownloadThread,"m3u8:%s"),m3u8.c_str());
