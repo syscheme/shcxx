@@ -1,6 +1,8 @@
 #include "ServerAgent.h"
 #include "snmp/ZQSnmp.h"
 #include <fstream>
+#define MAXLENGTH 1024
+
 namespace ZQ {
 namespace eloop {
 
@@ -151,6 +153,7 @@ LoadFile::LoadFile(HttpConnection& conn,ZQ::common::Log& logger,const Properties
 			_sourcedir += "/";
 		}
 	}
+	_buf = (char*)malloc(MAXLENGTH);
 	//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(ServerAgent, "set home [%s] _sourcedir [%s]"),_homedir.c_str(),_sourcedir.c_str());
 }
 
@@ -160,18 +163,31 @@ LoadFile::~LoadFile()
 		fclose(_curfile);
 		_curfile = NULL;
 	}
+	if(_buf)
+	{
+		free(_buf);
+		_buf = NULL;
+	}
 }
 
 bool LoadFile::onHeadersEnd( const HttpMessage::Ptr msg)
 {
 	HttpMessage::Ptr outmsg = new HttpMessage(HttpMessage::MSG_RESPONSE);
-	printf("url = %s\n",msg->url().c_str());
+	char locip[17] = { 0 };
+	int  locport = 0;
+	_conn.getlocaleIpPort(locip,locport);
+
+	char peerip[17] = { 0 };
+	int  peerport = 0;
+	_conn.getpeerIpPort(peerip,peerport);
+		
+	printf("[%s:%d => %s:%d] url = %s\n",locip, locport, peerip, peerport,msg->url().c_str());
 	std::string url = msg->url();
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(ServerAgent, "current url [%s]!"),url.c_str());
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(ServerAgent, "[%s:%d => %s:%d]current url [%s]!"),locip, locport, peerip, peerport,url.c_str());
 	std::string body = "404 Not found";
 	//head
 	int code = 200;
-	int fileSize = 0;
+	int64 fileSize = 0;
 	outmsg->keepAlive(true);
 	outmsg->header("Access-Control-Allow-Origin","*");
 	outmsg->header("Access-Control-Allow-Methods","POST,GET");
@@ -188,6 +204,8 @@ bool LoadFile::onHeadersEnd( const HttpMessage::Ptr msg)
 	*/
 	sscanf(url.c_str(), "/%[^/]/%s", getway,filepath);
 	sscanf(filepath, "%[^?]?%s", prefix,suffix);
+	std::string filePath = "";
+	std::string filePath2 = "";
 	//get file
 	if(0 == std::string(getway).find("fvar"))
 	{
@@ -195,8 +213,6 @@ bool LoadFile::onHeadersEnd( const HttpMessage::Ptr msg)
 		char file[200] = {0};
 		if (sscanf(prefix, "%[^/]%s", path,file) >=0)
 		{
-			std::string filePath = "";
-			std::string filePath2 = "";
 			if(!strlen(suffix)){				
 				filePath = _homedir + path + file;
 				filePath2 = _sourcedir + path + file;
@@ -212,19 +228,24 @@ bool LoadFile::onHeadersEnd( const HttpMessage::Ptr msg)
 				_curfile = fopen(filePath2.c_str(), "rb");
 			}
 			if(_curfile != NULL){
-				fseek(_curfile,0,SEEK_END);     //定位到文件末   
+/*				fseek(_curfile,0,SEEK_END);     //定位到文件末   
 				fileSize = ftell(_curfile);
-				rewind(_curfile);
+				rewind(_curfile);*/
+				std::ifstream in(filePath.c_str());   
+				in.seekg(0,std::ios::end);   
+				fileSize = in.tellg();   
+				in.close();
 			}else{
 				code = 404;
-				body += "open file " + filePath2 + "failed";
+				body += "open file " + filePath2 + " failed";
 				_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(ServerAgent, "open file [%s] is failed!"),filePath2.c_str());
+				return true;
 			}
 		}else{
 			code = 400;
 			body += "Url is invalid";
 			_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(ServerAgent, "prefix:[%s] is invalid"),prefix);
-		}
+			}		
 	}else
 	{
 		code = 400;
@@ -249,21 +270,18 @@ bool LoadFile::onHeadersEnd( const HttpMessage::Ptr msg)
 
 void LoadFile::onHttpDataSent()
 {
-	char buf[MAXLENGTH*COUNTS];
-	//memset(buf,0,MAXLENGTH*COUNTS);
-	int ret = 0;
-	if(_curfile){
-		//fgets(buf,MAXLENGTH*COUNTS,_curfile);
-		//ret = strlen(buf);
-		ret = fread(&buf,1,COUNTS*MAXLENGTH,_curfile);
-		if(ret){
-			//printf("[%d] [%s]\n",strlen(buf),buf);
-			_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(ServerAgent, "size: %d"),ret);
-			_conn.write(buf,ret);
-		} else{
-			fclose(_curfile);
-			_curfile = NULL;
-		}
+	memset(_buf,'\0',MAXLENGTH);
+	if(_curfile == NULL)
+		return;
+	int ret = fread(_buf,1,MAXLENGTH,_curfile);
+	if(ret > 0){
+		_conn.write(_buf,ret);
+		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(ServerAgent, "send data [%d][%s]"),ret,_buf);
+	}
+	else
+	{
+		fclose(_curfile);
+		_curfile = NULL;
 	}
 	//_conn.setkeepAlive(false);
 }
