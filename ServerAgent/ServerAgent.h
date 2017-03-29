@@ -9,8 +9,6 @@ using namespace ZQ::SNMP;
 namespace ZQ {
 namespace eloop {
 
-#define MAXLENGTH 1024
-#define COUNTS    10
 	// ---------------------------------------
 	// class LoadFile
 	// ---------------------------------------
@@ -52,6 +50,7 @@ namespace eloop {
 		std::string     _homedir;
 		std::string     _sourcedir;
 		FILE*           _curfile;
+		char*			_buf;
 	};
 
 	// ---------------------------------------
