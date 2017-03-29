@@ -378,7 +378,7 @@ void Session::dohttp(std::string& m3u8url)
 	msg->method(HttpMessage::GET);
 	msg->url("*");
 
-	printf("downloading:%s\n",_baseurl.c_str());
+	printf("downloading:%s\n",fetchm3u8.c_str());
 	beginRequest(msg,fetchm3u8);
 }
 

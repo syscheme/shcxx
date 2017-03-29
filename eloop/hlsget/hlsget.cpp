@@ -107,6 +107,12 @@ int main(int argc,char* argv[])
 	std::string m3u8;
 	int total = 1;
 	fm3u8.open(urlFile.c_str());
+	if (!fm3u8)
+	{
+		printf("open file %s failed!/n",urlFile.c_str());
+		return -1;
+	}
+	
 	while (!fm3u8.eof())
 	{
 		getline(fm3u8,m3u8);
