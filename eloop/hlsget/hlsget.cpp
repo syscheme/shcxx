@@ -112,6 +112,9 @@ int main(int argc,char* argv[])
 		printf("open file %s failed!\n",urlFile.c_str());
 		return -1;
 	}
+
+	(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"urlFile = %s,"),urlFile.c_str());
+	(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"urlFile = %s,objServer=%s,limit = %d,threadCount = %d,bitrate = %s,LoopCount=%d,SessionInterval=%d"),urlFile.c_str(),objServer.c_str(),limit,threadCount,bitrate.c_str(),LoopCount,SessionInterval);
 	
 	while (!fm3u8.eof())
 	{
@@ -153,10 +156,8 @@ int main(int argc,char* argv[])
 			ThreadList.push_back(m3u8list);
 			m3u8list.clear();
 		}
-		printf("total = %d,threadCount = %d,meanValue = %d,ThreadList = %d\n",total,threadCount,meanValue,ThreadList.size());
+		//printf("total = %d,threadCount = %d,meanValue = %d,ThreadList = %d\n",total,threadCount,meanValue,ThreadList.size());
 
-		(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"urlFile = %s,"),urlFile.c_str());
-		(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"thereadCount = %d,bitrate = %s,LoopCount=%d,SessionInterval=%d"),ThreadList.size(),bitrate.c_str(),LoopCount,SessionInterval);
 		std::vector<ZQ::common::NativeThread*> ThreadVec;
 		while(!ThreadList.empty())
 		{

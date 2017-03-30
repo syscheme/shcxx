@@ -44,6 +44,8 @@ void Download::OnConnected(ElpeError status)
 	HttpClient::OnConnected(status);
 	_startTime = ZQ::common::now();
 	std::string url = _baseurl + "/" + _CurrentDownloadFileName;
+	if(_objServer == EdgeFE)
+		url = url + "&rate=" + _bitrate;
 	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"downloading:%s"),url.c_str());
 	printf("downloading:%s\n",url.c_str());
 
@@ -294,7 +296,7 @@ void ControlDownload::OnConnected(ElpeError status)
 	HttpClient::OnConnected(status);
 	_startTime = ZQ::common::now();
 	std::string url = _trans.getBaseurl() + "/" + _filename;
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"downloading:%s"),url.c_str());
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(ControlDownload,"downloading:%s"),url.c_str());
 	printf("downloading:%s\n",url.c_str());
 }
 
@@ -329,7 +331,7 @@ void ControlDownload::onMessageCompleted()
 
 	int64 speed = _totalSize * 8/totalTime;
 	std::string url = _trans.getBaseurl() + "/" + _filename;
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,size:%dByte,take:%dms,bitrate:%dkbps"),url.c_str(),_totalSize,totalTime,speed);
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(ControlDownload,"download complete:%s,size:%dByte,take:%dms,bitrate:%dkbps"),url.c_str(),_totalSize,totalTime,speed);
 	printf("download complete:%s,size:%dByte,take:%dms,bitrate:%dkbps\n",url.c_str(),_totalSize,totalTime,speed);
 
 }
@@ -339,7 +341,7 @@ void ControlDownload::onError( int error,const char* errorDescription )
 	_trans.DownloadError(_filename);
 	if (error != elpe__EOF)
 	{
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s"),error,errorDescription);
+		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(ControlDownload,"Download Error,errorCode[%d],Description:%s"),error,errorDescription);
 		printf("Download Error,errorCode[%d],Description:%s\n",error,errorDescription);
 	}
 	shutdown();
