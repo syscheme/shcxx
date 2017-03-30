@@ -10,6 +10,7 @@ namespace eloop {
 // -----------------------------------------------------
 // class HttpMessage
 // -----------------------------------------------------
+Code2StatusMapInitializer c2smapinitializer;
 HttpMessage::HttpMessage(MessgeType type)
 		:_Type((http_parser_type)type),
 		_Method(GET),

@@ -30,7 +30,7 @@ bool HttpPassiveConn::start( )
 {
 	read_start();
 	initHint();
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpPassiveConn,"%s start to receive data"),_Hint.c_str());
+	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(httpServer,"new connection from [%s]"),_Hint.c_str());
 	_server.addConn(this);
 	return true;
 }
@@ -225,6 +225,7 @@ HttpHandler::Ptr HttpServer::createHandler(const std::string& uri, HttpConnectio
 		}
 	}
 	return handler;
+
 }
 
 
@@ -232,16 +233,12 @@ void HttpServer::addConn( HttpPassiveConn* servant )
 {
 	ZQ::common::MutexGuard gd(_Locker);
 	_PassiveConn.insert( servant );
-	printf("add connect count = %d\n",_PassiveConn.size());
-	_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer,"add connect count = %d"),_PassiveConn.size());
 }
 
 void HttpServer::delConn( HttpPassiveConn* servant )
 {
 	ZQ::common::MutexGuard gd(_Locker);
 	_PassiveConn.erase(servant);
-	printf("delete connect count = %d\n",_PassiveConn.size());
-	_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer,"delete connect count = %d"),_PassiveConn.size());
 }
 
 
@@ -294,10 +291,7 @@ void SingleLoopHttpServer::doAccept(ElpeError status)
 	client->init(get_loop());
 
 	if (accept((Stream*)client) == 0) {
-
 		client->start();
-		_Logger(ZQ::common::Log::L_INFO, CLOGFMT(SingleLoopHttpServer,"comes a new connection from [%s]"),client->hint().c_str());
-
 	}
 	else {
 		client->shutdown();
@@ -491,8 +485,6 @@ void ServantThread::OnAsync()
 			printf("open error! r = %d\n", r);
 			_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(ServantThread,"OnAsync open socke error: %s"),Handle::errDesc(r));
 		}
-
-		_Logger(ZQ::common::Log::L_INFO, CLOGFMT(httpServer,"comes a new connection from [%s]"),client->hint().c_str());
 		client->start();
 	}
 }
