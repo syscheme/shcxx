@@ -109,7 +109,7 @@ int main(int argc,char* argv[])
 	fm3u8.open(urlFile.c_str());
 	if (!fm3u8)
 	{
-		printf("open file %s failed!/n",urlFile.c_str());
+		printf("open file %s failed!\n",urlFile.c_str());
 		return -1;
 	}
 	
