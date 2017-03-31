@@ -53,7 +53,7 @@ void HttpConnection::reset(IHttpParseSink* p)
 
 void HttpConnection::OnRead(ssize_t nread, const char *buf)
 {
-	if (nread < 0) {
+	if (nread <= 0) {
 		std::string desc = "Read error:";
 		desc.append(errDesc(nread));
 		onError(nread,desc.c_str());
@@ -63,6 +63,7 @@ void HttpConnection::OnRead(ssize_t nread, const char *buf)
 	size_t nparsed =parse(buf, nread);
 
 	if(nparsed != nread){
+		//_Logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"parse error nread = %d,nparsed=%d"),nread,nparsed);	
 		std::string parsedesc = "parse error:";
 		parsedesc.append(http_errno_description((http_errno)_Parser->http_errno));
 		onError((int)_Parser->http_errno,parsedesc.c_str());
@@ -71,6 +72,7 @@ void HttpConnection::OnRead(ssize_t nread, const char *buf)
 
 	if( _ParserState >= STATE_COMPLETE) {
 		reset();
+		//_Logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"reset,state = %d"),_ParserState);
 	}
 
 	onHttpDataReceived(nread);	
@@ -182,11 +184,13 @@ int	HttpConnection::onBody(const char* at, size_t size){
 
 int	HttpConnection::onChunkHeader(http_parser* parser)
 {
+	//printf("onChunkHeader!\n");
 	return 0;
 }
 
 int	HttpConnection::onChunkComplete(http_parser* parser)
 {
+	//printf("onChunkComplete!\n");
 	return 0;
 }
 
