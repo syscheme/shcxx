@@ -30,7 +30,7 @@ bool HttpPassiveConn::start( )
 {
 	read_start();
 	initHint();
-	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(httpServer,"new connection from [%s]"),_Hint.c_str());
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(httpServer,"new connection from [%s]"),_Hint.c_str());
 	_server.addConn(this);
 	return true;
 }
@@ -459,9 +459,9 @@ void ServantThread::addSocket(int sock)
 int ServantThread::run(void)
 {
 	Async::init(*_loop);
-	_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer,"thread start run! ThreadId = %d"),id());
+	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(HttpServer,"thread start run! ThreadId = %d"),id());
 	_loop->run(Loop::Default);
-	_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer,"thread quit! ThreadId = %d"),id());
+	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(HttpServer,"thread quit! ThreadId = %d"),id());
 	return 0;
 }
 
