@@ -122,7 +122,7 @@ void Download::onMessageCompleted()
 
 void Download::onError( int error,const char* errorDescription )
 {
-	//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s,url:%s,file:%s"),error,errorDescription,_baseurl.c_str(),_CurrentDownloadFileName.c_str());
+//	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s,url:%s,file:%s"),error,errorDescription,_baseurl.c_str(),_CurrentDownloadFileName.c_str());
 
 	if (!_completed)
 	{
@@ -356,13 +356,14 @@ void ControlDownload::onMessageCompleted()
 
 void ControlDownload::onError( int error,const char* errorDescription )
 {
-	_trans.DownloadError(_filename);
+	shutdown();
 	if (error != elpe__EOF)
 	{
 		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(ControlDownload,"Download Error,errorCode[%d],Description:%s"),error,errorDescription);
 		printf("Download Error,errorCode[%d],Description:%s\n",error,errorDescription);
 	}
-	shutdown();
+	else
+		_trans.DownloadError(_filename);
 }
 
 // ---------------------------------------

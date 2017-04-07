@@ -18,7 +18,7 @@ void usage() {
 		<< "  -f <url file>							url file default is \"../download/hls\"\n"
 		<< "  -l <log file>							The log file output path.default is \"../logs/hlsdownload.log\"\n"
 		<< "  -t <thread count>					    thread count.default is 5.\n"
-		<< "  -r <bitrate>							bitrate, default is 3.75mbps\n"
+		<< "  -r <bitrate>							bitrate, default is 3750000bit/s\n"
 		<< "  -c <loop count>						loop count default is 1.\n"
 		<< "  -i <Session Interval>					The session time interval default is 50 ms\n"
 		<< "  -o <Server Object>					The server object is Aqua or EdgeFE. default is \"EdgeFE\"\n"
