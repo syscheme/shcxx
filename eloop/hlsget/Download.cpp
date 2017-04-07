@@ -123,12 +123,13 @@ void Download::onMessageCompleted()
 void Download::onError( int error,const char* errorDescription )
 {
 	//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s,url:%s,file:%s"),error,errorDescription,_baseurl.c_str(),_CurrentDownloadFileName.c_str());
-	
+
 	if (!_completed)
 	{
 		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"_completed is false,url:%s,file:%s"),_baseurl.c_str(),_CurrentDownloadFileName.c_str());
 		if (_errorCount >= 5)
 		{
+			_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Continuous request failed,url:%s,file:%s"),_baseurl.c_str(),_CurrentDownloadFileName.c_str());
 			shutdown();
 			return;
 		}
