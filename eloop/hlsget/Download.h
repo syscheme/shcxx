@@ -47,7 +47,7 @@ public:
 		Def		= EdgeFE
 	}ObjServer;
 public:
-	Download(ZQ::common::Log& logger,std::string baseurl,std::string bitrate,Statistics stat,std::list<std::string> file,Download::ObjServer objserver);
+	Download(ZQ::common::Log& logger,std::string baseurl,std::string bitrate,Statistics stat,std::list<std::string> file,Download::ObjServer objserver,int errorcount = 0);
 	~Download();
 	void dohttp();
 	virtual void OnConnected(ElpeError status);
@@ -74,7 +74,8 @@ private:
 	std::string			_bitrate;
 	std::list<std::string>  _file;
 	Download::ObjServer _objServer;
-//	bool					_completed;
+	bool				_completed;
+	int					_errorCount;
 };
 
 //--------------------------------------
@@ -109,6 +110,7 @@ private:
 	bool					_completed;
 	int64					_limit;
 	Download::ObjServer		_objserver;
+	int						_errorCount;
 };
 
 //--------------------------------------

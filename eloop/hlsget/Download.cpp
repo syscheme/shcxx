@@ -7,7 +7,7 @@ namespace ZQ {
 // ---------------------------------------
 // class Download
 // ---------------------------------------
-Download::Download(ZQ::common::Log& logger,std::string baseurl,std::string bitrate,Statistics stat,std::list<std::string> file,Download::ObjServer objserver)
+Download::Download(ZQ::common::Log& logger,std::string baseurl,std::string bitrate,Statistics stat,std::list<std::string> file,Download::ObjServer objserver,int errorcount)
 	:HttpClient(logger),
 	_Logger(logger),
 	_baseurl(baseurl),
@@ -15,6 +15,8 @@ Download::Download(ZQ::common::Log& logger,std::string baseurl,std::string bitra
 	_stat(stat),
 	_totalSize(0),
 	_objServer(objserver),
+	_completed(false),
+	_errorCount(errorcount),
 	_file(file)
 {
 }
@@ -88,7 +90,7 @@ bool Download::onBodyData( const char* data, size_t size)
 
 void Download::onMessageCompleted()
 {
-	//_completed = true;
+	_completed = true;
 	_stat.allSize += _totalSize;
 	int64 totalTime = ZQ::common::now() - _startTime;
 
@@ -121,13 +123,19 @@ void Download::onMessageCompleted()
 void Download::onError( int error,const char* errorDescription )
 {
 	//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s,url:%s,file:%s"),error,errorDescription,_baseurl.c_str(),_CurrentDownloadFileName.c_str());
-/*	
+	
 	if (!_completed)
 	{
 		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"_completed is false,url:%s,file:%s"),_baseurl.c_str(),_CurrentDownloadFileName.c_str());
+		if (_errorCount >= 5)
+		{
+			shutdown();
+			return;
+		}
 		if (!_file.empty())
 		{
-			Download* d = new Download(_Logger,_baseurl,_bitrate,_stat,_file);
+			_errorCount++;
+			Download* d = new Download(_Logger,_baseurl,_bitrate,_stat,_file,_objServer,_errorCount);
 			//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"outstr:%s"),str.c_str());
 			d->init(get_loop());
 			d->dohttp();
@@ -143,7 +151,7 @@ void Download::onError( int error,const char* errorDescription )
 			//		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Average interval: %d ms,Maximum interval: %d ms "),);
 		}
 	}
-*/
+
 	if (error != elpe__EOF)
 	{
 		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s"),error,errorDescription);
@@ -164,6 +172,7 @@ _stat(stat),
 _file(file),
 _limit(limit),
 _objserver(objserver),
+_errorCount(0),
 _completed(false)
 {
 
@@ -195,6 +204,7 @@ void Transmission::MessageCompleted(int64 totalSize)
 	_stat.allSize += totalSize;
 	_stat.CompletionTime = ZQ::common::now();
 	_completed = true;
+	_errorCount = 0;
 	_file.pop_front();
 
 	//reset timer;
@@ -213,6 +223,13 @@ void Transmission::DownloadError(const std::string& currentFile)
 	if (!_completed)
 	{
 		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Transmission,"_completed is false,url:%s,file:%s"),_baseurl.c_str(),currentFile.c_str());
+		if (_errorCount >= 5)
+		{
+			close();
+			return;
+		}
+		_errorCount++;
+		start(0,-1);
 	}
 }
 
