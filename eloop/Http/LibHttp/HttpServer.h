@@ -252,6 +252,67 @@ private:
 };
 
 
+// ---------------------------------------
+// class HttpStatistics
+// ---------------------------------------
+class HttpStatistics 
+{
+public:
+	HttpStatistics();
+	enum RespCode
+	{
+		RESP_OTHER,
+		RESP_2XX,
+		RESP_400,
+		RESP_403,
+		RESP_404,
+		RESP_405,
+		RESP_500,
+		RESP_501,
+		RESP_503,		
+		RESP_COUNT
+	};
+
+	enum Method
+	{
+		METHOD_UNKNOWN,
+		METHOD_GET,
+		METHOD_POST,
+		METHOD_PUT,
+		METHOD_DELETE,
+		METHOD_MAX
+	}; 
+
+	typedef struct _CountersOfMethod 
+	{
+		int32		respCount[RESP_COUNT];
+		int32		totalCount;
+
+		int32		maxLatencyInMs_Header, avgLatencyInMs_Header;
+		int64		subtotalLatencyInMs_Header;
+
+		int32		maxLatencyInMs_Body, avgLatencyInMs_Body;
+		int64		subtotalLatencyInMs_Body;
+
+	} CountersOfMethod;
+
+	CountersOfMethod _counters[METHOD_MAX];
+	int64		_mesureSince;
+
+	void reset();
+	void addCounter(HttpMessage::HttpMethod mtd, int32 errCode, int64 latencyHeader, int64 latencyBody );
+	static const char* nameOfMethod(int mtd);
+
+private:
+	RespCode	errCodeToRespCode( int32 errCode );
+	Method		httpMethodToMethod(HttpMessage::HttpMethod mtd);
+
+	// RPSTATUSMAP _rpStatus;
+	ZQ::common::Mutex _locker;
+};
+
+extern HttpStatistics& getHttpStatistics();
+
 
 } }//namespace ZQ::eloop
 

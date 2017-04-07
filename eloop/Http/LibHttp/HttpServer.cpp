@@ -1,5 +1,6 @@
 #include <ZQ_common_conf.h>
 #include "HttpServer.h"
+#include "TimeUtil.h"
 #include <fcntl.h>
 #ifdef ZQ_OS_LINUX
 #include <signal.h>
@@ -490,6 +491,90 @@ void ServantThread::OnAsync()
 		}
 		client->start();
 	}
+}
+
+// ---------------------------------------
+// class HttpStatistics
+// ---------------------------------------
+static HttpStatistics _gHttpStatistics;
+HttpStatistics& getHttpStatistics()
+{
+	return _gHttpStatistics;
+}
+
+HttpStatistics::HttpStatistics()
+{
+	reset();
+}
+void HttpStatistics::reset()
+{
+	ZQ::common::MutexGuard gd(_locker);
+	memset(&_counters, 0x00, sizeof(_counters));
+	_mesureSince = ZQ::common::now();
+}
+
+void HttpStatistics::addCounter(HttpMessage::HttpMethod mtd, int32 errCode, int64 latencyHeader, int64 latencyBody )
+{
+	Method method = httpMethodToMethod(mtd);
+
+	ZQ::common::MutexGuard gd(_locker);
+	_counters[method].totalCount ++;
+	_counters[method].respCount[errCodeToRespCode(errCode)] ++;
+
+	if (_counters[method].maxLatencyInMs_Body < latencyBody)
+		_counters[method].maxLatencyInMs_Body = latencyBody;
+	if (_counters[method].maxLatencyInMs_Header < latencyHeader)
+		_counters[method].maxLatencyInMs_Header = latencyHeader;
+
+	_counters[method].subtotalLatencyInMs_Body += latencyBody;
+	_counters[method].subtotalLatencyInMs_Header += latencyHeader;
+
+	_counters[method].avgLatencyInMs_Body = _counters[method].totalCount ? (_counters[method].subtotalLatencyInMs_Body /_counters[method].totalCount) :0;
+	_counters[method].avgLatencyInMs_Header = _counters[method].totalCount ? (_counters[method].subtotalLatencyInMs_Header /_counters[method].totalCount) :0;
+}
+
+const char* HttpStatistics::nameOfMethod(int mtd)
+{
+	switch(mtd)
+	{
+	case METHOD_GET: return "GET";
+	case METHOD_POST: return "POST";
+	case METHOD_PUT: return "PUT";
+	case METHOD_DELETE: return "DELETE";
+	}
+
+	return "UNKOWN";
+}
+
+HttpStatistics::RespCode HttpStatistics::errCodeToRespCode( int32 errCode )
+{
+	if( errCode/100 == 2)
+	{
+		return RESP_2XX;
+	}
+	switch( errCode )
+	{
+	case 400:	return RESP_400;
+	case 403:	return RESP_403;
+	case 404:	return RESP_404;
+	case 405:	return RESP_405;
+	case 500:	return RESP_500;
+	case 501:	return RESP_501;
+	case 503:	return RESP_503;
+	default:	return RESP_OTHER;
+	}
+}
+
+HttpStatistics::Method HttpStatistics::httpMethodToMethod(HttpMessage::HttpMethod mtd)
+{
+	switch(mtd)
+	{
+	case HttpMessage::GET: return METHOD_GET;
+	case HttpMessage::POST: return METHOD_POST;
+	case HttpMessage::PUT: return METHOD_PUT;
+	case HttpMessage::HTTPDELETE: return METHOD_DELETE;
+	}
+	return METHOD_UNKNOWN;
 }
 
 } }//namespace ZQ::eloop
