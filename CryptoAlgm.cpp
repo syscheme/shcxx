@@ -27,6 +27,12 @@
 // ---------------------------------------------------------------------------
 // $Log: /ZQProjs/Common/CryptoAlgm.cpp $
 // 
+// 9     3/29/17 11:20a Hui.shao
+// 
+// 8     3/29/17 11:17a Hui.shao
+// 
+// 6     3/28/17 5:00p Hui.shao
+// 
 // 5     3/15/17 9:39a Hui.shao
 // base64 codec
 // 
@@ -812,7 +818,7 @@ std::string Base64::encode(const uint8* data, size_t len)
 	if(len <=0)
 		len = strlen((const char*)data);
 
-	str.resize(len*4/3+4);
+	str.reserve(len*4/3+4 +4); // len*4/3+4 is the expected length, additional +4 was just because of nervousness
 
 	while (len > 0) 
 	{
