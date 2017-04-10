@@ -53,15 +53,10 @@ void HttpConnection::reset(IHttpParseSink* p)
 
 void HttpConnection::OnRead(ssize_t nread, const char *buf)
 {
-	if (nread < 0) {
+	if (nread <= 0) {
 		std::string desc = "Read error:";
 		desc.append(errDesc(nread));
 		onError(nread,desc.c_str());
-		return;
-	}
-	if (nread == elpeSuccess)
-	{
-		_Logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"read data size = 0"));
 		return;
 	}
 
