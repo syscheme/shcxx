@@ -6,10 +6,10 @@ TARGET   := hlsget
 
 OBJS    := hlsget.o Download.o
 
-INCDIR += $(TOPDIR)/Common/eloop $(TOPDIR)/Common/eloop/Http/LibHttp $(TOPDIR)/Common/eloop/libuv_1.9.1/include/ $(TOPDIR)/Common/eloop/libuv_1.9.1/src $(TOPDIR)/Common/eloop/libuv_1.9.1/src/unix
+INCDIR += $(TOPDIR)/Common/eloop $(TOPDIR)/Common/eloop/Http/LibHttp $(_uv_dir)/include
 
-LINKDIR += $(TOPDIR)/Common/eloop/libuv_1.9.1/out/Release $(TOPDIR)/Common/eloop/Http/LibHttp $(TOPDIR)/Common/eloop
-LDFLAGS += -lZQCommon -lHttp -leloop -luv -lpthread
+LINKDIR += $(_uv_dir)/lib64 $(TOPDIR)/Common/eloop/Http/LibHttp $(TOPDIR)/Common/eloop
+LDFLAGS += -lZQCommon -luv -lHttp -leloop -lpthread
 
 include $(TOPDIR)/build/common.mk
 
