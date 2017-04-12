@@ -970,8 +970,8 @@ namespace LibAsync {
 		std::string peerip="";
 		unsigned short  peerport=0;
 		getPeerAddress(peerip, peerport);
-        mLogger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServant, "onHttpError [%p] [%s:%hu => %s:%hu], error[%s]"), 
-				this, locip.c_str(), locport, peerip.c_str(), peerport, ErrorCodeToStr((ErrorCode)err));
+		mLogger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServant, "onHttpError [%p] [%s:%hu => %s:%hu], error[%d/%s]"), 
+				this, locip.c_str(), locport, peerip.c_str(), peerport, err, ErrorCodeToStr((ErrorCode)err));
 		if(mHandler)
 			mHandler->onHttpError(err);
 		clear();
