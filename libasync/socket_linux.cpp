@@ -21,7 +21,7 @@ namespace LibAsync {
 		int err = 0;
 		socklen_t size = sizeof(err);
 		getsockopt( mSocket, SOL_SOCKET, SO_ERROR, (void*)&err, &size);
-		return err;
+		return -(err+100);
 	}
 
 	bool Socket::isOpened() const
