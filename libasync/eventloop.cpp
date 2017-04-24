@@ -7,7 +7,7 @@ namespace LibAsync {
 	
 	static __thread char* errStrPointer = NULL;
 	const char* ErrorCodeToStr( ErrorCode c ) {
-		if (c < 100) {
+		if (c > -100) {
 			switch( c ) {
 			case ERR_ERROR:		return "Generic Error";
 			case ERR_EOF:		return "EOF";
@@ -31,7 +31,7 @@ namespace LibAsync {
 			if(errStrPointer == NULL) {
 				errStrPointer = (char*)malloc(errStrBufSize);
 			}
-			strerror_r(int(c-100), errStrPointer, errStrBufSize);
+			strerror_r(-(int(c+100)), errStrPointer, errStrBufSize);
 			return errStrPointer;
 		}
 	}
