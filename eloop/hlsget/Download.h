@@ -66,7 +66,9 @@ public:
 
 private:
 	ZQ::common::Log&	_Logger;
-	int64				_startTime;			//ms	
+	int64				_startTime;			//ms
+	int64				_connTime;
+	int64				_firstDataTime;
 	int64				_totalSize;
 	Statistics			_stat;
 	std::string	_CurrentDownloadFileName;

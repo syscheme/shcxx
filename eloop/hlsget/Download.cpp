@@ -37,8 +37,8 @@ void Download::dohttp()
 	HttpMessage::Ptr msg = new HttpMessage(HttpMessage::MSG_REQUEST);
 	msg->method(HttpMessage::GET);
 	msg->url("*");
-
-	beginRequest(msg,url);	
+	beginRequest(msg,url);
+	_connTime = ZQ::common::now();
 }
 
 void Download::OnConnected(ElpeError status)
@@ -48,6 +48,9 @@ void Download::OnConnected(ElpeError status)
 	std::string url = _baseurl + "/" + _CurrentDownloadFileName;
 	if(_objServer == EdgeFE)
 		url = url + "&rate=" + _bitrate;
+	_connTime = ZQ::common::now() - _connTime;
+	_firstDataTime = ZQ::common::now();
+
 	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"downloading:%s"),url.c_str());
 	printf("downloading:%s\n",url.c_str());
 
@@ -79,6 +82,7 @@ bool Download::onHeadersEnd( const HttpMessage::Ptr msg)
 	}
 	_stat.prevFile = _CurrentDownloadFileName;
 	_totalSize = 0;
+	_firstDataTime = ZQ::common::now() - _firstDataTime;
 	return true;
 }
 
@@ -98,8 +102,8 @@ void Download::onMessageCompleted()
 	
 	int64 speed = _totalSize * 8/totalTime;
 	std::string url = _baseurl + "/" + _CurrentDownloadFileName;
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,size:%dByte,take:%dms,bitrate:%dkbps"),url.c_str(),_totalSize,totalTime,speed);
-	printf("download complete:%s,size:%dByte,take:%dms,bitrate:%dkbps\n",url.c_str(),_totalSize,totalTime,speed);
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,ConnTakeTime:%dms,firstDataTime:%dms,size:%dByte,take:%dms,bitrate:%dkbps"),url.c_str(),_connTime,_firstDataTime,_totalSize,totalTime,speed);
+	printf("download complete:%s,ConnTakeTime:%dms,firstDataTime:%dms,size:%dByte,take:%dms,bitrate:%dkbps\n",url.c_str(),_connTime,_firstDataTime,_totalSize,totalTime,speed);
 	_file.pop_front();
 	if (!_file.empty())
 	{
@@ -154,7 +158,6 @@ void Download::onError( int error,const char* errorDescription )
 			int64 sp = _stat.allSize * 8/tm;
 			int64 Average = _stat.allInterval /(_stat.fileTotal - 1);
 			_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"%d files downloaded to complete,directory:%s,size:%dByte,take:%dms,bitrate:%dkbps,Average interval: %d ms,The maximum time between %s and %s is : %d ms"),_stat.fileTotal,_baseurl.c_str(),_stat.allSize,tm,sp,Average,_stat.file1.c_str(),_stat.file2.c_str(),_stat.MaxInterval);
-
 
 			//		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Average interval: %d ms,Maximum interval: %d ms "),);
 		}
