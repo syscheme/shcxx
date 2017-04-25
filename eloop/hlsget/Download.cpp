@@ -14,6 +14,7 @@ Download::Download(ZQ::common::Log& logger,std::string baseurl,std::string bitra
 	_bitrate(bitrate),
 	_stat(stat),
 	_totalSize(0),
+	_onBodyTime(0),
 	_objServer(objserver),
 	_completed(false),
 	_errorCount(errorcount),
@@ -50,6 +51,7 @@ void Download::OnConnected(ElpeError status)
 		url = url + "&rate=" + _bitrate;
 	_connTime = ZQ::common::now() - _connTime;
 	_firstDataTime = ZQ::common::now();
+	_onBodyTime = ZQ::common::now();
 
 	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"downloading:%s"),url.c_str());
 	printf("downloading:%s\n",url.c_str());
@@ -89,6 +91,10 @@ bool Download::onHeadersEnd( const HttpMessage::Ptr msg)
 bool Download::onBodyData( const char* data, size_t size)
 {
 	_totalSize += size;
+	_onBodyTime = ZQ::common::now() - _onBodyTime;
+	std::string url = _baseurl + "/" + _CurrentDownloadFileName;
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"%s onBodyData len[%d],took:%dms"),url.c_str(),size,_onBodyTime);
+	_onBodyTime = ZQ::common::now();
 	return true;
 }
 
