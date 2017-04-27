@@ -30,8 +30,10 @@ namespace LibAsync {
 			static size_t errStrBufSize = 64;
 			if(errStrPointer == NULL) {
 				errStrPointer = (char*)malloc(errStrBufSize);
+				errStrPointer[errStrBufSize-1] = '\0';
 			}
-			strerror_r(-(int(c+100)), errStrPointer, errStrBufSize);
+			errStrPointer[0] ='\0';
+			strerror_r(-(int(c+100)), errStrPointer, errStrBufSize-1);
 			return errStrPointer;
 		}
 	}
