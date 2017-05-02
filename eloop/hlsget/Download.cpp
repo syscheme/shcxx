@@ -18,6 +18,7 @@ Download::Download(ZQ::common::Log& logger,std::string baseurl,std::string bitra
 	_objServer(objserver),
 	_completed(false),
 	_errorCount(errorcount),
+	_interval(0),
 	_file(file)
 {
 }
@@ -53,6 +54,7 @@ void Download::OnConnected(ElpeError status)
 	_firstDataTime = ZQ::common::now();
 	_onBodyTime = ZQ::common::now();
 
+	_recvCount = 0;
 	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"downloading:%s"),url.c_str());
 	printf("downloading:%s\n",url.c_str());
 
@@ -66,6 +68,7 @@ void Download::onHttpDataSent()
 void Download::onHttpDataReceived( size_t size )
 {
 	//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"recv data size = %d."),size);
+	_recvCount++;
 }
 
 
@@ -73,11 +76,11 @@ bool Download::onHeadersEnd( const HttpMessage::Ptr msg)
 {
 	if (_stat.CompletionTime != 0)
 	{
-		int64 interval = ZQ::common::now() -_stat.CompletionTime;
-		_stat.allInterval += interval;
-		if (_stat.MaxInterval < interval)
+		int64 _interval = ZQ::common::now() -_stat.CompletionTime;
+		_stat.allInterval += _interval;
+		if (_stat.MaxInterval < _interval)
 		{
-			_stat.MaxInterval = interval;
+			_stat.MaxInterval = _interval;
 			_stat.file1 = _stat.prevFile;
 			_stat.file2 = _CurrentDownloadFileName;
 		}	
@@ -91,10 +94,10 @@ bool Download::onHeadersEnd( const HttpMessage::Ptr msg)
 bool Download::onBodyData( const char* data, size_t size)
 {
 	_totalSize += size;
-	_onBodyTime = ZQ::common::now() - _onBodyTime;
+//	_onBodyTime = ZQ::common::now() - _onBodyTime;
 	std::string url = _baseurl + "/" + _CurrentDownloadFileName;
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"%s onBodyData len[%d],took:%dms"),url.c_str(),size,_onBodyTime);
-	_onBodyTime = ZQ::common::now();
+//	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"%s onBodyData len[%d],took:%dms"),url.c_str(),size,_onBodyTime);
+//	_onBodyTime = ZQ::common::now();
 	return true;
 }
 
@@ -108,15 +111,17 @@ void Download::onMessageCompleted()
 	
 	int64 speed = _totalSize * 8/totalTime;
 	std::string url = _baseurl + "/" + _CurrentDownloadFileName;
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,ConnTakeTime:%dms,firstDataTime:%dms,size:%dByte,take:%dms,bitrate:%dkbps"),url.c_str(),_connTime,_firstDataTime,_totalSize,totalTime,speed);
-	printf("download complete:%s,ConnTakeTime:%dms,firstDataTime:%dms,size:%dByte,take:%dms,bitrate:%dkbps\n",url.c_str(),_connTime,_firstDataTime,_totalSize,totalTime,speed);
+
+	int64 newReqTime = 0;
 	_file.pop_front();
 	if (!_file.empty())
 	{
+		int64 start = ZQ::common::now();
 		Download* d = new Download(_Logger,_baseurl,_bitrate,_stat,_file,_objServer);
 		//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"outstr:%s"),str.c_str());
 		d->init(get_loop());
 		d->dohttp();
+		newReqTime = ZQ::common::now() - start;
 	}
 	else
 	{
@@ -124,10 +129,12 @@ void Download::onMessageCompleted()
 		int64 sp = _stat.allSize * 8/tm;
 		int64 Average = _stat.allInterval /(_stat.fileTotal - 1);
 		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"%d files downloaded to complete,directory:%s,size:%dByte,take:%dms,bitrate:%dkbps,Average interval: %d ms,The maximum time between %s and %s is : %d ms"),_stat.fileTotal,_baseurl.c_str(),_stat.allSize,tm,sp,Average,_stat.file1.c_str(),_stat.file2.c_str(),_stat.MaxInterval);
-
-		
+	
 //		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Average interval: %d ms,Maximum interval: %d ms "),);
 	}
+	int64 onceRecv = _totalSize/_recvCount;
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,ConnTakeTime:%dms,firstDataTime:%dms,size:%dByte,take:%dms,bitrate:%dkbps"),url.c_str(),_connTime,_firstDataTime,_totalSize,totalTime,speed);
+	printf("download complete:%s,interval:%dms,newReqTime:%dms,ConnTakeTime:%dms,firstDataTime:%dms,size:%dByte,take:%dms,bitrate:%dkbps\n",url.c_str(),_interval,newReqTime,_connTime,_firstDataTime,_totalSize,totalTime,speed);
 }
 
 void Download::onError( int error,const char* errorDescription )
