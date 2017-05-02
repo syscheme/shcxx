@@ -82,7 +82,7 @@ int main(int argc,char* argv[])
 		}
 	}
 
-	ZQ::common::Log* pLog = new ZQ::common::FileLog(logFilePath.c_str(),7,10,52428800);
+	ZQ::common::Log* pLog = new ZQ::common::FileLog(logFilePath.c_str(),7,20,52428800);
 
 	ZQ::eloop::Download::ObjServer obj;
 	if (objServer.find("EdgeFe") != objServer.npos)
