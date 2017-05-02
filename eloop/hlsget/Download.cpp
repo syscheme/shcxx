@@ -113,6 +113,13 @@ void Download::onMessageCompleted()
 	std::string url = _baseurl + "/" + _CurrentDownloadFileName;
 
 	int64 newReqTime = 0;
+	char locip[17] = { 0 };
+	int  locport = 0;
+	getlocaleIpPort(locip,locport);
+
+// 	char peerip[17] = { 0 };
+// 	int  peerport = 0;
+// 	getpeerIpPort(peerip,peerport);
 	_file.pop_front();
 	if (!_file.empty())
 	{
@@ -132,9 +139,10 @@ void Download::onMessageCompleted()
 	
 //		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Average interval: %d ms,Maximum interval: %d ms "),);
 	}
+
 	int64 onceRecv = _totalSize/_recvCount;
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,interval:%dms,newReqTime:%dms,ConnTakeTime:%dms,firstDataTime:%dms,_recvCount:%d,onceRecv:%dByte,size:%dByte,take:%dms,bitrate:%dkbps"),url.c_str(),_interval,newReqTime,_connTime,_firstDataTime,_recvCount,onceRecv,_totalSize,totalTime,speed);
-	printf("download complete:%s,interval:%dms,newReqTime:%dms,ConnTakeTime:%dms,firstDataTime:%dms,_recvCount:%d,onceRecv:%dByte,size:%dByte,take:%dms,bitrate:%dkbps\n",url.c_str(),_interval,newReqTime,_connTime,_firstDataTime,_recvCount,onceRecv,_totalSize,totalTime,speed);
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,host:%s:%d,interval:%dms,newReqTime:%dms,ConnTakeTime:%dms,firstDataTime:%dms,_recvCount:%d,onceRecv:%dByte,size:%dByte,take:%dms,bitrate:%dkbps"),url.c_str(),locip,locport,_interval,newReqTime,_connTime,_firstDataTime,_recvCount,onceRecv,_totalSize,totalTime,speed);
+	printf("download complete:%s,host:%s:%d,interval:%dms,newReqTime:%dms,ConnTakeTime:%dms,firstDataTime:%dms,_recvCount:%d,onceRecv:%dByte,size:%dByte,take:%dms,bitrate:%dkbps\n",url.c_str(),locip,locport,_interval,newReqTime,_connTime,_firstDataTime,_recvCount,onceRecv,_totalSize,totalTime,speed);
 }
 
 void Download::onError( int error,const char* errorDescription )
