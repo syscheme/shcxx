@@ -2,6 +2,7 @@
 #define __DOWNLOAD_h__
 
 #include "../Http/LibHttp/HttpClient.h"
+#include "TimeUtil.h"
 #include <NativeThread.h>
 #include <list>
 #include <string>
@@ -9,6 +10,39 @@
 namespace ZQ {
 	namespace eloop {
 
+
+//--------------------------------------------------
+//class LoopRateMonitor
+//--------------------------------------------------
+class LoopRateMonitor:public ZQ::eloop::Idle
+{
+public:
+	LoopRateMonitor():_time(ZQ::common::now()),_count(0){}
+	~LoopRateMonitor() {}
+	virtual void OnIdle()
+	{
+		if ((ZQ::common::now() - _time) >= 1000)
+		{
+			_time = ZQ::common::now();
+//			_rateLock.enter();
+			_rate = _count;
+//			_rateLock.leave();
+			_count = 0;
+		}
+		else
+			_count++;
+	}
+	int64 getRate()
+	{
+//		ZQ::common::MutexGuard gd(_rateLock);
+		return _rate;
+	}
+private:
+	int64	_time;
+	int64	_count;
+	int64	_rate;
+//	ZQ::common::Mutex		_rateLock;
+};
 
 // ---------------------------------------
 // class Download
@@ -47,7 +81,7 @@ public:
 		Def		= EdgeFE
 	}ObjServer;
 public:
-	Download(ZQ::common::Log& logger,std::string baseurl,std::string bitrate,Statistics stat,std::list<std::string> file,Download::ObjServer objserver,int errorcount = 0);
+	Download(ZQ::common::Log& logger,std::string baseurl,std::string bitrate,Statistics stat,std::list<std::string> file,Download::ObjServer objserver,LoopRateMonitor& loopRate,int errorcount = 0);
 	~Download();
 	void dohttp();
 	virtual void OnConnected(ElpeError status);
@@ -81,6 +115,7 @@ private:
 	Download::ObjServer _objServer;
 	bool				_completed;
 	int					_errorCount;
+	LoopRateMonitor&	_loopRate;
 };
 
 //--------------------------------------
@@ -156,7 +191,7 @@ private:
 class Session:public HttpClient
 {
 public:
-	Session(ZQ::common::Log& logger,std::string bitrate,int64 limit,Download::ObjServer objserver);
+	Session(ZQ::common::Log& logger,std::string bitrate,int64 limit,Download::ObjServer objserver,LoopRateMonitor& loopRate);
 	~Session();
 
 	void dohttp(std::string& m3u8url);
@@ -182,6 +217,7 @@ private:
 	std::string			_bitrate;
 	int64				_limit;
 	Download::ObjServer	_objServer;
+	LoopRateMonitor&	_loopRate;
 };
 
 // ---------------------------------------
@@ -206,6 +242,7 @@ private:
 	std::string&		_bitrate;
 	int64				_limit;
 	Download::ObjServer	_objServer;
+	LoopRateMonitor		_loopRateMonitor;
 };
 
 } }//namespace ZQ::eloop

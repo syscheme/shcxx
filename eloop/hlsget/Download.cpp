@@ -7,7 +7,7 @@ namespace ZQ {
 // ---------------------------------------
 // class Download
 // ---------------------------------------
-Download::Download(ZQ::common::Log& logger,std::string baseurl,std::string bitrate,Statistics stat,std::list<std::string> file,Download::ObjServer objserver,int errorcount)
+Download::Download(ZQ::common::Log& logger,std::string baseurl,std::string bitrate,Statistics stat,std::list<std::string> file,Download::ObjServer objserver,LoopRateMonitor& loopRate,int errorcount)
 	:HttpClient(logger),
 	_Logger(logger),
 	_baseurl(baseurl),
@@ -19,7 +19,8 @@ Download::Download(ZQ::common::Log& logger,std::string baseurl,std::string bitra
 	_completed(false),
 	_errorCount(errorcount),
 	_interval(0),
-	_file(file)
+	_file(file),
+	_loopRate(loopRate)
 {
 }
 Download::~Download()
@@ -124,7 +125,7 @@ void Download::onMessageCompleted()
 	if (!_file.empty())
 	{
 		int64 start = ZQ::common::now();
-		Download* d = new Download(_Logger,_baseurl,_bitrate,_stat,_file,_objServer);
+		Download* d = new Download(_Logger,_baseurl,_bitrate,_stat,_file,_objServer,_loopRate);
 		//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"outstr:%s"),str.c_str());
 		d->init(get_loop());
 		d->dohttp();
@@ -141,8 +142,8 @@ void Download::onMessageCompleted()
 	}
 
 	int64 onceRecv = _totalSize/_recvCount;
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,host:%s:%d,interval:%dms,newReqTime:%dms,ConnTakeTime:%dms,firstDataTime:%dms,_recvCount:%d,onceRecv:%dByte,size:%dByte,take:%dms,bitrate:%dkbps"),url.c_str(),locip,locport,_interval,newReqTime,_connTime,_firstDataTime,_recvCount,onceRecv,_totalSize,totalTime,speed);
-	printf("download complete:%s,host:%s:%d,interval:%dms,newReqTime:%dms,ConnTakeTime:%dms,firstDataTime:%dms,_recvCount:%d,onceRecv:%dByte,size:%dByte,take:%dms,bitrate:%dkbps\n",url.c_str(),locip,locport,_interval,newReqTime,_connTime,_firstDataTime,_recvCount,onceRecv,_totalSize,totalTime,speed);
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,host:%s:%d,loopRate:%d/s,interval:%dms,newReqTime:%dms,ConnTakeTime:%dms,firstDataTime:%dms,_recvCount:%d,onceRecv:%dByte,size:%dByte,take:%dms,bitrate:%dkbps"),url.c_str(),locip,locport,_loopRate.getRate(),_interval,newReqTime,_connTime,_firstDataTime,_recvCount,onceRecv,_totalSize,totalTime,speed);
+	printf("download complete:%s,host:%s:%d,loopRate:%d/s,interval:%dms,newReqTime:%dms,ConnTakeTime:%dms,firstDataTime:%dms,_recvCount:%d,onceRecv:%dByte,size:%dByte,take:%dms,bitrate:%dkbps\n",url.c_str(),locip,locport,_loopRate.getRate(),_interval,newReqTime,_connTime,_firstDataTime,_recvCount,onceRecv,_totalSize,totalTime,speed);
 }
 
 void Download::onError( int error,const char* errorDescription )
@@ -168,7 +169,7 @@ void Download::onError( int error,const char* errorDescription )
 		if (!_file.empty())
 		{
 			_errorCount++;
-			Download* d = new Download(_Logger,_baseurl,_bitrate,_stat,_file,_objServer,_errorCount);
+			Download* d = new Download(_Logger,_baseurl,_bitrate,_stat,_file,_objServer,_loopRate,_errorCount);
 			//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"outstr:%s"),str.c_str());
 			d->init(get_loop());
 			d->dohttp();
@@ -405,12 +406,13 @@ void ControlDownload::onError( int error,const char* errorDescription )
 // ---------------------------------------
 // class Session
 // ---------------------------------------
-Session::Session(ZQ::common::Log& logger,std::string bitrate,int64 limit,Download::ObjServer objserver)
+Session::Session(ZQ::common::Log& logger,std::string bitrate,int64 limit,Download::ObjServer objserver,LoopRateMonitor& loopRate)
 	:HttpClient(logger),
 	_Logger(logger),
 	_bitrate(bitrate),
 	_limit(limit),
-	_objServer(objserver)
+	_objServer(objserver),
+	_loopRate(loopRate)
 {
 
 }
@@ -497,7 +499,7 @@ void Session::onMessageCompleted()
 		}
 		else
 		{
-			Download* d = new Download(_Logger,_baseurl,_bitrate,stat,file,_objServer);
+			Download* d = new Download(_Logger,_baseurl,_bitrate,stat,file,_objServer,_loopRate);
 			d->init(get_loop());
 			d->dohttp();
 		}
@@ -537,6 +539,8 @@ DownloadThread::~DownloadThread()
 int DownloadThread::run(void)
 {
 	Loop loop(false);
+	_loopRateMonitor.init(loop);
+	_loopRateMonitor.start();
 	M3u8List::iterator it;
 	std::string m3u8;
 	while(!_m3u8list.empty())
@@ -544,7 +548,7 @@ int DownloadThread::run(void)
 		m3u8 = _m3u8list.front();
 		for(int i=0;i< _loopCount;i++)
 		{
-			ZQ::eloop::Session* s = new ZQ::eloop::Session(_Logger,_bitrate,_limit,_objServer);
+			ZQ::eloop::Session* s = new ZQ::eloop::Session(_Logger,_bitrate,_limit,_objServer,_loopRateMonitor);
 			s->init(loop);
 			s->dohttp(m3u8);
 			_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(DownloadThread,"m3u8:%s"),m3u8.c_str());
