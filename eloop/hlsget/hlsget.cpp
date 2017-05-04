@@ -179,7 +179,7 @@ int main(int argc,char* argv[])
 
 		ZQ::eloop::LoopRateMonitor loopRate;
 		loopRate.init(loop);
-		loopRate.start();
+		loopRate.startAt();
 
 		std::ifstream fin;
 		size_t n = 0;

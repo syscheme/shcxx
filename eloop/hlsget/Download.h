@@ -22,7 +22,9 @@ public:
 		_startTime(ZQ::common::now()),
 		_total(0),
 		_count(0),
-		_rate(0)
+		_rate(0),
+		_start(false),
+		_close(false)
 	{
 
 	}
@@ -39,9 +41,33 @@ public:
 		else
 			_count++;
 	}
+	void startAt()
+	{
+		if(_start)
+			return;
+		_start = true;
+		start();
+	}
+
+	void stopAt()
+	{
+		if(!_start)
+			return;
+		_start = false;
+		stop();
+	}
+
+	void closeAt()
+	{
+		if(_close)
+			return;
+		_close = true;
+		close();
+	}
+
 	int64 getRate()
 	{
-//		 _rate = _count*1000/(ZQ::common::now()-_time);
+		//		 _rate = _count*1000/(ZQ::common::now()-_time);
 		return _rate;
 	}
 
@@ -55,6 +81,8 @@ private:
 	int64	_time;
 	int64	_count;
 	int64	_rate;
+	bool	_start;
+	bool	_close;
 };
 
 // ---------------------------------------
