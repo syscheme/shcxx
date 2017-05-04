@@ -113,7 +113,6 @@ void Download::onMessageCompleted()
 	int64 speed = _totalSize * 8/totalTime;
 	std::string url = _baseurl + "/" + _CurrentDownloadFileName;
 
-	int64 newReqTime = 0;
 	char locip[17] = { 0 };
 	int  locport = 0;
 	getlocaleIpPort(locip,locport);
@@ -129,21 +128,19 @@ void Download::onMessageCompleted()
 		//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"outstr:%s"),str.c_str());
 		d->init(get_loop());
 		d->dohttp();
-		newReqTime = ZQ::common::now() - start;
+		int64 newReqTime = ZQ::common::now() - start;
+		int64 onceRecv = _totalSize/_recvCount;
+		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,host:%s:%d,loopRate:%d/s,interval:%dms,newReqTime:%dms,ConnTakeTime:%dms,firstDataTime:%dms,_recvCount:%d,onceRecv:%dByte,size:%dByte,take:%dms,bitrate:%dkbps"),url.c_str(),locip,locport,_loopRate.getRate(),_interval,newReqTime,_connTime,_firstDataTime,_recvCount,onceRecv,_totalSize,totalTime,speed);
+		printf("download complete:%s,host:%s:%d,loopRate:%d/s,interval:%dms,newReqTime:%dms,ConnTakeTime:%dms,firstDataTime:%dms,_recvCount:%d,onceRecv:%dByte,size:%dByte,take:%dms,bitrate:%dkbps\n",url.c_str(),locip,locport,_loopRate.getRate(),_interval,newReqTime,_connTime,_firstDataTime,_recvCount,onceRecv,_totalSize,totalTime,speed);
 	}
 	else
 	{
 		int64 tm = ZQ::common::now() - _stat.allStartTime;
 		int64 sp = _stat.allSize * 8/tm;
 		int64 Average = _stat.allInterval /(_stat.fileTotal - 1);
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"%d files downloaded to complete,directory:%s,size:%dByte,take:%dms,bitrate:%dkbps,Average interval: %d ms,The maximum time between %s and %s is : %d ms"),_stat.fileTotal,_baseurl.c_str(),_stat.allSize,tm,sp,Average,_stat.file1.c_str(),_stat.file2.c_str(),_stat.MaxInterval);
-	
+		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"%d files downloaded to complete,directory:%s,size:%dByte,take:%dms,bitrate:%dkbps,Average interval: %d ms,The maximum time between %s and %s is : %d ms,loopRate:%d/s"),_stat.fileTotal,_baseurl.c_str(),_stat.allSize,tm,sp,Average,_stat.file1.c_str(),_stat.file2.c_str(),_stat.MaxInterval,_loopRate.getRate());
 //		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Average interval: %d ms,Maximum interval: %d ms "),);
 	}
-
-	int64 onceRecv = _totalSize/_recvCount;
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,host:%s:%d,loopRate:%d/s,interval:%dms,newReqTime:%dms,ConnTakeTime:%dms,firstDataTime:%dms,_recvCount:%d,onceRecv:%dByte,size:%dByte,take:%dms,bitrate:%dkbps"),url.c_str(),locip,locport,_loopRate.getRate(),_interval,newReqTime,_connTime,_firstDataTime,_recvCount,onceRecv,_totalSize,totalTime,speed);
-	printf("download complete:%s,host:%s:%d,loopRate:%d/s,interval:%dms,newReqTime:%dms,ConnTakeTime:%dms,firstDataTime:%dms,_recvCount:%d,onceRecv:%dByte,size:%dByte,take:%dms,bitrate:%dkbps\n",url.c_str(),locip,locport,_loopRate.getRate(),_interval,newReqTime,_connTime,_firstDataTime,_recvCount,onceRecv,_totalSize,totalTime,speed);
 }
 
 void Download::onError( int error,const char* errorDescription )

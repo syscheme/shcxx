@@ -17,16 +17,14 @@ namespace ZQ {
 class LoopRateMonitor:public ZQ::eloop::Idle
 {
 public:
-	LoopRateMonitor():_time(ZQ::common::now()),_count(0){}
+	LoopRateMonitor():_time(ZQ::common::now()),_count(0),_rate(0){}
 	~LoopRateMonitor() {}
 	virtual void OnIdle()
 	{
 		if ((ZQ::common::now() - _time) >= 1000)
 		{
 			_time = ZQ::common::now();
-//			_rateLock.enter();
 			_rate = _count;
-//			_rateLock.leave();
 			_count = 0;
 		}
 		else
@@ -34,14 +32,13 @@ public:
 	}
 	int64 getRate()
 	{
-//		ZQ::common::MutexGuard gd(_rateLock);
+//		 _rate = _count*1000/(ZQ::common::now()-_time);
 		return _rate;
 	}
 private:
 	int64	_time;
 	int64	_count;
 	int64	_rate;
-//	ZQ::common::Mutex		_rateLock;
 };
 
 // ---------------------------------------
