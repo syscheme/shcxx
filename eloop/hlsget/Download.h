@@ -114,6 +114,7 @@ public:
 private:
 	ZQ::common::Log&	_Logger;
 	int64				_startTime;			//ms
+	int64				_ReqTime;
 	int64				_connTime;
 	int64				_interval;
 	int64				_recvCount;

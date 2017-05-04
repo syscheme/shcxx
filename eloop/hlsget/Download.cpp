@@ -20,6 +20,7 @@ Download::Download(ZQ::common::Log& logger,std::string baseurl,std::string bitra
 	_errorCount(errorcount),
 	_interval(0),
 	_file(file),
+	_ReqTime(0),
 	_loopRate(loopRate)
 {
 }
@@ -47,6 +48,7 @@ void Download::dohttp()
 void Download::OnConnected(ElpeError status)
 {
 	HttpClient::OnConnected(status);
+	_ReqTime = ZQ::common::now();
 	_startTime = ZQ::common::now();
 	std::string url = _baseurl + "/" + _CurrentDownloadFileName;
 	if(_objServer == EdgeFE)
@@ -64,6 +66,7 @@ void Download::OnConnected(ElpeError status)
 void Download::onHttpDataSent()
 {
 	//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"send suc."));
+	_ReqTime = ZQ::common::now() - _ReqTime;
 }
 
 void Download::onHttpDataReceived( size_t size )
@@ -130,7 +133,7 @@ void Download::onMessageCompleted()
 		d->dohttp();
 		int64 newReqTime = ZQ::common::now() - start;
 		int64 onceRecv = _totalSize/_recvCount;
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,host:%s:%d,loopRate:%d/s,interval:%dms,newReqTime:%dms,ConnTakeTime:%dms,firstDataTime:%dms,_recvCount:%d,onceRecv:%dByte,size:%dByte,take:%dms,bitrate:%dkbps"),url.c_str(),locip,locport,_loopRate.getRate(),_interval,newReqTime,_connTime,_firstDataTime,_recvCount,onceRecv,_totalSize,totalTime,speed);
+		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,host:%s:%d,loopRate:%d/s,interval:%dms,newReqTime:%dms,ConnTakeTime:%dms,ReqTime:%dms,firstDataTime:%dms,_recvCount:%d,onceRecv:%dByte,size:%dByte,take:%dms,bitrate:%dkbps"),url.c_str(),locip,locport,_loopRate.getRate(),_interval,newReqTime,_connTime,_ReqTime,_firstDataTime,_recvCount,onceRecv,_totalSize,totalTime,speed);
 		printf("download complete:%s,host:%s:%d,loopRate:%d/s,interval:%dms,newReqTime:%dms,ConnTakeTime:%dms,firstDataTime:%dms,_recvCount:%d,onceRecv:%dByte,size:%dByte,take:%dms,bitrate:%dkbps\n",url.c_str(),locip,locport,_loopRate.getRate(),_interval,newReqTime,_connTime,_firstDataTime,_recvCount,onceRecv,_totalSize,totalTime,speed);
 	}
 	else
@@ -139,6 +142,8 @@ void Download::onMessageCompleted()
 		int64 sp = _stat.allSize * 8/tm;
 		int64 Average = _stat.allInterval /(_stat.fileTotal - 1);
 		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"%d files downloaded to complete,directory:%s,size:%dByte,take:%dms,bitrate:%dkbps,Average interval: %d ms,The maximum time between %s and %s is : %d ms,loopAverageRate:%d/s"),_stat.fileTotal,_baseurl.c_str(),_stat.allSize,tm,sp,Average,_stat.file1.c_str(),_stat.file2.c_str(),_stat.MaxInterval,_loopRate.getAverageRate());
+		_loopRate.stop();
+		_loopRate.close();
 	}
 }
 
