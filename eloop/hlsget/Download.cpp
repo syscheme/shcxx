@@ -44,6 +44,7 @@ void Download::dohttp()
 	msg->url("*");
 	beginRequest(msg,url);
 	_connTime = ZQ::common::now();
+	_interval = ZQ::common::now();
 	_newReqTime = ZQ::common::now() - _newReqTime;
 }
 
@@ -91,6 +92,8 @@ bool Download::onHeadersEnd( const HttpMessage::Ptr msg)
 			_stat.file2 = _CurrentDownloadFileName;
 		}	
 	}
+	else
+		_interval = ZQ::common::now() - _interval;
 	_stat.prevFile = _CurrentDownloadFileName;
 	_totalSize = 0;
 	_firstDataTime = ZQ::common::now() - _firstDataTime;
