@@ -219,6 +219,8 @@ public:
 protected:
 	virtual void OnClose(){}
 	uv_handle_t *context_ptr();
+	bool		_isStart;
+	bool		_isClose;
 	
 
 private:

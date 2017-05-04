@@ -6,7 +6,13 @@ namespace eloop {
 // -----------------------------
 // class Handle
 // -----------------------------
-Handle::Handle():data(NULL),context(NULL),_loop(NULL) {
+Handle::Handle()
+	:data(NULL),
+	context(NULL),
+	_isStart(false),
+	_isClose(false),
+	_loop(NULL) 
+{
 
 }
 
@@ -76,6 +82,9 @@ int Handle::is_closing() {
 }
 
 void Handle::close() {
+	if (_isClose)
+		return;
+	_isClose = true;
 	uv_close(&context->handle, _cbClose);
 }
 
@@ -284,11 +293,17 @@ int Timer::init(Loop &loop) {
 }
 
 int Timer::start(uint64_t timeout, uint64_t repeat) {
+	if (_isStart)
+		return 0;
+	_isStart = true;
 	uv_timer_t* timer = (uv_timer_t *)context_ptr();
 	return uv_timer_start(timer, _cbOnTimer, timeout, repeat);
 }
 
 int Timer::stop() {
+	if (!_isStart)
+		return 0;
+	_isStart = false;
 	uv_timer_t* timer = (uv_timer_t *)context_ptr();
 	return uv_timer_stop(timer);
 }
