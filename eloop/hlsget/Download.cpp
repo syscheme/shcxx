@@ -21,6 +21,7 @@ Download::Download(ZQ::common::Log& logger,std::string baseurl,std::string bitra
 	_interval(0),
 	_file(file),
 	_ReqTime(0),
+	_newReqTime(ZQ::common::now()),
 	_loopRate(loopRate)
 {
 }
@@ -43,6 +44,7 @@ void Download::dohttp()
 	msg->url("*");
 	beginRequest(msg,url);
 	_connTime = ZQ::common::now();
+	_newReqTime = ZQ::common::now() - _newReqTime;
 }
 
 void Download::OnConnected(ElpeError status)
@@ -120,21 +122,20 @@ void Download::onMessageCompleted()
 	int  locport = 0;
 	getlocaleIpPort(locip,locport);
 
+	int64 onceRecv = _totalSize/_recvCount;
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,host:%s:%d,loopRate:%d/s,interval:%dms,newReqTime:%dms,ConnTakeTime:%dms,ReqTime:%dms,firstDataTime:%dms,_recvCount:%d,onceRecv:%dByte,size:%dByte,take:%dms,bitrate:%dkbps"),url.c_str(),locip,locport,_loopRate.getRate(),_interval,_newReqTime,_connTime,_ReqTime,_firstDataTime,_recvCount,onceRecv,_totalSize,totalTime,speed);
+	printf("download complete:%s,host:%s:%d,loopRate:%d/s,interval:%dms,newReqTime:%dms,ConnTakeTime:%dms,firstDataTime:%dms,_recvCount:%d,onceRecv:%dByte,size:%dByte,take:%dms,bitrate:%dkbps\n",url.c_str(),locip,locport,_loopRate.getRate(),_interval,_newReqTime,_connTime,_firstDataTime,_recvCount,onceRecv,_totalSize,totalTime,speed);
+
 // 	char peerip[17] = { 0 };
 // 	int  peerport = 0;
 // 	getpeerIpPort(peerip,peerport);
 	_file.pop_front();
 	if (!_file.empty())
 	{
-		int64 start = ZQ::common::now();
 		Download* d = new Download(_Logger,_baseurl,_bitrate,_stat,_file,_objServer,_loopRate);
 		//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"outstr:%s"),str.c_str());
 		d->init(get_loop());
 		d->dohttp();
-		int64 newReqTime = ZQ::common::now() - start;
-		int64 onceRecv = _totalSize/_recvCount;
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"download complete:%s,host:%s:%d,loopRate:%d/s,interval:%dms,newReqTime:%dms,ConnTakeTime:%dms,ReqTime:%dms,firstDataTime:%dms,_recvCount:%d,onceRecv:%dByte,size:%dByte,take:%dms,bitrate:%dkbps"),url.c_str(),locip,locport,_loopRate.getRate(),_interval,newReqTime,_connTime,_ReqTime,_firstDataTime,_recvCount,onceRecv,_totalSize,totalTime,speed);
-		printf("download complete:%s,host:%s:%d,loopRate:%d/s,interval:%dms,newReqTime:%dms,ConnTakeTime:%dms,firstDataTime:%dms,_recvCount:%d,onceRecv:%dByte,size:%dByte,take:%dms,bitrate:%dkbps\n",url.c_str(),locip,locport,_loopRate.getRate(),_interval,newReqTime,_connTime,_firstDataTime,_recvCount,onceRecv,_totalSize,totalTime,speed);
 	}
 	else
 	{
