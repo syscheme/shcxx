@@ -82,7 +82,7 @@ int main(int argc,char* argv[])
 		}
 	}
 
-	ZQ::common::Log* pLog = new ZQ::common::FileLog(logFilePath.c_str(),7,10,52428800);
+	ZQ::common::Log* pLog = new ZQ::common::FileLog(logFilePath.c_str(),7,20,52428800);
 
 	ZQ::eloop::Download::ObjServer obj;
 	if (objServer.find("EdgeFe") != objServer.npos)
@@ -177,6 +177,10 @@ int main(int argc,char* argv[])
 		
 		ZQ::eloop::Loop loop(false);
 
+		ZQ::eloop::LoopRateMonitor loopRate;
+		loopRate.init(loop);
+		loopRate.startAt();
+
 		std::ifstream fin;
 		size_t n = 0;
 		fin.open(urlFile.c_str());
@@ -193,7 +197,7 @@ int main(int argc,char* argv[])
 			for (int i=0;i< LoopCount;i++)
 			{
 				(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"m3u8:%s"),m3u8.c_str());
-				ZQ::eloop::Session* session = new ZQ::eloop::Session(*pLog,bitrate,limit,obj);
+				ZQ::eloop::Session* session = new ZQ::eloop::Session(*pLog,bitrate,limit,obj,loopRate);
 				session->init(loop);
 				session->dohttp(m3u8);
 				SYS::sleep(SessionInterval);

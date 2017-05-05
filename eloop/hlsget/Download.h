@@ -2,6 +2,7 @@
 #define __DOWNLOAD_h__
 
 #include "../Http/LibHttp/HttpClient.h"
+#include "TimeUtil.h"
 #include <NativeThread.h>
 #include <list>
 #include <string>
@@ -9,6 +10,80 @@
 namespace ZQ {
 	namespace eloop {
 
+
+//--------------------------------------------------
+//class LoopRateMonitor
+//--------------------------------------------------
+class LoopRateMonitor:public ZQ::eloop::Idle
+{
+public:
+	LoopRateMonitor()
+		:_time(ZQ::common::now()),
+		_startTime(ZQ::common::now()),
+		_total(0),
+		_count(0),
+		_rate(0),
+		_start(false),
+		_close(false)
+	{
+
+	}
+	~LoopRateMonitor() {}
+	virtual void OnIdle()
+	{
+		_total++;
+		if ((ZQ::common::now() - _time) >= 1000)
+		{
+			_time = ZQ::common::now();
+			_rate = _count;
+			_count = 0;
+		}
+		else
+			_count++;
+	}
+	void startAt()
+	{
+		if(_start)
+			return;
+		_start = true;
+		start();
+	}
+
+	void stopAt()
+	{
+		if(!_start)
+			return;
+		_start = false;
+		stop();
+	}
+
+	void closeAt()
+	{
+		if(_close)
+			return;
+		_close = true;
+		close();
+	}
+
+	int64 getRate()
+	{
+		//		 _rate = _count*1000/(ZQ::common::now()-_time);
+		return _rate;
+	}
+
+	int64 getAverageRate()
+	{
+		return (_total*1000/(ZQ::common::now() - _startTime));
+	}
+private:
+	int64	_startTime;
+	int64   _total;
+	int64	_time;
+	int64	_count;
+	int64	_rate;
+	bool	_start;
+	bool	_close;
+};
 
 // ---------------------------------------
 // class Download
@@ -47,7 +122,7 @@ public:
 		Def		= EdgeFE
 	}ObjServer;
 public:
-	Download(ZQ::common::Log& logger,std::string baseurl,std::string bitrate,Statistics stat,std::list<std::string> file,Download::ObjServer objserver,int errorcount = 0);
+	Download(ZQ::common::Log& logger,std::string baseurl,std::string bitrate,Statistics stat,std::list<std::string> file,Download::ObjServer objserver,LoopRateMonitor& loopRate,int errorcount = 0);
 	~Download();
 	void dohttp();
 	virtual void OnConnected(ElpeError status);
@@ -67,8 +142,13 @@ public:
 private:
 	ZQ::common::Log&	_Logger;
 	int64				_startTime;			//ms
+	int64				_ReqTime;
+	int64				_newReqTime;
 	int64				_connTime;
+	int64				_interval;
+	int64				_recvCount;
 	int64				_firstDataTime;
+	int64				_onBodyTime;
 	int64				_totalSize;
 	Statistics			_stat;
 	std::string	_CurrentDownloadFileName;
@@ -78,6 +158,7 @@ private:
 	Download::ObjServer _objServer;
 	bool				_completed;
 	int					_errorCount;
+	LoopRateMonitor&	_loopRate;
 };
 
 //--------------------------------------
@@ -153,7 +234,7 @@ private:
 class Session:public HttpClient
 {
 public:
-	Session(ZQ::common::Log& logger,std::string bitrate,int64 limit,Download::ObjServer objserver);
+	Session(ZQ::common::Log& logger,std::string bitrate,int64 limit,Download::ObjServer objserver,LoopRateMonitor& loopRate);
 	~Session();
 
 	void dohttp(std::string& m3u8url);
@@ -179,6 +260,7 @@ private:
 	std::string			_bitrate;
 	int64				_limit;
 	Download::ObjServer	_objServer;
+	LoopRateMonitor&	_loopRate;
 };
 
 // ---------------------------------------
@@ -203,6 +285,7 @@ private:
 	std::string&		_bitrate;
 	int64				_limit;
 	Download::ObjServer	_objServer;
+	LoopRateMonitor		_loopRateMonitor;
 };
 
 } }//namespace ZQ::eloop

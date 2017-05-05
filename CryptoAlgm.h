@@ -63,6 +63,7 @@ class ZQ_COMMON_API CRC32;
 class ZQ_COMMON_API MD5;
 class ZQ_COMMON_API SHA1;
 class ZQ_COMMON_API HMAC_SHA1;
+class ZQ_COMMON_API Base64;
 
 // -----------------------------
 // class CRC32
