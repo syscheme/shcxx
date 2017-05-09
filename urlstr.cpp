@@ -469,7 +469,7 @@ const char* URLStr::generate()
 {
 	char portBuff[16];
 	itoa(mPort, portBuff, 10);
-	if(!mUserName.empty() && (mProtocol == "ftp" || mProtocol == "http" || mProtocol == "https"))
+	if(!mUserName.empty() && (mProtocol == "ftp" || mProtocol == "http" || mProtocol == "https" || mProtocol == "cifs" || mProtocol == "file"))
 	{
 		if(!mPwd.empty())
 			output_str = mProtocol + "://" +mUserName + ":" + mPwd + "@" + mHost + ":" + portBuff +"/" + mPath;
