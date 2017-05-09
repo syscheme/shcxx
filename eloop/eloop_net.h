@@ -112,6 +112,9 @@ public:
 	int connect4(const char *ipv4, int prot);
 	int connect6(const char *ipv6, int port);
 
+	int set_send_buf_size(int* value);
+	int set_recv_buf_size(int* value);
+
 protected:
 	// TODO: must enumerate all the status in the class
 	virtual void OnConnected(ElpeError status) {}
@@ -156,6 +159,9 @@ public:
 	int set_ttl(int ttl);
 
 	void get_ip4_name(const struct sockaddr_in* src, char* dst, size_t size);
+
+	int set_send_buf_size(int* value);
+	int set_recv_buf_size(int* value);
 	
 	int send4(const char *buf, size_t length, const char *ipv4,int port);
 	int send6(const char *buf, size_t length, const char *ipv6,int port);
