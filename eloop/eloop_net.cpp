@@ -269,6 +269,17 @@ namespace ZQ {
 			delete req;
 		}
 
+		int TCP::set_send_buf_size(int* value)
+		{
+			uv_handle_t* tcp = (uv_handle_t *)context_ptr();
+			return uv_send_buffer_size(tcp,value);
+		}
+
+		int TCP::set_recv_buf_size(int* value)
+		{
+			uv_handle_t* tcp = (uv_handle_t *)context_ptr();
+			return uv_recv_buffer_size(tcp,value);
+		}
 
 
 		// -----------------------------
@@ -356,6 +367,18 @@ namespace ZQ {
 		void UDP::get_ip4_name(const struct sockaddr_in* src, char* dst, size_t size)
 		{
 			uv_ip4_name(src, dst, size);
+		}
+
+		int UDP::set_send_buf_size(int* value)
+		{
+			uv_handle_t* udp = (uv_handle_t *)context_ptr();
+			return uv_send_buffer_size(udp,value);
+		}
+
+		int UDP::set_recv_buf_size(int* value)
+		{
+			uv_handle_t* udp = (uv_handle_t *)context_ptr();
+			return uv_recv_buffer_size(udp,value);
 		}
 
 		int UDP::send(const char *buf, size_t length,const struct sockaddr *addr) {

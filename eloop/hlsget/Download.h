@@ -32,7 +32,7 @@ public:
 	virtual void OnIdle()
 	{
 		_total++;
-		if ((ZQ::common::now() - _time) >= 1000)
+		if ((ZQ::common::now() - _time) >= 10)
 		{
 			_time = ZQ::common::now();
 			_rate = _count;
@@ -68,7 +68,7 @@ public:
 	int64 getRate()
 	{
 		//		 _rate = _count*1000/(ZQ::common::now()-_time);
-		return _rate;
+		return _rate*100;
 	}
 
 	int64 getAverageRate()
