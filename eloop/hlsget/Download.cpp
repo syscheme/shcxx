@@ -121,6 +121,13 @@ void Download::onMessageCompleted()
 	int64 speed = _totalSize * 8/totalTime;
 	std::string url = _baseurl + "/" + _CurrentDownloadFileName;
 
+	if (_stat.MaxConnTime < _connTime)
+	{
+		_stat.MaxConnTime = _connTime;
+		_stat.MaxConnFile = _CurrentDownloadFileName;
+	}
+	
+
 	char locip[17] = { 0 };
 	int  locport = 0;
 	getlocaleIpPort(locip,locport);
@@ -145,7 +152,7 @@ void Download::onMessageCompleted()
 		int64 tm = ZQ::common::now() - _stat.allStartTime;
 		int64 sp = _stat.allSize * 8/tm;
 		int64 Average = _stat.allInterval /(_stat.fileTotal - 1);
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"%d files downloaded to complete,directory:%s,size:%dByte,take:%dms,bitrate:%dkbps,Average interval: %d ms,The maximum time between %s and %s is : %d ms,loopAverageRate:%d/s"),_stat.fileTotal,_baseurl.c_str(),_stat.allSize,tm,sp,Average,_stat.file1.c_str(),_stat.file2.c_str(),_stat.MaxInterval,_loopRate.getAverageRate());
+		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"%d files downloaded to complete,directory:%s,size:%dByte,take:%dms,bitrate:%dkbps,Average interval: %d ms,The maximum time between %s and %s is : %d ms,MaxConnFile:%s,MaxConnTime:%dms,loopAverageRate:%d/s"),_stat.fileTotal,_baseurl.c_str(),_stat.allSize,tm,sp,Average,_stat.file1.c_str(),_stat.file2.c_str(),_stat.MaxInterval,_stat.MaxConnFile.c_str(),_stat.MaxConnTime,_loopRate.getAverageRate());
 		_loopRate.stopAt();
 		_loopRate.closeAt();
 	}

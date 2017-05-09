@@ -100,16 +100,20 @@ public:
 			allSize = 0;
 			allInterval = 0;
 			MaxInterval = 0;
+			MaxConnTime	= 0;
 			fileTotal = 0;
 			prevFile = "";
 			file1 = "";
 			file2 = "";
+			MaxConnFile = "";
 		}
 		int64				CompletionTime;
 		int64				allStartTime;
 		int64				allSize;
 		int64				allInterval;
 		int64				MaxInterval;
+		int64				MaxConnTime;
+		std::string			MaxConnFile;
 		int64				fileTotal;
 		std::string			prevFile;
 		std::string			file1;
