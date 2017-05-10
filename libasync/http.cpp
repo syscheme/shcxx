@@ -1219,7 +1219,7 @@ namespace LibAsync {
 	Socket::Ptr HttpServer::onSocketAccepted( SOCKET sock ) {
 		HttpServant::Ptr s = new HttpServant(*this, sock, mLogger);
 		s->initHint();
-		mLogger(ZQ::common::Log::L_INFO, CLOGFMT(httpServer,"comes a new connection from [%s]"),s->hint().c_str());
+		mLogger(ZQ::common::Log::L_DEBUG, CLOGFMT(httpServer,"comes a new connection from [%s]"),s->hint().c_str());
 		return s;
 	}
 	
