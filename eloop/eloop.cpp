@@ -1,5 +1,5 @@
 #include "eloop.h"
-
+#include "eloop_net.h"
 namespace ZQ {
 namespace eloop {
 
@@ -418,6 +418,54 @@ void CpuInfo::freeCpuInfo()
 		_info = NULL;
 		_count = 0;
 		_bIsAccess =false;
+	}
+}
+
+// -----------------------------
+// class Process
+// -----------------------------
+int Process::spawn(const eloop_process_options_t* opt)
+{
+	uv_process_t* h = (uv_process_t*)context_ptr();
+/*	uv_process_options_t uvopt;
+	uvopt.exit_cb = Process::_cbExit;
+	uvopt.file = opt.file;
+	uvopt.args = opt.args;
+	uvopt.env = opt.env;
+	uvopt.cwd = opt.cwd;
+	uvopt.flags = opt.flags;
+	uvopt.stdio_count = opt.stdio_count;
+	uvopt.stdio->flags =(uv_stdio_flags)(opt.stdio->flags);
+	uvopt.stdio->data.stream = (uv_stream_t*)(opt.stdio->data.stream->context_ptr());
+	uvopt.stdio->data.fd = opt.stdio->data.fd;
+	uvopt.uid = opt.uid;
+	uvopt.gid = opt.gid;*/
+
+	return uv_spawn(get_loop().context_ptr(),h,opt);
+}
+
+int Process::pid()
+{
+	uv_process_t* h = (uv_process_t*)context_ptr();
+	return h->pid;
+}
+
+int Process::kill(int signum)
+{
+	uv_process_t* h = (uv_process_t*)context_ptr();
+	return uv_process_kill(h,signum);
+}
+
+int Process::kill(int pid,int signum)
+{
+	return uv_kill(pid,signum);
+}
+
+void Process::_cbExit(uv_process_t* handle,int64_t exit_status,int term_signal)
+{
+	Process* self = static_cast<Process *>(handle->data);
+	if (self != NULL) {
+		self->OnExit(exit_status,term_signal);
 	}
 }
 

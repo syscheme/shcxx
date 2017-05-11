@@ -63,6 +63,7 @@ class ZQ_ELOOP_API Timer;
 class ZQ_ELOOP_API Async;
 class ZQ_ELOOP_API Signal;
 class ZQ_ELOOP_API CpuInfo;
+class ZQ_ELOOP_API Process;
 
 // -----------------------------
 // class Handle
@@ -71,6 +72,31 @@ class Handle
 {
 public:
 	typedef uv_os_fd_t fd_t;
+
+	typedef enum _ElpHandleType
+	{
+		ELOOP_UNKNOWN_HANDLE = UV_UNKNOWN_HANDLE,
+
+		ELOOP_ASYNC = UV_ASYNC,
+		ELOOP_CHECK = UV_CHECK,
+		ELOOP_FS_EVENT = UV_FS_EVENT,
+		ELOOP_FS_POLL = UV_FS_POLL,
+		ELOOP_HANDLE = UV_HANDLE,
+		ELOOP_IDLE = UV_IDLE,
+		ELOOP_NAMED_PIPE = UV_NAMED_PIPE,
+		ELOOP_POLL = UV_POLL,
+		ELOOP_PREPARE = UV_PREPARE,
+		ELOOP_PROCESS = UV_PROCESS,
+		ELOOP_STREAM = UV_STREAM,
+		ELOOP_TCP = UV_TCP,
+		ELOOP_TIMER = UV_TIMER,
+		ELOOP_TTY = UV_TTY,
+		ELOOP_UDP = UV_UDP,
+		ELOOP_SIGNAL = UV_SIGNAL,
+		
+		ELOOP_FILE = UV_FILE,
+		ELOOP_HANDLE_TYPE_MAX = UV_HANDLE_TYPE_MAX
+	}eloop_handle_type;
 
 	typedef enum _ElpeError
 	{
@@ -193,15 +219,17 @@ public:
 	static const char* errName(ElpeError err) { return errName((int) err); }
 	static const char* errName(int errNum)    { return uv_err_name(errNum); }
 
+	static int exepath(char* buf,size_t* size){return uv_exepath(buf,size);}
+
 protected:
 	Handle();
 	Handle(Handle &);
 	Handle &operator=(Handle &);
 	virtual ~Handle();
-	
-	void init(Loop &loop);
 
 public:
+	void init(Loop &loop);
+
 	void* data;
 	void close();
 	void ref();
@@ -215,10 +243,10 @@ public:
 	int fileno(fd_t* fd);
 	void _deleteContext();
 	Loop& get_loop();
+	uv_handle_t *context_ptr();
 
 protected:
-	virtual void OnClose(){}
-	uv_handle_t *context_ptr();
+	virtual void OnClose(){delete this;}
 	bool		_isStart;
 	bool		_isClose;
 	
@@ -380,6 +408,48 @@ private:
 	int				_count;
 	bool			_bIsAccess;
 };
+
+// -----------------------------
+// class Process
+// -----------------------------
+class Stream;
+class Process:public Handle
+{
+public:
+	 enum {
+		ELOOP_IGNORE = UV_IGNORE,
+		ELOOP_CREATE_PIPE = UV_CREATE_PIPE,
+		ELOOP_INHERIT_FD = UV_INHERIT_FD,
+		ELOOP_INHERIT_STREAM = UV_INHERIT_STREAM,
+
+		/*
+		* When UV_CREATE_PIPE is specified, UV_READABLE_PIPE and UV_WRITABLE_PIPE
+		* determine the direction of flow, from the child process' perspective. Both
+		* flags may be specified to create a duplex data stream.
+		*/
+		ELOOP_READABLE_PIPE = UV_READABLE_PIPE,
+		ELOOP_WRITABLE_PIPE = UV_WRITABLE_PIPE
+	};
+
+	typedef uv_stdio_flags eloop_stdio_flags;
+	typedef uv_stdio_container_t eloop_stdio_container_t;
+	typedef uv_process_options_t eloop_process_options_t;
+
+public:
+	int spawn(const eloop_process_options_t* opt);
+	void set_stdio_container();
+	int pid();
+	int kill(int signum);
+	int kill(int pid,int signum);
+
+protected:
+	virtual void OnExit(int64_t exit_status,int term_signal) { close();}
+
+private:
+	static void _cbExit(uv_process_t* handle,int64_t exit_status,int term_signal);
+};
+
+
 
 } } // namespace ZQ::eloop
 

@@ -219,6 +219,12 @@ int Pipe::pending_count() {
 	return uv_pipe_pending_count(pipe);
 }
 
+Pipe::eloop_handle_type Pipe::pending_type()
+{
+	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
+	return (eloop_handle_type)uv_pipe_pending_type(pipe);
+}
+
 void Pipe::_cbConnected(uv_connect_t *req, int status) {
 	uv_stream_t* stream = req->handle;
 

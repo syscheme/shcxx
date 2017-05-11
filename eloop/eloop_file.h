@@ -170,7 +170,7 @@ class Pipe : public Stream
 public:
 	Pipe();
 
-	int  init(Loop &loop, int ipc =0);
+	int  init(Loop &loop, int ipc=1);
 	int  open(uv_file file);
 	int  bind(const char *name);
 	void connect(const char *name);
@@ -178,6 +178,7 @@ public:
 	int  getpeername(char *buffer, size_t *size);
 	void pending_instances(int count);
 	int  pending_count();
+	eloop_handle_type pending_type();
 
 protected:
 	//TODO: why wiped uv_connect_t here??

@@ -45,6 +45,7 @@ class ZQ_ELOOP_API DNS;
 // -----------------------------
 class Stream : public Handle
 {
+	friend class Process;
 protected:
 	Stream();
 
