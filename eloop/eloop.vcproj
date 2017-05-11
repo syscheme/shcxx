@@ -151,7 +151,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				InlineFunctionExpansion="1"
-				AdditionalIncludeDirectories="&quot;$(ZQProjsPath)/Common&quot;;&quot;$(RegExppKit)&quot;"
+				AdditionalIncludeDirectories="..;libuv_1.9.1/include;&quot;$(RegExppKit)&quot;"
 				PreprocessorDefinitions="NDEBUG;WIN32;_WINDOWS;_USRDLL;ELOOP_EXPORTS;XML_STATIC;LOGFMTWITHTID;_WIN32_WINNT=0x500"
 				StringPooling="true"
 				RuntimeLibrary="2"
@@ -177,6 +177,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="advapi32.lib iphlpapi.lib psapi.lib shell32.lib user32.lib userenv.lib ws2_32.lib"
 				OutputFile="$(ZQProjsPath)\TianShan\bin64\eloop.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
