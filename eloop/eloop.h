@@ -433,11 +433,17 @@ public:
 
 	typedef uv_stdio_flags eloop_stdio_flags;
 	typedef uv_stdio_container_t eloop_stdio_container_t;
-	typedef uv_process_options_t eloop_process_options_t;
+	typedef uv_uid_t	eloop_uid_t;
+	typedef uv_gid_t	eloop_gid_t;
 
 public:
-	int spawn(const eloop_process_options_t* opt);
-	void set_stdio_container();
+	void setenv(char** env);
+	void setcwd(const char* cwd);
+	void setflags(unsigned int flags);
+	void setuid(eloop_uid_t uid);
+	void setgid(eloop_gid_t gid);
+
+	int spawn(const char* file,char** args,eloop_stdio_container_t* container,int stdio_count);
 	int pid();
 	int kill(int signum);
 	int kill(int pid,int signum);
@@ -447,6 +453,7 @@ protected:
 
 private:
 	static void _cbExit(uv_process_t* handle,int64_t exit_status,int term_signal);
+	uv_process_options_t _opt;
 };
 
 

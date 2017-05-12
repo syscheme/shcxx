@@ -424,24 +424,40 @@ void CpuInfo::freeCpuInfo()
 // -----------------------------
 // class Process
 // -----------------------------
-int Process::spawn(const eloop_process_options_t* opt)
-{
-	uv_process_t* h = (uv_process_t*)context_ptr();
-/*	uv_process_options_t uvopt;
-	uvopt.exit_cb = Process::_cbExit;
-	uvopt.file = opt.file;
-	uvopt.args = opt.args;
-	uvopt.env = opt.env;
-	uvopt.cwd = opt.cwd;
-	uvopt.flags = opt.flags;
-	uvopt.stdio_count = opt.stdio_count;
-	uvopt.stdio->flags =(uv_stdio_flags)(opt.stdio->flags);
-	uvopt.stdio->data.stream = (uv_stream_t*)(opt.stdio->data.stream->context_ptr());
-	uvopt.stdio->data.fd = opt.stdio->data.fd;
-	uvopt.uid = opt.uid;
-	uvopt.gid = opt.gid;*/
 
-	return uv_spawn(get_loop().context_ptr(),h,opt);
+void Process::setenv(char** env)
+{
+	_opt.env = env;
+}
+void Process::setcwd(const char* cwd)
+{
+	_opt.cwd = cwd;
+}
+void Process::setflags(unsigned int flags)
+{
+	_opt.flags = flags;
+}
+void Process::setuid(eloop_uid_t uid)
+{
+	_opt.uid = uid;
+}
+
+void Process::setgid(eloop_gid_t gid)
+{
+	_opt.gid = gid;
+}
+
+int Process::spawn(const char* file,char** args,eloop_stdio_container_t* container,int stdio_count)
+{
+	_opt.file = file;
+	_opt.args = args;
+	if (stdio_count > 0)
+	{
+		_opt.stdio_count = stdio_count;
+		_opt.stdio = container;
+	}
+	uv_process_t* h = (uv_process_t*)context_ptr();
+	return uv_spawn(get_loop().context_ptr(),h,&_opt);
 }
 
 int Process::pid()
