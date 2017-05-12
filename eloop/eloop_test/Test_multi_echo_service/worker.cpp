@@ -20,7 +20,7 @@ void Transport::OnRead(ssize_t nread, const char *buf)
 	}
 
 	eloop_handle_type  pending = pending_type();
-	if (pending_type() == ELOOP_TCP)
+	if (pending_type() != ELOOP_TCP)
 	{
 		printf("pending type is tcp\n");
 		return;

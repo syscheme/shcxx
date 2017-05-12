@@ -2,8 +2,9 @@
 
 
 
-int main()
+int main(int argc,char* argv[])
 {
+	int id = atoi(argv[1]);
 	Loop loop(false);
 	Transport pipe;
 

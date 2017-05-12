@@ -12,7 +12,7 @@ public:
 	virtual void OnExit(int64_t exit_status,int term_signal) 
 	{
 		close();
-		printf("------------------\n");
+		printf("child process exit!\n");
 	}
 };
 

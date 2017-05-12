@@ -15,8 +15,6 @@ MultiEchoServer::~MultiEchoServer()
 
 }
 
-
-
 void MultiEchoServer::SetupWorker()
 {
 	size_t path_size = 500;
@@ -27,8 +25,6 @@ void MultiEchoServer::SetupWorker()
 
 	char* args[2];
 	args[0] = worker_path;
-	args[1] = NULL;
-
 	// ...
 	// launch same number of workers as number of CPUs
 	ZQ::eloop::CpuInfo cpu;
@@ -41,7 +37,6 @@ void MultiEchoServer::SetupWorker()
 		work.pipe->init(get_loop(),1);
 
 		Process::eloop_stdio_container_t child_stdio[3];
-		Process::eloop_process_options_t opt;
 
 		child_stdio[0].flags = (Process::eloop_stdio_flags)(Process::ELOOP_CREATE_PIPE | Process::ELOOP_READABLE_PIPE);
 		child_stdio[0].data.stream = (uv_stream_t*)(work.pipe->context_ptr());
@@ -49,22 +44,19 @@ void MultiEchoServer::SetupWorker()
 		child_stdio[2].flags = (Process::eloop_stdio_flags)Process::ELOOP_INHERIT_FD;
 		child_stdio[2].data.fd = 2;
 
-		opt.stdio = child_stdio;
-		opt.stdio_count = 3;
-
-		opt.file = args[0];
-		opt.args = args;
+		char id[4];
+		sprintf(id,"%d",i+1);
+		args[1] = id;
 
 		work.proc = new ChildProcess();
 		work.proc->init(get_loop());
-		int r = work.proc->spawn(&opt); 
+		int r = work.proc->spawn(args[0],args,child_stdio,3); 
 		if (r != elpeSuccess)
 		{
 			printf("spawn() error code[%d] desc[%s]",r,errDesc(r));
 			return;
 		}
 		
-
 		fprintf(stderr, "Started worker %d\n",work.proc->pid());
 		_workers.push_back(work);
 	}
