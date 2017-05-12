@@ -26,7 +26,7 @@ void Transport::OnRead(ssize_t nread, const char *buf)
 		return;
 	}
 	
-	worker* client = new worker();
+	worker* client = new worker(_workerid);
 	client->init(get_loop());
 
 	if (accept(client) == 0) {
@@ -48,7 +48,8 @@ void worker::OnRead(ssize_t nread, const char *buf)
 		close();
 		return;
 	}
-	std::string wbuf = "worker:";
+	std::string wbuf;
+	sprintf(const_cast<char*>(wbuf.c_str()),"worker id %d:",_workerid);
 	wbuf.append(buf);
 	write(wbuf.c_str(),wbuf.size());
 }

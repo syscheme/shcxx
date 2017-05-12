@@ -53,7 +53,7 @@ void MultiEchoServer::SetupWorker()
 		int r = work.proc->spawn(args[0],args,child_stdio,3); 
 		if (r != elpeSuccess)
 		{
-			printf("spawn() error code[%d] desc[%s]",r,errDesc(r));
+			printf("spawn() error code[%d] desc[%s]\n",r,errDesc(r));
 			return;
 		}
 		

@@ -11,16 +11,21 @@ class Transport:public Pipe
 {
 	//	friend class MultiEchoServer;
 public:
-	Transport(){}
+	Transport(int id):_workerid(id){}
 	~Transport(){}
 
 	virtual void OnRead(ssize_t nread, const char *buf);
+private:
+	int _workerid;
 };
 
 class worker:public TCP
 {
 public:
+	worker(int id):_workerid(id){}
 	virtual void OnRead(ssize_t nread, const char *buf);
+private:
+	int _workerid;
 };
 
 #endif
