@@ -82,7 +82,7 @@ public:
 // --------------------------------------------------
 // class ServerAgent
 // --------------------------------------------------
-ServerAgent::ServerAgent(HttpConnection& conn,ZQ::common::Log& logger,const Properties& dirProps, const Properties& appProps)
+ServerAgent::ServerAgent(HttpPassiveConn& conn,ZQ::common::Log& logger,const Properties& dirProps, const Properties& appProps)
 :HttpHandler(conn,logger,dirProps, appProps)
 {
 	_ag = ZQSnmpSingleton::getInstance(logger); 
@@ -136,7 +136,7 @@ bool ServerAgent::onHeadersEnd( const HttpMessage::Ptr msg)
 // --------------------------------------------------
 // class LoadFile
 // --------------------------------------------------
-LoadFile::LoadFile(HttpConnection& conn,ZQ::common::Log& logger,const Properties& dirProps, const Properties& appProps)
+LoadFile::LoadFile(HttpPassiveConn& conn,ZQ::common::Log& logger,const Properties& dirProps, const Properties& appProps)
 :HttpHandler(conn,logger,dirProps, appProps),_curfile(NULL)
 {
 	Properties::const_iterator it = appProps.find("homedir");

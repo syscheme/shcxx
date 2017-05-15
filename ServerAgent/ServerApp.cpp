@@ -80,11 +80,10 @@ int main(int argc,char* argv[])
 	ZQ::eloop::HttpServer::HttpServerConfig conf;
 	conf.host = ip;
 	conf.port = port;
-	ZQ::eloop::HttpServer* server;
-	if(threadCount <= 0)
-		server = new ZQ::eloop::SingleLoopHttpServer(conf,*pLog);
-	else
-		server = new ZQ::eloop::MultipleLoopHttpServer(conf,*pLog);
+
+	ZQ::eloop::HttpServer* server = new ZQ::eloop::HttpServer(conf,*pLog);;
+
+
 
 	server->mount("/svar/.*",getVar);
 	server->mount("/fvar/.*",loadfile);
