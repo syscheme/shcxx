@@ -15,6 +15,7 @@ namespace eloop {
 
 #define DEFAULT_SITE "."
 class HttpServer;
+class HttpPassiveConn;
 class ServantThread;
 // ---------------------------------------
 // interface HttpHandler
