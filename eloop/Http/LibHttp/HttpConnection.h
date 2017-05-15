@@ -3,7 +3,8 @@
 
 #include "HttpMessage.h"
 #include "eloop_net.h"
-#include <set>
+//#include <set>
+#include <list>
 
 
 struct http_parser;
@@ -35,19 +36,96 @@ public:
 
 	/// error occured during data receiving or parsing stage
 	virtual void onError( int error,const char* errorDescription ) = 0;
+
 };
 
+//-----------------------------------------
+// class AsyncBuf
+//-----------------------------------------
+class AsyncBuf:public ZQ::common::SharedObject
+{
+public:
+	typedef ZQ::common::Pointer<AsyncBuf> Ptr;
+	AsyncBuf(const char* base,size_t len)
+		:_len(len),
+		_base((char*)malloc(len))
+	{
+		memcpy(_base,base,len);
+	}
+	virtual ~AsyncBuf()
+	{
+		if (_base != NULL)
+		{
+			free(_base);
+			_base = NULL;
+			_len = 0;
+		}
+	}
+	char*	_base;
+	size_t	_len;
+};
+/*
+//----------------------------------------------
+// class HttpRespon
+//----------------------------------------------
+class HttpRespon:public HttpMessage
+{
+
+};
+
+
+//----------------------------------------------
+// class HttpRequest
+//----------------------------------------------
+class HttpRequest:public HttpMessage
+{
+
+};
+
+//----------------------------------------------
+// class HttpPipe
+//----------------------------------------------
+class HttpPipe
+{
+public:
+	void push(AsyncBuf::Ptr inflowPtr)
+	{
+		_list.push_back(inflowPtr);
+	}
+	AsyncBuf::Ptr pop()
+	{
+		AsyncBuf::Ptr outflowPtr = _list.front();
+		_list.pop_front();
+	}
+
+private:
+	typedef std::list<AsyncBuf::Ptr> Listbuf;
+	Listbuf							_list;
+};
+*/
 // ---------------------------------------
 // class HttpConnection
 // ---------------------------------------
 class HttpConnection: public TCP, public IHttpParseSink
 {
+	friend class HttpPassiveConn;
+public:
+	enum EnResponState {
+		RESP_INIT,
+		RESP_HEADERS,
+		RESP_BODY,
+		RESP_COMPLETE
+	};
 private:
 	HttpConnection(const HttpConnection&);
 	HttpConnection& operator=( const HttpConnection&);
 
 public:
 	virtual ~HttpConnection();
+
+	virtual void onRespHeader() {_RespState = RESP_HEADERS;}
+	virtual void onRespBody() {_RespState = RESP_BODY;}
+	virtual void onRespComplete() {_RespState = RESP_COMPLETE;}	
 
 protected:
 	HttpConnection(bool clientSide,ZQ::common::Log& logger);
@@ -84,6 +162,7 @@ protected: // implementation of IHttpParseSink that also present the message rec
 	/// error occured during data receiving or parsing stage
 	virtual void onError( int error,const char* errorDescription ) {}
 
+	
 private:
 	ZQ::common::Log&		 _Logger;
 	http_parser*             _Parser; // its type can be determined by clientSide
@@ -91,6 +170,11 @@ private:
 	HttpMessage::Ptr         _CurrentParseMsg;
 	HttpMessage::MessgeType  _Type;
 	IHttpParseSink*			 _Callback;
+
+	//To achieve keepAlive and pipeline
+	typedef std::list<AsyncBuf::Ptr> ListPipe;
+	ListPipe					_listpipe;
+	EnResponState				_RespState;
 
 	std::string			_HeaderField;
 	std::string*		_HeaderValue;
@@ -103,7 +187,7 @@ private:
 		STATE_COMPLETE
 	};
 	ParseState			_ParserState;
-	size_t parse( const char* data, size_t size);
+	void parse( const char* data, size_t size);
 	static int on_message_begin(http_parser* parser);
 	static int on_headers_complete(http_parser* parser);
 	static int on_message_complete(http_parser* parser);

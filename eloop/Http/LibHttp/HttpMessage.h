@@ -12,6 +12,7 @@
 namespace ZQ {
 namespace eloop {
 
+#define CRLF "\r\n"
 struct HttpCode2Str {
 	int 			code;
 	const char*		status;
@@ -96,6 +97,13 @@ public:
 		PUT			= HTTP_PUT
 	}HttpMethod;
 
+/*	enum Encoding
+	{
+		None, // raw data
+		Form_Urlencoded,
+		Form_Multipart
+	};
+*/
 public:
 	HttpMessage(MessgeType type);
 	virtual ~HttpMessage();
@@ -103,6 +111,7 @@ public:
 
 	static const std::string& code2status(int code);
 	static std::string httpdate( int deltaInSecond = 0 );
+	static std::string uint2hex(unsigned long u, size_t alignLen = 0, char paddingChar = '0');
 
 	HttpMethod method() const;
 	void		method(HttpMethod mtd);
@@ -115,6 +124,10 @@ public:
 
 	void	status( const std::string& s);	// set status description
 	const std::string& status() const;		//get status description
+
+	const std::string& queryArgument(const std::string& k);
+	void queryArgument(const std::string& k, const std::string& v);
+	std::map<std::string, std::string> queryArguments();
 
 	const std::string& header( const std::string& key) const;
 
@@ -177,6 +190,7 @@ private:
 	unsigned int		_VerMajor;
 	unsigned int		_VerMinor;
 	HEADERS				_Headers;
+	std::map<std::string, std::string> _argument;
 	std::string			_DummyHeaderValue;
 	int64				_BodyLength;//only valid if _bChunked == false
 	std::string 		_RawMessage;

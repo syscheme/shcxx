@@ -1,6 +1,7 @@
 #include "HttpConnection.h"
 #include "http_parser.h"
 #include "HttpMessage.h"
+#include "urlstr.h"
 #include <assert.h>
 
 namespace ZQ {
@@ -12,6 +13,7 @@ HttpConnection::HttpConnection(bool clientSide,ZQ::common::Log& logger)
 		:_Type(clientSide?HttpMessage::MSG_RESPONSE:HttpMessage::MSG_REQUEST),
 		_Parser(NULL),
 		_Logger(logger),
+		_RespState(RESP_COMPLETE),
 		_ParserSettings(NULL)
 {
 	_Parser = (http_parser*)malloc(sizeof(http_parser));
@@ -53,29 +55,17 @@ void HttpConnection::reset(IHttpParseSink* p)
 
 void HttpConnection::OnRead(ssize_t nread, const char *buf)
 {
-	if (nread <= 0) {
+	if (nread < 0) {
 		std::string desc = "Read error:";
 		desc.append(errDesc(nread));
 		onError(nread,desc.c_str());
 		return;
 	}
-
-	size_t nparsed =parse(buf, nread);
-
-	if(nparsed != nread){
-		//_Logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"parse error nread = %d,nparsed=%d"),nread,nparsed);	
-		std::string parsedesc = "parse error:";
-		parsedesc.append(http_errno_description((http_errno)_Parser->http_errno));
-		onError((int)_Parser->http_errno,parsedesc.c_str());
+	if (nread == 0)
 		return;
-	}
 
-	if( _ParserState >= STATE_COMPLETE) {
-		reset();
-		//_Logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"reset,state = %d"),_ParserState);
-	}
-
-	onHttpDataReceived(nread);	
+	onHttpDataReceived(nread);
+	parse(buf, nread);
 }
 
 void HttpConnection::OnWrote(ElpeError status)
@@ -89,6 +79,15 @@ void HttpConnection::OnWrote(ElpeError status)
 	}
 	
 	onHttpDataSent();
+
+//	_Logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"OnWrote\n"));
+
+	if ((_RespState == RESP_COMPLETE) && (!_listpipe.empty()))
+	{
+		AsyncBuf::Ptr bufptr = _listpipe.front();
+		_listpipe.pop_front();
+		parse(bufptr->_base,bufptr->_len);
+	}
 }
 
 void HttpConnection::OnClose()
@@ -100,14 +99,45 @@ void HttpConnection::OnShutdown(ElpeError status)
 {
 	if (status != elpeSuccess)
 	{
-		//fprintf(stderr, "shutdown error %s\n",  errDesc(status));
-		_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpPassiveConn,"shutdown error %s"),errDesc(status));
+		_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpPassiveConn,"shutdown error code[%d] Description[%s]"),status,errDesc(status));
 	}
 	close();
 }
 
-size_t HttpConnection::parse( const char* data, size_t size) {
-	return http_parser_execute(_Parser, _ParserSettings, data, size);
+void HttpConnection::parse( const char* data, size_t size) {
+
+	if (_RespState != RESP_COMPLETE)
+	{
+		AsyncBuf::Ptr inflowPtr = new AsyncBuf(data,size);
+		_listpipe.push_back(inflowPtr);
+		return;
+	}
+	if( _ParserState >= STATE_COMPLETE) {
+		reset();
+		//_Logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"reset,state = %d"),_ParserState);
+	}
+//	_Logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"parse data [%d][%s]"),size,data);
+
+	size_t nparsed = http_parser_execute(_Parser, _ParserSettings, data, size);
+
+//	_Logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"parsed = %d,size = %d"),nparsed,size);
+
+	if(nparsed != size){
+
+		if (_ParserState >= STATE_COMPLETE)
+		{
+			const char* tempbuf = data + nparsed;
+			size_t templen = size - nparsed;
+			parse(tempbuf,templen);
+		}
+		else
+		{
+			std::string parsedesc = "parse error:";
+			parsedesc.append(http_errno_description((http_errno)_Parser->http_errno));
+			onError((int)_Parser->http_errno,parsedesc.c_str());
+			return;
+		}
+	}
 }
 
 int	HttpConnection::onMessageBegin( ){
@@ -123,6 +153,18 @@ int	HttpConnection::onHeadersComplete(){
 	_CurrentParseMsg->code((int)_Parser->status_code);
 	_CurrentParseMsg->method((HttpMessage::HttpMethod)_Parser->method);
 	_CurrentParseMsg->setVersion(_Parser->http_major, _Parser->http_minor);
+
+	ZQ::common::URLStr decoder(NULL, true); // case sensitive
+	if(decoder.parse(_CurrentParseMsg->_Uri.c_str()))
+	{
+		_CurrentParseMsg->_argument = decoder.getEnumVars();
+	}
+	// cut off the paramesters
+	std::string uriWithnoParams = _CurrentParseMsg->url();
+	size_t pos = uriWithnoParams.find_first_of("?#");
+	if (std::string::npos != pos)
+		_CurrentParseMsg->url(uriWithnoParams.substr(0, pos));
+
 	_ParserState = STATE_BODY;
 	if(_Parser->http_errno == 0) {
 		assert(_Callback != NULL);
@@ -138,11 +180,13 @@ int	HttpConnection::onMessageComplete(){
 	_Callback->onMessageCompleted();
 	_ParserState = STATE_COMPLETE;
 	_CurrentParseMsg = NULL;
-	return 0;
+	return -1;//cancel parsing procedure
+//	return 0;
 }
 
 int	HttpConnection::onUri(const char* at, size_t size){
 	_CurrentParseMsg->_Uri.append(at, size);
+//	printf("------- _Uri = [%s]\n",_CurrentParseMsg->_Uri.c_str());
 	return 0;
 }
 
@@ -184,13 +228,11 @@ int	HttpConnection::onBody(const char* at, size_t size){
 
 int	HttpConnection::onChunkHeader(http_parser* parser)
 {
-	//printf("onChunkHeader!\n");
 	return 0;
 }
 
 int	HttpConnection::onChunkComplete(http_parser* parser)
 {
-	//printf("onChunkComplete!\n");
 	return 0;
 }
 

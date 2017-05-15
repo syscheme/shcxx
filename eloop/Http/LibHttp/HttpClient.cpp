@@ -23,7 +23,7 @@ HttpClient::~HttpClient()
 void HttpClient::OnConnected(ElpeError status)
 {
 	if (status != elpeSuccess) {
-		fprintf(stderr, "on_connect error %s\n", errDesc(status));
+//		fprintf(stderr, "on_connect error %s\n", errDesc(status));
 		std::string desc = "on_connect error:";
 		desc.append(errDesc(status));
 		onError(status,errDesc(status));
@@ -35,6 +35,13 @@ void HttpClient::OnConnected(ElpeError status)
 	//printf("OnConnected,send str = %s\n",str.c_str());
 	write(str.c_str(),str.length());
 	_SendMsg = NULL;
+}
+
+int HttpClient::Request(HttpMessage::Ptr msg)
+{
+	std::string req = msg->toRaw();
+	return write(req.c_str(),req.length());
+//	return try_write(req.c_str(),req.length());
 }
 
 bool HttpClient::beginRequest( HttpMessage::Ptr msg, const std::string& url)
@@ -49,10 +56,9 @@ bool HttpClient::beginRequest( HttpMessage::Ptr msg, const std::string& url)
 	if(msg->url().empty() ) 
 		msg->url("/");
 
-	//printf("ip = %s,port = %d,url = %s \n",host,urlstr.getPort(),msg->url().c_str());
+//	printf("ip = %s,port = %d,url = %s \n",host,urlstr.getPort(),msg->url().c_str());
 
 	msg->header("Host",host);
-	msg->header("Connection", "Keep-Alive");
 
 	_SendMsg = msg;
 	connect4(host,urlstr.getPort());

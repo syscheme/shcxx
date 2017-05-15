@@ -53,6 +53,31 @@ std::string HttpMessage::httpdate( int delta ) {
 	return buffer;
 }
 
+std::string HttpMessage::uint2hex(unsigned long u, size_t alignLen, char paddingChar)
+{
+	static char hexCharTbl[] = {
+		'0', '1', '2', '3', '4', '5', '6', '7',
+		'8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
+	};
+
+	std::string ret;
+	ret.reserve(8);
+
+	while(u)
+	{
+		ret.insert(ret.begin(), hexCharTbl[u & 0xF]);
+		u >>= 4;
+	}
+
+	if(ret.empty())
+		return "0";
+
+	while(ret.size() < alignLen)
+		ret.insert(ret.begin(), paddingChar);
+
+	return ret;
+}
+
 const std::string& HttpMessage::code2status( int code ) {
 	std::map<int,std::string>::const_iterator it = code2statusmap.find(code);
 	if( it != code2statusmap.end())
@@ -92,6 +117,26 @@ void HttpMessage::url(const std::string& url) {
 	_Uri = url;
 }
 
+const std::string& HttpMessage::queryArgument(const std::string& k)
+{
+	std::map<std::string, std::string>::const_iterator it = _argument.find(k);
+	if (it == _argument.end())
+		return _DummyHeaderValue;
+	return it->second;
+}
+
+void HttpMessage::queryArgument(const std::string& k, const std::string& v)
+{
+	 _argument[k] = v;
+}
+
+std::map<std::string, std::string> HttpMessage::queryArguments()
+{
+	return _argument;
+}
+
+
+
 const std::string& HttpMessage::header( const std::string& key) const {
 	ZQ::common::MutexGuard gd(_Locker);
 	HEADERS::const_iterator it = _Headers.find(key);
@@ -119,7 +164,7 @@ bool HttpMessage::chunked() const {
 void HttpMessage::chunked(bool b) {
 	_bChunked = b;
 	if(b){
-		_BodyLength = 0;
+		_BodyLength = -1;
 	}
 }	
 

@@ -15,6 +15,8 @@ public:
 	virtual void OnConnected(ElpeError status);
 	bool beginRequest( HttpMessage::Ptr msg, const std::string& url);
 
+	int Request(HttpMessage::Ptr msg);
+
 private:
 	//disallow copy construction
 	HttpClient(const HttpClient&);

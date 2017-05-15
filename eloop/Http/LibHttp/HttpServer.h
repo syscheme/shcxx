@@ -28,13 +28,13 @@ public:
 	virtual ~HttpHandler() { }
 
 protected: // hatched by HttpApplication
-	HttpHandler(HttpConnection& conn,ZQ::common::Log& logger, const Properties& dirProps, const Properties& appProps)
+	HttpHandler(HttpPassiveConn& conn,ZQ::common::Log& logger, const Properties& dirProps, const Properties& appProps)
 		: _conn(conn),_Logger(logger),_dirProps(dirProps), _appProps(appProps) {}
 	virtual void	onHttpDataSent(){}
 
 	virtual void	onHttpDataReceived( size_t size ){}
 
-	HttpConnection& _conn;
+	HttpPassiveConn& _conn;
 	Properties _dirProps, _appProps;
 	ZQ::common::Log&			_Logger;
 };
@@ -52,7 +52,7 @@ public:
 	HttpBaseApplication(const HttpHandler::Properties& appProps = HttpHandler::Properties()): _appProps(appProps) {}
 	virtual ~HttpBaseApplication() {}
 	// NOTE: this method may be accessed by multi threads concurrently
-	virtual HttpHandler::Ptr create( HttpConnection& conn,ZQ::common::Log& logger,const HttpHandler::Properties& dirProps) { return NULL; }		
+	virtual HttpHandler::Ptr create( HttpPassiveConn& conn,ZQ::common::Log& logger,const HttpHandler::Properties& dirProps) { return NULL; }		
 protected:
 	HttpHandler::Properties _appProps;
 };
@@ -68,11 +68,24 @@ public:
 	HttpApplication(const HttpHandler::Properties& appProps = HttpHandler::Properties()): _appProps(appProps) {}
 	virtual ~HttpApplication() {}
 
-	virtual HttpHandler::Ptr create( HttpConnection& conn,ZQ::common::Log& logger, const HttpHandler::Properties& dirProps) { return new HandlerT(conn,logger,dirProps, _appProps);}
+	virtual HttpHandler::Ptr create( HttpPassiveConn& conn,ZQ::common::Log& logger, const HttpHandler::Properties& dirProps) { return new HandlerT(conn,logger,dirProps, _appProps);}
 
 protected:
 	HttpHandler::Properties _appProps;
 };
+
+
+//---------------------------------------
+//class HttpMonitorTimer
+//----------------------------------------
+class HttpMonitorTimer:public Timer
+{
+public:
+//	~HttpMonitorTimer(){printf("~HttpMonitorTimer\n");}
+	virtual void OnTimer();
+//	virtual void OnClose(){printf("HttpMonitorTimer onclose!\n");}
+};
+
 
 // ---------------------------------------
 // class HttpPassiveConn
@@ -86,6 +99,11 @@ public:
 
 	bool			start();
 	const std::string& hint() const { return _Hint; }
+	void			stop();
+
+	bool			keepAlive(){return _keepAlive_Timeout>0;}
+	virtual void onRespComplete();
+	void 			errorResponse( int code );
 
 protected:
 
@@ -100,28 +118,40 @@ protected:
 
 private:
 	// NOTE: DO NOT INVOKE THIS METHOD unless you known what you are doing
-	void 			errorResponse( int code );
 	void initHint();
 
 private:
 	HttpServer&					_server;
 	HttpHandler::Ptr			_Handler;
-	int64						_LastTouch;
+
+//	typedef std::map<std::string,HttpHandler::Ptr> MapHandler;
+//	MapHandler					_mapHandler;
 	
 	ZQ::common::Log&			_Logger;
-	bool						_HeaderComplete;
-	bool						_bError;
+//	bool						_HeaderComplete;
+//	bool						_bError;
+
+	bool						_keepAlive;
+	int64						_keepAlive_Timeout;
+	int64						_startTime;
+	HttpMonitorTimer			_timer;
 
 	std::string					_Hint;
+// 	int64						_lastRespTime;
 };
-
 
 // ---------------------------------------
 // class HttpServer
 // ---------------------------------------
+class IHttpEngine;
 class HttpServer
 {
 public:
+	enum ServerMode{
+		SINGLE_LOOP_MODE,
+		MULTIPE_LOOP_MODE,
+		DEFAULT_MODE = SINGLE_LOOP_MODE
+	};
 	struct HttpServerConfig
 	{
 		HttpServerConfig() {
@@ -129,17 +159,20 @@ public:
 			host			= "127.0.0.1";
 			port			= 8888;
 			httpHeaderAvailbleTimeout = 5* 60 * 1000;
+			keepalive_timeout		= -1;		//ms
 			keepAliveIdleMin		= 5 * 60 * 1000;
 			keepAliveIdleMax		= 10 * 60 *1000;
 			maxConns 				= 100 * 1000;
-			threadCount				= 0;
+			mode					= DEFAULT_MODE;
 		}
 
 		std::string serverName;
 		std::string	host;
 		uint64		port;
+		ServerMode	mode;
 		int			threadCount;
 		uint64		httpHeaderAvailbleTimeout;
+		uint64		keepalive_timeout;
 		uint64		keepAliveIdleMin;
 		uint64		keepAliveIdleMax;
 		uint64		maxConns;
@@ -149,14 +182,15 @@ public:
 	HttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger);
 	~HttpServer();
 
-	virtual bool startAt() = 0;
-	virtual void stop() = 0;
+	bool startAt();
+	void stop();
+
 	// register an application to uri
 	//@param uriEx - the regular expression of uri
 
 	bool mount(const std::string& uriEx, HttpBaseApplication::Ptr app, const HttpHandler::Properties& props=HttpHandler::Properties(), const char* virtualSite =DEFAULT_SITE);
 
-	HttpHandler::Ptr createHandler( const std::string& uri, HttpConnection& conn, const std::string& virtualSite = std::string(DEFAULT_SITE));
+	HttpHandler::Ptr createHandler( const std::string& uri, HttpPassiveConn& conn, const std::string& virtualSite = std::string(DEFAULT_SITE));
 
 
 	void	addConn( HttpPassiveConn* servant );
@@ -164,11 +198,12 @@ public:
 
 	HttpMessage::Ptr makeSimpleResponse( int code ) const;
 
-protected:
+	int64    keepAliveTimeout() const;
+
+private:
 	HttpServerConfig		_Config;
 	ZQ::common::Log&		_Logger;
 
-private:
 	typedef struct _MountDir
 	{
 		std::string					uriEx;
@@ -183,19 +218,48 @@ private:
 	VSites _vsites;
 
 	std::set<HttpPassiveConn*> _PassiveConn;
-	ZQ::common::Mutex		_Locker;
-	SYS::SingleObject		_single;
+	ZQ::common::Mutex		_connCountLock;
+//	SYS::SingleObject		_single;
+	IHttpEngine*			_engine;
+};
+
+
+//------------------------------------------
+//IHttpEngine
+//------------------------------------------
+class IHttpEngine
+{
+public:
+	IHttpEngine(const std::string& ip,int port,ZQ::common::Log& logger,HttpServer& server)
+		:_ip(ip),
+		_port(port),
+		_Logger(logger),
+		_server(server)
+	{
+
+	}
+	virtual ~IHttpEngine(){}
+
+public:
+	virtual bool startAt() = 0;
+	virtual void stop() = 0;
+
+	ZQ::common::Log&		_Logger;
+	const std::string&		_ip;
+	int						_port;
+	HttpServer&				_server;
+
 };
 
 // ---------------------------------------
-// class SingleLoopHttpServer
+// class SingleLoopHttpEngine
 // ---------------------------------------
 // Single event loop
-class SingleLoopHttpServer:public TCP,public HttpServer
+class SingleLoopHttpEngine:public TCP,public IHttpEngine
 {
 public:
-	SingleLoopHttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger);
-	~SingleLoopHttpServer();
+	SingleLoopHttpEngine(const std::string& ip,int port,ZQ::common::Log& logger,HttpServer& server);
+	~SingleLoopHttpEngine();
 
 public:
 	virtual bool startAt();
@@ -207,14 +271,14 @@ private:
 };
 
 // ---------------------------------------
-// class MultipleLoopHttpServer
+// class MultipleLoopHttpEngine
 // ---------------------------------------
 //Multiple event loops
-class MultipleLoopHttpServer:public HttpServer,public ZQ::common::NativeThread
+class MultipleLoopHttpEngine:public ZQ::common::NativeThread,public IHttpEngine
 {
 public:
-	MultipleLoopHttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger);
-	~MultipleLoopHttpServer();
+	MultipleLoopHttpEngine(const std::string& ip,int port,ZQ::common::Log& logger,HttpServer& server);
+	~MultipleLoopHttpEngine();
 
 public:
 	virtual bool startAt();
@@ -226,6 +290,7 @@ private:
 	int		_socket;
 	std::vector<ServantThread*> _vecThread;
 	int		_roundCount;
+	int		_threadCount;
 };
 
 // ---------------------------------------
