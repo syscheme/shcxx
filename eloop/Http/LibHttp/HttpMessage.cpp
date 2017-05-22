@@ -3,7 +3,6 @@
 #include "http_parser.h"
 #include "HttpMessage.h"
 #include "urlstr.h"
-#include <string.h>
 
 
 namespace ZQ {

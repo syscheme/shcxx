@@ -1,5 +1,6 @@
 #ifndef __HTTP_MESSAGE_h__
 #define __HTTP_MESSAGE_h__
+#include "ZQ_common_conf.h"
 
 #include <Locks.h>
 #include <sstream>
@@ -9,7 +10,6 @@
 #include "eloop_lock.h"
 #include "http_parser.h"
 #include <boost/algorithm/string/trim.hpp>
-#include <string>
 #include <vector>
 #include <functional>
 
