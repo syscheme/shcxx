@@ -8,6 +8,14 @@
 namespace ZQ {
 namespace eloop {
 
+#ifdef ZQ_OS_LINUX
+	#ifndef stricmp
+		#define	stricmp strcasecmp
+	#endif
+	#ifndef strnicmp
+		#define strnicmp strncasecmp
+	#endif
+#endif
 
 	void split(std::vector<std::string>& v, const std::string& s, const std::string d = " ")
 	{
