@@ -8,6 +8,10 @@
 #include <map>
 #include "eloop_lock.h"
 #include "http_parser.h"
+#include <boost/algorithm/string/trim.hpp>
+#include <string>
+#include <vector>
+#include <functional>
 
 namespace ZQ {
 namespace eloop {
@@ -78,6 +82,69 @@ static const char* httpDateStrWeekDay[] = {"Sun","Mon","Tue","Wed","Thu","Fri","
 static const char* httpDateStrMonth[] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
 
 
+
+
+class DataStreamHelper
+{
+public:
+	struct Data
+	{
+		const char* data;
+		size_t size;
+		Data():data(NULL), size(0){}
+		void clear()
+		{
+			data = NULL;
+			size = 0;
+		}
+	};
+	struct SearchResult
+	{
+		Data released;
+		Data prefix;
+		Data locked;
+		Data suffix;
+
+		void clear()
+		{
+			released.clear();
+			prefix.clear();
+			locked.clear();
+			suffix.clear();
+		}
+	};
+public:
+	void setTarget(const std::string& target);
+	// reset the search state
+	void reset();
+	// the search result won't include null pointer unless the input data is null.
+	// return true for reach the target
+	bool search(const char* data, size_t len, SearchResult& result);
+private:
+	std::string _target;
+	std::vector<int> _kmpNext;
+	size_t _nLocked;
+};
+
+#define Append_Search_Result(d, sr) {\
+	d.append(sr.released.data, sr.released.size);\
+	d.append(sr.prefix.data, sr.prefix.size);\
+}
+
+class LineCache
+{
+public:
+	LineCache();
+	const char* getLine(const char* &data, size_t &len);
+
+	void clear();
+private:
+	std::string _line;
+	bool _got;
+	DataStreamHelper _dsh;
+};
+
+
 // -----------------------------------------------------
 // class HttpMessage
 // -----------------------------------------------------
@@ -97,19 +164,29 @@ public:
 		PUT			= HTTP_PUT
 	}HttpMethod;
 
-/*	enum Encoding
+	enum Encoding
 	{
 		None, // raw data
 		Form_Urlencoded,
 		Form_Multipart
 	};
-*/
+
+	typedef enum _errorCode{
+
+		BoundaryisNULL = 1000,
+		BodyDecodedError  = 1001,
+		BodyPartError = 1002,
+		BodyEndError = 1003,
+		Unkown  = 2000
+	}ErrorCode;
+
 public:
 	HttpMessage(MessgeType type);
 	virtual ~HttpMessage();
 
 
 	static const std::string& code2status(int code);
+	static const char* errorCode2Desc(int err);
 	static std::string httpdate( int deltaInSecond = 0 );
 	static std::string uint2hex(unsigned long u, size_t alignLen = 0, char paddingChar = '0');
 
@@ -175,6 +252,10 @@ public:
 		_VerMinor = minor;
 	}
 
+	int onHeadersComplete();
+	int onBody(const char* data, size_t len);
+	int onMessageComplete();
+
 private:
 	friend class HttpConnection;
 
@@ -194,6 +275,9 @@ private:
 	std::string			_DummyHeaderValue;
 	int64				_BodyLength;//only valid if _bChunked == false
 	std::string 		_RawMessage;
+	Encoding			_encoding;
+	std::string			_boundary; // for multipart/form-data only
+	std::string			_buf;
 
 };
 

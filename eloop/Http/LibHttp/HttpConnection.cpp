@@ -1,7 +1,6 @@
 #include "HttpConnection.h"
 #include "http_parser.h"
 #include "HttpMessage.h"
-#include "urlstr.h"
 #include <assert.h>
 
 namespace ZQ {
@@ -154,17 +153,12 @@ int	HttpConnection::onHeadersComplete(){
 	_CurrentParseMsg->method((HttpMessage::HttpMethod)_Parser->method);
 	_CurrentParseMsg->setVersion(_Parser->http_major, _Parser->http_minor);
 
-	ZQ::common::URLStr decoder(NULL, true); // case sensitive
-	if(decoder.parse(_CurrentParseMsg->_Uri.c_str()))
+	int r = _CurrentParseMsg->onHeadersComplete();
+	if (r != 0)
 	{
-		_CurrentParseMsg->_argument = decoder.getEnumVars();
+		_Callback->onError(r,_CurrentParseMsg->errorCode2Desc(r));
+		return -2;
 	}
-	// cut off the paramesters
-	std::string uriWithnoParams = _CurrentParseMsg->url();
-	size_t pos = uriWithnoParams.find_first_of("?#");
-	if (std::string::npos != pos)
-		_CurrentParseMsg->url(uriWithnoParams.substr(0, pos));
-
 	_ParserState = STATE_BODY;
 	if(_Parser->http_errno == 0) {
 		assert(_Callback != NULL);
@@ -177,6 +171,14 @@ int	HttpConnection::onHeadersComplete(){
 
 int	HttpConnection::onMessageComplete(){
 	assert(_Callback != NULL);
+
+	int r = _CurrentParseMsg->onMessageComplete();
+	if (r != 0)
+	{
+		_Callback->onError(r,_CurrentParseMsg->errorCode2Desc(r));
+		return -1;
+	}
+	
 	_Callback->onMessageCompleted();
 	_ParserState = STATE_COMPLETE;
 	_CurrentParseMsg = NULL;
@@ -186,7 +188,6 @@ int	HttpConnection::onMessageComplete(){
 
 int	HttpConnection::onUri(const char* at, size_t size){
 	_CurrentParseMsg->_Uri.append(at, size);
-//	printf("------- _Uri = [%s]\n",_CurrentParseMsg->_Uri.c_str());
 	return 0;
 }
 
@@ -220,6 +221,10 @@ int	HttpConnection::onHeaderValue(const char* at, size_t size){
 }
 
 int	HttpConnection::onBody(const char* at, size_t size){
+
+	if (0 == _CurrentParseMsg->onBody(at,size))
+		return 0;
+
 	assert(_Callback!=NULL);
 	if(!_Callback->onBodyData(at, size))
 		return -1;//user cancel parsing procedure

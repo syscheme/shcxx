@@ -168,7 +168,7 @@ bool HttpPassiveConn::onHeadersEnd( const HttpMessage::Ptr msg) {
 		errorResponse(505);
 		return false;
 	}
-	printf("create handle url=%s\n",msg->url().c_str());
+//	printf("create handle url=%s\n",msg->url().c_str());
 	_Handler = _server.createHandler( msg->url(), *this);
 
 	if(!_Handler) {

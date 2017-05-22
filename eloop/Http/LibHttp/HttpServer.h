@@ -151,7 +151,7 @@ public:
 	enum ServerMode{
 		SINGLE_LOOP_MODE,
 		MULTIPE_LOOP_MODE,
-		DEFAULT_MODE = SINGLE_LOOP_MODE
+		DEFAULT_MODE = MULTIPE_LOOP_MODE
 	};
 	struct HttpServerConfig
 	{
