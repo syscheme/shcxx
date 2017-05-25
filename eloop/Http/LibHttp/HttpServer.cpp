@@ -216,7 +216,8 @@ void HttpPassiveConn::onMessageCompleted() {
 // ---------------------------------------
 HttpServer::HttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger)
 		:_Config(conf),
-		_Logger(logger)
+		_Logger(logger),
+		_isStart(false)
 {
 #ifdef ZQ_OS_LINUX
 	//Ignore SIGPIPE signal
@@ -227,16 +228,28 @@ HttpServer::HttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger)
 HttpServer::~HttpServer()
 {
 	stop();
+	if (!_PassiveConn.empty())
+	{
+		std::set<HttpPassiveConn*>::iterator itconn;
+		for(itconn = _PassiveConn.begin();itconn != _PassiveConn.end();itconn++)
+		{
+			(*itconn)->shutdown();
+		}
+		_sysWakeUp.wait(-1);
+	}
 	if (_engine != NULL)
 	{
 		delete _engine;
 		_engine = NULL;
 	}
-	
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServer, "quit HttpServer!"));
 }
 
 bool HttpServer::startAt()
 {
+	if (_isStart)
+		return true;
+	
 	if (_Config.mode == MULTIPE_LOOP_MODE)
 	{
 		_engine = new MultipleLoopHttpEngine(_Config.host,_Config.port,_Logger,*this);
@@ -244,6 +257,7 @@ bool HttpServer::startAt()
 	else
 		_engine = new SingleLoopHttpEngine(_Config.host,_Config.port,_Logger,*this);
 
+	_isStart = true;
 	return _engine->startAt();
 }
 
@@ -346,7 +360,6 @@ HttpHandler::Ptr HttpServer::createHandler(const std::string& uri, HttpPassiveCo
 
 }
 
-
 void HttpServer::addConn( HttpPassiveConn* servant )
 {
 	ZQ::common::MutexGuard gd(_connCountLock);
@@ -357,6 +370,8 @@ void HttpServer::delConn( HttpPassiveConn* servant )
 {
 	ZQ::common::MutexGuard gd(_connCountLock);
 	_PassiveConn.erase(servant);
+	if (_PassiveConn.empty())
+		_sysWakeUp.signal();
 }
 
 
@@ -474,7 +489,6 @@ MultipleLoopHttpEngine::~MultipleLoopHttpEngine()
 		(*iter)->close();
 		_vecThread.erase(iter++);
 	}
-	stop();
 }
 
 bool MultipleLoopHttpEngine::startAt()
@@ -540,8 +554,8 @@ int MultipleLoopHttpEngine::run()
 		int sock = accept( _socket, (struct sockaddr*)&addr, &size);
 		if( sock < 0 )
 			break;
-
-		/*int flags = fcntl(sock, F_GETFL, 0);
+/*
+		int flags = fcntl(sock, F_GETFL, 0);
 		if ( -1 == flags)
 		{
 			closesocket(sock);
@@ -552,6 +566,12 @@ int MultipleLoopHttpEngine::run()
 			closesocket(sock);
 			continue;
 		}*/
+		if (!_bRunning)
+		{
+			closesocket(sock);
+			break;
+		}
+		
 
 		ServantThread* pthread = _vecThread[_roundCount];
 		pthread->addSocket(sock);

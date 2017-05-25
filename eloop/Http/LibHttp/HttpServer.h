@@ -220,8 +220,9 @@ private:
 
 	std::set<HttpPassiveConn*> _PassiveConn;
 	ZQ::common::Mutex		_connCountLock;
-//	SYS::SingleObject		_single;
+	SYS::SingleObject		_sysWakeUp;
 	IHttpEngine*			_engine;
+	bool					_isStart;
 };
 
 
