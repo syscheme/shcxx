@@ -227,16 +227,19 @@ HttpServer::HttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger)
 
 HttpServer::~HttpServer()
 {
-	stop();
-	if (!_PassiveConn.empty())
+	if (_PassiveConn.empty())
+	{
+		stop();
+	}
+	else
 	{
 		std::set<HttpPassiveConn*>::iterator itconn;
 		for(itconn = _PassiveConn.begin();itconn != _PassiveConn.end();itconn++)
 		{
 			(*itconn)->shutdown();
 		}
-		_sysWakeUp.wait(-1);
 	}
+	_sysWakeUp.wait(-1);
 	if (_engine != NULL)
 	{
 		delete _engine;
@@ -371,7 +374,7 @@ void HttpServer::delConn( HttpPassiveConn* servant )
 	ZQ::common::MutexGuard gd(_connCountLock);
 	_PassiveConn.erase(servant);
 	if (_PassiveConn.empty())
-		_sysWakeUp.signal();
+		stop();
 }
 
 
@@ -389,6 +392,10 @@ int64 HttpServer::keepAliveTimeout() const
 	return _Config.keepalive_timeout;
 }
 
+void HttpServer::single()
+{
+	_sysWakeUp.signal();
+}
 // ---------------------------------------
 // class SingleLoopHttpEngine
 // ---------------------------------------
@@ -401,7 +408,7 @@ SingleLoopHttpEngine::SingleLoopHttpEngine(const std::string& ip,int port,ZQ::co
 }
 SingleLoopHttpEngine::~SingleLoopHttpEngine()
 {
-	_loop.close();
+	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(SingleLoopHttpEngine,"SingleLoopHttpEngine quit!"));
 }
 bool SingleLoopHttpEngine::startAt()
 {
@@ -415,6 +422,12 @@ bool SingleLoopHttpEngine::startAt()
 void SingleLoopHttpEngine::stop()
 {
 	close();
+}
+
+void SingleLoopHttpEngine::OnClose()
+{
+	_loop.close();
+	_server.single();
 }
 
 void SingleLoopHttpEngine::doAccept(ElpeError status)
@@ -483,12 +496,8 @@ MultipleLoopHttpEngine::MultipleLoopHttpEngine(const std::string& ip,int port,ZQ
 
 MultipleLoopHttpEngine::~MultipleLoopHttpEngine()
 {
-	std::vector<ServantThread*>::iterator iter;
-	for (iter=_vecThread.begin();iter!=_vecThread.end();iter++)  
-	{  
-		(*iter)->close();
-//		_vecThread.erase(iter++);
-	}
+	_vecThread.clear();
+	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(MultipleLoopHttpEngine,"MultipleLoopHttpEngine quit!"));
 }
 
 bool MultipleLoopHttpEngine::startAt()
@@ -543,6 +552,11 @@ void MultipleLoopHttpEngine::stop()
 	close(_socket);
 #endif
 	_socket = 0;
+	std::vector<ServantThread*>::iterator iter;
+	for (iter=_vecThread.begin();iter!=_vecThread.end();iter++)  
+	{  
+		(*iter)->close();
+	}
 }
 
 int MultipleLoopHttpEngine::run()
@@ -599,6 +613,7 @@ void ServantThread::OnClose()
 	{
 		delete _loop;
 	}
+	_server.single();
 	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(ServantThread,"ServantThread quit!"));
 	Handle::OnClose();
 }

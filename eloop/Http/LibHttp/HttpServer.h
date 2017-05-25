@@ -201,6 +201,8 @@ public:
 
 	int64    keepAliveTimeout() const;
 
+	void single();
+
 private:
 	HttpServerConfig		_Config;
 	ZQ::common::Log&		_Logger;
@@ -267,6 +269,7 @@ public:
 	virtual bool startAt();
 	virtual void stop();
 	virtual void doAccept(ElpeError status);
+	virtual void OnClose();
 
 private:
 	ZQ::eloop::Loop _loop;
