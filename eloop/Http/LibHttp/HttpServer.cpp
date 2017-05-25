@@ -487,7 +487,7 @@ MultipleLoopHttpEngine::~MultipleLoopHttpEngine()
 	for (iter=_vecThread.begin();iter!=_vecThread.end();iter++)  
 	{  
 		(*iter)->close();
-		_vecThread.erase(iter++);
+//		_vecThread.erase(iter++);
 	}
 }
 
@@ -567,12 +567,8 @@ int MultipleLoopHttpEngine::run()
 			continue;
 		}*/
 		if (!_bRunning)
-		{
-			closesocket(sock);
 			break;
-		}
 		
-
 		ServantThread* pthread = _vecThread[_roundCount];
 		pthread->addSocket(sock);
 		pthread->send();
@@ -594,11 +590,17 @@ ServantThread::ServantThread(HttpServer& server,ZQ::common::Log& logger)
 
 ServantThread::~ServantThread()
 {
+}
+
+void ServantThread::OnClose()
+{
 	_loop->close();
 	if (_loop != NULL)
 	{
 		delete _loop;
 	}
+	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(ServantThread,"ServantThread quit!"));
+	Handle::OnClose();
 }
 
 Loop& ServantThread::getLoop()
@@ -616,9 +618,9 @@ void ServantThread::addSocket(int sock)
 int ServantThread::run(void)
 {
 	Async::init(*_loop);
-	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(HttpServer,"thread start run! ThreadId = %d"),id());
+	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(ServantThread,"thread start run! ThreadId = %d"),id());
 	_loop->run(Loop::Default);
-	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(HttpServer,"thread quit! ThreadId = %d"),id());
+	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(ServantThread,"thread quit! ThreadId = %d"),id());
 	return 0;
 }
 

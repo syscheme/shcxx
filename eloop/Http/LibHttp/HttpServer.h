@@ -307,6 +307,7 @@ public:
 	Loop& getLoop();
 	void addSocket(int sock);
 	virtual void OnAsync();
+	virtual void OnClose();
 	HttpServer&			_server;
 	std::list<int>    _ListSocket;
 	ZQ::common::Mutex	_LockSocket;
