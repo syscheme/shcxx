@@ -413,24 +413,33 @@ void AsyncQuit::OnAsync()
 SingleLoopHttpEngine::SingleLoopHttpEngine(const std::string& ip,int port,ZQ::common::Log& logger,HttpServer& server)
 :IHttpEngine(ip,port,logger,server)
 {
-	init(_loop);
 }
 SingleLoopHttpEngine::~SingleLoopHttpEngine()
 {
-	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(SingleLoopHttpEngine,"SingleLoopHttpEngine quit!"));
+	
 }
 bool SingleLoopHttpEngine::startAt()
 {
+	return ZQ::common::NativeThread::start();
+}
+
+int SingleLoopHttpEngine::run(void)
+{
+	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(MultipleLoopHttpEngine,"SingleLoopHttpEngine start"));
+	init(_loop);
+	_async.data = this;
+	_async.init(_loop);
 	if (bind4(_ip.c_str(),_port) < 0)
 		return false;
 
 	if (listen() < 0)
 		return false;
 
-	_async.data = this;
-	_async.init(_loop);
-	return _loop.run(ZQ::eloop::Loop::Default);
+	int r=_loop.run(ZQ::eloop::Loop::Default);
+	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(SingleLoopHttpEngine,"SingleLoopHttpEngine quit!"));
+	return r;
 }
+
 void SingleLoopHttpEngine::stop()
 {
 	_async.send();

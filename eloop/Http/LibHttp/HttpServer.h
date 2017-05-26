@@ -267,7 +267,7 @@ public:
 // class SingleLoopHttpEngine
 // ---------------------------------------
 // Single event loop
-class SingleLoopHttpEngine:public TCP,public IHttpEngine
+class SingleLoopHttpEngine:public TCP,public IHttpEngine,public ZQ::common::NativeThread
 {
 public:
 	SingleLoopHttpEngine(const std::string& ip,int port,ZQ::common::Log& logger,HttpServer& server);
@@ -276,6 +276,7 @@ public:
 public:
 	virtual bool startAt();
 	virtual void stop();
+	virtual int run(void);
 	virtual void doAccept(ElpeError status);
 	virtual void OnClose();
 
