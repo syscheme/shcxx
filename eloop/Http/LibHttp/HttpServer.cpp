@@ -504,7 +504,7 @@ MultipleLoopHttpEngine::~MultipleLoopHttpEngine()
 	{
 		delete *it;
 		*it = NULL;
-		_vecThread.erase(it++);
+		it = _vecThread.erase(it);
 	}
 	_vecThread.clear();
 	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(MultipleLoopHttpEngine,"MultipleLoopHttpEngine quit!"));
