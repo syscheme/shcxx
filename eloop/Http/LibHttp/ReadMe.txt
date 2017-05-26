@@ -27,3 +27,5 @@ should add to or customize.
 2.不能一直循环调用write可能造成接收数据乱码，必须要等到write的回调函数来了后再调用下一次write
 
 3.connected_open()是后来添加的,在uv_tcp_open的基础上添加了uv_connection_init函数。
+
+4.handle的操作必须和loop在同一个线程里,在其他线程里调用某个handle的close函数无效,不同线程的操作可以通过Async来实现。

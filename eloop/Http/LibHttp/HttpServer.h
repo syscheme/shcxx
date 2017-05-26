@@ -289,6 +289,7 @@ public:
 	virtual bool startAt();
 	virtual void stop();
 	virtual int run(void);
+	void QuitNotify(ServantThread* sev);
 
 private:
 	bool	_bRunning;
@@ -304,20 +305,23 @@ private:
 class ServantThread:public ZQ::common::NativeThread,public Async
 {
 public:
-	ServantThread(HttpServer& server,ZQ::common::Log& logger);
+	ServantThread(HttpServer& server,MultipleLoopHttpEngine& engine,ZQ::common::Log& logger);
 	~ServantThread();
 	virtual int run(void);
 	Loop& getLoop();
 	void addSocket(int sock);
 	virtual void OnAsync();
 	virtual void OnClose();
-	HttpServer&			_server;
-	std::list<int>    _ListSocket;
-	ZQ::common::Mutex	_LockSocket;
+	void quit();
 
 private:
-	ZQ::common::Log&	_Logger;
-	Loop				*_loop;
+	ZQ::common::Log&			_Logger;
+	Loop						*_loop;
+	MultipleLoopHttpEngine&		_engine;
+	HttpServer&					_server;
+	std::list<int>				_ListSocket;
+	ZQ::common::Mutex			_LockSocket;
+	bool						_quit;
 //	int					_Count;
 //	ZQ::common::Mutex	_LockerCount;
 };
