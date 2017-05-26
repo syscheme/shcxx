@@ -243,6 +243,7 @@ bool HttpServer::startAt()
 		_engine = new SingleLoopHttpEngine(_Config.host,_Config.port,_Logger,*this);
 
 	_isStart = true;
+	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(HttpServer, "------------HttpServer Start!-------------------"));
 	return _engine->startAt();
 }
 
@@ -266,7 +267,7 @@ void HttpServer::stop()
 		delete _engine;
 		_engine = NULL;
 	}
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServer, "quit HttpServer!"));
+	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(HttpServer, "HttpServer quit!"));
 }
 /*
 int HttpServer::run()
@@ -405,7 +406,7 @@ void AsyncQuit::OnAsync()
 	close();
 }
 
-virtual void OnClose()
+void AsyncQuit::OnClose()
 {
 	SingleLoopHttpEngine* eng = (SingleLoopHttpEngine*)data;
 	eng->close();
@@ -420,7 +421,7 @@ SingleLoopHttpEngine::SingleLoopHttpEngine(const std::string& ip,int port,ZQ::co
 }
 SingleLoopHttpEngine::~SingleLoopHttpEngine()
 {
-	
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(SingleLoopHttpEngine,"SingleLoopHttpEngine destructor!"));
 }
 bool SingleLoopHttpEngine::startAt()
 {
@@ -429,7 +430,7 @@ bool SingleLoopHttpEngine::startAt()
 
 int SingleLoopHttpEngine::run(void)
 {
-	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(MultipleLoopHttpEngine,"SingleLoopHttpEngine start"));
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(SingleLoopHttpEngine,"SingleLoopHttpEngine start"));
 	ZQ::eloop::TCP::init(_loop);
 	_async.data = this;
 	_async.init(_loop);
@@ -440,7 +441,7 @@ int SingleLoopHttpEngine::run(void)
 		return false;
 
 	int r=_loop.run(ZQ::eloop::Loop::Default);
-	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(SingleLoopHttpEngine,"SingleLoopHttpEngine quit!"));
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(SingleLoopHttpEngine,"SingleLoopHttpEngine quit!"));
 	return r;
 }
 
@@ -512,7 +513,7 @@ MultipleLoopHttpEngine::MultipleLoopHttpEngine(const std::string& ip,int port,ZQ
 		ServantThread *pthread = new ServantThread(_server,*this,_Logger);
 
 		//printf("cpuId = %d,cpuCount = %d,mask = %d\n",i,_threadCount,1<<i);
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(MultipleLoopHttpEngine,"cpuId:%d,cpuCount:%d,mask:%d"),i,_threadCount,1<<i);
+		//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(MultipleLoopHttpEngine,"cpuId:%d,cpuCount:%d,mask:%d"),i,_threadCount,1<<i);
 		pthread->setCpuAffinity(i);
 
 		pthread->start();
@@ -530,7 +531,7 @@ MultipleLoopHttpEngine::~MultipleLoopHttpEngine()
 		it = _vecThread.erase(it);
 	}
 	_vecThread.clear();
-	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(MultipleLoopHttpEngine,"MultipleLoopHttpEngine quit!"));
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(MultipleLoopHttpEngine,"MultipleLoopHttpEngine destructor!"));
 }
 
 bool MultipleLoopHttpEngine::startAt()
@@ -603,7 +604,7 @@ void MultipleLoopHttpEngine::QuitNotify(ServantThread* sev)
 
 int MultipleLoopHttpEngine::run()
 {
-	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(MultipleLoopHttpEngine,"MultipleLoopHttpEngine start"));
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(MultipleLoopHttpEngine,"MultipleLoopHttpEngine start"));
 	struct sockaddr_storage addr;
 	while( _bRunning ) {
 		socklen_t size= (socklen_t)sizeof( addr );
@@ -630,7 +631,7 @@ int MultipleLoopHttpEngine::run()
 		pthread->send();
 		_roundCount = (_roundCount + 1) % _threadCount;
 	}
-	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(MultipleLoopHttpEngine,"MultipleLoopHttpEngine quit"));
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(MultipleLoopHttpEngine,"MultipleLoopHttpEngine quit"));
 	return 0;
 }
 
