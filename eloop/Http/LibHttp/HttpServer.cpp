@@ -227,24 +227,6 @@ HttpServer::HttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger)
 
 HttpServer::~HttpServer()
 {
-	if (_PassiveConn.empty())
-	{
-		stop();
-	}
-	else
-	{
-		std::set<HttpPassiveConn*>::iterator itconn;
-		for(itconn = _PassiveConn.begin();itconn != _PassiveConn.end();itconn++)
-		{
-			(*itconn)->shutdown();
-		}
-	}
-	_sysWakeUp.wait(-1);
-	if (_engine != NULL)
-	{
-		delete _engine;
-		_engine = NULL;
-	}
 	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServer, "quit HttpServer!"));
 }
 
@@ -266,7 +248,24 @@ bool HttpServer::startAt()
 
 void HttpServer::stop()
 {
-	_engine->stop();
+	if (_PassiveConn.empty())
+	{
+		_engine->stop();
+	}
+	else
+	{
+		std::set<HttpPassiveConn*>::iterator itconn;
+		for(itconn = _PassiveConn.begin();itconn != _PassiveConn.end();itconn++)
+		{
+			(*itconn)->shutdown();
+		}
+	}
+	_sysWakeUp.wait(-1);
+	if (_engine != NULL)
+	{
+		delete _engine;
+		_engine = NULL;
+	}
 }
 /*
 int HttpServer::run()
@@ -374,7 +373,7 @@ void HttpServer::delConn( HttpPassiveConn* servant )
 	ZQ::common::MutexGuard gd(_connCountLock);
 	_PassiveConn.erase(servant);
 	if (_PassiveConn.empty())
-		stop();
+		_engine->stop();
 }
 
 
@@ -457,6 +456,7 @@ MultipleLoopHttpEngine::MultipleLoopHttpEngine(const std::string& ip,int port,ZQ
 			:IHttpEngine(ip,port,logger,server),
 			_bRunning(false),
 			_roundCount(0),
+			_quitCount(0),
 			_socket(0)
 {
 /*
@@ -496,6 +496,13 @@ MultipleLoopHttpEngine::MultipleLoopHttpEngine(const std::string& ip,int port,ZQ
 
 MultipleLoopHttpEngine::~MultipleLoopHttpEngine()
 {
+	std::vector<ServantThread*>::iterator it = _vecThread.begin();
+	while(it != _vecThread.end())
+	{
+		delete *it;
+		*it = NULL;
+		_vecThread.erase(it++);
+	}
 	_vecThread.clear();
 	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(MultipleLoopHttpEngine,"MultipleLoopHttpEngine quit!"));
 }
@@ -562,21 +569,10 @@ void MultipleLoopHttpEngine::stop()
 
 void MultipleLoopHttpEngine::QuitNotify(ServantThread* sev)
 {
-	std::vector<ServantThread*>::iterator it = _vecThread.begin();
-	while(it != _vecThread.end())
-	{
-		if ((*it) == sev)
-		{
-			_vecThread.erase(it);
-			delete sev;
-			sev = NULL;
-			break;
-		}
-		it++;
-	}
-	if (_vecThread.empty())
+	ZQ::common::MutexGuard gd(_Lock);
+	_quitCount++;
+	if (_quitCount == _threadCount)
 		_server.single();
-	
 }
 
 int MultipleLoopHttpEngine::run()
@@ -626,7 +622,7 @@ ServantThread::ServantThread(HttpServer& server,MultipleLoopHttpEngine& engine,Z
 
 ServantThread::~ServantThread()
 {
-	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(ServantThread,"ServantThread quit!"));
+	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(ServantThread,"ServantThread destructor!"));
 }
 
 void ServantThread::quit()
@@ -641,7 +637,6 @@ void ServantThread::OnClose()
 	{
 		delete _loop;
 	}
-	/*_server.single();*/
 	_engine.QuitNotify(this);
 }
 
@@ -661,9 +656,9 @@ int ServantThread::run(void)
 {
 	Async::init(*_loop);
 	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(ServantThread,"ServantThread start run!"));
-	_loop->run(Loop::Default);
+	int r = _loop->run(Loop::Default);
 	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(ServantThread,"ServantThread quit!"));
-	return 0;
+	return r;
 }
 
 void ServantThread::OnAsync()

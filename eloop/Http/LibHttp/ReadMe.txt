@@ -29,3 +29,5 @@ should add to or customize.
 3.connected_open()是后来添加的,在uv_tcp_open的基础上添加了uv_connection_init函数。
 
 4.handle的操作必须和loop在同一个线程里,在其他线程里调用某个handle的close函数无效,不同线程的操作可以通过Async来实现。
+
+5.vector的erase()和clear()函数都不会delete对象

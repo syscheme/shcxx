@@ -297,6 +297,8 @@ private:
 	std::vector<ServantThread*> _vecThread;
 	int		_roundCount;
 	int		_threadCount;
+	ZQ::common::Mutex _Lock;
+	int		_quitCount;
 };
 
 // ---------------------------------------
