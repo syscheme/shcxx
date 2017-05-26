@@ -402,10 +402,14 @@ void HttpServer::single()
 // ---------------------------------------
 void AsyncQuit::OnAsync()
 {
+	close();
+}
+
+virtual void OnClose()
+{
 	SingleLoopHttpEngine* eng = (SingleLoopHttpEngine*)data;
 	eng->close();
 }
-
 // ---------------------------------------
 // class SingleLoopHttpEngine
 // ---------------------------------------
@@ -426,7 +430,7 @@ bool SingleLoopHttpEngine::startAt()
 int SingleLoopHttpEngine::run(void)
 {
 	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(MultipleLoopHttpEngine,"SingleLoopHttpEngine start"));
-	init(_loop);
+	ZQ::eloop::TCP::init(_loop);
 	_async.data = this;
 	_async.init(_loop);
 	if (bind4(_ip.c_str(),_port) < 0)

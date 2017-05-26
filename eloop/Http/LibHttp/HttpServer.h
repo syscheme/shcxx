@@ -262,6 +262,7 @@ class AsyncQuit:public Async
 {
 public:
 	virtual void OnAsync();
+	virtual void OnClose();
 };
 // ---------------------------------------
 // class SingleLoopHttpEngine
