@@ -396,11 +396,20 @@ void HttpServer::single()
 {
 	_sysWakeUp.signal();
 }
+
+// ---------------------------------------
+// class AsyncQuit
+// ---------------------------------------
+void AsyncQuit::OnAsync()
+{
+	SingleLoopHttpEngine* eng = (SingleLoopHttpEngine*)data;
+	eng->close();
+}
+
 // ---------------------------------------
 // class SingleLoopHttpEngine
 // ---------------------------------------
 // Single event loop
-
 SingleLoopHttpEngine::SingleLoopHttpEngine(const std::string& ip,int port,ZQ::common::Log& logger,HttpServer& server)
 :IHttpEngine(ip,port,logger,server)
 {
@@ -418,6 +427,7 @@ bool SingleLoopHttpEngine::startAt()
 	if (listen() < 0)
 		return false;
 
+	_async.data = this;
 	_async.init(_loop);
 	return _loop.run(ZQ::eloop::Loop::Default);
 }

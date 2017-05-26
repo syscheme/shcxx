@@ -256,6 +256,14 @@ public:
 };
 
 // ---------------------------------------
+// class AsyncQuit
+// ---------------------------------------
+class AsyncQuit:public Async
+{
+public:
+	virtual void OnAsync();
+};
+// ---------------------------------------
 // class SingleLoopHttpEngine
 // ---------------------------------------
 // Single event loop
@@ -273,7 +281,7 @@ public:
 
 private:
 	ZQ::eloop::Loop _loop;
-	Async			_async;
+	AsyncQuit		_async;
 };
 
 // ---------------------------------------
