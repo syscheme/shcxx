@@ -227,7 +227,7 @@ HttpServer::HttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger)
 
 HttpServer::~HttpServer()
 {
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServer, "quit HttpServer!"));
+
 }
 
 bool HttpServer::startAt()
@@ -266,6 +266,7 @@ void HttpServer::stop()
 		delete _engine;
 		_engine = NULL;
 	}
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServer, "quit HttpServer!"));
 }
 /*
 int HttpServer::run()
@@ -416,11 +417,13 @@ bool SingleLoopHttpEngine::startAt()
 
 	if (listen() < 0)
 		return false;
+
+	_async.init(_loop);
 	return _loop.run(ZQ::eloop::Loop::Default);
 }
 void SingleLoopHttpEngine::stop()
 {
-	close();
+	_async.send();
 }
 
 void SingleLoopHttpEngine::OnClose()

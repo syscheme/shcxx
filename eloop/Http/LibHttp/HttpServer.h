@@ -273,6 +273,7 @@ public:
 
 private:
 	ZQ::eloop::Loop _loop;
+	Async			_async;
 };
 
 // ---------------------------------------
