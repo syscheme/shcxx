@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="Test_multi_echo_service"
+	Name="Test_multi_echo_server"
 	ProjectGUID="{03929F2B-A415-4B20-9564-B2FAA11A1CFE}"
 	RootNamespace="Test_multi_echo_service"
 	Keyword="Win32Proj"
@@ -182,7 +182,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\MultiEchoService.cpp"
+				RelativePath=".\MultiEchoServer.cpp"
 				>
 			</File>
 		</Filter>
@@ -192,7 +192,7 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\MultiEchoService.h"
+				RelativePath=".\MultiEchoServer.h"
 				>
 			</File>
 		</Filter>

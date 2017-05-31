@@ -1,4 +1,4 @@
-#include "MultiEchoService.h"
+#include "MultiEchoServer.h"
 #include "eloop.h"
 
 
@@ -23,8 +23,9 @@ void MultiEchoServer::SetupWorker()
 	strcpy(worker_path + (strlen(worker_path) - strlen("Test_multi-echo-server.exe")-1), "worker.exe");
 	fprintf(stderr, "Worker path: %s\n", worker_path);
 
-	char* args[2];
+	char* args[3];
 	args[0] = worker_path;
+	args[2] = NULL;
 	// ...
 	// launch same number of workers as number of CPUs
 	ZQ::eloop::CpuInfo cpu;

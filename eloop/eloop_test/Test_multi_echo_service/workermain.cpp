@@ -4,7 +4,9 @@
 
 int main(int argc,char* argv[])
 {
-	int id = atoi(argv[1]);
+	int id = 0;
+	if (argc >= 2)
+		int id = atoi(argv[1]);
 	Loop loop(false);
 	Transport pipe(id);
 
