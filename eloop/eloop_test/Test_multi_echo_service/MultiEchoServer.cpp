@@ -25,6 +25,7 @@ void MultiEchoServer::SetupWorker()
 
 	char* args[3];
 	args[0] = worker_path;
+	//The last parameter must be null
 	args[2] = NULL;
 	// ...
 	// launch same number of workers as number of CPUs
