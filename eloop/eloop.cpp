@@ -201,7 +201,9 @@ int Loop::close()
 {
 	if (_uvLoop)
 	{
-		return uv_loop_close(_uvLoop);
+		int r = uv_loop_close(_uvLoop);
+		_uvLoop = NULL;
+		return r;
 	}
 	return -1;
 }

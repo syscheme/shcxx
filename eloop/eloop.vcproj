@@ -82,7 +82,7 @@
 				OutputFile="$(ZQProjsPath)\TianShan\bin\eloop.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="$(ZQProjsPath)/Common/eloop/release"
+				AdditionalLibraryDirectories=""
 				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(ZQProjsPath)\TianShan\bin\eloop.pdb"
@@ -152,7 +152,7 @@
 				Optimization="0"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="..;libuv_1.9.1/include;&quot;$(RegExppKit)&quot;"
-				PreprocessorDefinitions="NDEBUG;WIN32;_WINDOWS;_USRDLL;ELOOP_EXPORTS;XML_STATIC;LOGFMTWITHTID;_WIN32_WINNT=0x500"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;ELOOP_EXPORTS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_WIN32_WINNT=0x0600;_GNU_SOURCE"
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
@@ -181,7 +181,7 @@
 				OutputFile="$(ZQProjsPath)\TianShan\bin64\eloop.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				ModuleDefinitionFile=".\Agent_win.def"
+				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(ZQProjsPath)\TianShan\bin64\eloop.pdb"
 				ImportLibrary="$(ZQProjsPath)\TianShan\bin64\eloop.lib"
@@ -520,6 +520,10 @@
 				</FileConfiguration>
 			</File>
 		</Filter>
+		<File
+			RelativePath=".\ReadMe.txt"
+			>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>
