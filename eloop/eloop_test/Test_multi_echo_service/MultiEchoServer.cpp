@@ -20,7 +20,8 @@ void MultiEchoServer::SetupWorker()
 	size_t path_size = 500;
 	char worker_path[500];
 	Handle::exepath(worker_path, &path_size);
-	strcpy(worker_path + (strlen(worker_path) - strlen("Test_multi-echo-server.exe")-1), "worker.exe");
+//	strcpy(worker_path + (strlen(worker_path) - strlen("Test_multi-echo-server.exe")-1), "worker.exe");
+	strcpy(worker_path + (strlen(worker_path) - strlen("multi-echo-server.1.0.1.0")), "worker.1.0.1.0");
 	fprintf(stderr, "Worker path: %s\n", worker_path);
 
 	char* args[3];
