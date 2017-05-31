@@ -23,7 +23,7 @@
 #define UV_WIN_ATOMICOPS_INL_H_
 
 #include "uv.h"
-
+#include <intrin.h>
 
 /* Atomic set operation on char */
 #ifdef _MSC_VER /* MSVC */
@@ -34,14 +34,18 @@
 /* target to be aligned. */
 
 #pragma intrinsic(_InterlockedOr8)
-
+#pragma intrinsic(_InterlockedOr)
 
 static char __declspec(inline) uv__atomic_exchange_set(char volatile* target) {
-//  return _InterlockedOr8(target, 1);
+	return _InterlockedOr8(target, 1);
+}
+/*
+static char __declspec(inline) uv__atomic_exchange_set(char volatile* target) {
 	__asm mov ecx, target
 	__asm mov al, byte ptr [ecx]
 	__asm lock or byte ptr [ecx], 1
 }
+
 //tty.c 1038
 static long my_1_InterlockedOr(long volatile* target) {
 	__asm mov ecx, target
@@ -55,7 +59,7 @@ static long my_0_InterlockedOr(long volatile* target) {
 	__asm mov al, byte ptr [ecx]
 	__asm lock or byte ptr [ecx], 0
 }
-
+*/
 #else /* GCC */
 
 /* Mingw-32 version, hopefully this works for 64-bit gcc as well. */

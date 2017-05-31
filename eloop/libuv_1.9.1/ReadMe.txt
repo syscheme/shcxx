@@ -126,3 +126,10 @@ static long my_0_InterlockedOr(long volatile* target) {
 7.编译Linux版本库的时候需要修改libuv.target.mk，否则编译eloop库时会提示could not read symbols: Bad value
 
 Release版本在CFLAGS_Release变量中添加-shared和-fPIC
+
+
+8.在atomicops-inl.h里的相关函数修改成汇编代码，编译64位不对,后来查资料 _InterlockedOr8函数需要头文件：#include <intrin.h>所以之前的修改都可以去掉，只需要该加上头文件
+然后将tty.c中的InterlockedOr 改为_InterlockedOr
+
+_InterlockedOr8介绍：https://msdn.microsoft.com/ar-sa/library/b11125ze(v=vs.100).aspx
+https://msdn.microsoft.com/zh-cn/library/b11125ze.aspx
