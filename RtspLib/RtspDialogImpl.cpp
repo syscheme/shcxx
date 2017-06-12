@@ -13,8 +13,8 @@ namespace ZQRtspCommon
 {
 
 //---------------RtspDialog implement--------------------------------------------------------
-RtspDialogImpl::RtspDialogImpl(ZQ::common::Log& log, ZQ::common::NativeThreadPool& processPool, IHandler* handler)
-:_communicator(NULL), _strSavedMsg(""), _log(log), _processPool(processPool), _handler(handler)
+RtspDialogImpl::RtspDialogImpl(ZQ::common::Log& log, ZQ::common::NativeThreadPool& processPool, IHandler* handler, int32 lMaxPendingRequest)
+:_communicator(NULL), _strSavedMsg(""), _log(log), _processPool(processPool), _handler(handler), _lMaxPendingRequest(lMaxPendingRequest)
 {
 }
 
@@ -60,6 +60,30 @@ void RtspDialogImpl::onCommunicatorDestroyed(ZQ::DataPostHouse::IDataCommunicato
 	}
 }
 
+#define METHOD_SETUP         "SETUP"
+#define METHOD_TEARDOWN      "TEARDOWN"
+#define METHOD_SETPARAMETER  "SETPARAMETER"
+#define METHOD_GETPARAMETER  "GETPARAMETER"
+#define METHOD_RESPONSE      "RESPONSE"
+
+std::string  getVerbString(RTSP_VerbCode verb)
+{
+	switch(verb)
+	{
+	case RTSP_MTHD_SETUP:
+		return "SETUP";
+	case RTSP_MTHD_TEARDOWN:
+		return "TEARDOWN";
+	case RTSP_MTHD_GET_PARAMETER:
+		return "GETPARAMETER";
+	case RTSP_MTHD_SET_PARAMETER:
+		return "SETPARAMETER";
+	case RTSP_MTHD_RESPONSE:
+		return "RESPONSE";
+	default:
+		return "UNKNOWN";
+	}
+}
 bool RtspDialogImpl::onRead(const int8* buffer ,size_t bufSize)
 {
 	// unparse content
@@ -87,17 +111,50 @@ bool RtspDialogImpl::onRead(const int8* buffer ,size_t bufSize)
 		}
 		else
 		{
+
 			// hexical dump this request 
 			char hint[0x200];
 			sprintf(hint, "CONN["FMT64U"]TID[%08X] receive from peer[%s:%s]", 
-			_communicator->getCommunicatorId(), SYS::getCurrentThreadID(), _strRemoteIP.c_str(), _strRemotePort.c_str());
+				_communicator->getCommunicatorId(), SYS::getCurrentThreadID(), _strRemoteIP.c_str(), _strRemotePort.c_str());
 			_log.hexDump(ZQ::common::Log::L_INFO, currentPosition + bytesSkipped, bytesDecoded - bytesSkipped, hint, true);
+
+			int curRequestPendingSize	= _processPool.pendingRequestSize();
+			int curActiveThreadCount	= _processPool.activeCount();
+			int curTotalThreadCount		= _processPool.size();
+			int limitedPendingSize		= _lMaxPendingRequest;
 
 			// new one request object
 			IRtspReceiveMsg* request = new (std::nothrow) RtspReceiveMsg(rtspMessage, _communicator, _log);
 			IRtspSendMsg* response = new (std::nothrow) RtspSendMsg(_communicator, _log);
+			RTSP_VerbCode verb = request->getVerb();
 
-			if (request != NULL && response != NULL)
+			if (verb != RTSP_MTHD_TEARDOWN &&  limitedPendingSize> 0   && curRequestPendingSize > 0  && curRequestPendingSize > limitedPendingSize) 
+			{
+				//	_log( (curRequestPendingSize > (limitedPendingSize>>1)) ? ZQ::common::Log::L_WARNING : ZQ::common::Log::L_DEBUG, CLOGFMT(RtspDialogImpl,"onRead() server busy with pending requests[%d/%d]"),
+				//		curRequestPendingSize, limitedPendingSize );
+
+				std::string strCSeq, onDemandSessionId;
+				if(request)
+				{
+					strCSeq = request->getHeader("CSeq");
+					onDemandSessionId = request->getHeader("OnDemandSessionId");
+					request->release();
+				}
+				glog(ZQ::common::Log::L_ERROR, CLOGFMT(RtspDialogImpl,"onRead() method[%s]Seq[%s]Sess[%s], thread[running/Total:%d/%d] pending requests[%d] exceeded limition[%d], rejected"),
+					getVerbString(verb).c_str(), strCSeq.c_str(), onDemandSessionId.c_str(), curActiveThreadCount, curTotalThreadCount, curRequestPendingSize, limitedPendingSize);
+
+				if(response)
+				{
+					response->setHeader("CSeq",               strCSeq.c_str());
+					if(!onDemandSessionId.empty())
+						response->setHeader("OnDemandSessionId", onDemandSessionId.c_str());
+					response->setHeader("Method-Code", getVerbString(verb).c_str());
+					response->setStartline("RTSP/1.0 503 Service Unavailable");
+					response->post();
+					response->release();
+				}
+			}
+			else if (request != NULL && response != NULL)
 			{
 				// new one process object
 				RtspMsgProcessThread* rtspMsgProcessThread = new (std::nothrow) RtspMsgProcessThread(_processPool, _handler, request, response, _log);
@@ -220,8 +277,8 @@ void RtspDialogImpl::onError()
 }
 
 //---------------REDialogFactoryImpl implement----------------------------------------------
-RtspDialogFactoryImpl::RtspDialogFactoryImpl(ZQ::common::Log& log, ZQ::common::NativeThreadPool& processPool, IHandler* handler)
-: _log(log), _processPool(processPool), _handler(handler)
+RtspDialogFactoryImpl::RtspDialogFactoryImpl(ZQ::common::Log& log, ZQ::common::NativeThreadPool& processPool, IHandler* handler, int32 lMaxPendingRequest)
+: _log(log), _processPool(processPool), _handler(handler),_lMaxPendingRequest(lMaxPendingRequest)
 {
 
 }
@@ -242,7 +299,7 @@ void RtspDialogFactoryImpl::onClose(CommunicatorS &comms)
 
 ZQ::DataPostHouse::IDataDialogPtr RtspDialogFactoryImpl::onCreateDataDialog(ZQ::DataPostHouse::IDataCommunicatorPtr communicator)
 {
-	return new (std::nothrow) RtspDialogImpl(_log, _processPool, _handler);
+	return new (std::nothrow) RtspDialogImpl(_log, _processPool, _handler, _lMaxPendingRequest);
 }
 
 void RtspDialogFactoryImpl::onReleaseDataDialog(ZQ::DataPostHouse::IDataDialogPtr idalog, 

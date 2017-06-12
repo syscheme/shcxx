@@ -9,9 +9,9 @@
 namespace ZQRtspCommon
 {
 
-RtspDak::RtspDak(ZQ::common::Log &log, int32 nReceiveThreads, int32 nProcessThreads)
+RtspDak::RtspDak(ZQ::common::Log &log, int32 nReceiveThreads, int32 nProcessThreads, int32 lMaxPendingRequest)
 :_log(log), _nReceiveThreads(nReceiveThreads), _fac(NULL), _dak(NULL), _handler(NULL), 
-_nProcessThreads(nProcessThreads), _processPool(nProcessThreads), _bStart(false)
+_nProcessThreads(nProcessThreads), _processPool(nProcessThreads), _bStart(false), _lMaxPendingRequest(lMaxPendingRequest)
 {
 }
 
@@ -41,7 +41,7 @@ void RtspDak::registerHandler(ZQRtspCommon::IHandler *handler)
 
 bool RtspDak::initialize()
 {
-	_fac = new (std::nothrow) RtspDialogFactoryImpl(_log, _processPool, _handler);
+	_fac = new (std::nothrow) RtspDialogFactoryImpl(_log, _processPool, _handler, _lMaxPendingRequest);
 	if (!_fac)
 	{
 		_log(ZQ::common::Log::L_ERROR, CLOGFMT(RtspDak, "initialize() failed to new dialog factory"));
