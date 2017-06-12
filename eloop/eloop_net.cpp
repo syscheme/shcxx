@@ -503,5 +503,66 @@ namespace ZQ {
 			resolver->data = NULL;
 			delete resolver;
 		}
+
+#ifdef ZQ_OS_LINUX
+		// -----------------------------
+		// class TCPTransferFd
+		// -----------------------------
+		TCPTransferFd::TCPTransferFd():m_fd(0){
+
+		}
+
+		int TCPTransferFd::init(Loop &loop)
+		{
+			this->Handle::init(loop);
+			uv_tcp_t* tcp = (uv_tcp_t *)context_ptr();
+
+			int ret = uv_tcp_init(loop.context_ptr(), tcp);
+
+			if (ret != 0)
+				m_fd = socket(AF_UNIX, SOCK_STREAM, 0); 
+			return ret;
+		}
+	
+		int TCPTransferFd::bind(const char* pathname)
+		{
+			unlink(pathname);
+			struct sockaddr_un bind_addr;  
+			bind_addr.sun_family = AF_UNIX;
+			//bind_addr.sun_path = pathname;
+			strcpy(bind_addr.sun_path, pathname);
+
+			int ret = 0,on = 1;
+			ret = setsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+			if (ret != 0)
+				return ret;
+
+			ret = bind(m_fd, (struct sockaddr*)bind_addr, sizeof(bind_addr));
+			if (ret != 0)
+				return ret;
+
+			uv_tcp_t* tcp = (uv_tcp_t *)context_ptr();
+			return uv_tcp_open(tcp, m_fd);
+		}
+
+		int TCPTransferFd::connect(const char* pathname)
+		{
+			uv_connect_t *req = new uv_connect_t;
+			uv_tcp_t* tcp = (uv_tcp_t *)context_ptr();
+			return uv_tcp_connect(req, tcp, addr, _cbConnect);
+		}
+
+		void TCPTransferFd::_cbConnect(uv_connect_t *req, int status) {
+			uv_stream_t *stream = req->handle;
+
+			TCPTransferFd* self = static_cast<TCPTransferFd *>(stream->data);
+
+			if (self != NULL) {
+				self->OnConnected((ElpeError)status);
+			}
+
+			delete req;
+		}
+#endif
 	}
 } // namespace ZQ::eloop
