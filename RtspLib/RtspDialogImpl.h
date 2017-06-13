@@ -33,7 +33,7 @@ public:
 	virtual	void onWritten(size_t bufSize);
 	virtual	void onError();
 private:
-	RtspDialogImpl(ZQ::common::Log& log, ZQ::common::NativeThreadPool& processPool, IHandler* handler);
+	RtspDialogImpl(ZQ::common::Log& log, ZQ::common::NativeThreadPool& processPool, IHandler* handler, int32 lMaxPendingRequest);
 private:
 	bool chopping(const char* data, int bytesNeedtoDecode, int& bytesDecoded, 
 		int& bytesSkipped, RtspMessageT& rtspMessage);
@@ -51,12 +51,13 @@ private:
 	std::string _strRemoteIP;
 	std::string _strRemotePort;
 
+	int         _lMaxPendingRequest;
 };
 
 class RtspDialogFactoryImpl : public ZQ::DataPostHouse::IDataDialogFactory
 {
 public:
-	RtspDialogFactoryImpl(ZQ::common::Log& log, ZQ::common::NativeThreadPool& processPool, IHandler* handler);
+	RtspDialogFactoryImpl(ZQ::common::Log& log, ZQ::common::NativeThreadPool& processPool, IHandler* handler, int32 lMaxPendingRequest);
 	~RtspDialogFactoryImpl();
 
 public:
@@ -69,6 +70,7 @@ private:
 	ZQ::common::Log& _log;
 	ZQ::common::NativeThreadPool& _processPool;
 	IHandler* _handler;
+	int32 _lMaxPendingRequest;
 
 };
 

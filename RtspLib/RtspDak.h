@@ -19,7 +19,7 @@ class IHandler;
 class RtspDak : public IRtspDak
 {
 public:
-	RtspDak(ZQ::common::Log& log, int32 nReceiveThreads, int32 nProcessThreads = 10);
+	RtspDak(ZQ::common::Log& log, int32 nReceiveThreads, int32 nProcessThreads = 10, int32 lMaxPendingRequest = 100);
 	~RtspDak();
 public:
 	///@Remark start dak to process requests, if success, stop() must be called
@@ -58,6 +58,7 @@ private:
 	ZQ::common::NativeThreadPool _processPool;
 	SYS::SingleObject _quitHandle;
 	bool _bStart;
+	int32 _lMaxPendingRequest;
 };
 
 } // end for ZQRtspCommon
