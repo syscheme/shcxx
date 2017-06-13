@@ -66,7 +66,7 @@ public:
 
 protected:
 	// called when the stream is shutdown
-	virtual void OnShutdown(ElpeError status) {}
+	virtual void OnShutdown(ElpeError status) {close();}
 
 	// tiggered when a new incomming connection is detected by listen()
 	virtual void doAccept(ElpeError status) {}
@@ -206,32 +206,6 @@ private:
 	static void _cbResolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res);
 
 };
-
-#ifdef ZQ_OS_LINUX
-// -----------------------------
-// class TCPTransferFd
-// -----------------------------
-class TCPTransferFd:public Stream
-{
-public:
-	TCPTransferFd();
-
-	int init(Loop &loop);
-	int bind(const char* pathname);
-	int connect(const char* pathname);
-
-protected:
-	// TODO: must enumerate all the status in the class
-	virtual void OnConnected(ElpeError status) {}
-
-	
-private:
-	int		m_fd;
-	static void _cbConnect(uv_connect_t *req, int status);
-
-};
-#endif
-
 
 } } // namespace ZQ::eloop
 
