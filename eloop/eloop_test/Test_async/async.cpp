@@ -13,6 +13,9 @@ public:
 	{
 		printf("Async test\n");
 	}
+
+protected:
+	asdsfasf
 };
 
 int main()

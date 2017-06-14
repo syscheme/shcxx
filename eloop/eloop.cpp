@@ -353,7 +353,8 @@ int Async::send() {
 // -----------------------------
 // class Signal
 // -----------------------------
-Signal::Signal() {
+Signal::Signal()
+{
 }
 
 int Signal::init(Loop &loop) {
