@@ -15,7 +15,6 @@ public:
 	}
 
 protected:
-	asdsfasf
 };
 
 int main()
