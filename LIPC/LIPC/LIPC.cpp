@@ -1,13 +1,13 @@
 #include "LIPC.h"
 #include "TransferFd.h"
-#include <dirent.h>
+//#include <dirent.h>
 
 namespace ZQ {
 	namespace LIPC {
 
-// -----------------------------
+// ------------------------------------------------
 // class Dispatcher
-// -----------------------------
+// ------------------------------------------------
 Dispatcher::Dispatcher(const char* pathname)
 {
 	scan(pathname);
@@ -18,9 +18,8 @@ Dispatcher::~Dispatcher()
 }
 
 void Dispatcher::scan(const char* pathname)
-{
+{/*
 	DIR *dirptr=NULL;
-	int i=1;
 	struct dirent *entry;
 	if((dirptr = opendir(pathname))==NULL)
 	{
@@ -31,11 +30,15 @@ void Dispatcher::scan(const char* pathname)
 	{
 		while(entry=readdir(dirptr))
 		{
+			if (0==strcmp(entry->d_name,".") || 0==strcmp(entry->d_name,".."))
+				continue;
+			TransferFdClient* client = new TransferFdClient();
+			client->init(get_loop());
+			client->connect(entry->d_name);
 			printf("filename%d=%s\n",i,entry->d_name);
-			i++;
 		}
 		closedir(dirptr);
-	}
+	}*/
 }
 
 void Dispatcher::addServant(TransferFdClient* client)
@@ -75,20 +78,121 @@ void Dispatcher::doAccept(ZQ::eloop::Handle::ElpeError status)
 	}
 }
 
-void Dispatcher::OnWrote(ZQ::eloop::Handle::ElpeError status)
+
+// -------------------------------------------------
+// class Servant
+// -------------------------------------------------
+Servant::Servant(ServantManager& mgr)
+:_Mgr(mgr)
 {
-	printf("CentralServer OnWrote.\n");
 }
-// called after buffer has been read from the stream
-void Dispatcher::OnRead(ssize_t nread, const char *buf)
+Servant::~Servant()
 {
-	printf("CentralServer OnRead.\n");
+}
+void Servant::start()
+{
+	read_start();
+	_Mgr.addServant(this);
+}
+
+void Servant::OnRead(ssize_t nread, const char *buf)
+{
+	if (nread < 0) {
+		//			if (nread != elpe__EOF)
+		fprintf(stderr, "Read error %s\n", errName(nread));
+		close();
+		return;
+	}
+//	_Mgr.onRequest(buf);
+}
+
+void Servant::OnWrote(ZQ::eloop::Handle::ElpeError status)
+{
+
+}
+
+void Servant::OnClose()
+{
+	_Mgr.delServant(this);
+	delete this;
+}
+
+// -------------------------------------------------
+// class JsonRpcService
+// -------------------------------------------------
+JsonRpcService::JsonRpcService()
+{
+}
+JsonRpcService::~JsonRpcService()
+{
+}
+
+/*void JsonRpcService::start(Loop& loop,const char* pathname)
+{
+	init(loop);
+	bind(pathname);
+	listen();
+}*/
+
+
+void JsonRpcService::onRequest(const char* req,char* resp)
+{
+	Json::Value respon;
+	Process(req,respon);
+	resp = const_cast<char*>(GetString(respon).c_str());
 }
 
 
 
+// ------------------------------------------------
+// class JsonRpcClient
+// ------------------------------------------------
+JsonRpcClient::JsonRpcClient()
+:m_value(Json::Value::null)
+{
+}
+JsonRpcClient::~JsonRpcClient()
+{
 
+}
 
+void JsonRpcClient::beginRequest(const char* ip,int port,Json::Value val)
+{
+	connect4(ip,port);
+	m_value = val;
+}
+
+void JsonRpcClient::Request(Json::Value val)
+{
+	if (val != Json::Value::null)
+	{
+		Json::FastWriter writer;
+		std::string str = writer.write(val);
+
+		printf("send str = %s\n",str.c_str());
+		write(str.c_str(),str.length());
+	}
+}
+
+void JsonRpcClient::OnConnected(ZQ::eloop::Handle::ElpeError status)
+{
+	if (status != ZQ::eloop::Handle::elpeSuccess) {
+		fprintf(stderr, "on_connect error %s\n", ZQ::eloop::Handle::errDesc(status));
+		return;
+	}
+	read_start();
+	Request(m_value);
+}
+
+void JsonRpcClient::OnRead(ssize_t nread, const char *buf)
+{
+	 std::cout << "Received: " << nread << std::endl;
+}
+
+void JsonRpcClient::OnWrote(ZQ::eloop::Handle::ElpeError status)
+{
+
+}
 
 
 

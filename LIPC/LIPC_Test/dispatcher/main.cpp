@@ -4,12 +4,12 @@
 int main()
 {
 	ZQ::eloop::Loop loop(false);
-	ZQ::LIPC:: Dispatcher dsp;
+	ZQ::LIPC::Dispatcher dsp;
 
 
 	dsp.init(loop);
-	server.bind4("10.15.10.50",9978);
-	server.listen();
+	dsp.bind4("10.15.10.50",9978);
+	dsp.listen();
 
-	loop.run(Loop::Default);	
+	loop.run(ZQ::eloop::Loop::Default);	
 }

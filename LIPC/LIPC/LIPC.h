@@ -34,7 +34,10 @@
 #include "ZQ_common_conf.h"
 
 #include "eloop_net.h"
+#include "TransferFd.h"
+#include "JsonRpcHandler.h"
 #include <vector>
+#include <list>
 
 #ifdef ZQ_OS_MSWIN
 #  ifdef LIPC_EXPORTS
@@ -50,12 +53,11 @@
 namespace ZQ {
 	namespace LIPC {
 
-class ZQ_LIPC_API TransferService;
+class ZQ_LIPC_API Dispatcher;
 
-class TransferFdClient;
-// -----------------------------
+// ------------------------------------------------
 // class Dispatcher
-// -----------------------------
+// ------------------------------------------------
 class Dispatcher:public ZQ::eloop::TCP
 {
 public:
@@ -66,28 +68,61 @@ public:
 	void addServant(TransferFdClient* client);
 
 	virtual void doAccept(ZQ::eloop::Handle::ElpeError status);
-	virtual void OnWrote(ZQ::eloop::Handle::ElpeError status);
-	virtual void OnRead(ssize_t nread, const char *buf);
 
 private:
 	std::vector<TransferFdClient*> _servantVec;
-
 };
 
+
+
 // -----------------------------
+// class Servant
+// -----------------------------
+class Servant:public ZQ::eloop::TCP
+{
+public:
+	Servant(ServantManager& mgr);
+	~Servant();
+	void start();
+	virtual void OnRead(ssize_t nread, const char *buf);
+	virtual void OnWrote(ZQ::eloop::Handle::ElpeError status);
+	virtual void OnClose();
+
+private:
+	ServantManager&	_Mgr;
+};
+
+// ------------------------------------------------
 // class JsonRpcService
-// -----------------------------
-class JsonRpcService:public ZQ::eloop::TCP
+// ------------------------------------------------
+class JsonRpcService:public TransferFdService,public Handler
 {
 public:
 	JsonRpcService();
 	~JsonRpcService();
-
-	void addMethod();
-	void addClass();
+//	void start(Loop& loop,const char* pathname);
+	virtual void onRequest(const char* req,char* resp);
 };
 
 
+// ------------------------------------------------
+// class JsonRpcClient
+// ------------------------------------------------
+class JsonRpcClient:public ZQ::eloop::TCP
+{
+public:
+	JsonRpcClient();
+	~JsonRpcClient();
+
+	void beginRequest(const char* ip,int port,Json::Value val);
+	void Request(Json::Value val);
+	virtual void OnConnected(ZQ::eloop::Handle::ElpeError status);
+	virtual void OnRead(ssize_t nread, const char *buf);
+	virtual void OnWrote(ZQ::eloop::Handle::ElpeError status);
+
+private:
+	Json::Value m_value;
+};
 
 }}//ZQ::LIPC
 

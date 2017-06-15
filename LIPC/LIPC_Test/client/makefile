@@ -2,9 +2,9 @@ TOPDIR := ../../../..
 
 include $(TOPDIR)/build/defines.mk
 
-TARGET := Dispatcher
+TARGET := client
 
-OBJS	:= main.o
+OBJS	:= client.o
 
 INCDIR += . ../../LIPC $(_uv_dir)/include $(_jsoncpp_dir)/include $(TOPDIR)/Common $(TOPDIR)/Common/eloop
 
