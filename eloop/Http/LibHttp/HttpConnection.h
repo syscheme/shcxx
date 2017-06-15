@@ -42,16 +42,18 @@ public:
 //-----------------------------------------
 // class AsyncBuf
 //-----------------------------------------
-class AsyncBuf:public ZQ::common::SharedObject
+class AsyncBuf : public ZQ::common::SharedObject
 {
 public:
 	typedef ZQ::common::Pointer<AsyncBuf> Ptr;
+
 	AsyncBuf(const char* base,size_t len)
 		:_len(len),
 		_base((char*)malloc(len))
 	{
 		memcpy(_base,base,len);
 	}
+
 	virtual ~AsyncBuf()
 	{
 		if (_base != NULL)
@@ -61,48 +63,11 @@ public:
 			_len = 0;
 		}
 	}
+
 	char*	_base;
 	size_t	_len;
 };
-/*
-//----------------------------------------------
-// class HttpRespon
-//----------------------------------------------
-class HttpRespon:public HttpMessage
-{
 
-};
-
-
-//----------------------------------------------
-// class HttpRequest
-//----------------------------------------------
-class HttpRequest:public HttpMessage
-{
-
-};
-
-//----------------------------------------------
-// class HttpPipe
-//----------------------------------------------
-class HttpPipe
-{
-public:
-	void push(AsyncBuf::Ptr inflowPtr)
-	{
-		_list.push_back(inflowPtr);
-	}
-	AsyncBuf::Ptr pop()
-	{
-		AsyncBuf::Ptr outflowPtr = _list.front();
-		_list.pop_front();
-	}
-
-private:
-	typedef std::list<AsyncBuf::Ptr> Listbuf;
-	Listbuf							_list;
-};
-*/
 // ---------------------------------------
 // class HttpConnection
 // ---------------------------------------
@@ -116,6 +81,7 @@ public:
 		RESP_BODY,
 		RESP_COMPLETE
 	};
+
 private:
 	HttpConnection(const HttpConnection&);
 	HttpConnection& operator=( const HttpConnection&);
@@ -135,7 +101,6 @@ protected:
 	virtual void OnWrote(ElpeError status);
 	virtual void OnClose();
 	virtual void OnShutdown(ElpeError status);
-
 
 protected:
 	// onReqMsgSent is only used to notify that the sending buffer is free and not held by HttpClient any mre

@@ -95,7 +95,7 @@ public:
 		
 		ELOOP_FILE = UV_FILE,
 		ELOOP_HANDLE_TYPE_MAX = UV_HANDLE_TYPE_MAX
-	}eloop_handle_type;
+	} eloop_handle_type;
 
 	typedef enum _ElpeError
 	{
@@ -357,6 +357,7 @@ private:
 // -----------------------------
 // class Async
 // -----------------------------
+// 
 class Async : public Handle
 {
 public:
@@ -412,7 +413,7 @@ private:
 // class Process
 // -----------------------------
 class Stream;
-class Process:public Handle
+class Process : public Handle
 {
 public:
 	 enum {
@@ -421,11 +422,9 @@ public:
 		ELOOP_INHERIT_FD = UV_INHERIT_FD,
 		ELOOP_INHERIT_STREAM = UV_INHERIT_STREAM,
 
-		/*
-		* When UV_CREATE_PIPE is specified, UV_READABLE_PIPE and UV_WRITABLE_PIPE
-		* determine the direction of flow, from the child process' perspective. Both
-		* flags may be specified to create a duplex data stream.
-		*/
+		// When UV_CREATE_PIPE is specified, UV_READABLE_PIPE and UV_WRITABLE_PIPE
+		// determine the direction of flow, from the child process' perspective. Both
+		// flags may be specified to create a duplex data stream.
 		ELOOP_READABLE_PIPE = UV_READABLE_PIPE,
 		ELOOP_WRITABLE_PIPE = UV_WRITABLE_PIPE
 	};
@@ -454,8 +453,6 @@ private:
 	static void _cbExit(uv_process_t* handle,int64_t exit_status,int term_signal);
 	uv_process_options_t _opt;
 };
-
-
 
 } } // namespace ZQ::eloop
 

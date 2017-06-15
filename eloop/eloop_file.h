@@ -139,7 +139,6 @@ public:
 	void clean();
 	char* _buf;
 
-
 protected:
 	virtual void OnOpen(int result) {}
 	virtual void OnWrite(int result) {}
