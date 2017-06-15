@@ -61,7 +61,7 @@ class ZQ_LIPC_API Dispatcher;
 class Dispatcher:public ZQ::eloop::TCP
 {
 public:
-	Dispatcher(const char* pathname);
+	Dispatcher();
 	~Dispatcher();
 	
 	void scan(const char* pathname);

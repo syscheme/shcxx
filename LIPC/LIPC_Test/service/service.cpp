@@ -1,5 +1,5 @@
 #include "LIPC.h"
-#include "json.h"
+#include "json/json.h"
 
 class TestRpc
 {
@@ -46,11 +46,11 @@ int main()
 	ZQ::eloop::Loop loop(false);
 	ZQ::LIPC::JsonRpcService service;
 
-	server.AddMethod(new Json::Rpc::RpcMethod<TestRpc>(a, &TestRpc::Print,std::string("print")));
-	server.AddMethod(new Json::Rpc::RpcMethod<TestRpc>(a, &TestRpc::Notify,std::string("notify")));
+	service.AddMethod(new ZQ::LIPC::RpcMethod<TestRpc>(a, &TestRpc::Print,std::string("print")));
+	service.AddMethod(new ZQ::LIPC::RpcMethod<TestRpc>(a, &TestRpc::Notify,std::string("notify")));
 		
 	service.init(loop);
-	service.bind4("/home/zhixiang.zhu/var/run/service_test");
+	service.bind("/home/zhixiang.zhu/var/run/service_test");
 	service.listen();
 
 	loop.run(ZQ::eloop::Loop::Default);	

@@ -1,5 +1,5 @@
 #include "LIPC.h"
-#include "json.h"
+#include "json/json.h"
 
 
 int main()

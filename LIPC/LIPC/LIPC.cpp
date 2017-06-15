@@ -1,6 +1,6 @@
 #include "LIPC.h"
 #include "TransferFd.h"
-//#include <dirent.h>
+#include <dirent.h>
 
 namespace ZQ {
 	namespace LIPC {
@@ -8,9 +8,8 @@ namespace ZQ {
 // ------------------------------------------------
 // class Dispatcher
 // ------------------------------------------------
-Dispatcher::Dispatcher(const char* pathname)
+Dispatcher::Dispatcher()
 {
-	scan(pathname);
 }
 
 Dispatcher::~Dispatcher()
@@ -18,9 +17,10 @@ Dispatcher::~Dispatcher()
 }
 
 void Dispatcher::scan(const char* pathname)
-{/*
+{
 	DIR *dirptr=NULL;
 	struct dirent *entry;
+	std::string filename;
 	if((dirptr = opendir(pathname))==NULL)
 	{
 		printf("opendir failed!");
@@ -32,13 +32,15 @@ void Dispatcher::scan(const char* pathname)
 		{
 			if (0==strcmp(entry->d_name,".") || 0==strcmp(entry->d_name,".."))
 				continue;
+
+			filename = pathname + std::string(entry->d_name);
+			printf("filename=%s\n",filename.c_str());
 			TransferFdClient* client = new TransferFdClient();
 			client->init(get_loop());
-			client->connect(entry->d_name);
-			printf("filename%d=%s\n",i,entry->d_name);
+			client->connect(filename.c_str());
 		}
 		closedir(dirptr);
-	}*/
+	}
 }
 
 void Dispatcher::addServant(TransferFdClient* client)

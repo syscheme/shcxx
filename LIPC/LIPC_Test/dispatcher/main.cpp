@@ -8,6 +8,7 @@ int main()
 
 
 	dsp.init(loop);
+	dsp.scan("/home/zhixiang.zhu/var/run/");
 	dsp.bind4("10.15.10.50",9978);
 	dsp.listen();
 
