@@ -35,15 +35,124 @@ std::string JsonRpcMessage::toRaw()
 
 }
 */
+// -------------------------------------------------
+// class Request
+// -------------------------------------------------
+Request::Request(Arbitrary id,Arbitrary methodname,int argc, Arbitrary argv,...)
+:m_request(Arbitrary::null)
+{
+	append(id,methodname,argc,argv);
+}
+
+Request::Request():m_request(Arbitrary::null){}
+Request::~Request(){}
+
+void Request::append(Arbitrary id,Arbitrary methodname,int argc, Arbitrary argv,...)
+{
+	Arbitrary tempValue;
+	if (argc > 0)
+	{
+		va_list arg_ptr;  
+		Arbitrary nArgValue,params;  
+		va_start(arg_ptr, argv);
+		for(int i=0;i<argc;i++)
+		{
+			nArgValue = va_arg(arg_ptr, Arbitrary);
+			params.append(nArgValue);
+		}
+		va_end(arg_ptr);
+		tempValue[JSON_RPC_PARAMS] = params;
+	}
+
+	tempValue[JSON_RPC_PROTO] = JSON_RPC_PROTO_VERSION;
+	tempValue[JSON_RPC_METHOD] = methodname;
+	tempValue[JSON_RPC_ID] = id;
+	m_request.append(tempValue);
+}
+
+std::string Request::toRaw()
+{
+	return m_writer.write(m_request);
+}
+
+// -------------------------------------------------
+// class PassiveReq
+// -------------------------------------------------
+PassiveReq::PassiveReq(Arbitrary req)
+:m_request(req)
+{
+}
+PassiveReq::~PassiveReq()
+{
+}
+Arbitrary PassiveReq::id()
+{
+	return m_request[JSON_RPC_ID];
+}
+Arbitrary PassiveReq::method()
+{
+	return m_request[JSON_RPC_METHOD];
+}
+Arbitrary PassiveReq::param()
+{
+	return m_request[JSON_RPC_PARAMS];
+}
+
+// -------------------------------------------------
+// class Respon
+// -------------------------------------------------
+Respon::Respon()
+:m_Result(Arbitrary::null),
+m_Error(Arbitrary::null)
+{
+
+}
+Respon::~Respon(){}
+
+void Respon::setResult(Arbitrary id,Arbitrary result)
+{
+	m_Result[JSON_RPC_PROTO] = JSON_RPC_PROTO_VERSION;
+	m_Result[JSON_RPC_ID] = id;
+	m_Result[JSON_RPC_RESULT] = result;
+}
+void Respon::setError(Arbitrary id,Arbitrary code,Arbitrary desc)
+{
+	Arbitrary error;
+	error[JSON_RPC_ERROR_CODE] = code;
+	error[JSON_RPC_ERROR_MESSAGE] = desc;
+
+	m_Error[JSON_RPC_PROTO] = JSON_RPC_PROTO_VERSION;
+	m_Error[JSON_RPC_ID] = id;
+	m_Error[JSON_RPC_ERROR] = error;
+}
+
+std::string Respon::toRaw()
+{
+	if (m_Result != Arbitrary::null)
+		return m_writer.write(m_Result);
+	if (m_Error != Arbitrary::null)
+		return m_writer.write(m_Error);
+	return NULL;
+}
+
+Arbitrary Respon::getvalue()
+{
+	if (m_Result != Arbitrary::null)
+		return m_Result;
+	if (m_Error != Arbitrary::null)
+		return m_Error;
+	return Arbitrary::null;
+}
+
 Handler::Handler()
 {
   /* add a RPC method that list the actual RPC methods contained in 
    * the Handler 
    */
-	 Json::Value root;
+	 Arbitrary root;
 
 	 root["description"] = "List the RPC methods available";
-	 root["parameters"] = Json::Value::null;
+	 root["parameters"] = Arbitrary::null;
 	 root["returns"] = "Object that contains description of all methods registered";
 
 	 AddMethod(new RpcMethod<Handler>(*this, &Handler::SystemDescribe,std::string("system.describe"), root));
@@ -81,9 +190,9 @@ void Handler::DeleteMethod(const std::string& name)
 	}
 }
 
-bool Handler::SystemDescribe(const Json::Value& msg, Json::Value& response)
+bool Handler::SystemDescribe(const Arbitrary& msg, Arbitrary& response)
 {
-	Json::Value methods;
+	Arbitrary methods;
 	response["jsonrpc"] = "2.0";
 	response["id"] = msg["id"];
 
@@ -96,20 +205,20 @@ bool Handler::SystemDescribe(const Json::Value& msg, Json::Value& response)
 	return true;
 }
 
-std::string Handler::GetString(Json::Value value)
+std::string Handler::GetString(Arbitrary value)
 {
 	return m_writer.write(value);
 }
 
-bool Handler::Check(const Json::Value& root, Json::Value& error)
+bool Handler::Check(const Arbitrary& root, Arbitrary& error)
 {
-	Json::Value err;
+	Arbitrary err;
 
 	/* check the JSON-RPC version => 2.0 */
 	if(!root.isObject() || !root.isMember("jsonrpc") ||
 		root["jsonrpc"] != "2.0") 
 	{
-		error["id"] = Json::Value::null;
+		error["id"] = Arbitrary::null;
 		error["jsonrpc"] = "2.0";
 
 		err["code"] = INVALID_REQUEST;
@@ -120,7 +229,7 @@ bool Handler::Check(const Json::Value& root, Json::Value& error)
 
 	if(root.isMember("id") && (root["id"].isArray() || root["id"].isObject()))
 	{
-		error["id"] = Json::Value::null;
+		error["id"] = Arbitrary::null;
 		error["jsonrpc"] = "2.0";
 
 		err["code"] = INVALID_REQUEST;
@@ -132,7 +241,7 @@ bool Handler::Check(const Json::Value& root, Json::Value& error)
 	/* extract "method" attribute */
 	if(!root.isMember("method") || !root["method"].isString())
 	{
-		error["id"] = Json::Value::null;
+		error["id"] = Arbitrary::null;
 		error["jsonrpc"] = "2.0";
 
 		err["code"] = INVALID_REQUEST;
@@ -144,9 +253,9 @@ bool Handler::Check(const Json::Value& root, Json::Value& error)
 	return true;
 }
 
-bool Handler::Process(const Json::Value& root, Json::Value& response)
+bool Handler::Process(const Arbitrary& root, Arbitrary& response)
 {
-	Json::Value error;
+	Arbitrary error;
 	std::string method;
 
 	if(!Check(root, error))
@@ -167,7 +276,7 @@ bool Handler::Process(const Json::Value& root, Json::Value& response)
 	}
 
 	/* forge an error response */
-	response["id"] = root.isMember("id") ? root["id"] : Json::Value::null;
+	response["id"] = root.isMember("id") ? root["id"] : Arbitrary::null;
 	response["jsonrpc"] = "2.0";
 
 	error["code"] = METHOD_NOT_FOUND;
@@ -177,10 +286,10 @@ bool Handler::Process(const Json::Value& root, Json::Value& response)
 	return false;
 }
 
-bool Handler::Process(const std::string& msg, Json::Value& response)
+bool Handler::Process(const std::string& msg, Arbitrary& response)
 {
-	Json::Value root;
-	Json::Value error;
+	Arbitrary root;
+	Arbitrary error;
 	bool parsing = false;
 
 	/* parsing */
@@ -189,7 +298,7 @@ bool Handler::Process(const std::string& msg, Json::Value& response)
 	if(!parsing)
 	{
 		/* request or batched call is not in JSON format */
-		response["id"] = Json::Value::null;
+		response["id"] = Arbitrary::null;
 		response["jsonrpc"] = "2.0";
 
 		error["code"] = PARSING_ERROR;
@@ -201,15 +310,15 @@ bool Handler::Process(const std::string& msg, Json::Value& response)
 	if(root.isArray())
 	{
 		/* batched call */
-		Json::Value::ArrayIndex i = 0;
-		Json::Value::ArrayIndex j = 0;
+		Arbitrary::ArrayIndex i = 0;
+		Arbitrary::ArrayIndex j = 0;
 
 		for(i = 0 ; i < root.size() ; i++)
 		{
-			Json::Value ret;
+			Arbitrary ret;
 			Process(root[i], ret);
 
-			if(ret != Json::Value::null)
+			if(ret != Arbitrary::null)
 			{
 				/* it is not a notification, add to array of responses */
 				response[j] = ret;
@@ -224,7 +333,7 @@ bool Handler::Process(const std::string& msg, Json::Value& response)
 	}
 }
 
-bool Handler::Process(const char* msg, Json::Value& response)
+bool Handler::Process(const char* msg, Arbitrary& response)
 {
 	std::string str(msg);
 

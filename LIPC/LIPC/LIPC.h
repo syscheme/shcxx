@@ -101,7 +101,7 @@ public:
 	JsonRpcService();
 	~JsonRpcService();
 //	void start(Loop& loop,const char* pathname);
-	virtual void onRequest(const char* req,char* resp);
+	virtual void onRequest(const char* req,Servant* conn);
 };
 
 
@@ -114,14 +114,14 @@ public:
 	JsonRpcClient();
 	~JsonRpcClient();
 
-	void beginRequest(const char* ip,int port,Json::Value val);
-	void Request(Json::Value val);
+	void beginRequest(const char* ip,int port,Request::Ptr req);
+	void Request(Request::Ptr req);
 	virtual void OnConnected(ZQ::eloop::Handle::ElpeError status);
 	virtual void OnRead(ssize_t nread, const char *buf);
 	virtual void OnWrote(ZQ::eloop::Handle::ElpeError status);
 
 private:
-	Json::Value m_value;
+	Request::Ptr m_req;
 };
 
 }}//ZQ::LIPC

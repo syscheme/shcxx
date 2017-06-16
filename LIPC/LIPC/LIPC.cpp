@@ -1,6 +1,6 @@
 #include "LIPC.h"
 #include "TransferFd.h"
-#include <dirent.h>
+//#include <dirent.h>
 
 namespace ZQ {
 	namespace LIPC {
@@ -17,7 +17,7 @@ Dispatcher::~Dispatcher()
 }
 
 void Dispatcher::scan(const char* pathname)
-{
+{/*
 	DIR *dirptr=NULL;
 	struct dirent *entry;
 	std::string filename;
@@ -35,12 +35,12 @@ void Dispatcher::scan(const char* pathname)
 
 			filename = pathname + std::string(entry->d_name);
 			printf("filename=%s\n",filename.c_str());
-			TransferFdClient* client = new TransferFdClient();
+			TransferFdClient* client = new TransferFdClient(*this);
 			client->init(get_loop());
 			client->connect(filename.c_str());
 		}
 		closedir(dirptr);
-	}
+	}*/
 }
 
 void Dispatcher::addServant(TransferFdClient* client)
@@ -105,7 +105,7 @@ void Servant::OnRead(ssize_t nread, const char *buf)
 		close();
 		return;
 	}
-//	_Mgr.onRequest(buf);
+	_Mgr.onRequest(buf,this);
 }
 
 void Servant::OnWrote(ZQ::eloop::Handle::ElpeError status)
@@ -137,11 +137,12 @@ JsonRpcService::~JsonRpcService()
 }*/
 
 
-void JsonRpcService::onRequest(const char* req,char* resp)
+void JsonRpcService::onRequest(const char* req,Servant* conn)
 {
-	Json::Value respon;
+	Arbitrary respon;
 	Process(req,respon);
-	resp = const_cast<char*>(GetString(respon).c_str());
+	std::string resp = GetString(respon).c_str();
+	conn->write(resp.c_str(),resp.size());
 }
 
 
@@ -150,7 +151,7 @@ void JsonRpcService::onRequest(const char* req,char* resp)
 // class JsonRpcClient
 // ------------------------------------------------
 JsonRpcClient::JsonRpcClient()
-:m_value(Json::Value::null)
+:m_req(NULL)
 {
 }
 JsonRpcClient::~JsonRpcClient()
@@ -158,19 +159,17 @@ JsonRpcClient::~JsonRpcClient()
 
 }
 
-void JsonRpcClient::beginRequest(const char* ip,int port,Json::Value val)
+void JsonRpcClient::beginRequest(const char* ip,int port,Request::Ptr req)
 {
 	connect4(ip,port);
-	m_value = val;
+	m_req = req;
 }
 
-void JsonRpcClient::Request(Json::Value val)
+void JsonRpcClient::Request(Request::Ptr req)
 {
-	if (val != Json::Value::null)
+	if (req != NULL)
 	{
-		Json::FastWriter writer;
-		std::string str = writer.write(val);
-
+		std::string str = req->toRaw();
 		printf("send str = %s\n",str.c_str());
 		write(str.c_str(),str.length());
 	}
@@ -183,7 +182,7 @@ void JsonRpcClient::OnConnected(ZQ::eloop::Handle::ElpeError status)
 		return;
 	}
 	read_start();
-	Request(m_value);
+	Request(m_req);
 }
 
 void JsonRpcClient::OnRead(ssize_t nread, const char *buf)

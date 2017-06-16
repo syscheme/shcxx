@@ -52,7 +52,7 @@ public:
 	virtual ~ServantManager();
 	void addServant(Servant* svt);
 	void delServant(Servant* svt);
-	virtual void onRequest(const char* req,char* resp){}
+	virtual void onRequest(const char* req,Servant* st){}
 
 private:
 	std::list<Servant*>			_servantMgr;
