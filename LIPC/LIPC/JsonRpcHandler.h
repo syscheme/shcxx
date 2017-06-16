@@ -86,7 +86,6 @@ public:
 	typedef ZQ::common::Pointer<Request> Ptr;
 public:
 	Request(Arbitrary id,Arbitrary methodname,int argc=0, Arbitrary argv=Arbitrary::null,...);
-	Request(Arbitrary id,Arbitrary methodname);
 	Request();
 	~Request();
 
