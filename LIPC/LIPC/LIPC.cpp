@@ -1,6 +1,6 @@
 #include "LIPC.h"
 #include "TransferFd.h"
-//#include <dirent.h>
+#include <dirent.h>
 
 namespace ZQ {
 	namespace LIPC {
@@ -17,7 +17,7 @@ Dispatcher::~Dispatcher()
 }
 
 void Dispatcher::scan(const char* pathname)
-{/*
+{
 	DIR *dirptr=NULL;
 	struct dirent *entry;
 	std::string filename;
@@ -40,7 +40,7 @@ void Dispatcher::scan(const char* pathname)
 			client->connect(filename.c_str());
 		}
 		closedir(dirptr);
-	}*/
+	}
 }
 
 void Dispatcher::addServant(TransferFdClient* client)
