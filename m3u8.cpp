@@ -263,7 +263,7 @@ bool M3U8Stream::parseM3U8(const char* pContent, int maxLen)
 			{
 				std::string strRes;
 				strRes.assign(line.begin()+fRes,line.end());
-				sscanf((const char *)strRes.c_str(),"PROGRAM-ID=%d=%d",&_streamInfo.programId);
+				sscanf((const char *)strRes.c_str(),"PROGRAM-ID=%d",&_streamInfo.programId);
 			}
 			fRes=line.find("BANDWIDTH");
 			if(fRes != std::string::npos)
@@ -328,7 +328,7 @@ bool M3U8Stream::parseM3U8(const char* pContent, int maxLen)
 			{
 				std::string strRes;
 				strRes.assign(line.begin()+fRes,line.end());
-				sscanf((const char *)strRes.c_str(),"PROGRAM-ID=%d=%d",&_streamInfo.programId);
+				sscanf((const char *)strRes.c_str(),"PROGRAM-ID=%d",&_streamInfo.programId);
 			}
 			fRes=line.find("BANDWIDTH");
 			if(fRes != std::string::npos)
