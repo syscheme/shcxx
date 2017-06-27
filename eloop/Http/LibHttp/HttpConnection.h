@@ -89,6 +89,10 @@ private:
 public:
 	virtual ~HttpConnection();
 
+	int beginSend(HttpMessage::Ptr resp);
+	int SendBody(char *buf, size_t length);
+	int endSend();
+
 	virtual void onRespHeader() {_RespState = RESP_HEADERS;}
 	virtual void onRespBody() {_RespState = RESP_BODY;}
 	virtual void onRespComplete() {_RespState = RESP_COMPLETE;}	
@@ -126,7 +130,6 @@ protected: // implementation of IHttpParseSink that also present the message rec
 
 	/// error occured during data receiving or parsing stage
 	virtual void onError( int error,const char* errorDescription ) {}
-
 	
 private:
 	ZQ::common::Log&		 _Logger;
@@ -143,6 +146,8 @@ private:
 
 	std::string			_HeaderField;
 	std::string*		_HeaderValue;
+
+	HttpMessage::Ptr         _RespMsg;
 
 private:
 	enum ParseState {

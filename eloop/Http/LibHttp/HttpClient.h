@@ -15,8 +15,6 @@ public:
 	virtual void OnConnected(ElpeError status);
 	bool beginRequest( HttpMessage::Ptr msg, const std::string& url);
 
-	int Request(HttpMessage::Ptr msg);
-
 private:
 	//disallow copy construction
 	HttpClient(const HttpClient&);
@@ -44,8 +42,8 @@ protected:
 	virtual void	onError( int error,const char* errorDescription );
 
 private:
-	HttpMessage::Ptr		_SendMsg;
 	ZQ::common::Log&		_Logger;
+	HttpMessage::Ptr		_req;
 
 };
 } }//namespace ZQ::eloop

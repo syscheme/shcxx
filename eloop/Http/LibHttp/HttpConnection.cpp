@@ -105,6 +105,8 @@ void HttpConnection::OnShutdown(ElpeError status)
 
 void HttpConnection::parse( const char* data, size_t size) {
 
+	printf("data:%s\n,len:%d\n",data,size);
+
 	if (_RespState != RESP_COMPLETE)
 	{
 		AsyncBuf::Ptr inflowPtr = new AsyncBuf(data,size);
@@ -137,6 +139,56 @@ void HttpConnection::parse( const char* data, size_t size) {
 			return;
 		}
 	}
+}
+
+int HttpConnection::beginSend(HttpMessage::Ptr resp)
+{
+	assert(msg != NULL && "msg can not be NULL");
+	_RespMsg = resp;
+	std::string head = _RespMsg->toRaw();
+	
+	int ret = write(head.c_str(),head.length());
+	onRespHeader();
+	return ret;
+}
+int HttpConnection::SendBody(char *buf, size_t length)
+{
+	if(!_RespMsg->hasContentBody() ) {
+		assert( false && "http message do not have a content body");
+		return -1;
+	}
+
+	int ret = 0;
+	if( _RespMsg->chunked() ) {
+		EloopBuf chunkbuf[3];
+		char chhead[16];
+		sprintf(chhead, "%x\r\n",length);
+
+		chunkbuf[0].base = chhead;
+		chunkbuf[0].len = strlen(chhead);
+		chunkbuf[1].base = buf;
+		chunkbuf[1].len = length;
+		chunkbuf[2].base = "\r\n";
+		chunkbuf[2].len = 2;
+		ret = write(chunkbuf,3);
+	}
+	else
+	{
+		ret = write(buf,length);
+	}
+	onRespBody();
+	return ret;
+}
+int HttpConnection::endSend()
+{
+	int ret = 0;
+	if(_RespMsg->chunked())
+	{
+		char* chunkEnd = "0\r\n\r\n";
+		ret = write(chunkEnd,strlen(chunkEnd));
+	}
+	onRespComplete();
+	return ret;
 }
 
 int	HttpConnection::onMessageBegin( ){

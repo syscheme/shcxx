@@ -17,6 +17,7 @@ namespace ZQ {
 namespace eloop {
 
 #define CRLF "\r\n"
+#define ChunkTail "0\r\n\r\n"
 struct HttpCode2Str {
 	int 			code;
 	const char*		status;

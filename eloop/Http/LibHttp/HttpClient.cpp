@@ -10,7 +10,7 @@ namespace eloop {
 HttpClient::HttpClient(ZQ::common::Log& logger)
 	:HttpConnection(true,logger),
 	_Logger(logger),
-	_SendMsg(NULL)
+	_req(NULL)
 {
 
 }
@@ -30,24 +30,11 @@ void HttpClient::OnConnected(ElpeError status)
 		return;
 	}
 	read_start();
-	std::string str = _SendMsg->toRaw();
-	//_Logger(ZQ::common::Log::L_INFO, CLOGFMT(HttpClient,"OnConnected,send str = %s"),str.c_str());
-	//printf("OnConnected,send str = %s\n",str.c_str());
-	write(str.c_str(),str.length());
-	_SendMsg = NULL;
-}
-
-int HttpClient::Request(HttpMessage::Ptr msg)
-{
-	std::string req = msg->toRaw();
-	return write(req.c_str(),req.length());
-//	return try_write(req.c_str(),req.length());
+	beginSend(_req);
 }
 
 bool HttpClient::beginRequest( HttpMessage::Ptr msg, const std::string& url)
 {
-
-//	printf("urlstr = %s\n",url.c_str());
 	ZQ::common::URLStr urlstr(url.c_str());
 	const char* host = urlstr.getHost();
 
@@ -60,7 +47,7 @@ bool HttpClient::beginRequest( HttpMessage::Ptr msg, const std::string& url)
 
 	msg->header("Host",host);
 
-	_SendMsg = msg;
+	_req = msg;
 	connect4(host,urlstr.getPort());
 	return true;
 }
