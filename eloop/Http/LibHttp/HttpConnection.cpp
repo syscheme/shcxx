@@ -105,8 +105,6 @@ void HttpConnection::OnShutdown(ElpeError status)
 
 void HttpConnection::parse( const char* data, size_t size) {
 
-	printf("data:%s\n,len:%d\n",data,size);
-
 	if (_RespState != RESP_COMPLETE)
 	{
 		AsyncBuf::Ptr inflowPtr = new AsyncBuf(data,size);
