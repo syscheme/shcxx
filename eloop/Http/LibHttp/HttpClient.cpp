@@ -31,6 +31,7 @@ void HttpClient::OnConnected(ElpeError status)
 	}
 	read_start();
 	beginSend(_req);
+	endSend();
 }
 
 bool HttpClient::beginRequest( HttpMessage::Ptr msg, const std::string& url)
