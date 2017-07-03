@@ -1,4 +1,3 @@
-
 #include "udpsocket.h"
 
 namespace LibAsync {
@@ -15,7 +14,7 @@ namespace LibAsync {
 		std::string peerIp;
 		if (NULL != ::inet_ntop(AF_INET, (void *)&srcAddr.sin_addr, strAddr, INET_ADDRSTRLEN))
 			peerIp.assign(strAddr);
-		unsigned short peerPort = ::htons(srcAddr.sin_port);
+		unsigned short peerPort = htons(srcAddr.sin_port);
 
 		if (ret >= 0)
 		{ 
