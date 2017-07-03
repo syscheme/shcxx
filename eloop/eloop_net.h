@@ -56,6 +56,7 @@ public:
 	int accept(Stream* client);
 	int read_start();
 	int read_stop();
+	int write(const EloopBuf bufs[],unsigned int nbufs);
 	int write(const char *buf, size_t length);
 	int write(const char *buf, size_t length, Stream *send_handle);
 	int try_write(const char *buf, size_t length);
@@ -85,7 +86,7 @@ private:
 	static void _cbAlloc(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf);
 	static void _cbRead(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf);
 	static void _cbWrote(uv_write_t *req, int status);
-
+	static void _cbWrote2(uv_write_t *req, int status);
 };
 
 // -----------------------------

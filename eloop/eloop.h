@@ -39,7 +39,7 @@
 #include <uv.h>
 
 #include <string>
-//#include <vector>
+#include <vector>
 //#include <map>
 
 #ifdef ZQ_OS_MSWIN
@@ -71,6 +71,8 @@ class Handle
 {
 public:
 	typedef uv_os_fd_t fd_t;
+
+	typedef uv_buf_t EloopBuf;
 
 	typedef enum _ElpHandleType
 	{
@@ -453,6 +455,33 @@ private:
 	static void _cbExit(uv_process_t* handle,int64_t exit_status,int term_signal);
 	uv_process_options_t _opt;
 };
+
+
+
+/*
+// -----------------------------
+// class AsyncBuf
+// -----------------------------
+class AsyncBuf
+{
+public:
+	typedef std::vector<uv_buf_t> ELBUFS;
+public:
+	AsyncBuf(){}
+	~AsyncBuf(){}
+
+	void push_back(char* base,size_t len)
+	{
+		uv_buf_t buf;
+		buf.base = base;
+		buf.len = len;
+		_bufs.push_back(buf);
+	}
+
+private:
+	ELBUFS _bufs;
+};
+*/
 
 } } // namespace ZQ::eloop
 

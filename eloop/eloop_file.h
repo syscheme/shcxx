@@ -131,6 +131,7 @@ public:
 	//@param mode  - flag combination of FileMode
 	int open(const char* filename, uint flags, uint mode);
 	int read(size_t len, int64_t offset);
+	int read(char* data,size_t len, int64_t offset);
 	int write(const char* data, size_t len, int64_t offset);
 
 	//@param mode  - flag combination of FileMode
@@ -143,6 +144,7 @@ protected:
 	virtual void OnOpen(int result) {}
 	virtual void OnWrite(int result) {}
 	virtual void OnRead(char* data,int len) {}
+	virtual void OnRead(int len) {}
 	virtual void OnClose(int result) {}
 	virtual void OnMkdir(int result) {}
 

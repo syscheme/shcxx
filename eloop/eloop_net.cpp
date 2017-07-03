@@ -36,6 +36,13 @@ namespace ZQ {
 			return uv_read_stop(stream);
 		}
 
+		int Stream::write(const EloopBuf bufs[],unsigned int nbufs)
+		{
+			uv_write_t*	req = new uv_write_t;
+			uv_stream_t* stream = (uv_stream_t *)context_ptr();
+			return uv_write(req, stream, bufs,nbufs, _cbWrote);
+		}
+
 		int Stream::write(const char *buf, size_t length) {
 
 			uv_buf_t wbuf = uv_buf_init((char *)buf, length);
@@ -50,7 +57,7 @@ namespace ZQ {
 			uv_buf_t wbuf = uv_buf_init((char *)buf, length);
 			uv_write_t *req = new uv_write_t;
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
-			return uv_write2(req, stream, &wbuf, length, (uv_stream_t *)send_handle->context_ptr(), _cbWrote);
+			return uv_write2(req, stream, &wbuf, length, (uv_stream_t *)send_handle->context_ptr(), _cbWrote2);
 		}
 
 		int Stream::try_write(const char *buf, size_t length) {
@@ -128,10 +135,21 @@ namespace ZQ {
 
 		void Stream::_cbWrote(uv_write_t *req, int status) {
 
+			uv_stream_t *stream = req->handle;
+			Stream* self = static_cast<Stream *>(stream->data);
+			if (self != NULL) {
+				self->OnWrote((ElpeError)status);
+			}
+			delete req;
+		}
+
+		void Stream::_cbWrote2(uv_write_t *req, int status) {
+
 			if (req->send_handle != NULL)
 			{
 				Stream* sendStream = static_cast<Stream *>(req->send_handle->data);
-				sendStream->close();
+				if (sendStream != NULL)
+					sendStream->close();
 			}
 
 			uv_stream_t *stream = req->handle;
@@ -141,7 +159,6 @@ namespace ZQ {
 			}
 			delete req;
 		}
-
 
 		// -----------------------------
 		// class TCP

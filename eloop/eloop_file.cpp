@@ -48,6 +48,7 @@ File::File(Loop& loop)
 	:_loop(loop),
 	_fb(0),
 	_isAlloc(false),
+	_buf(NULL),
 	_len(0)
 {
 }
@@ -68,7 +69,7 @@ int File::read(size_t len,int64_t offset)
 			free(_buf);
 			_buf = NULL;
 		}
-		_buf = (char*)malloc(len);
+		_buf = (char*)malloc(len+1);
 		_len = len;
 	}
 	memset(_buf,0,_len);
@@ -77,6 +78,14 @@ int File::read(size_t len,int64_t offset)
 	req->data = static_cast<void *>(this);
 	int ret =  uv_fs_read(_loop.context_ptr(),req,_fb,&buf,1,offset,_cbFileRead);
 	return ret;
+}
+
+int File::read(char* data,size_t len, int64_t offset)
+{
+	uv_buf_t buf = uv_buf_init(data,len);
+	uv_fs_t *req = new uv_fs_t;
+	req->data = static_cast<void *>(this);
+	return uv_fs_read(_loop.context_ptr(),req,_fb,&buf,1,offset,_cbFileRead);
 }
 
 int File::write(const char* data, size_t len, int64_t offset)
@@ -103,9 +112,12 @@ int File::close()
 
 void File::clean()
 {
-	free(_buf);
-	_buf = NULL;
-	_len = 0;
+	if (_buf != NULL)
+	{
+		free(_buf);
+		_buf = NULL;
+		_len = 0;
+	}
 }
 
 void File::setfb(int fb)
@@ -128,13 +140,13 @@ void File::_cbFileOpen(uv_fs_t* req)
 void File::_cbFileClose(uv_fs_t* req)
 {
 	File *h = static_cast<File *>(req->data);
-	if (NULL != h)
-	{
-		h->OnClose(req->result);
-		h->clean();
-	}
 	uv_fs_req_cleanup(req);
 	delete req;
+	if (NULL != h)
+	{
+		h->clean();
+		h->OnClose(req->result);
+	}
 }
 
 void File::_cbFileWrite(uv_fs_t* req)
@@ -153,7 +165,10 @@ void File::_cbFileRead(uv_fs_t* req)
 	File *h = static_cast<File *>(req->data);
 	if (NULL != h)
 	{
-		h->OnRead(h->_buf,req->result);
+		if (h->_buf)
+			h->OnRead(h->_buf,req->result);
+		else
+			h->OnRead(req->result);
 	}
 	uv_fs_req_cleanup(req);
 	delete req;
