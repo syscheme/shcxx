@@ -141,7 +141,7 @@ void HttpConnection::parse( const char* data, size_t size) {
 
 int HttpConnection::beginSend(HttpMessage::Ptr resp)
 {
-	assert(msg != NULL && "msg can not be NULL");
+	assert(resp != NULL && "msg can not be NULL");
 	_RespMsg = resp;
 	std::string head = _RespMsg->toRaw();
 	
