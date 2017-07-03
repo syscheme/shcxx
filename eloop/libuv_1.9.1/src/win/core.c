@@ -301,7 +301,6 @@ static void uv_poll(uv_loop_t* loop, DWORD timeout) {
   }
 }
 
-
 static void uv_poll_ex(uv_loop_t* loop, DWORD timeout) {
   BOOL success;
   uv_req_t* req;
