@@ -132,7 +132,7 @@ namespace ZQ {
 			uv_stream_t *stream = req->handle;
 			Stream* self = static_cast<Stream *>(stream->data);
 			if (self != NULL) {
-				self->OnWrote((ElpeError)status);
+				self->OnWrote(status);
 			}
 			delete req;
 		}
@@ -149,7 +149,7 @@ namespace ZQ {
 			uv_stream_t *stream = req->handle;
 			Stream* self = static_cast<Stream *>(stream->data);
 			if (self != NULL) {
-				self->OnWrote((ElpeError)status);
+				self->OnWrote(status);
 			}
 			delete req;
 		}
