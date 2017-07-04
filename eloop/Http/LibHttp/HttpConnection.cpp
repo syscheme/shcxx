@@ -67,7 +67,7 @@ void HttpConnection::OnRead(ssize_t nread, const char *buf)
 	parse(buf, nread);
 }
 
-void HttpConnection::OnWrote(ElpeError status)
+void HttpConnection::OnWrote(int status)
 {
 	if (status != elpeSuccess)
 	{

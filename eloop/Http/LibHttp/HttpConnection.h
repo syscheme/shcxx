@@ -102,7 +102,7 @@ protected:
 	void reset( IHttpParseSink* callback = NULL);
 	
 	virtual void OnRead(ssize_t nread, const char *buf);
-	virtual void OnWrote(ElpeError status);
+	virtual void OnWrote(int status);
 	virtual void OnClose();
 	virtual void OnShutdown(ElpeError status);
 
