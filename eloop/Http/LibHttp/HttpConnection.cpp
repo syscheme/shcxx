@@ -77,7 +77,7 @@ void HttpConnection::OnWrote(ElpeError status)
 		return;
 	}
 	
-	onHttpDataSent();
+	onHttpDataSent(status);
 
 //	_Logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"OnWrote\n"));
 
@@ -158,7 +158,7 @@ int HttpConnection::SendBody(char *buf, size_t length)
 
 	int ret = 0;
 	if( _RespMsg->chunked() ) {
-		EloopBuf chunkbuf[3];
+		eloop_buf_t chunkbuf[3];
 		char chhead[16];
 		sprintf(chhead, "%x\r\n",length);
 

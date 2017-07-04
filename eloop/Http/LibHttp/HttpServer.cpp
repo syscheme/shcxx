@@ -118,7 +118,7 @@ void HttpPassiveConn::OnClose()
 	delete this;
 }
 
-void HttpPassiveConn::onHttpDataSent() {
+void HttpPassiveConn::onHttpDataSent(size_t size) {
 
 /*	char locip[17] = { 0 };
 	int  locport = 0;
@@ -130,7 +130,7 @@ void HttpPassiveConn::onHttpDataSent() {
 	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpPassiveConn, "onHttpDataSent [%p] [%s:%d==>%s:%d]."), this, locip, locport, peerip, peerport);*/
 
 	if(_Handler != NULL) {			
-		_Handler->onHttpDataSent();
+		_Handler->onHttpDataSent(size);
 	}
 }
 

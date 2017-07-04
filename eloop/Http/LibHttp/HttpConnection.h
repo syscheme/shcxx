@@ -108,7 +108,7 @@ protected:
 
 protected:
 	// onReqMsgSent is only used to notify that the sending buffer is free and not held by HttpClient any mre
-	virtual void onHttpDataSent() { }
+	virtual void onHttpDataSent(size_t size) { }
 	// onHttpDataReceived is only used to notify that the receiving buffer is free and not held by HttpClient any mre
 	virtual void onHttpDataReceived(size_t size) { }
 

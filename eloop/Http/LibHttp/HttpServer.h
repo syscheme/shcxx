@@ -31,7 +31,7 @@ public:
 protected: // hatched by HttpApplication
 	HttpHandler(HttpPassiveConn& conn,ZQ::common::Log& logger, const Properties& dirProps, const Properties& appProps)
 		: _conn(conn),_Logger(logger),_dirProps(dirProps), _appProps(appProps) {}
-	virtual void	onHttpDataSent(){}
+	virtual void	onHttpDataSent(size_t size){}
 
 	virtual void	onHttpDataReceived( size_t size ){}
 
@@ -110,7 +110,7 @@ protected:
 
 	// implementation of HttpConnection
 	virtual void	onError( int error,const char* errorDescription );
-	virtual void	onHttpDataSent();
+	virtual void	onHttpDataSent(size_t size);
 	virtual void	onHttpDataReceived( size_t size );
 	virtual bool	onHeadersEnd( const HttpMessage::Ptr msg);
 	virtual bool	onBodyData( const char* data, size_t size);
@@ -165,6 +165,7 @@ public:
 			keepAliveIdleMax		= 10 * 60 *1000;
 			maxConns 				= 100 * 1000;
 			mode					= DEFAULT_MODE;
+			threadCount				= 4;
 		}
 
 		std::string serverName;
