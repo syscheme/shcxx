@@ -22,7 +22,7 @@ public:
 	virtual void onMessageCompleted();
 	virtual void onError( int error,const char* errorDescription );
 
-	virtual void	onHttpDataSent();
+	virtual void	onHttpDataSent(size_t size);
 	virtual void	onHttpDataReceived( size_t size );
 
 };
@@ -43,7 +43,7 @@ public:
 	virtual void onMessageCompleted();
 	virtual void onError( int error,const char* errorDescription );
 
-	virtual void	onHttpDataSent();
+	virtual void	onHttpDataSent(size_t size);
 	virtual void	onHttpDataReceived( size_t size );
 
 private:

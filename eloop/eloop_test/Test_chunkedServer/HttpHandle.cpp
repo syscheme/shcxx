@@ -102,7 +102,7 @@ void DownloadeHandle::onError( int error,const char* errorDescription )
 
 }
 
-void DownloadeHandle::onHttpDataSent()
+void DownloadeHandle::onHttpDataSent(size_t size)
 {
 	if (_isClose)
 		return;
