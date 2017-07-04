@@ -72,7 +72,7 @@ class Handle
 public:
 	typedef uv_os_fd_t fd_t;
 
-	typedef uv_buf_t EloopBuf;
+	typedef uv_buf_t eloop_buf_t;
 
 	typedef enum _ElpHandleType
 	{

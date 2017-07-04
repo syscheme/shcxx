@@ -56,7 +56,7 @@ public:
 	int accept(Stream* client);
 	int read_start();
 	int read_stop();
-	int write(const EloopBuf bufs[],unsigned int nbufs);
+	int write(const eloop_buf_t bufs[],unsigned int nbufs);
 	int write(const char *buf, size_t length);
 	int write(const char *buf, size_t length, Stream *send_handle);
 	int try_write(const char *buf, size_t length);
@@ -77,8 +77,24 @@ protected:
 	// called after buffer has been read from the stream
 	virtual void OnRead(ssize_t nread, const char *buf) {} // TODO: uv_buf_t is unacceptable to appear here, must take a new manner known in this C++ wrapper level
 
-	virtual void* doAllocate(size_t suggested_size)	{ return malloc(suggested_size); }
-	virtual void doFree(void* buf) { free(buf); }
+	virtual void doAllocate(eloop_buf_t* buf,size_t suggested_size)	
+	{ 
+		buf->base = (char*)malloc(suggested_size);
+		if (buf->base)
+		{
+			buf->len = suggested_size;
+			memset(buf->base,0,buf->len);
+		}
+	}
+	virtual void doFree(eloop_buf_t* buf)
+	{
+		if (buf->base)
+		{
+			free(buf->base);
+			buf->base = NULL;
+			buf->len = 0;
+		} 
+	}
 
 private:
 	static void _cbShutdown(uv_shutdown_t *req, int status);

@@ -36,7 +36,7 @@ namespace ZQ {
 			return uv_read_stop(stream);
 		}
 
-		int Stream::write(const EloopBuf bufs[],unsigned int nbufs)
+		int Stream::write(const eloop_buf_t bufs[],unsigned int nbufs)
 		{
 			uv_write_t*	req = new uv_write_t;
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
@@ -109,13 +109,7 @@ namespace ZQ {
 			buf->len = 0;
 			Stream* self = static_cast<Stream *>(handle->data);
 			if (self != NULL)
-				buf->base = (char*) self->doAllocate(suggested_size);
-
-			if (buf->base)
-			{
-				buf->len = suggested_size;
-				memset(buf->base,0,buf->len);
-			}
+				self->doAllocate(buf,suggested_size);
 		}
 
 		void Stream::_cbRead(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
@@ -129,7 +123,7 @@ namespace ZQ {
 					return;
 				}*/
 				self->OnRead(nread, buf->base);
-				self->doFree((void*)buf->base);
+				self->doFree(const_cast<eloop_buf_t*>(buf));
 			}
 		}
 
