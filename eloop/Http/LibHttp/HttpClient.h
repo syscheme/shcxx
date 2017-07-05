@@ -41,10 +41,9 @@ protected:
 
 	virtual void	onError( int error,const char* errorDescription );
 
+	HttpMessage::Ptr		_req;
 private:
 	ZQ::common::Log&		_Logger;
-	HttpMessage::Ptr		_req;
-
 };
 } }//namespace ZQ::eloop
 #endif

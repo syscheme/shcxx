@@ -249,6 +249,9 @@ bool HttpServer::startAt()
 
 void HttpServer::stop()
 {
+	if (!_isStart)
+		return;
+	_isStart = false;
 	if (_PassiveConn.empty())
 	{
 		_engine->stop();
@@ -374,7 +377,7 @@ void HttpServer::delConn( HttpPassiveConn* servant )
 {
 	ZQ::common::MutexGuard gd(_connCountLock);
 	_PassiveConn.erase(servant);
-	if (_PassiveConn.empty())
+	if (!_isStart&&_PassiveConn.empty())
 		_engine->stop();
 }
 
@@ -610,7 +613,7 @@ int MultipleLoopHttpEngine::run()
 		socklen_t size= (socklen_t)sizeof( addr );
 		int sock = accept( _socket, (struct sockaddr*)&addr, &size);
 		if( sock < 0 )
-			break;
+			continue;
 /*
 		int flags = fcntl(sock, F_GETFL, 0);
 		if ( -1 == flags)
