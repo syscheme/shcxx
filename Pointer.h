@@ -187,7 +187,7 @@ public:
 	}
 	
 	bool operator == ( const SharedObject& b);
-	
+
 	void __incRef( );
 	void __decRef( );
 	int __getRef();
