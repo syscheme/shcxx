@@ -223,7 +223,7 @@ public: // Redis commands
 
 	RedisCommand::Ptr sendSET(const char *key, const uint8* val, int vlen =-1, RedisSink::Ptr reply=NULL);
 	RedisCommand::Ptr sendGET(const char *key, RedisSink::Ptr reply=NULL);
-	RedisCommand::Ptr sendGETSET(const char *key, const char *val, int vlen =-1, RedisSink::Ptr reply=NULL);
+	RedisCommand::Ptr sendGETSET(const char *key, const uint8* val, int vlen =-1, RedisSink::Ptr reply=NULL);
 	RedisCommand::Ptr sendDEL(const char *key, RedisSink::Ptr reply=NULL);
 
 	RedisCommand::Ptr sendKEYS(const char *pattern, RedisSink::Ptr reply=NULL);

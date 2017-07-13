@@ -50,6 +50,7 @@
 
 #include "RedisClient.h"
 #include "SystemUtils.h"
+#include "CryptoAlgm.h"
 
 #define REDIS_NEWLINE              "\r\n"
 #define REDIS_LEADINGCH_ERROR      '-'
@@ -355,77 +356,24 @@ int RedisClient::encode(std::string& output, const void* source, size_t len)
 		return 0;
 
 	if (len <0)
-		len = strlen((char*) source);
+		len = strlen((const char*) source);
 
-	const int8 *sptr=(const int8 *)source;
-
-	for (size_t i=0; i<len; i++)
-	{
-		// The ASCII characters digits or letters, and ".", "-", "*", "_"
-		// remain the same
-		if ('"'!=sptr[i] && '%'!=sptr[i] && _ISPRINT(sptr[i]))
-		{
-			output += (char) sptr[i];
-			continue;
-		}
-
-		//All other characters are converted into the 3-character string "%xy",
-		// where xy is the two-digit hexadecimal representation of the lower
-		// 8-bits of the character
-		unsigned int hi, lo;
-		hi= ((unsigned int)sptr[i] & 0xf0) / 0x10;
-		lo= (unsigned int) sptr[i] % 0x10;
-
-		hi+=(hi<10)? '0' : ('a' -10);
-		lo+=(lo<10)? '0' : ('a' -10);
-
-		output += '%';
-		output += (char) (hi &0xff);
-		output += (char) (lo &0xff);
-	}
-
+	output = Base64::encode((const uint8*)source, len);
 	return output.size();
 }
 
 int RedisClient::decode(const char* source, void* target, size_t maxlen)
 {
-	size_t slen = strlen(source);
 	uint8 *targ = (uint8 *)target;
 
 	if (targ ==NULL)
 		return 0;
-	
-	size_t s, t;
-	for (s=0, t=0; s<slen && (t<maxlen || maxlen<0); s++, t++)
-	{
-		// the 3-character string "%xy", where xy is the
-		// two-digit hexadecimal representation should be char
-		if (source[s]=='%')
-		{
-			unsigned int hi, lo;
-			
-			hi=(unsigned int) source[++s];
-			lo=(unsigned int) source[++s];
 
-
-			hi -= ( isxdigit(hi)  ? ( isalpha(hi) ? (isupper(hi)?('A' -10):('a'-10)) : '0' ) : '0' );
-			lo -= ( isxdigit(lo)  ? ( isalpha(lo) ? (isupper(lo)?('A' -10):('a'-10)) : '0' ) : '0' );
-
-			if ((hi & 0xf0)|| (lo &0xf0))
-				return false;
-			
-			targ[t]=(hi*0x10 +lo) &0xff;
-			continue;
-		}
-		
-		// the other printables
-		targ[t]= source[s];
-	}
+	size_t tlen = maxlen;
+	if (Base64::decode(source, targ, tlen))
+		return tlen;
 	
-	if (t<maxlen || maxlen<0)
-		targ[t]=0x00;
-	
-	return t;
+	return 0;
 }
 
 char* RedisClient::_nextLine(char* startOfLine, int maxByte, int minLen)
