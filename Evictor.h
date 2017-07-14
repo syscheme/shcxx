@@ -115,6 +115,7 @@ public:
 
 	typedef std::map < ::std::string, ::std::string> Properties;
 
+	Evictor(Log& log, const std::string& name, const Properties& props);
 	virtual ~Evictor();
 
 	virtual void setSize(int size);
@@ -154,8 +155,8 @@ private:
 
 protected:
 
-	uint _size, _maxSize;
-	Log&      _log;
+	Log&  _log;
+	std::string _name;
 
 	// configurations
 	uint32    _flags;

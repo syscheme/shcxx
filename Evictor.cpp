@@ -23,11 +23,21 @@ const char* Evictor::identToString(const Ident& ident)
 	return (ident.name + "@" + ident.category).c_str(); 
 }
 
-/*
-Evictor(Log& log, Properties& props, uint size)
-: _maxSize(size), _size(0)
+Evictor::Evictor(Log& log, const std::string& name, const Evictor::Properties& props)
+:_log(log), _name(name)
 {
+	Evictor::Properties tmpprops = props;
+	std::string prop_prefix = name;
+	if (!prop_prefix.empty() && prop_prefix[prop_prefix.length()-1]!='.')
+		prop_prefix += '.';
 
+	if (atoi(tmpprops[prop_prefix + "trace"].c_str()) >0)
+		_flags |= FLG_TRACE;
+
+	_evictorSize = atoi(tmpprops[prop_prefix + "maxSize"].c_str());
+	_saveSizeTrigger = atoi(tmpprops[prop_prefix + "saveSizeTrigger"].c_str());
+}
+/*
 _initializer(initializer),
 _dbEnv(SharedDbEnv::get(_communicator, envName, dbEnv)),
 _filename(filename),
