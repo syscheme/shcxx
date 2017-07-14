@@ -11,11 +11,11 @@
 #include <list>
 #include <queue>
 
-using namespace ZQ::common;
-// namespace ZQ{
-// namespace common{
+namespace ZQ{
+namespace common{
 
-// class ZQ_COMMON_API EvictorItem;
+class ZQ_COMMON_API EvictorException;
+class ZQ_COMMON_API Evictor;
 
 // -----------------------------
 // class EvictorException
@@ -32,29 +32,16 @@ protected:
 	int _code;
 };
 
-
 // -----------------------------
-// class EvictorItem
+// class Evictor
 // -----------------------------
-class EvictorItem : public SharedObject, public Mutex
+class Evictor : public Mutex
 {
-	friend class Evictor;
-
 public:
 
-	typedef ZQ::common::Pointer<EvictorItem> Ptr;
-	typedef ZQ::common::Pointer<SharedObject> ObjectPtr;
-
-	// typedef std::list<Ptr> List; // MUST be a list instead of vector
-
-	typedef enum _State
-	{
-		clean = 0,     // the element is as that of ObjectStore
-		created = 1,   // the element is created in the cache, and has not present in the ObjectStore
-		modified = 2,  // the element is modified but not yet flushed to the ObjectStore
-		destroyed = 3,  // the element is required to destroy but not yet deleted from ObjectStore
-		dead = 4       // the element should be evicted from the local cache
-	} State;
+	typedef enum _Error {
+		eeOK =200, eeNotFound=404, eeTimeout=402, eeConnectErr=503
+	} Error;
 
 	typedef struct _Ident
 	{
@@ -66,87 +53,80 @@ public:
 	typedef std::list <Ident> IdentList;
 
 	static const char* identToString(const Ident& ident);
-	static const char* stateToString(State s);
 
-	Ident _ident;
-	// bool  _orphan; // true if not managed in _owner._cache
+	// -----------------------------
+	// sub class Item
+	// -----------------------------
+	class Item : public SharedObject, public Mutex
+	{
+		friend class Evictor;
 
-	typedef struct _Data {
-		State     status;
-		int64     stampCreated, stampLastSave;
-		ObjectPtr servant;
+	public:
 
-		_Data() : status(clean) {  stampCreated = stampLastSave = 0; }
-	} Data;
+		typedef ZQ::common::Pointer<Item> Ptr;
+		typedef ZQ::common::Pointer<SharedObject> ObjectPtr;
 
-	Data _data;
-	// int  _evictRefCount; // reference count in this evictor, such as times in _modifiedQueue
+		// typedef std::list<Ptr> List; // MUST be a list instead of vector
 
-	State status() const { return _data.status; }
+		typedef enum _State
+		{
+			clean = 0,     // the element is as that of ObjectStore
+			created = 1,   // the element is created in the cache, and has not present in the ObjectStore
+			modified = 2,  // the element is modified but not yet flushed to the ObjectStore
+			destroyed = 3,  // the element is required to destroy but not yet deleted from ObjectStore
+			dead = 4       // the element should be evicted from the local cache
+		} State;
 
-	typedef std::map <Ident, Ptr> Map;
+		static const char* stateToString(State s);
 
-	// relates to the Evictor
-	Evictor& _owner;
-	IdentList::iterator _pos; // NULL if it is an orphan
-	bool _orphan;
+		Ident _ident;
 
-public:
-	virtual ~EvictorItem() {}
+		typedef struct _Data {
+			State     status;
+			int64     stampCreated, stampLastSave;
+			ObjectPtr servant;
 
-protected:
+			_Data() : status(clean) {  stampCreated = stampLastSave = 0; }
+		} Data;
 
-	EvictorItem(Evictor& owner, const Ident& ident) // should only be instantized by Evictor
-		: _owner(owner), _ident(ident), _orphan(true)
-	{}
-	
-	virtual void _requeue(); // thread unsafe, only be called from Evictor
-	virtual void _evict(); // thread unsafe, only be called from Evictor
-	int _objectUsage() { if (!_data.servant) return 0; return _data.servant->__getRef(); } 
-	int _usageInEvictor() { return SharedObject::__getRef(); } 
-};
+		Data _data;
+		// int  _evictRefCount; // reference count in this evictor, such as times in _modifiedQueue
 
-// -----------------------------
-// class Evictor
-// -----------------------------
-#define Key std::string // TODO: Dummy
-#define Value std::string // TODO: Dummy
-#define ObjectStore void // TODO: Dummy
+		State status() const { return _data.status; }
 
-class Evictor : public Mutex
-{
-	friend class EvictorItem;
+	public:
+		~Item() {}
 
-public:
+	private:
 
-	typedef enum _Error {
-		eeOK =200, eeNotFound=404, eeTimeout=402, eeConnectErr=503
-	} Error;
+		Item(Evictor& owner, const Ident& ident) // should only be instantized by Evictor
+			: _owner(owner), _ident(ident), _orphan(true)
+		{}
 
-	typedef EvictorItem Item;
+		virtual void _evict(); // thread unsafe, only be called from Evictor
+		int _objectUsage() { if (!_data.servant) return 0; return _data.servant->__getRef(); } 
+		int _usageInEvictor() { return SharedObject::__getRef(); } 
+
+		// relates to the Evictor
+		Evictor& _owner;
+		IdentList::iterator _pos; // NULL if it is an orphan
+		bool  _orphan; // true if not managed in _owner._cache
+	};
+
 	typedef std::map < ::std::string, ::std::string> Properties;
-
-	uint _size, _maxSize;
-	Log&      _log;
-
-	// configurations
-	uint32    _flags;
-	uint32    _saveSizeTrigger;
-	uint32    _evictorSize;
 
 	virtual ~Evictor();
 
 	virtual void setSize(int size);
 	virtual int getSize();
 
-	virtual Item::Ptr       add(const EvictorItem::ObjectPtr& obj, const EvictorItem::Ident& ident);
-	virtual Item::ObjectPtr remove(const EvictorItem::Ident& ident);
-	virtual Item::ObjectPtr locate(const EvictorItem::Ident& ident);
-	virtual void            setDirty(const EvictorItem::Ident& ident);
+	virtual Item::Ptr       add(const Item::ObjectPtr& obj, const Ident& ident);
+	virtual Item::ObjectPtr remove(const Ident& ident);
+	virtual Item::ObjectPtr locate(const Ident& ident);
+	virtual void            setDirty(const Ident& ident);
 
-	// the evictor relies on two threads: one to evict/flush data, one to load object
+	// the evictor relies on a thread to to evict/flush data
 	virtual int poll();
-	virtual int poll_load(size_t batchSize = 10);
 
 private:
 
@@ -166,234 +146,54 @@ private:
 	StreamedList _streamedList;
 
 	// thread unsafe, only be called from Evictor
-	void _requeue(EvictorItem::Ptr& item);
+	void _requeue(Item::Ptr& item);
 	bool _stream(const Item::Ptr& element, StreamedObject& streamedObj, int64 stampAsOf);
 	void _evict(Item::Ptr item); 
-	int _evictBySize();
+	int  _evictBySize();
 	void _queueModified(const Item::Ptr& element); 
 
 protected:
 
-	typedef std::deque<Item::Ptr> Queue;
-	typedef Item::Map             Cache;
+	uint _size, _maxSize;
+	Log&      _log;
 
-	Cache            _cache;
-	Item::IdentList  _evictorList;
+	// configurations
+	uint32    _flags;
+	uint32    _saveSizeTrigger;
+	uint32    _evictorSize;
+
+	typedef std::deque<Item::Ptr> Queue;
+	typedef std::map <Ident, Item::Ptr> Map;
+
+	Map            _cache;
+	IdentList        _evictorList;
 	Event            _event;
 
 	// tempoary await data
 	Queue       _modifiedQueue;
-	Cache       _awaitLoad;
-
-	virtual int saveBatchToStore(StreamedList& batch);
-
-	//@ return IOError, NotFound, OK
-	virtual Error loadFromStore(Item::Ident ident, StreamedObject& data);
 
 	// ping an item in the mapped ObjectStore
 	//@param element if non-NULL element is given, means when the object is not exists in the ObjectStore,
 	//               the given element should be taken to reserve the ident at least in the layer of the local cache-layer
 	//@return the object loaded from the ObjectStore, NULL if not found
-	virtual EvictorItem::Ptr pin(const EvictorItem::Ident& ident, EvictorItem::Ptr element = NULL);
+	virtual Item::Ptr pin(const Ident& ident, Item::Ptr element = NULL);
 
+protected: // the child class inherited from this evictor should implement the folloing method
+
+	// save a batch of streamed object to the target object store
+	virtual int saveBatchToStore(StreamedList& batch);
+
+	// load a specified object from the object store
+	//@ return IOError, NotFound, OK
+	virtual Error loadFromStore(Ident ident, StreamedObject& data);
+
+	// marshal a servant object into a byte stream for saving to the object store
 	virtual bool marshal(const std::string& category, const Item::Data& data, ByteStream& streamedData);
+
+	// unmarshal a servant object from the byte stream read from the object store
 	virtual bool unmarshal(const std::string& category, Item::Data& data, const ByteStream& streamedData);
 };
 
-/*
-//
-// Accessors for other classes
-//
-void saveNow();
+}} // namespace
 
-DeactivateController& deactivateController();
-const Ice::CommunicatorPtr& communicator() const;
-const SharedDbEnvPtr& dbEnv() const;
-const std::string& filename() const;
-
-bool deadlockWarning() const;
-Ice::Int trace() const;
-Ice::Int txTrace() const;
-
-
-void initialize(const Ice::Identity&, const std::string&, const Ice::ObjectPtr&);
-
-
-static std::string defaultDb;
-static std::string indexPrefix;
-
-private:
-
-	Ice::ObjectPtr locateImpl(const Ice::Current&, Ice::LocalObjectPtr&);
-	bool hasFacetImpl(const Ice::Identity&, const std::string&);
-	bool hasAnotherFacet(const Ice::Identity&, const std::string&);
-
-	void evict();
-	void evict(const EvictorElementPtr&);
-	void _queueModified(const EvictorElementPtr&);
-	void fixEvictPosition(const EvictorElementPtr&);
-
-	void stream(const EvictorElementPtr&, Ice::Long, StreamedObject&);
-	void saveNowNoSync();
-
-	ObjectStore* findStore(const std::string&) const;
-
-	std::vector<std::string> allDbs() const;
-
-
-	typedef std::map<std::string, ObjectStore*> StoreMap;
-	StoreMap _storeMap;
-
-	//
-	// The _evictorList contains a list of all objects we keep,
-	// with the most recently used first.
-	//
-	std::list<EvictorElementPtr> _evictorList;
-	std::list<EvictorElementPtr>::size_type _evictorSize;
-	std::list<EvictorElementPtr>::size_type _currentEvictorSize;
-
-	//
-	// The _modifiedQueue contains a queue of all modified objects
-	// Each element in the queue "owns" a usage count, to ensure the
-	// element containing the pointed element remains in the cache.
-	//
-	std::deque<EvictorElementPtr> _modifiedQueue;
-
-	DeactivateController _deactivateController;
-	bool _savingThreadDone;
-	WatchDogThreadPtr _watchDogThread;
-
-	Ice::ObjectAdapterPtr _adapter;
-	Ice::CommunicatorPtr _communicator;
-
-	ServantInitializerPtr _initializer;
-
-	SharedDbEnvPtr _dbEnv;
-
-	std::string _filename;
-	bool _createDb;
-
-	Ice::Int _trace;
-	Ice::Int _txTrace;
-
-	//
-	// Threads that have requested a "saveNow" and are waiting for
-	// its completion
-	//
-	std::deque<IceUtil::ThreadControl> _saveNowThreads;
-
-	Ice::Int _saveSizeTrigger;
-	Ice::Int _maxTxSize;
-	IceUtil::Time _savePeriod;
-
-	bool _deadlockWarning;
-
-	bool _useNonmutating;
-
-	Ice::ObjectPtr _pingObject;
-};
-
-
-inline DeactivateController&
-EvictorI::deactivateController()
-{
-	return _deactivateController;
-}
-
-inline const Ice::CommunicatorPtr&
-EvictorI::communicator() const
-{
-	return _communicator;
-}
-
-inline const SharedDbEnvPtr&
-EvictorI::dbEnv() const
-{
-	return _dbEnv;
-}
-
-inline bool
-EvictorI::deadlockWarning() const
-{
-	return _deadlockWarning;
-}
-
-inline Ice::Int
-EvictorI::trace() const
-{
-	return _trace;
-}
-
-
-
-	void evict(const EvictorItem::Ptr& item)
-	{
-		assert(!item->stale);
-		assert(item->keepCount == 0);
-
-		_evictorList.erase(item->evictPosition);
-		_currentEvictorSize--;
-		element->stale = true;
-		element->store.unpin(item->cachePosition);
-	}
-
-	void Evictor::_evictBySize()
-	{
-		//
-		// Must be called with *this locked
-		//
-
-		assert(_currentEvictorSize == _evictorList.size());
-
-		list<EvictorElementPtr>::reverse_iterator p = _evictorList.rbegin();
-
-		while (_currentEvictorSize > _evictorSize)
-		{
-			//
-			// Get the last unused element from the evictor queue.
-			//
-			while (p != _evictorList.rend())
-			{
-				if ((*p)->usageCount == 0)
-				{
-					break; // Fine, servant is not in use (and not in the modifiedQueue)
-				}
-				++p;
-			}
-			if (p == _evictorList.rend())
-			{
-				//
-				// All servants are active, can't evict any further.
-				//
-				break;
-			}
-
-			EvictorElementPtr& element = *p;
-			assert(!element->stale);
-			assert(element->keepCount == 0);
-
-			if (_trace >= 2 || (_trace >= 1 && _evictorList.size() % 50 == 0))
-			{
-				string facet = element->store.facet();
-
-				Trace out(_communicator->getLogger(), "Freeze.Evictor");
-				out << "evicting \"" << _communicator->identityToString(element->cachePosition->first) << "\" ";
-				if (facet != "")
-				{
-					out << "-f \"" << facet << "\" ";
-				}
-				out << "from the queue\n"
-					<< "number of elements in the queue: " << _currentEvictorSize;
-			}
-
-			//
-			// Remove last unused element from the evictor queue.
-			//
-			element->stale = true;
-			element->store.unpin(element->cachePosition);
-			p = list<EvictorElementPtr>::reverse_iterator(_evictorList.erase(element->evictPosition));
-			_currentEvictorSize--;
-		}
-	}
-*/
 #endif // #define __ZQ_COMMON_Evictor_H__
