@@ -18,6 +18,22 @@ using namespace ZQ::common;
 // class ZQ_COMMON_API EvictorItem;
 
 // -----------------------------
+// class EvictorException
+// -----------------------------
+class EvictorException : public Exception
+{
+public:
+	EvictorException(int code, const std::string &what_arg) throw()
+		:Exception(what_arg), _code(code) {}
+
+	virtual ~EvictorException() throw();
+
+protected:
+	int _code;
+};
+
+
+// -----------------------------
 // class EvictorItem
 // -----------------------------
 class EvictorItem : public SharedObject, public Mutex
@@ -29,7 +45,7 @@ public:
 	typedef ZQ::common::Pointer<EvictorItem> Ptr;
 	typedef ZQ::common::Pointer<SharedObject> ObjectPtr;
 
-	typedef std::list<Ptr> List; // MUST be a list instead of vector
+	// typedef std::list<Ptr> List; // MUST be a list instead of vector
 
 	typedef enum _State
 	{
@@ -44,13 +60,16 @@ public:
 	{
 		std::string category, name;
 		bool operator < (const _Ident& o) const { return category < o.category && name < o.name; }
+		bool operator == (const _Ident& o) const { return (category ==o.category) && (name == o.name); }
 	} Ident;
+
+	typedef std::list <Ident> IdentList;
 
 	static const char* identToString(const Ident& ident);
 	static const char* stateToString(State s);
 
 	Ident _ident;
-	bool  _orphan; // true if not managed in _owner._cache
+	// bool  _orphan; // true if not managed in _owner._cache
 
 	typedef struct _Data {
 		State     status;
@@ -65,66 +84,26 @@ public:
 
 	State status() const { return _data.status; }
 
+	typedef std::map <Ident, Ptr> Map;
+
 	// relates to the Evictor
 	Evictor& _owner;
-	List::iterator _pos;
+	IdentList::iterator _pos; // NULL if it is an orphan
+	bool _orphan;
 
 public:
 	virtual ~EvictorItem() {}
 
 protected:
 
-	EvictorItem(Evictor& owner) // should only be instantized by Evictor
-		: _owner(owner), _orphan(true)
+	EvictorItem(Evictor& owner, const Ident& ident) // should only be instantized by Evictor
+		: _owner(owner), _ident(ident), _orphan(true)
 	{}
 	
 	virtual void _requeue(); // thread unsafe, only be called from Evictor
 	virtual void _evict(); // thread unsafe, only be called from Evictor
 	int _objectUsage() { if (!_data.servant) return 0; return _data.servant->__getRef(); } 
 	int _usageInEvictor() { return SharedObject::__getRef(); } 
-
-	/*
-
-		//
-		// Immutable
-		//
-		ObjectStore& store;
-
-		//
-		// Immutable once set
-		//
-		Cache::Position cachePosition;
-
-		//
-		// Protected by EvictorI
-		//
-		std::list<EvictorElementPtr>::iterator evictPosition;
-		int usageCount;
-		int keepCount;
-		bool stale;
-
-		//
-		// Protected by mutex
-		//
-		IceUtil::Mutex mutex;
-		ObjectRecord rec;
-		Ice::Byte status;
-		*/
-};
-
-// -----------------------------
-// class EvictorException
-// -----------------------------
-class EvictorException : public Exception
-{
-public:
-	EvictorException(int code, const std::string &what_arg) throw()
-		:Exception(what_arg), _code(code) {}
-
-	virtual ~EvictorException() throw();
-
-protected:
-	int _code;
 };
 
 // -----------------------------
@@ -140,15 +119,18 @@ class Evictor : public Mutex
 
 public:
 
+	typedef enum _Error {
+		eeOK =200, eeNotFound=404, eeTimeout=402, eeConnectErr=503
+	} Error;
+
 	typedef EvictorItem Item;
 	typedef std::map < ::std::string, ::std::string> Properties;
 
 	uint _size, _maxSize;
 	Log&      _log;
-	Event     _event;
 
 	// configurations
-	bool      _trace;
+	uint32    _flags;
 	uint32    _saveSizeTrigger;
 	uint32    _evictorSize;
 
@@ -162,16 +144,9 @@ public:
 	virtual Item::ObjectPtr locate(const EvictorItem::Ident& ident);
 	virtual void            setDirty(const EvictorItem::Ident& ident);
 
-		// ping an item in the mapped ObjectStore
-	//@param element if non-NULL element is given, means when the object is not exists in the ObjectStore,
-	//               the given element should be taken to reserve the ident at least in the layer of the local cache-layer
-	//@return the object loaded from the ObjectStore, NULL if not found
-	virtual EvictorItem::Ptr pin(const EvictorItem::Ident& ident, EvictorItem::Ptr element = NULL);
-
 	// the evictor relies on two threads: one to evict/flush data, one to load object
 	virtual int poll();
 	virtual int poll_load(size_t batchSize = 10);
-
 
 private:
 
@@ -191,6 +166,7 @@ private:
 	StreamedList _streamedList;
 
 	// thread unsafe, only be called from Evictor
+	void _requeue(EvictorItem::Ptr& item);
 	bool _stream(const Item::Ptr& element, StreamedObject& streamedObj, int64 stampAsOf);
 	void _evict(Item::Ptr item); 
 	int _evictBySize();
@@ -199,23 +175,29 @@ private:
 protected:
 
 	typedef std::deque<Item::Ptr> Queue;
-	typedef std::map <Item::Ident, Item::Ptr > Cache;
+	typedef Item::Map             Cache;
 
-	Cache             _cache;
-	EvictorItem::List _evictorList;
+	Cache            _cache;
+	Item::IdentList  _evictorList;
+	Event            _event;
 
 	// tempoary await data
-	Queue             _modifiedQueue;
-	Cache             _awaitLoad;
+	Queue       _modifiedQueue;
+	Cache       _awaitLoad;
 
-	virtual int saveBatch(StreamedList& batch);
+	virtual int saveBatchToStore(StreamedList& batch);
 
 	//@ return IOError, NotFound, OK
 	virtual Error loadFromStore(Item::Ident ident, StreamedObject& data);
 
-	virtual bool marshal(const Item::Data& data, ByteStream& streamedData);
-	virtual bool unmarshal(Item::Data& data, const ByteStream& streamedData);
+	// ping an item in the mapped ObjectStore
+	//@param element if non-NULL element is given, means when the object is not exists in the ObjectStore,
+	//               the given element should be taken to reserve the ident at least in the layer of the local cache-layer
+	//@return the object loaded from the ObjectStore, NULL if not found
+	virtual EvictorItem::Ptr pin(const EvictorItem::Ident& ident, EvictorItem::Ptr element = NULL);
 
+	virtual bool marshal(const std::string& category, const Item::Data& data, ByteStream& streamedData);
+	virtual bool unmarshal(const std::string& category, Item::Data& data, const ByteStream& streamedData);
 };
 
 /*

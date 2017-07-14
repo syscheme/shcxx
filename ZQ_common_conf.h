@@ -456,6 +456,10 @@ typedef	uint64			timeout64_t; // msec
 #  define MAX(_A, _B) ((_A) >(_B) ? (_A) :(_B))
 #endif
 
+#ifndef FLAG
+#  define FLAG(_X) (1<<_X)
+#endif
+
 #ifndef ZQ_FILELOG_V1
 #define ZQ_FILELOG_V2
 #endif
