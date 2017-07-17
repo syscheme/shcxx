@@ -12,19 +12,30 @@ namespace common{
 // -----------------------------
 const char* Evictor::Item::stateToString(State s)
 {
-	return "UNKNOWN";
+	switch(s)
+	{
+	case clean:     return "clean"; // the element is as that of ObjectStore
+	case created:   return "created"; // the element is created in the cache, and has not present in the ObjectStore
+	case modified:  return "modified"; // the element is modified but not yet flushed to the ObjectStore
+	case destroyed: return "destroyed"; // the element is required to destroy but not yet deleted from ObjectStore
+	case dead:      return "dead"; // the element should be evicted from the local cache
+	}
+
+	return "unknown";
 }
 
 // -----------------------------
 // class Evictor
 // -----------------------------
-const char* Evictor::identToString(const Ident& ident)
+#define ident_cstr(IDENT) Evictor::identToStr(IDENT).c_str()
+std::string Evictor::identToStr(const Ident& ident)
 { 
-	return (ident.name + "@" + ident.category).c_str(); 
+	return (ident.name + "@" + ident.category); 
 }
 
 Evictor::Evictor(Log& log, const std::string& name, const Evictor::Properties& props)
-:_log(log), _name(name)
+: _log(log), _name(name), 
+  _flags(1), _evictorSize(EVICTOR_DEFAULT_SIZE), _saveSizeTrigger(2), _batchSize(20)
 {
 	Evictor::Properties tmpprops = props;
 	std::string prop_prefix = name;
@@ -36,163 +47,76 @@ Evictor::Evictor(Log& log, const std::string& name, const Evictor::Properties& p
 
 	_evictorSize = atoi(tmpprops[prop_prefix + "maxSize"].c_str());
 	_saveSizeTrigger = atoi(tmpprops[prop_prefix + "saveSizeTrigger"].c_str());
-}
-/*
-_initializer(initializer),
-_dbEnv(SharedDbEnv::get(_communicator, envName, dbEnv)),
-_filename(filename),
-_createDb(createDb),
-TRACE(0),
-_txTrace(0),
-_pingObject(new PingObject)
-{
 
-TRACE = _communicator->getProperties()->getPropertyAsInt("Freeze.Trace.Evictor");
-_txTrace = _communicator->getProperties()->getPropertyAsInt("Freeze.Trace.Transaction");
-_deadlockWarning = (_communicator->getProperties()->getPropertyAsInt("Freeze.Warn.Deadlocks") != 0);
-_useNonmutating = (_communicator->getProperties()->getPropertyAsInt("Freeze.Evictor.UseNonmutating") != 0);
-
-string propertyPrefix = string("Freeze.Evictor.") + envName + '.' + _filename;
-
-// By default, we save every minute or when the size of the modified queue
-// reaches 10.
-_saveSizeTrigger = _communicator->getProperties()->
-getPropertyAsIntWithDefault(propertyPrefix + ".SaveSizeTrigger", 10);
-
-Int savePeriod = _communicator->getProperties()->
-getPropertyAsIntWithDefault(propertyPrefix + ".SavePeriod", 60 * 1000);
-
-_savePeriod = IceUtil::Time::milliSeconds(savePeriod);
-
-//
-// By default, we save at most 10 * SaveSizeTrigger objects per transaction
-//
-_maxTxSize = _communicator->getProperties()->
-getPropertyAsIntWithDefault(propertyPrefix + ".MaxTxSize", 10 * _saveSizeTrigger);
-
-if (_maxTxSize <= 0)
-{
-_maxTxSize = 100;
+	if (_evictorSize<=0)
+		_evictorSize = EVICTOR_DEFAULT_SIZE;
+	if (_saveSizeTrigger<=0)
+		_saveSizeTrigger = 2;
 }
 
-bool populateEmptyIndices =
-(_communicator->getProperties()->
-getPropertyAsIntWithDefault(propertyPrefix + ".PopulateEmptyIndices", 0) != 0);
-
-//
-// Instantiate all Dbs in 2 steps:
-// (1) iterate over the indices and create ObjectStore with indices
-// (2) open ObjectStores without indices
-//
-
-vector<string> dbs = allDbs();
-
-//
-// Add default db in case it's not there
-//
-dbs.push_back(defaultDb);
-
-
-for (vector<IndexPtr>::const_iterator i = indices.begin(); i != indices.end(); ++i)
+Evictor::~Evictor()
 {
-string facet = (*i)->facet();
-
-StoreMap::iterator q = _storeMap.find(facet);
-if (q == _storeMap.end())
-{
-//
-// New db
-//
-
-vector<IndexPtr> storeIndices;
-
-for (vector<IndexPtr>::const_iterator r = i; r != indices.end(); ++r)
-{
-if ((*r)->facet() == facet)
-{
-storeIndices.push_back(*r);
-}
-}
-ObjectStore* store = new ObjectStore(facet, _createDb, this, storeIndices, populateEmptyIndices);
-_storeMap.insert(StoreMap::value_type(facet, store));
-}
 }
 
 
-for (vector<string>::iterator p = dbs.begin(); p != dbs.end(); ++p)
+Evictor::Item::Ptr Evictor::pin(const Ident& ident, Item::Ptr item)
 {
-string facet = *p;
-if (facet == defaultDb)
-{
-facet = "";
-}
-
-pair<StoreMap::iterator, bool> ir =
-_storeMap.insert(StoreMap::value_type(facet, 0));
-
-if (ir.second)
-{
-ir.first->second = new ObjectStore(facet, _createDb, this);
-}
-}
-}
-*/
-
-Evictor::Item::Ptr Evictor::pin(const Ident& ident, Item::Ptr element)
-{
-	for (int i=0; i < 5; i++)
+	bool bRetry = true;
+	for (int i=0; bRetry && i < 5; i++)
 	{
 		if (i>0)
 			Sleep(500 *i);
 
 		{
-			MutexGuard g(*this);
+			MutexGuard g(_lkEvictor);
 			Map::iterator itCache = _cache.find(ident);
 			if (_cache.end() != itCache)
 				return itCache->second; // already in the cache
 		}
 
+		bRetry = false;
 		StreamedObject strmedObj;
-		switch(loadFromStore(ident, strmedObj))
+		switch(loadFromStore(identToStr(ident), strmedObj))
 		{
 		case eeNotFound:
 			break;
 
 		case eeOK:
-			if (!element)
-				element = new Item(*this, ident);
-			if (unmarshal(ident.category, element->_data, strmedObj.data))
+			if (!item)
+				item = new Item(*this, ident);
+			if (unmarshal(ident.category, item->_data, strmedObj.data))
 			{
-				element->_data.status = Item::clean;
+				item->_data.status = Item::clean;
 				break;
 			}
 
 			// _log error
 			// TODO: clean this object from the DB
-			element->_data.status = Evictor::Item::dead;
+			item->_data.status = Evictor::Item::dead;
 			break;
 
 		case eeTimeout:
 		default:
 			// _log error and retry
+			bRetry = true;
 			continue;
 		}
 	}
 
-	MutexGuard g(*this);
+	MutexGuard g(_lkEvictor);
 	Map::iterator itCache = _cache.find(ident);
 	if (_cache.end() != itCache)
 		return itCache->second; // already in the cache
 
-	if (NULL == element)
+	if (NULL == item)
 		return NULL;
 
-	element->_ident = ident;
-	_cache.insert(Map::value_type(ident, element));
+	item->_ident = ident;
+	_cache.insert(Map::value_type(ident, item));
 	_evictorList.push_front(ident);
-	element->_pos = _evictorList.begin();
-	element->_orphan = false;
-	return element;
+	item->_pos = _evictorList.begin();
+	item->_orphan = false;
+	return item;
 }
 
 // add a new object under the management of evictor
@@ -201,21 +125,21 @@ Evictor::Item::Ptr Evictor::add(const Evictor::Item::ObjectPtr& obj, const Ident
 {
 	// DeactivateController::Guard deactivateGuard(_deactivateController);
 	bool alreadyThere = false;
-	Evictor::Item::Ptr element = NULL;
+	Evictor::Item::Ptr item = NULL;
 
 	// Create a new entry
-	element = new Item(*this, ident);
-	element->_data.status = Evictor::Item::dead;
+	item = new Item(*this, ident);
+	item->_data.status = Evictor::Item::dead;
 
-	Evictor::Item::Ptr oldElt = pin(ident, element); // load the element if exist, otherwise add this new element into
+	Evictor::Item::Ptr oldElt = pin(ident, item); // load the item if exist, otherwise add this new item into
 
 	if (!oldElt)
-		element = oldElt;
+		item = oldElt;
 
 	bool bNeedRequeue =false;
 	{
-		MutexGuard lk(*element);
-		switch (element->_data.status)
+		MutexGuard lk(*item);
+		switch (item->_data.status)
 		{
 		case Evictor::Item::clean:
 		case Evictor::Item::created:
@@ -224,8 +148,8 @@ Evictor::Item::Ptr Evictor::add(const Evictor::Item::ObjectPtr& obj, const Ident
 			break;
 
 		case Evictor::Item::destroyed:
-			element->_data.status = Item::modified;
-			element->_data.servant = obj;
+			item->_data.status = Item::modified;
+			item->_data.servant = obj;
 			bNeedRequeue = true;
 			// No need to push it on the modified queue, as a destroyed object
 			// is either already on the queue or about to be saved. When saved,
@@ -233,16 +157,16 @@ Evictor::Item::Ptr Evictor::add(const Evictor::Item::ObjectPtr& obj, const Ident
 			break;
 
 		case Evictor::Item::dead:
-			element->_data.status = Evictor::Item::created;
-			element->_data.servant = obj;
-			element->_data.stampCreated = now();
-			element->_data.stampLastSave = 0;
-			// element->_data.avgSaveTime = 0;
+			item->_data.status = Evictor::Item::created;
+			item->_data.servant = obj;
+			item->_data.stampCreated = now();
+			item->_data.stampLastSave = 0;
+			// item->_data.avgSaveTime = 0;
 			bNeedRequeue = true;
 
 			{
-				MutexGuard g(*this);
-				_queueModified(element); // this is only be called while element is locked
+				MutexGuard g(_lkEvictor);
+				_queueModified(item); // this is only be called while item is locked
 			}
 
 			break;
@@ -253,8 +177,8 @@ Evictor::Item::Ptr Evictor::add(const Evictor::Item::ObjectPtr& obj, const Ident
 
 		if (bNeedRequeue)
 		{
-			MutexGuard g(*this);
-			_requeue(element); // this is only be called while element is locked
+			MutexGuard g(_lkEvictor);
+			_requeue(item); // this is only be called while item is locked
 		}
 	}
 
@@ -262,9 +186,9 @@ Evictor::Item::Ptr Evictor::add(const Evictor::Item::ObjectPtr& obj, const Ident
 		throw EvictorException(409, "add() existing object");
 
 	if (TRACE)
-		_log(Log::L_DEBUG, CLOGFMT(Evictor, "added object[%s]"), identToString(ident));
+		_log(Log::L_DEBUG, CLOGFMT(Evictor, "added object[%s](%s)"), ident_cstr(ident), Item::stateToString(item->_data.status));
 
-	return element;
+	return item;
 }
 
 // remove a new object from the management of evictor
@@ -273,41 +197,41 @@ Evictor::Item::ObjectPtr Evictor::remove(const Ident& ident)
 {
 	Evictor::Item::ObjectPtr servant;
 
-	Item::Ptr element = pin(ident);
-	if (NULL == element || NULL == element->_data.servant)
+	Item::Ptr item = pin(ident);
+	if (NULL == item || NULL == item->_data.servant)
 		return NULL;
 
 	bool bNeedRequeue =false;
-	MutexGuard lock(*element);
+	MutexGuard lock(*item);
 
-	switch (element->_data.status)
+	switch (item->_data.status)
 	{
 	case Evictor::Item::clean:
-		servant = element->_data.servant;
-		element->_data.status = Evictor::Item::destroyed;
-		element->_data.servant = NULL;
+		servant = item->_data.servant;
+		item->_data.status = Evictor::Item::destroyed;
+		item->_data.servant = NULL;
 		bNeedRequeue = true;
 		{
-			MutexGuard g(*this);
-			_queueModified(element); // this is only be called while element is locked
+			MutexGuard g(_lkEvictor);
+			_queueModified(item); // this is only be called while item is locked
 		}
 		break;
 
 	case Evictor::Item::created:
-		servant = element->_data.servant;
-		element->_data.status = Evictor::Item::dead;
-		element->_data.servant = NULL;
+		servant = item->_data.servant;
+		item->_data.status = Evictor::Item::dead;
+		item->_data.servant = NULL;
 		bNeedRequeue = true;
 		break;
 
 	case Evictor::Item::modified:
-		servant = element->_data.servant;
-		element->_data.status = Evictor::Item::destroyed;
-		element->_data.servant = NULL;
+		servant = item->_data.servant;
+		item->_data.status = Evictor::Item::destroyed;
+		item->_data.servant = NULL;
 		bNeedRequeue = true;
 
 		// Not necessary to push it on the modified queue, as a modified
-		// element is either on the queue already or about to be saved
+		// item is either on the queue already or about to be saved
 		// (at which point it becomes clean)
 		break;
 
@@ -319,81 +243,82 @@ Evictor::Item::ObjectPtr Evictor::remove(const Ident& ident)
 
 	if (bNeedRequeue)
 	{
-		MutexGuard g(*this);
-		_requeue(element); // this is only be called while element is locked
+		MutexGuard g(_lkEvictor);
+		_requeue(item); // this is only be called while item is locked
 	}
 
 	if (NULL == servant)
 		throw EvictorException(404, "remove() object not found");
 
 	if (TRACE)
-		_log(Log::L_DEBUG, CLOGFMT(Evictor, "removed object[%s]"), identToString(ident));
+		_log(Log::L_DEBUG, CLOGFMT(Evictor, "removed object[%s]"), ident_cstr(ident));
 
 	return servant;
 }
 
 Evictor::Item::ObjectPtr Evictor::locate(const Evictor::Ident& ident)
 {
-	Evictor::Item::Ptr element = pin(ident);
-	if (NULL == element || NULL == element->_data.servant)
+	Evictor::Item::Ptr item = pin(ident);
+	if (NULL == item || NULL == item->_data.servant)
 	{
 		if(TRACE)
-			_log(Log::L_DEBUG, CLOGFMT(Evictor, "locate() object[%s] not found"), identToString(ident));
+			_log(Log::L_DEBUG, CLOGFMT(Evictor, "locate() object[%s] not found"), ident_cstr(ident));
 
 		return NULL;
 	}
 
-	MutexGuard sync(*element);
-	if(element->_data.status == Item::destroyed || element->_data.status == Item::dead)
+	MutexGuard sync(*item);
+	if(item->_data.status == Item::destroyed || item->_data.status == Item::dead)
 	{
 		if(TRACE)
-			_log(Log::L_DEBUG, CLOGFMT(Evictor, "locate() object[%s] in cache, but state[%s]"), identToString(ident), Item::stateToString(element->_data.status));
+			_log(Log::L_DEBUG, CLOGFMT(Evictor, "locate() object[%s] in cache, but state[%s]"), ident_cstr(ident), Item::stateToString(item->_data.status));
 
 		return NULL;
 	}
 
 	{
-		MutexGuard g(*this);
-		_requeue(element); // this is only be called while element is locked
+		MutexGuard g(_lkEvictor);
+		_requeue(item); // this is only be called while item is locked
 	}
 	// It's a good one!
 	if(TRACE)
-		_log(Log::L_DEBUG, CLOGFMT(Evictor, "locate() object[%s]state[%s] in cache/DB"), identToString(ident), Item::stateToString(element->_data.status));
+		_log(Log::L_DEBUG, CLOGFMT(Evictor, "locate() object[%s]state[%s] in cache/DB"), ident_cstr(ident), Item::stateToString(item->_data.status));
 
-	return element->_data.servant;
+	return item->_data.servant;
 }
 
 void Evictor::setDirty(const Ident& ident)
 {
-	Evictor::Item::Ptr element = pin(ident);
-	if (NULL == element || NULL == element->_data.servant)
+	Evictor::Item::Ptr item = pin(ident);
+	if (NULL == item || NULL == item->_data.servant)
 	{
 		if(TRACE)
-			_log(Log::L_DEBUG, CLOGFMT(Evictor, "setDirty() object[%s] not found"), identToString(ident));
+			_log(Log::L_DEBUG, CLOGFMT(Evictor, "setDirty() object[%s] not found"), ident_cstr(ident));
 
 		return;
 	}
 
-	MutexGuard sync(*element);
-	if(element->_data.status == Item::clean)
+	MutexGuard sync(*item);
+	if(item->_data.status == Item::clean)
 	{
 		// Assume this operation updated the object
-		element->_data.status = Item::modified;
-		MutexGuard g(*this);
-		_requeue(element); // this is only be called while element is locked
+		item->_data.status = Item::modified;
+		MutexGuard g(_lkEvictor);
+		_requeue(item); // this is only be called while item is locked
+
+		if(TRACE)
+			_log(Log::L_DEBUG, CLOGFMT(Evictor, "setDirty() object[%s] modified"), ident_cstr(ident));
 	}
 }
 
 //@return steps ever performed, 0-means idle/nothing done but wait
-int Evictor::poll()
+bool Evictor::poll()
 {
-	Queue allObjects, deadObjects;
+	Queue modifiedBatch, deadObjects;
 
 	size_t saveNowThreadsSize = 0;
-	uint nStep =0;
-
 	{
-		MutexGuard g(*this);
+		MutexGuard g(_lkEvictor);
 		size_t evictSize = _evictorList.size();
 		size_t cacheSize = _cache.size();
 		if (evictSize != cacheSize)
@@ -409,45 +334,55 @@ int Evictor::poll()
 		// 	saveNowThreadsSize = _saveNowThreads.size();
 
 		// Check first if there is something to do!
-		if (_modifiedQueue.empty())
-			return nStep;
+		if (_modifiedQueue.empty() && _streamedList.empty())
+			return false;
 
-		_modifiedQueue.swap(allObjects);
+		_popModified(modifiedBatch, _batchSize);
 	}
 
 	int64 stampStart = now();
-	nStep++;
 
-	size_t size = allObjects.size();
-	std::deque<StreamedObject> streamedObjectQueue;
+	size_t size = modifiedBatch.size();
+	int cToStream =0;
 
-	// Stream each element
+	// Stream each item
 	for (size_t i = 0; i < size; i++)
 	{
-		Evictor::Item::Ptr& element = allObjects[i];
+		Evictor::Item::Ptr& item = modifiedBatch[i];
 		Evictor::Item::ObjectPtr servant = NULL;
 
-		if (!element)
+		if (!item)
 			continue;
 
 		// These elements can't be stale as only elements with 
 		// usageCount == 0 can become stale, and the modifiedQueue
 		// (us now) owns one count.
-		MutexGuard gElem(*element);
-		switch (element->_data.status)
+		MutexGuard gElem(*item);
+		StreamedObject streamedObj;
+		bool bStreamed =false;
+
+		switch (item->_data.status)
 		{
 		case Evictor::Item::created:
 		case Evictor::Item::modified:
-			servant = element->_data.servant;
+			servant = item->_data.servant;
+			// stream the item per its state by calling mashal() 
+			bStreamed = _stream(item, streamedObj, stampStart);
+				if (!bStreamed)
+					_log(Log::L_ERROR, CLOGFMT(Evictor, "failed to stream item[%s](%s)"), ident_cstr(item->_ident), Evictor::Item::stateToString(item->_data.status));
 			break;
 
 		case Evictor::Item::destroyed:
-			element->_data.status = Evictor::Item::dead;
-			deadObjects.push_back(element);
+			deadObjects.push_back(item);
+			bStreamed = _stream(item, streamedObj, stampStart);
+				if (!bStreamed)
+					_log(Log::L_ERROR, CLOGFMT(Evictor, "failed to stream item[%s](%s)"), ident_cstr(item->_ident), Evictor::Item::stateToString(item->_data.status));
+
+			item->_data.status = Evictor::Item::dead;
 			break;
 
 		case Evictor::Item::dead:
-			deadObjects.push_back(element);
+			deadObjects.push_back(item);
 			break;
 
 		default:
@@ -455,116 +390,147 @@ int Evictor::poll()
 			break;
 		}
 
-		if (NULL == servant)
-			continue; // for the next element
+		if (!bStreamed)
+			continue; // for the next item
 
-		// stream the element per its state by calling mashal() 
-		StreamedObject streamedObj;
-		if (!_stream(element, streamedObj, stampStart))
-		{
-			_log(Log::L_ERROR, CLOGFMT(Evictor, "failed to stream element[%s](%s)"), identToString(element->_ident), Evictor::Item::stateToString(element->_data.status));
-			continue;
-		}
-
-		MutexGuard sync(*this);
+		MutexGuard sync(_lkEvictor);
 		_streamedList.push_back(streamedObj);
+		cToStream++;
 	} // for-loop
 
-	allObjects.clear(); // to reduce the item->_usageInEvictor()
+	modifiedBatch.clear(); // to reduce the item->_usageInEvictor()
 
 	int64 stampNow = now();
 	if (TRACE)
-		_log(Log::L_DEBUG, CLOGFMT(Evictor, "streamed %d modified to %d, took %dmsec"), size, _streamedList.size(), (int) (stampNow - stampStart));
+		_log(Log::L_DEBUG, CLOGFMT(Evictor, "streamed %d to %d modified +%d dead, pending %d streamed, took %dmsec"), size, cToStream, deadObjects.size(), _streamedList.size(), (int) (stampNow - stampStart));
 
 	// Now let's save all these streamed objects to disk using a transaction
 	// Each time we get a deadlock, we reduce the number of objects to save
 	// per transaction
-	nStep++;
 	stampStart = stampNow;
 	stampNow = now();
 
 	StreamedList batch;
 	{
-		MutexGuard g(*this);
+		MutexGuard g(_lkEvictor);
 
-		size_t batchSize = 20;
+		size_t batchSize = _batchSize;
 		if (batchSize > _streamedList.size())
 			batchSize = _streamedList.size();
 
 		StreamedList::iterator itE = _streamedList.begin();
 		for (; batchSize>0; batchSize--)
-			batch.push_back(*itE);
+			batch.push_back(*itE++);
 
 		_streamedList.erase(_streamedList.begin(), itE);
+		size = _streamedList.size();
 	}
 
-	size = _streamedList.size();
 	int c = saveBatchToStore(batch);
 
 	if (TRACE)
-		_log(Log::L_DEBUG, CLOGFMT(Evictor, "flushed %d of %d streamed objects, took %dmsec"), c, size, (int) (now() - stampStart));
+		_log(Log::L_DEBUG, CLOGFMT(Evictor, "flushed a batch: %d of %d streamed objects, %d pending, took %dmsec"), c, batch.size(), size, (int) (now() - stampStart));
 
 	// do evicting
+	int cEvicted =0;
 	{
-		ZQ::common::MutexGuard sync(*this);
+		ZQ::common::MutexGuard sync(_lkEvictor);
 		// step 1. about those dead objects
 		for (Queue::iterator q = deadObjects.begin(); q != deadObjects.end(); q++)
 		{
-			Evictor::Item::Ptr& element = *q;
-			if (element->_orphan)
+			Evictor::Item::Ptr& item = *q;
+			if (item->_orphan)
 				continue;
 
-			MutexGuard g(*element);
+			MutexGuard g(*item);
 			// expect one in _cache and another in deadObjects, if more, it could in in the new _modifiedQueue
-			// someone must have re-used and modified this element again
-			if (element->status() != Evictor::Item::dead || element->_usageInEvictor() >2)
+			// someone must have re-used and modified this item again
+			int objUsage = item->_objectUsage();
+			int itemUsage = item->_itemUsage();
+			if (item->status() != Evictor::Item::dead || itemUsage >2)
+			{
+				if (TRACE)
+					_log(Log::L_DEBUG, CLOGFMT(Evictor, "skipping item[%s](%s) in use, usage %d/%d"), ident_cstr(item->_ident), Evictor::Item::stateToString(item->_data.status), objUsage, itemUsage);
 				continue; 
+			}
 
-			element->_evict();
+			_evict(item);
+			cEvicted++;
+			if (TRACE)
+				_log(Log::L_DEBUG, CLOGFMT(Evictor, "item[%s](%s) evicted"), ident_cstr(item->_ident), Evictor::Item::stateToString(item->_data.status));
 		}
+
+		if (cEvicted>0 && TRACE)
+			_log(Log::L_DEBUG, CLOGFMT(Evictor, "%d of %d dead objects evicted"), cEvicted, deadObjects.size());
 
 		deadObjects.clear();
 
 		// step 2. evict the oldest object that not used recently
-		_evictBySize();
+		int cEvicted = _evictBySize();
+		if (cEvicted>0 && TRACE)
+			_log(Log::L_DEBUG, CLOGFMT(Evictor, "%d objects evicted by size, new size %d"), cEvicted, _evictorList.size());
 	}
 
-	return ++nStep;
+	return true;
 }
 
-void Evictor::_queueModified(const Evictor::Item::Ptr& element) // thread unsafe
+void Evictor::_queueModified(const Evictor::Item::Ptr& item) // thread unsafe
 {
-	_modifiedQueue.push_back(element);
+	if (!item)
+		return;
 
-	if(_saveSizeTrigger >= 0 && _modifiedQueue.size() >= _saveSizeTrigger)
-		_event.signal(); // notify alll
+	_modifiedQueue.push_back(item->_ident);
+	if (_modifiedMap.end() == _modifiedMap.find(item->_ident))
+		_modifiedMap.insert(Map::value_type(item->_ident, item));
+	else
+		_modifiedMap[item->_ident] = item;
 }
 
-bool Evictor::_stream(const Item::Ptr& element, StreamedObject& streamedObj, int64 stampAsOf)
+size_t Evictor::_popModified(Queue& modifiedBatch, size_t max) // thread unsafe
 {
-	streamedObj.status = element->_data.status;
-	streamedObj.key = identToString(element->_ident);
+	size_t c=0;
+	while (!_modifiedQueue.empty() && c < max)
+	{
+		Ident ident = _modifiedQueue.front();
+		_modifiedQueue.pop_front();
+
+		Map::iterator itMod = _modifiedMap.find(ident);
+		if (_modifiedMap.end() == itMod)
+			continue;
+
+		modifiedBatch.push_back(itMod->second);
+		_modifiedMap.erase(itMod);
+		c++;
+	}
+
+	return c;
+}
+
+bool Evictor::_stream(const Item::Ptr& item, StreamedObject& streamedObj, int64 stampAsOf)
+{
+	streamedObj.status = item->_data.status;
+	streamedObj.key = ident_cstr(item->_ident);
 	streamedObj.stampAsOf = (stampAsOf >0) ? stampAsOf: now();
 
 	if (streamedObj.status == Item::destroyed)
 		return true; // no need to mashal further data
 
-	if (element->_data.stampCreated <=0)
-		element->_data.stampCreated = streamedObj.stampAsOf;
+	if (item->_data.stampCreated <=0)
+		item->_data.stampCreated = streamedObj.stampAsOf;
 
 	// Update stats first
-	int64 diff = streamedObj.stampAsOf - (element->_data.stampCreated + element->_data.stampLastSave);
-	if(element->_data.stampCreated == 0)
+	int64 diff = streamedObj.stampAsOf - (item->_data.stampCreated + item->_data.stampLastSave);
+	if(item->_data.stampCreated == 0)
 	{
-		element->_data.stampLastSave = diff;
+		item->_data.stampLastSave = diff;
 	}
 	else
 	{
-		element->_data.stampCreated = streamedObj.stampAsOf - element->_data.stampCreated;
-		// element->_data.avgSaveTime = (int64)(element->_data.avgSaveTime * 0.95 + diff * 0.05);
+		item->_data.stampLastSave = streamedObj.stampAsOf - item->_data.stampCreated;
+		// item->_data.avgSaveTime = (int64)(item->_data.avgSaveTime * 0.95 + diff * 0.05);
 	}
 
-	return marshal(element->_ident.category, element->_data, streamedObj.data);
+	return marshal(item->_ident.category, item->_data, streamedObj.data);
 }
 
 void Evictor::_requeue(Evictor::Item::Ptr& item) // thread unsafe, only be called from Evictor
@@ -585,7 +551,7 @@ void Evictor::_evict(Item::Ptr item) // thread unsafe, only be called from Evict
 		return;
 
 	if (!(*(item->_pos) == item->_ident))
-		_log(Log::L_ERROR, CLOGFMT(Evictor, "_evict() item[%s] pos mis-ref to the owner"), identToString(item->_ident));
+		_log(Log::L_ERROR, CLOGFMT(Evictor, "_evict() item[%s] pos mis-ref to the owner"), ident_cstr(item->_ident));
 	else
 		_evictorList.erase(item->_pos);
 
@@ -596,7 +562,7 @@ void Evictor::_evict(Item::Ptr item) // thread unsafe, only be called from Evict
 int Evictor::_evictBySize()
 {
 	size_t c =0;
-	while (_evictorList.size() >0 && _evictorList.size() > _evictorSize)
+	while (_evictorList.size() > _evictorSize)
 	{
 		Ident ident = *_evictorList.rbegin();
 		// Will be covered in _evict(Item::Ptr item) _evictorList.pop_back();
@@ -608,82 +574,60 @@ int Evictor::_evictBySize()
 			continue;
 		}
 
-		Item::Ptr& element = itCache->second;
-		if (!element || element->_objectUsage() >1) // the element must be in use
-			continue;
+		Item::Ptr& item = itCache->second;
+		if (!item)
+		{
+			_cache.erase(itCache);
+			continue; // invalid one
+		}
 
-		element->_evict();
+		int itemUsage = item->_itemUsage();
+		int objUsage = item->_objectUsage();
+
+		if (itemUsage>1 || objUsage >1)
+			break; // the item must be in use, break the loop because others must newer than it
+
+		_evict(item);
 		c++;
 	}
 
 	return c;
 }
 
-bool Evictor::marshal(const std::string& category, const Item::Data& data, ByteStream& streamedData)
-{
-#pragma message ( __MSGLOC__ "TODO: marshal the data for saving")
-	//char
-	//size_t len = &data.servant - &data;
-
-	//typedef struct _Data {
-	//	State     status;
-	//	int64     creationTime, lastSaveTime, avgSaveTime; // _creationTime =0, _lastSaveTime = 0, _avgSaveTime = 0;
-	//	_Data() : status(clean) {  creationTime = lastSaveTime = avgSaveTime = 0; }
-	//} Data;
-
-	return true;
-}
-
-class TestData : public SharedObject
-{
-public:
-	TestData(int64 d): _data(d){}
-	int64 _data;
-};
-
-bool Evictor::unmarshal(const std::string& category, Item::Data& data, const ByteStream& streamedData)
-{
-#pragma message ( __MSGLOC__ "TODO: unmarshal the data after loading per category as servant type")
-
-	// dummy impl for test
-	data.status = Item::clean;
-	data.stampCreated = data.stampLastSave = now() - 3600*1000;
-	data.servant = new TestData(now());
-
-	return true;
-}
-
-int Evictor::saveBatchToStore(StreamedList& batch)
-{
-	int cUpdated =0, cDeleted =0;
-	for (StreamedList::iterator it = batch.begin(); it!=batch.end(); it++)
-	{
-		switch(it->status)
-		{
-		case Item::created:   // the element is created in the cache, and has not present in the ObjectStore
-		case Item::modified:  // the element is modified but not yet flushed to the ObjectStore
-#pragma message ( __MSGLOC__ "TODO: call RedisClient to SET(key, data)")
-			cUpdated++;
-			break;
-
-		case Item::destroyed:  // the element is required to destroy but not yet deleted from ObjectStore
-#pragma message ( __MSGLOC__ "TODO: call RedisClient to DEL(key)")
-			cDeleted++;
-			break;
-
-		default:
-			break;
-		}
-	}
-
-	return cUpdated+cDeleted;
-}
-
-Evictor::Error Evictor::loadFromStore(Evictor::Ident ident, Evictor::StreamedObject& data)
-{
-#pragma message ( __MSGLOC__ "TODO: call RedisClient to read the data")
-	return eeOK;
-}
+//bool Evictor::marshal(const std::string& category, const Item::Data& data, ByteStream& streamedData)
+//{
+//#pragma message ( __MSGLOC__ "TODO: marshal the data for saving")
+//	//char
+//	//size_t len = &data.servant - &data;
+//
+//	//typedef struct _Data {
+//	//	State     status;
+//	//	int64     creationTime, lastSaveTime, avgSaveTime; // _creationTime =0, _lastSaveTime = 0, _avgSaveTime = 0;
+//	//	_Data() : status(clean) {  creationTime = lastSaveTime = avgSaveTime = 0; }
+//	//} Data;
+//
+//	return true;
+//}
+//
+//class TestData : public SharedObject
+//{
+//public:
+//	TestData(int64 d): _data(d){}
+//	int64 _data;
+//};
+//
+//bool Evictor::unmarshal(const std::string& category, Item::Data& data, const ByteStream& streamedData)
+//{
+//#pragma message ( __MSGLOC__ "TODO: unmarshal the data after loading per category as servant type")
+//
+//	// dummy impl for test
+//	data.status = Item::clean;
+//	data.stampCreated = data.stampLastSave = now() - 3600*1000;
+//	data.servant = new TestData(now());
+//
+//	return true;
+//}
+//
 
 }} // namespace
 
