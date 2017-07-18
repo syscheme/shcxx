@@ -134,7 +134,7 @@ public:
 
 	// the evictor relies on a thread to to evict/flush data
 	//@return false if completely idle
-	virtual bool poll();
+	virtual bool poll(bool flushAll= false);
 
 protected:
 

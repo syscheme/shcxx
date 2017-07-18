@@ -56,6 +56,10 @@ Evictor::Evictor(Log& log, const std::string& name, const Evictor::Properties& p
 
 Evictor::~Evictor()
 {
+	if (TRACE)
+		_log(Log::L_DEBUG, CLOGFMT(Evictor, "destruct to flush by poll(t)"));
+
+	// poll(true); MUST be called from the child class
 }
 
 
@@ -298,12 +302,13 @@ void Evictor::setDirty(const Ident& ident)
 		return;
 	}
 
+	MutexGuard g(_lkEvictor);
 	MutexGuard sync(*item);
 	if(item->_data.status == Item::clean)
 	{
 		// Assume this operation updated the object
 		item->_data.status = Item::modified;
-		MutexGuard g(_lkEvictor);
+		_queueModified(item);
 		_requeue(item); // this is only be called while item is locked
 
 		if(TRACE)
@@ -312,7 +317,7 @@ void Evictor::setDirty(const Ident& ident)
 }
 
 //@return steps ever performed, 0-means idle/nothing done but wait
-bool Evictor::poll()
+bool Evictor::poll(bool flushAll)
 {
 	Queue modifiedBatch, deadObjects;
 
@@ -337,7 +342,7 @@ bool Evictor::poll()
 		if (_modifiedQueue.empty() && _streamedList.empty())
 			return false;
 
-		_popModified(modifiedBatch, _batchSize);
+		_popModified(modifiedBatch, flushAll ? 0: _batchSize);
 	}
 
 	int64 stampStart = now();
@@ -368,15 +373,15 @@ bool Evictor::poll()
 			servant = item->_data.servant;
 			// stream the item per its state by calling mashal() 
 			bStreamed = _stream(item, streamedObj, stampStart);
-				if (!bStreamed)
-					_log(Log::L_ERROR, CLOGFMT(Evictor, "failed to stream item[%s](%s)"), ident_cstr(item->_ident), Evictor::Item::stateToString(item->_data.status));
+			if (!bStreamed)
+				_log(Log::L_ERROR, CLOGFMT(Evictor, "failed to stream item[%s](%s)"), ident_cstr(item->_ident), Evictor::Item::stateToString(item->_data.status));
 			break;
 
 		case Evictor::Item::destroyed:
 			deadObjects.push_back(item);
 			bStreamed = _stream(item, streamedObj, stampStart);
-				if (!bStreamed)
-					_log(Log::L_ERROR, CLOGFMT(Evictor, "failed to stream item[%s](%s)"), ident_cstr(item->_ident), Evictor::Item::stateToString(item->_data.status));
+			if (!bStreamed)
+				_log(Log::L_ERROR, CLOGFMT(Evictor, "failed to stream item[%s](%s)"), ident_cstr(item->_ident), Evictor::Item::stateToString(item->_data.status));
 
 			item->_data.status = Evictor::Item::dead;
 			break;
@@ -402,7 +407,7 @@ bool Evictor::poll()
 
 	int64 stampNow = now();
 	if (TRACE)
-		_log(Log::L_DEBUG, CLOGFMT(Evictor, "streamed %d to %d modified +%d dead, pending %d streamed, took %dmsec"), size, cToStream, deadObjects.size(), _streamedList.size(), (int) (stampNow - stampStart));
+		_log((size != cToStream +deadObjects.size())?Log::L_WARNING : Log::L_DEBUG, CLOGFMT(Evictor, "streamed %d to %d modified +%d dead, pending %d streamed, took %dmsec"), size, cToStream, deadObjects.size(), _streamedList.size(), (int) (stampNow - stampStart));
 
 	// Now let's save all these streamed objects to disk using a transaction
 	// Each time we get a deadlock, we reduce the number of objects to save
@@ -415,7 +420,7 @@ bool Evictor::poll()
 		MutexGuard g(_lkEvictor);
 
 		size_t batchSize = _batchSize;
-		if (batchSize > _streamedList.size())
+		if (flushAll || batchSize > _streamedList.size())
 			batchSize = _streamedList.size();
 
 		StreamedList::iterator itE = _streamedList.begin();
@@ -461,7 +466,7 @@ bool Evictor::poll()
 		}
 
 		if (cEvicted>0 && TRACE)
-			_log(Log::L_DEBUG, CLOGFMT(Evictor, "%d of %d dead objects evicted"), cEvicted, deadObjects.size());
+			_log(Log::L_DEBUG, CLOGFMT(Evictor, "%d of %d dead objects evicted, new size %d"), cEvicted, deadObjects.size(), _evictorList.size());
 
 		deadObjects.clear();
 
@@ -489,7 +494,7 @@ void Evictor::_queueModified(const Evictor::Item::Ptr& item) // thread unsafe
 size_t Evictor::_popModified(Queue& modifiedBatch, size_t max) // thread unsafe
 {
 	size_t c=0;
-	while (!_modifiedQueue.empty() && c < max)
+	while (!_modifiedQueue.empty() && (max<=0 || c < max))
 	{
 		Ident ident = _modifiedQueue.front();
 		_modifiedQueue.pop_front();
