@@ -492,7 +492,7 @@ void SystemInfo::gatherStaticSystemInfo()
 		
 		//get the cpu info
 		HKEY hKey;
-		for (int i =0; i < _cpuCount; i++)
+		for (size_t i =0; i < _cpuCount; i++)
 		{
 			CPUINFO currentCPUInfo;
 			if (ERROR_SUCCESS == ::RegOpenKeyExA(HKEY_LOCAL_MACHINE, "Hardware\\Description\\System\\CentralProcessor\\0", i, KEY_QUERY_VALUE, &hKey))
@@ -1240,6 +1240,7 @@ void DeviceInfo::ReadPhysicalDriveInNT()
 		 CloseHandle (hPhysicalDriveIOCTL);
 	}//for (int drive = 0; drive < MAX_IDE_DRIVES; drive++)
 }
+
 void DeviceInfo::ReadIdeDriveAsScsiDriveInNT()
 {
 	for (int controller = 0; controller < 2; controller++)
@@ -1292,6 +1293,7 @@ void DeviceInfo::ReadIdeDriveAsScsiDriveInNT()
 		CloseHandle (hScsiDriveIOCTL);
 	}//for (int controller = 0; controller < 2; controller++)
 }
+
 bool DeviceInfo::DoIDENTIFY(HANDLE hPhysicalDriveIOCTL, PSENDCMDINPARAMS pSCIP,PSENDCMDOUTPARAMS pSCOP, BYTE bIDCmd, BYTE bDriveNum,PDWORD lpcbBytesReturned)
 {
 	// Set up data structures for IDENTIFY command.
@@ -1315,7 +1317,6 @@ bool DeviceInfo::DoIDENTIFY(HANDLE hPhysicalDriveIOCTL, PSENDCMDINPARAMS pSCIP,P
 		lpcbBytesReturned, NULL) );
 }
 
-
 bool DeviceInfo::ConvertToString(DWORD diskdata [256], int firstIndex, int lastIndex,char* string)
 {
 	int index = 0;
@@ -1338,6 +1339,7 @@ bool DeviceInfo::ConvertToString(DWORD diskdata [256], int firstIndex, int lastI
 	return true;
 
 }
+
 void DeviceInfo::SetInfo(int drive, DWORD diskdata [256])
 {
 	char buffer[1024];
@@ -1359,55 +1361,63 @@ void DeviceInfo::SetInfo(int drive, DWORD diskdata [256])
 			break;
 		diskModel[i] = buffer[i + 54];
 	}
-	DISKINFO theDisk;
+
+	DiskInfo theDisk;
 	theDisk.diskSeque.assign(diskId);
 	theDisk.diskModel.assign(diskModel);
-	_disk.push_back(theDisk);
+	_disks.push_back(theDisk);
 	MOLOG(Log::L_INFO, CLOGFMT(DeviceInfo,"get the disk id[%s] and model [%s] successful"),diskId, diskModel);
      return;
 }
+
 void DeviceInfo::gatherNetAdapterInfo()
 {
 	// get the net interface card info
 	PIP_ADAPTER_INFO pAdapterInfo = NULL;  
-	ULONG uLen = 0;  
-	//为适配器结构申请内存
-	GetAdaptersInfo(pAdapterInfo, &uLen);  
+	ULONG uLen = 0; 
+
+	//allocate the memory buffer for PIP_ADAPTER_INFOs
+	::GetAdaptersInfo(pAdapterInfo, &uLen);  
 	pAdapterInfo = (PIP_ADAPTER_INFO)GlobalAlloc(GPTR, uLen);
-	//取得本地适配器结构信息
-	DWORD dwRes = GetAdaptersInfo(pAdapterInfo, &uLen);  
-	if(ERROR_SUCCESS == dwRes)  
-	{
-		while(pAdapterInfo)
+	if (NULL == pAdapterInfo)
+		return;
+
+	do {
+		// get the infomation of the local NIC
+		DWORD dwRes = ::GetAdaptersInfo(pAdapterInfo, &uLen);  
+		if(ERROR_SUCCESS != dwRes) 
+			break;
+
+		for (; pAdapterInfo; pAdapterInfo = pAdapterInfo->Next)
 		{
-			NETCARD netCard;
+			NicInfo netCard;
 			netCard.netCardName.assign(pAdapterInfo->AdapterName);
 			netCard.cardDescription.assign(pAdapterInfo->Description);
+
+			// the MAC address
 			uint32 macLen = pAdapterInfo->AddressLength;
-			for (int i =0; i < macLen; i++)
-			{
-				char buffer[4] = {'\0'};
-				if (i == macLen -1)
-					snprintf(buffer,4,"%02x",pAdapterInfo->Address[i]);
-				else
-					snprintf(buffer,4,"%02x-",pAdapterInfo->Address[i]);
-				netCard.macAddress.append(buffer);
-			}
-			IP_ADDR_STRING *pAddrString = &(pAdapterInfo->IpAddressList);  
-			while(pAddrString)  
+			char buffer[128]="";
+			for (uint i =0; i < macLen; i++)
+				snprintf(buffer+3*i, sizeof(buffer) -3*i -2,"%02X-", pAdapterInfo->Address[i]);
+			macLen = strlen(buffer);
+			if (macLen >3)
+				netCard.macAddress.assign(buffer, macLen-1);
+
+			// the IP address
+			for (IP_ADDR_STRING *pAddrString = &(pAdapterInfo->IpAddressList); pAddrString; pAddrString = pAddrString->Next)
 			{  
-				//适配器配置的IP地址  
-				char buffer[128] = {'\0'};
-				snprintf(buffer,128,"%s",pAddrString->IpAddress.String);
-				std::string ipAdd (buffer);
-				netCard.IPs.push_back(ipAdd);
-				pAddrString = pAddrString->Next;  
+				//snprintf(buffer, sizeof(buffer)-2, "%s", pAddrString->IpAddress.String);
+				//std::string ipAdd(buffer);
+				netCard.IPs.push_back(pAddrString->IpAddress.String);
+				netCard.IpMasks.push_back(pAddrString->IpMask.String);
 			}  
-			_netInterfaceCard.push_back(netCard);
-			pAdapterInfo = pAdapterInfo->Next;
-			MOLOG(Log::L_INFO, CLOGFMT(DeviceInfo,"get the NICInfo successful decription[%s] mac[%s] name[%s] "),netCard.cardDescription.c_str(), netCard.macAddress.c_str(), netCard.netCardName.c_str());
+			_NICs.push_back(netCard);
+			
+			MOLOG(Log::L_DEBUG, CLOGFMT(DeviceInfo,"got info of NIC[%s]: mac[%s] %s"), netCard.netCardName.c_str(), netCard.macAddress.c_str(), netCard.cardDescription.c_str());
 		}
-	}
+	} while(0);
+
+	GlobalFree(pAdapterInfo);
 }
 
 #else
@@ -1442,7 +1452,7 @@ void DeviceInfo::gatherNetAdapterInfo()
 		 interfaceNum = ifc.ifc_len / sizeof(struct ifreq);
 		 while (interfaceNum-- > 0)
 		 {
-			 NETCARD theCard;
+			 NicInfo theCard;
 			 theCard.netCardName = buf[interfaceNum].ifr_name;
 			 if (!ioctl(fd, SIOCGIFHWADDR, (char *)(&buf[interfaceNum])))
 			 {
@@ -1474,7 +1484,7 @@ void DeviceInfo::gatherNetAdapterInfo()
 				MOLOG(Log::L_WARNING, CLOGFMT(DeviceInfo,"gatherNetAdapterInfo() get the ip of the netInterfaceCard failed"));
 				continue;		  
 			}  
-			_netInterfaceCard.push_back(theCard);
+			_NICs.push_back(theCard);
 			MOLOG(Log::L_INFO, CLOGFMT(DeviceInfo,"gatherNetAdapterInfo() get the NICInfo successful decription[%s] mac[%s] name[%s] "),theCard.cardDescription.c_str(), theCard.macAddress.c_str(), theCard.netCardName.c_str());
 		 }//while
 	 }// if (!ioctl(fd, SIOCGIFCONF, (char *)&ifc))
@@ -1486,7 +1496,7 @@ void DeviceInfo::gatherNetAdapterInfo()
 }
 bool DeviceInfo::getdiskInfo(const std::string& path)
 {
-	DISKINFO currentDisk;
+	DiskInfo currentDisk;
 	currentDisk.diskSeque.clear();
 	int fd;
 	struct hd_driveid hid = {0};
@@ -1523,7 +1533,7 @@ bool DeviceInfo::getdiskInfo(const std::string& path)
 	if(pos != std::string::npos)
 		diskModel.erase(pos);
 	currentDisk.diskModel = diskModel;//.assign(buffer);
-	_disk.push_back(currentDisk);
+	_disks.push_back(currentDisk);
 	MOLOG(Log::L_INFO, CLOGFMT(DeviceInfo,"getdiskInfo() get the disk path[%s] id[%s] and model [%s] successful"),path.c_str(),currentDisk.diskSeque.c_str(), currentDisk.diskModel.c_str());
 	return true;
 }

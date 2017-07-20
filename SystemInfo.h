@@ -43,7 +43,7 @@
 // check in for systemInfo change
 // 
 // 5     2/24/14 10:31a Ketao.zhang
-// check inf for NIC and Disk
+// check inf for NicInfo and Disk
 // 
 // 4     8/30/13 3:01p Ketao.zhang
 // 
@@ -146,7 +146,9 @@ struct ProcessState
 		sysPerfTime100nsec =0;
 #endif
 	}
-	void swap(ProcessState& other){
+
+	void swap(ProcessState& other)
+	{
 		std::swap(sysPerfTime100nsec, other.sysPerfTime100nsec);
 		processesRawData.swap(other.processesRawData);
 	}
@@ -200,7 +202,7 @@ public:	// exports all the members
 	//std::string _cpu;
 	CPUInfo _cpu;
 	std::string _cpuArchitecture;
-	uint32		_cpuCount;// _cpuClockMHz;
+	size_t		_cpuCount;// _cpuClockMHz;
 	OSINFO      _os;  // http://msdn.microsoft.com/en-us/library/windows/desktop/ms724834(v=vs.85).aspx
 	uint32		_memTotalPhys, _memAvailPhys;
 	uint32		_memTotalVirtual, _memAvailVirtual;
@@ -262,6 +264,7 @@ protected:
 class DeviceInfo
 {
 public:
+
 #ifdef ZQ_OS_MSWIN
 	//help struct 
 	typedef struct _DRIVERSTATUS
@@ -359,22 +362,23 @@ public:
 	} IDSECTOR, *PIDSECTOR;
 
 #endif
+
 	typedef struct _diskInfo
 	{
 		std::string  diskModel; //the model of the disk
 		std::string diskSeque; //the sequence num of the disk
 	//	int diskSize;  //the total size of the disk (G)  
-	} DISKINFO;
+	} DiskInfo;
 
-	typedef std::vector<DISKINFO> DiskInfo;
+	typedef std::vector<DiskInfo> Disks;
 	typedef struct _netCard
 	{
 		std::string netCardName;
 		std::string macAddress;
 		std::string cardDescription;
-		std::vector<std::string> IPs;
-	} NETCARD;
-	typedef std::vector<NETCARD> NetCard;
+		std::vector<std::string> IPs, IpMasks;
+	} NicInfo;
+	typedef std::vector<NicInfo> NICs;
 
 public:
 	DeviceInfo(ZQ::common::Log* log);
@@ -384,6 +388,7 @@ public:
 	void gatherNetAdapterInfo();
 
 private:
+
 #ifdef ZQ_OS_MSWIN
 	void  ReadPhysicalDriveInNT(void);
 	void  ReadIdeDriveAsScsiDriveInNT(void);
@@ -395,8 +400,8 @@ private:
 #endif
 
 public:
-	DiskInfo _disk;
-	NetCard _netInterfaceCard;
+	Disks _disks;
+	NICs _NICs;
 
 private:
 	ZQ::common::Log *_pLog;

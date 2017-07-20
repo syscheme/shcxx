@@ -57,7 +57,7 @@ Evictor::Evictor(Log& log, const std::string& name, const Evictor::Properties& p
 Evictor::~Evictor()
 {
 	if (TRACE)
-		_log(Log::L_DEBUG, CLOGFMT(Evictor, "destruct to flush by poll(t)"));
+		_log(Log::L_DEBUG, CLOGFMT(Evictor, "destruct to flush by poll(T)"));
 
 	// poll(true); MUST be called from the child class
 }
@@ -321,22 +321,17 @@ bool Evictor::poll(bool flushAll)
 {
 	Queue modifiedBatch, deadObjects;
 
-	size_t saveNowThreadsSize = 0;
 	{
 		MutexGuard g(_lkEvictor);
 		size_t evictSize = _evictorList.size();
 		size_t cacheSize = _cache.size();
 		if (evictSize != cacheSize)
 		{
-			_log(Log::L_ERROR, CLOGFMT(Evictor, "size[%d/%d] mismatched"), evictSize, cacheSize);
-			// TODO: rebuild the _evictorList
+			_log(Log::L_ERROR, CLOGFMT(Evictor, "evictlist[%d/%d] mismatched, rebuilding list"), evictSize, cacheSize);
+			_evictorList.clear();
+			for (Map::iterator itCache = _cache.begin(); itCache != _cache.end(); itCache++)
+				_evictorList.push_back(itCache->first);
 		}
-
-		// while (!_savingThreadDone && (_saveNowThreads.size() == 0)
-		//	&& (_saveSizeTrigger < 0 || static_cast<Int>(_modifiedQueue.size()) < _saveSizeTrigger))
-		//	return 0;
-
-		// 	saveNowThreadsSize = _saveNowThreads.size();
 
 		// Check first if there is something to do!
 		if (_modifiedQueue.empty() && _streamedList.empty())

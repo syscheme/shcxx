@@ -17,7 +17,7 @@ namespace common{
 class ZQ_COMMON_API EvictorException;
 class ZQ_COMMON_API Evictor;
 
-#define EVICTOR_DEFAULT_SIZE (10)
+#define EVICTOR_DEFAULT_SIZE (30)
 
 // -----------------------------
 // class EvictorException
