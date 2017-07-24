@@ -63,6 +63,7 @@
 //#include "InetAddr.h"
 //#include <set>
 #include "ZQ_common_conf.h"
+#include "Locks.h"
 #include "Log.h"
 #include <string>
 #include <vector>
@@ -402,6 +403,7 @@ private:
 public:
 	Disks _disks;
 	NICs _NICs;
+	Mutex _lkInfo;
 
 private:
 	ZQ::common::Log *_pLog;

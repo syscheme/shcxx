@@ -1180,6 +1180,8 @@ DeviceInfo::~DeviceInfo()
 #ifdef ZQ_OS_MSWIN
 void DeviceInfo::gatherDiskInfo()
 {
+	MutexGuard g(_lkInfo);
+	_disks.clear();
 	ReadPhysicalDriveInNT();
 	//ReadIdeDriveAsScsiDriveInNT();
 }
@@ -1212,6 +1214,7 @@ void DeviceInfo::ReadPhysicalDriveInNT()
 				CloseHandle (hPhysicalDriveIOCTL); 
 				continue;
 			}
+
 			if (VersionParams.bIDEDeviceMap > 0)
 			{
 				BYTE             bIDCmd = 0;   // IDE or ATAPI IDENTIFY cmd
@@ -1388,6 +1391,9 @@ void DeviceInfo::gatherNetAdapterInfo()
 		if(ERROR_SUCCESS != dwRes) 
 			break;
 
+		ZQ::common::MutexGuard g(_lkInfo);
+		_NICs.clear();
+
 		for (; pAdapterInfo; pAdapterInfo = pAdapterInfo->Next)
 		{
 			NicInfo netCard;
@@ -1506,11 +1512,13 @@ bool DeviceInfo::getdiskInfo(const std::string& path)
 		MOLOG(Log::L_WARNING, CLOGFMT(DeviceInfo,"getdiskInfo() open file %s failed"),path.c_str());
 		return false;
 	}
+
 	if (ioctl(fd, HDIO_GET_IDENTITY, &hid) < 0)
 	{
 		MOLOG(Log::L_WARNING, CLOGFMT(DeviceInfo,"getdiskInfo() read the diskId of [%s]failed with error[%d]"),path.c_str(), errno);
 		return false;
 	}
+
 	close (fd);
 	char buffer[128];
 	memset(buffer,'\0',128);
@@ -1537,6 +1545,7 @@ bool DeviceInfo::getdiskInfo(const std::string& path)
 	MOLOG(Log::L_INFO, CLOGFMT(DeviceInfo,"getdiskInfo() get the disk path[%s] id[%s] and model [%s] successful"),path.c_str(),currentDisk.diskSeque.c_str(), currentDisk.diskModel.c_str());
 	return true;
 }
+
 void DeviceInfo::gatherDiskInfo()
 {
 	DIR *dp;
@@ -1546,6 +1555,9 @@ void DeviceInfo::gatherDiskInfo()
 		MOLOG(Log::L_WARNING, CLOGFMT(DeviceInfo,"gatherDiskInfo() open file dir [/dev/disk/by-path/] failed"));
 		return;
 	}
+
+	MutexGuard g(_lkInfo);
+	_disks.clear();
 	while((entry = readdir(dp)) != NULL)
 	{
 		if(strcmp(".",entry->d_name) == 0 || strcmp("..",entry->d_name) == 0)
@@ -1557,9 +1569,11 @@ void DeviceInfo::gatherDiskInfo()
 			getdiskInfo(devPath);
 		}
 	}
+
 	closedir(dp);
 	return ;
 }
+
 #endif
 	}//common
 }//ZQ
