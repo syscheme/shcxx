@@ -454,6 +454,10 @@ int Process::spawn(const char* file,char** args,eloop_stdio_container_t* contain
 {
 	_opt.file = file;
 	_opt.args = args;
+	_opt.exit_cb = _cbExit;
+// 	_opt.flags = 0;
+// 	_opt.cwd = NULL;
+// 	_opt.env = NULL;
 	if (stdio_count > 0)
 	{
 		_opt.stdio_count = stdio_count;
@@ -462,7 +466,21 @@ int Process::spawn(const char* file,char** args,eloop_stdio_container_t* contain
 	uv_process_t* h = (uv_process_t*)context_ptr();
 	return uv_spawn(get_loop().context_ptr(),h,&_opt);
 }
+/*
+int Process::spawn()
+{
+	Process::eloop_stdio_container_t child_stdio[3];
 
+	child_stdio[0].flags = (Process::eloop_stdio_flags)(Process::ELOOP_CREATE_PIPE | Process::ELOOP_READABLE_PIPE);
+	child_stdio[0].data.stream = (uv_stream_t*)(work.pipe->context_ptr());
+	child_stdio[1].flags = (Process::eloop_stdio_flags)Process::ELOOP_IGNORE;
+	child_stdio[2].flags = (Process::eloop_stdio_flags)Process::ELOOP_INHERIT_FD;
+	child_stdio[2].data.fd = 2;
+
+	_opt.stdio_count = 3;
+	_opt.stdio = child_stdio;
+}
+*/
 int Process::pid()
 {
 	uv_process_t* h = (uv_process_t*)context_ptr();

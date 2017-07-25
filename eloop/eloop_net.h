@@ -53,7 +53,7 @@ protected:
 public:
 	int shutdown();
 	int listen();
-	int accept(Stream* client);
+	int accept(Stream* client);			//windows handle
 	int read_start();
 	int read_stop();
 	int write(const eloop_buf_t bufs[],unsigned int nbufs);
@@ -102,7 +102,7 @@ private:
 	static void _cbAlloc(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf);
 	static void _cbRead(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf);
 	static void _cbWrote(uv_write_t *req, int status);
-	static void _cbWrote2(uv_write_t *req, int status);
+//	static void _cbWrote2(uv_write_t *req, int status);
 };
 
 // -----------------------------
@@ -166,8 +166,8 @@ public:
 	int init(Loop &loop);
 	int init_ex(Loop &loop, unsigned int flags);
 	int open(sock_t sock);
-	int bind4(const char *ipv4, int port, unsigned int flags);
-	int bind6(const char *ipv6, int port, unsigned int flags);
+	int bind4(const char *ipv4, int port, unsigned int flags = Reuseaddr);
+	int bind6(const char *ipv6, int port, unsigned int flags = Reuseaddr);
 
 	int getsockname(struct sockaddr *name, int *namelen);
 	int set_membership(const char *multicast_addr, const char *interface_addr, membership_t membership);

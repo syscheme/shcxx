@@ -444,6 +444,7 @@ public:
 	void setgid(eloop_gid_t gid);
 
 	int spawn(const char* file,char** args,eloop_stdio_container_t* container,int stdio_count);
+
 	int pid();
 	int kill(int signum);
 	int kill(int pid,int signum);

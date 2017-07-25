@@ -57,7 +57,8 @@ namespace ZQ {
 			uv_buf_t wbuf = uv_buf_init((char *)buf, length);
 			uv_write_t *req = new uv_write_t;
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
-			return uv_write2(req, stream, &wbuf, length, (uv_stream_t *)send_handle->context_ptr(), _cbWrote2);
+			return uv_write2(req, stream, &wbuf, 1, (uv_stream_t *)send_handle->context_ptr(), _cbWrote);
+			//return uv_write2(req, stream, &wbuf, length, (uv_stream_t *)send_handle->context_ptr(), _cbWrote2);
 		}
 
 		int Stream::try_write(const char *buf, size_t length) {
@@ -136,7 +137,7 @@ namespace ZQ {
 			}
 			delete req;
 		}
-
+/*
 		void Stream::_cbWrote2(uv_write_t *req, int status) {
 
 			if (req->send_handle != NULL)
@@ -153,7 +154,7 @@ namespace ZQ {
 			}
 			delete req;
 		}
-
+*/
 		// -----------------------------
 		// class TCP
 		// -----------------------------
