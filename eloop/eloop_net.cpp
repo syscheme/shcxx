@@ -20,7 +20,7 @@ namespace ZQ {
 			return uv_listen(stream, SOMAXCONN, _cbConnection);
 		}
 
-		int Stream::accept(Stream* client) {
+		int Stream::accept(Handle* client) {
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
 			uv_stream_t* streamclient = (uv_stream_t *)client->context_ptr();
 			return uv_accept(stream, streamclient);
@@ -52,7 +52,7 @@ namespace ZQ {
 		}
 
 
-		int Stream::write(const char *buf, size_t length, Stream *send_handle) {
+		int Stream::write(const char *buf, size_t length, Handle *send_handle) {
 
 			uv_buf_t wbuf = uv_buf_init((char *)buf, length);
 			uv_write_t *req = new uv_write_t;
