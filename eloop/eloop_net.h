@@ -53,12 +53,12 @@ protected:
 public:
 	int shutdown();
 	int listen();
-	int accept(Stream* client);			//windows handle
+	int accept(Handle* client);			//windows handle
 	int read_start();
 	int read_stop();
 	int write(const eloop_buf_t bufs[],unsigned int nbufs);
 	int write(const char *buf, size_t length);
-	int write(const char *buf, size_t length, Stream *send_handle);
+	int write(const char *buf, size_t length, Handle *send_handle);
 	int try_write(const char *buf, size_t length);
 
 	int set_blocking(int blocking);
