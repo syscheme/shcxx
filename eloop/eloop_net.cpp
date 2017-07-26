@@ -36,13 +36,15 @@ namespace ZQ {
 			return uv_read_stop(stream);
 		}
 
-		int Stream::write(const eloop_buf_t bufs[],unsigned int nbufs)
+		int Stream::write(const eloop_buf_t bufs[],unsigned int nbufs,Handle *send_handle)
 		{
 			uv_write_t*	req = new uv_write_t;
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
+			if (send_handle != NULL)
+				return uv_write2(req, stream, bufs,nbufs,(uv_stream_t *)send_handle->context_ptr(), _cbWrote);
 			return uv_write(req, stream, bufs,nbufs, _cbWrote);
 		}
-
+/*
 		int Stream::write(const char *buf, size_t length) {
 
 			uv_buf_t wbuf = uv_buf_init((char *)buf, length);
@@ -50,15 +52,16 @@ namespace ZQ {
 			uv_stream_t * stream = (uv_stream_t *)context_ptr();
 			return uv_write(req, stream, &wbuf, 1, _cbWrote);
 		}
-
+*/
 
 		int Stream::write(const char *buf, size_t length, Handle *send_handle) {
 
 			uv_buf_t wbuf = uv_buf_init((char *)buf, length);
 			uv_write_t *req = new uv_write_t;
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
-			return uv_write2(req, stream, &wbuf, 1, (uv_stream_t *)send_handle->context_ptr(), _cbWrote);
-			//return uv_write2(req, stream, &wbuf, length, (uv_stream_t *)send_handle->context_ptr(), _cbWrote2);
+			if (send_handle != NULL)
+				return uv_write2(req, stream, &wbuf, 1, (uv_stream_t *)send_handle->context_ptr(), _cbWrote);
+			return uv_write(req, stream, &wbuf, 1, _cbWrote);
 		}
 
 		int Stream::try_write(const char *buf, size_t length) {

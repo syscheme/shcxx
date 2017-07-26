@@ -56,9 +56,9 @@ public:
 	int accept(Handle* client);			//windows handle
 	int read_start();
 	int read_stop();
-	int write(const eloop_buf_t bufs[],unsigned int nbufs);
-	int write(const char *buf, size_t length);
-	int write(const char *buf, size_t length, Handle *send_handle);
+	int write(const eloop_buf_t bufs[],unsigned int nbufs,Handle *send_handle = NULL);
+//	int write(const char *buf, size_t length);
+	int write(const char *buf, size_t length,Handle *send_handle = NULL);
 	int try_write(const char *buf, size_t length);
 
 	int set_blocking(int blocking);
