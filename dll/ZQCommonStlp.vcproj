@@ -443,6 +443,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\CryptoAlgm.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\DiskIOPerf.cpp"
 				>
 			</File>
