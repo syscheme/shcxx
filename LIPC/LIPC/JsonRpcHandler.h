@@ -1,14 +1,23 @@
 #ifndef __ZQ_JSONRPC_HANDLER_H__
 #define __ZQ_JSONRPC_HANDLER_H__
 
+
+#include "ZQ_common_conf.h"
+
+#ifdef ZQ_OS_MSWIN
+#  ifdef LIPC_EXPORTS
+#    define ZQ_LIPC_API __EXPORT
+#  else
+#    define ZQ_LIPC_API __DLLRTL
+#  endif
+#else
+#  define ZQ_LIPC_API
+#endif // OS
+
+
 #include "json/json.h"
 #include "Pointer.h"
 #include <list>
-
-
-
-namespace ZQ {
-	namespace LIPC {
 
 #define JSON_RPC_PROTO "jsonrpc"
 #define JSON_RPC_PROTO_VERSION "2.0"
@@ -21,6 +30,12 @@ namespace ZQ {
 #define JSON_RPC_ERROR_MESSAGE "message"
 #define JSON_RPC_ERROR_DATA "data"
 
+namespace ZQ {
+	namespace LIPC {
+
+class ZQ_LIPC_API Handler;
+//class ZQ_LIPC_API TransferFdService;
+		
 typedef Json::Value Arbitrary;
 // -----------------------------
 // interface CallbackMethod
@@ -30,7 +45,7 @@ class CallbackMethod
 public:
 	virtual ~CallbackMethod(){}
 
-    virtual bool Call(const Arbitrary& msg, Arbitrary& response) = 0;
+    virtual int Call(const Arbitrary& msg, Arbitrary& response) = 0;
 
     virtual std::string GetName() const = 0;
 
@@ -43,7 +58,7 @@ public:
 template<class T> class RpcMethod : public CallbackMethod
 {
 public:
-    typedef bool (T::*Method)(const Arbitrary& msg,Arbitrary& response);
+    typedef int (T::*Method)(const Arbitrary& msg,Arbitrary& response);
 
     RpcMethod(T& obj, Method method, const std::string& name,const Arbitrary description = Arbitrary::null)
 		:m_obj(&obj),
@@ -53,7 +68,7 @@ public:
     {
     }
 
-    virtual bool Call(const Arbitrary& msg, Arbitrary& response){
+    virtual int Call(const Arbitrary& msg, Arbitrary& response){
 		return (m_obj->*m_method)(msg, response);
     }
 
@@ -138,7 +153,6 @@ private:
 };
 
 
-
 // ---------------------------------------------------
 // class Handler
 // ---------------------------------------------------
@@ -177,7 +191,7 @@ public:
 
 	bool Process(const char* msg, Arbitrary& response);
 
-	bool SystemDescribe(const Arbitrary& msg, Arbitrary& response);
+	int SystemDescribe(const Arbitrary& msg, Arbitrary& response);
 
 	std::string GetString(Arbitrary value);
 

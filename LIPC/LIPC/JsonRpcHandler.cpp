@@ -143,7 +143,9 @@ Arbitrary Respon::getvalue()
 		return m_Error;
 	return Arbitrary::null;
 }
-
+// ---------------------------------------------------
+// class Handler
+// ---------------------------------------------------
 Handler::Handler()
 {
   /* add a RPC method that list the actual RPC methods contained in 
@@ -190,7 +192,7 @@ void Handler::DeleteMethod(const std::string& name)
 	}
 }
 
-bool Handler::SystemDescribe(const Arbitrary& msg, Arbitrary& response)
+int Handler::SystemDescribe(const Arbitrary& msg, Arbitrary& response)
 {
 	Arbitrary methods;
 	response["jsonrpc"] = "2.0";
@@ -202,7 +204,7 @@ bool Handler::SystemDescribe(const Arbitrary& msg, Arbitrary& response)
 	}
 
 	response["result"] = methods;
-	return true;
+	return 0;
 }
 
 std::string Handler::GetString(Arbitrary value)

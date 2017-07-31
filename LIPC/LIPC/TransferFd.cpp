@@ -3,6 +3,87 @@
 
 namespace ZQ {
 	namespace LIPC {
+		
+// -----------------------------------------
+// class PipeConnection
+// -----------------------------------------
+void PipeConnection::OnRead(ssize_t nread, const char *buf)
+{
+	if (nread <= 0) {
+//			if (nread != elpe__EOF)
+		fprintf(stderr, "Read error %s\n", errName(nread));
+		close();
+		return;
+	}
+	std::string temp = buf;
+//	printf("PipeConnection read:%s\n",buf);
+	decode(nread,buf);
+}
+
+int PipeConnection::send(const char* buf,size_t len,ZQ::eloop::Handle* send_handle)
+{
+	std::string src = buf;
+	std::string dest;
+	encode(src,dest);
+	return write(dest.c_str(),dest.size(),send_handle);
+}
+
+void PipeConnection::encode(const std::string& src,std::string& dest)
+{
+	unsigned long len = src.length();
+    char strLen[32];
+
+    /* format of a netstring is [len]:[string], */
+    sprintf(strLen, "%lu:", len);
+    dest.append(strLen);
+    dest.append(src);
+    dest.append(",");
+}
+
+void PipeConnection::decode(ssize_t nread, const char *buf)
+{
+	_buf.append(buf,nread);
+	size_t len = 0;
+    size_t index = 0; /* position of ":" */
+    size_t i = 0;
+ 	std::string temp;  
+	while(!_buf.empty())
+	{
+		index = _buf.find_first_of(":");
+		if(index == std::string::npos)
+		{
+			//parse error
+		}
+  
+		const char* data = _buf.data();
+		len = 0;
+		for(i = 0 ; i < index ; i++)
+		{
+		  if(isdigit(data[i]))
+		  {
+			len = len * 10 + (data[i] - (char)0x30);
+		  }
+		  else
+		  {
+			//parse error
+		  }
+		}
+		if(len < _buf.size()-index-2)
+		{
+			temp = _buf.substr(index+1,len);
+			_buf = _buf.substr(index+len+2);
+			OnRequest(temp);
+		}
+		else if(len = _buf.size()-index-2)
+		{
+			temp = _buf.substr(index+1,len);
+			OnRequest(temp);
+			_buf.clear();
+		}
+		else
+			break;
+	}
+}
 // -----------------------------
 // class TransferFdClient
 // -----------------------------
@@ -22,6 +103,7 @@ void TransferFdClient::OnConnected(ZQ::eloop::Handle::ElpeError status)
 			return;
 		}
 //	read_start();
+	printf("connect suc!");
 	_disp.addServant(this);
 }
 
@@ -30,7 +112,7 @@ void TransferFdClient::OnConnected(ZQ::eloop::Handle::ElpeError status)
 // class PipePassiveConn
 // -----------------------------
 PipePassiveConn::PipePassiveConn(TransferFdService& service)
-:_service(service)
+:_service(service),_sendAck(true)
 {
 
 }
@@ -44,48 +126,23 @@ void PipePassiveConn::start()
 {
 	read_start();
 	_service.addConn(this);
+	printf("new pipe Passive Conn\n");
 }
 
-void PipePassiveConn::OnRead(ssize_t nread, const char *buf)
+void PipePassiveConn::OnRequest(std::string& req)
 {
-		if (nread < 0) {
-//			if (nread != elpe__EOF)
-			fprintf(stderr, "Read error %s\n", errName(nread));
-			close();
-			return;
-		}
-
-/*
-		if (!pending_count()) {
-			fprintf(stderr, "No pending count\n");
-			return;
-		}
-
-		eloop_handle_type  pending = pending_type();
-		if (pending_type() != ELOOP_TCP)
-		{
-			printf("pending type is tcp\n");
-			return;
-		}
-*///		printf("accepted_fd = %d\n",);
-		Servant* client = new Servant(_service);
-		client->init(get_loop());
-		int ret = accept(client);
-		if (ret == 0) {
-			Handle::fd_t fd;
-			client->fileno(&fd);
-			fprintf(stderr, "Worker %d: Accepted fd %d\n", getpid(), fd);
-			client->read_start();
-		}
-		else {
-			printf("accept error ret = %d,errDesc:%s\n",ret,Handle::errDesc(ret));
-			client->close();
-		}
+	_service.onRequest(req,this);
 }
 
-void PipePassiveConn::OnWrote(ZQ::eloop::Handle::ElpeError status)
+int PipePassiveConn::send(const char* buf,size_t len)
 {
+	_sendAck = false;
+	return PipeConnection::send(buf,len);
+}
 
+void PipePassiveConn::OnWrote(int status)
+{
+	_sendAck = true;
 }
 
 void PipePassiveConn::OnClose()
@@ -93,35 +150,6 @@ void PipePassiveConn::OnClose()
 	_service.delConn(this);
 	delete this;
 }
-
-// ------------------------------------------------
-// class ServantManager
-// ------------------------------------------------
-ServantManager::ServantManager()
-{
-
-}
-ServantManager::~ServantManager()
-{
-
-}
-void ServantManager::addServant(Servant* svt)
-{
-	_servantMgr.push_back(svt);
-}
-
-void ServantManager::delServant(Servant* svt)
-{
-	std::list<Servant*>::iterator iter = _servantMgr.begin();
-	while(iter != _servantMgr.end())
-	{
-		if (*iter == svt)
-			iter = _servantMgr.erase(iter);		//_PipeConn.erase(iter++);
-		else
-			iter++;
-	}
-}
-
 
 // -----------------------------
 // class TransferFdService
@@ -138,16 +166,16 @@ TransferFdService::~TransferFdService()
 
 void TransferFdService::addConn(PipePassiveConn* conn)
 {
-	_PipeConn.push_back(conn);
+	_ClientList.push_back(conn);
 }
 
 void TransferFdService::delConn(PipePassiveConn* conn)
 {
-	std::list<PipePassiveConn*>::iterator iter = _PipeConn.begin();
-	while(iter != _PipeConn.end())
+	PipeClientList::iterator iter = _ClientList.begin();
+	while(iter != _ClientList.end())
 	{
 		if (*iter == conn)
-			iter = _PipeConn.erase(iter);		//_PipeConn.erase(iter++);
+			iter = _ClientList.erase(iter);		//_PipeConn.erase(iter++);
 		else
 			iter++;
 	}
@@ -163,7 +191,7 @@ void TransferFdService::doAccept(ZQ::eloop::Handle::ElpeError status)
 	PipePassiveConn *client = new PipePassiveConn(*this);
 	client->init(get_loop());
 
-	if (accept((Stream *)client) == 0) {
+	if (accept(client) == 0) {
 		client->start();
 	}
 	else {

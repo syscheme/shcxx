@@ -33,12 +33,6 @@
 
 #include "ZQ_common_conf.h"
 
-#include "eloop_net.h"
-#include "TransferFd.h"
-#include "JsonRpcHandler.h"
-#include <vector>
-#include <list>
-
 #ifdef ZQ_OS_MSWIN
 #  ifdef LIPC_EXPORTS
 #    define ZQ_LIPC_API __EXPORT
@@ -49,11 +43,18 @@
 #  define ZQ_LIPC_API
 #endif // OS
 
+#include "eloop_net.h"
+#include "TransferFd.h"
+#include "JsonRpcHandler.h"
+#include <vector>
+#include <list>
 
 namespace ZQ {
 	namespace LIPC {
 
 class ZQ_LIPC_API Dispatcher;
+class ZQ_LIPC_API JsonRpcService;
+class ZQ_LIPC_API JsonRpcClient;
 
 // ------------------------------------------------
 // class Dispatcher
@@ -74,7 +75,7 @@ private:
 };
 
 
-
+/*
 // -----------------------------
 // class Servant
 // -----------------------------
@@ -91,7 +92,7 @@ public:
 private:
 	ServantManager&	_Mgr;
 };
-
+*/
 // ------------------------------------------------
 // class JsonRpcService
 // ------------------------------------------------
@@ -100,28 +101,25 @@ class JsonRpcService:public TransferFdService,public Handler
 public:
 	JsonRpcService();
 	~JsonRpcService();
-//	void start(Loop& loop,const char* pathname);
-	virtual void onRequest(const char* req,Servant* conn);
+	
+	virtual void onRequest(std::string& req,PipePassiveConn* conn);	
+	PipePassiveConn* getConn(){return _conn;}
+	int acceptPendingHandle(ZQ::eloop::Handle* h);
+	ZQ::eloop::Handle::eloop_handle_type getPendingHandleType();
+	int getPendingCount();
+private:
+	PipePassiveConn* _conn;
 };
 
 
 // ------------------------------------------------
 // class JsonRpcClient
 // ------------------------------------------------
-class JsonRpcClient:public ZQ::eloop::TCP
+class JsonRpcClient:public PipeConnection,public ZQ::LIPC::Handler
 {
 public:
-	JsonRpcClient();
-	~JsonRpcClient();
-
-	void beginRequest(const char* ip,int port,Request::Ptr req);
-	void Request(Request::Ptr req);
-	virtual void OnConnected(ZQ::eloop::Handle::ElpeError status);
-	virtual void OnRead(ssize_t nread, const char *buf);
-	virtual void OnWrote(ZQ::eloop::Handle::ElpeError status);
-
-private:
-	Request::Ptr m_req;
+	int sendRequest(ZQ::LIPC::Arbitrary& value,ZQ::eloop::Handle* send_Handler = NULL);
+	virtual void OnRequest(std::string& req);
 };
 
 }}//ZQ::LIPC
