@@ -210,23 +210,23 @@ bool MachineFingerPrint::collectSystemInfo(void)
 
 	//sysValue["NICNum"] = (int)deviceInfo._netInterfaceCard.size();
 	Json::Value NICs;
-	for(int i =0; i< deviceInfo._netInterfaceCard.size(); i++)
+	for(int i =0; i< deviceInfo._NICs.size(); i++)
 	{
 		Json::Value nicInfo;
-		nicInfo["mac"] = deviceInfo._netInterfaceCard[i].macAddress;
-		nicInfo["name"] = deviceInfo._netInterfaceCard[i].netCardName;
-		nicInfo["description"] = deviceInfo._netInterfaceCard[i].cardDescription;
+		nicInfo["mac"] = deviceInfo._NICs[i].macAddress;
+		nicInfo["name"] = deviceInfo._NICs[i].netCardName;
+		nicInfo["description"] = deviceInfo._NICs[i].cardDescription;
 		NICs[i] = nicInfo;
 	}
 	sysValue["NIC"] = NICs;
 
 	//sysValue["DiskNum"] = (int)deviceInfo._disk.size();
 	Json::Value Disks;
-	for (int i = 0; i < deviceInfo._disk.size(); i++)
+	for (int i = 0; i < deviceInfo._disks.size(); i++)
 	{
 		Json::Value diskInfo;
-		diskInfo["id"] = deviceInfo._disk[i].diskSeque;
-		diskInfo["model"] = deviceInfo._disk[i].diskModel;
+		diskInfo["id"] = deviceInfo._disks[i].diskSeque;
+		diskInfo["model"] = deviceInfo._disks[i].diskModel;
 		Disks[i] = diskInfo;
 	}
 	sysValue["DISK"] = Disks;
