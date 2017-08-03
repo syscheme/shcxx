@@ -36,7 +36,7 @@
 #include "FileLog.h"
 #include "Locks.h"
 #include "NativeThread.h"*/
-#include <uv.h>
+#include "libuv_1.9.1/include/uv.h"
 
 #include <string>
 #include <vector>
