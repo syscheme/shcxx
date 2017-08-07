@@ -96,6 +96,13 @@ int File::write(const char* data, size_t len, int64_t offset)
 	return uv_fs_write(_loop.context_ptr(),req,_fb,&buf,1,offset,_cbFileWrite);
 }
 
+int File::write(const ZQ::eloop::Handle::eloop_buf_t bufs[],unsigned int nbufs,int64_t offset)
+{
+	uv_fs_t *req = new uv_fs_t;
+	req->data = static_cast<void *>(this);
+	return uv_fs_write(_loop.context_ptr(),req,_fb,bufs,nbufs,offset,_cbFileWrite);
+}
+
 int File::mkdir(const char* dirname, uint mode)
 {
 	uv_fs_t *req = new uv_fs_t;

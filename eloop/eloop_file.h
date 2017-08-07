@@ -133,6 +133,7 @@ public:
 	int read(size_t len, int64_t offset);
 	int read(char* data,size_t len, int64_t offset);
 	int write(const char* data, size_t len, int64_t offset);
+	int write(const ZQ::eloop::Handle::eloop_buf_t bufs[],unsigned int nbufs,int64_t offset);
 
 	//@param mode  - flag combination of FileMode
 	int mkdir(const char* dirname, uint mode);

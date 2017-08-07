@@ -181,7 +181,9 @@ public:
 
 	int set_send_buf_size(int* value);
 	int set_recv_buf_size(int* value);
-	
+
+
+	int send4(const eloop_buf_t bufs[],unsigned int nbufs, const char *ipv4,int port);
 	int send4(const char *buf, size_t length, const char *ipv4,int port);
 	int send6(const char *buf, size_t length, const char *ipv6,int port);
 	int send(const char *buf, size_t length,  const struct sockaddr *addr);

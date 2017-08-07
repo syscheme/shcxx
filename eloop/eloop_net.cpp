@@ -410,6 +410,17 @@ namespace ZQ {
 			return uv_udp_send(req, udp, &sendbuf, 1, addr, _cbSent);
 		}
 
+		int UDP::send4(const eloop_buf_t bufs[],unsigned int nbufs, const char *ipv4,int port)
+		{
+			struct sockaddr_in send_addr;
+			int r = uv_ip4_addr(ipv4,port, &send_addr);
+			if (r < 0)
+				return r;
+			uv_udp_send_t* req = new uv_udp_send_t;
+			uv_udp_t* udp = (uv_udp_t *)context_ptr();
+			return uv_udp_send(req, udp, bufs, nbufs, (const struct sockaddr *)&send_addr, _cbSent);
+		}
+
 		int UDP::send4(const char *buf, size_t length,const char *ipv4,int port) {
 
 			struct sockaddr_in send_addr;

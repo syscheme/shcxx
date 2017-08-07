@@ -64,9 +64,9 @@ class ZQ_ELOOP_API Signal;
 class ZQ_ELOOP_API CpuInfo;
 class ZQ_ELOOP_API Process;
 
-// -----------------------------
+// ----------------------------------------------------
 // class Handle
-// -----------------------------
+// ----------------------------------------------------
 class Handle
 {
 public:
