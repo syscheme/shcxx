@@ -14,6 +14,7 @@ public:
 	HttpClient(ZQ::common::Log& logger);
 	virtual void OnConnected(ElpeError status);
 	bool beginRequest( HttpMessage::Ptr msg, const std::string& url);
+	bool beginRequest( HttpMessage::Ptr msg, const std::string& ip, const unsigned int& port);
 
 private:
 	//disallow copy construction
