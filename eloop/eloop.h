@@ -248,7 +248,7 @@ public:
 
 protected:
 	virtual void OnClose(){delete this;}
-	bool		_isStart;
+//	bool		_isStart;
 	bool		_isClose;
 	
 

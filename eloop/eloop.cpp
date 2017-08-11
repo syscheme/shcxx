@@ -9,7 +9,6 @@ namespace eloop {
 Handle::Handle()
 	:data(NULL),
 	context(NULL),
-	_isStart(false),
 	_isClose(false),
 	_loop(NULL) 
 {
@@ -295,17 +294,13 @@ int Timer::init(Loop &loop) {
 }
 
 int Timer::start(uint64_t timeout, uint64_t repeat) {
-	if (_isStart)
-		return 0;
-	_isStart = true;
+
 	uv_timer_t* timer = (uv_timer_t *)context_ptr();
 	return uv_timer_start(timer, _cbOnTimer, timeout, repeat);
 }
 
 int Timer::stop() {
-	if (!_isStart)
-		return 0;
-	_isStart = false;
+
 	uv_timer_t* timer = (uv_timer_t *)context_ptr();
 	return uv_timer_stop(timer);
 }
