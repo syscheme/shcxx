@@ -29,13 +29,18 @@ class ZQ_LIPC_API TransferFdService;
 class PipeConnection:public ZQ::eloop::Pipe
 {
 public:
+	typedef enum{
+		lipcParseError = -4396
+	} LipcError;
+public:
 	PipeConnection(){}
 	~PipeConnection(){}
 	
 	virtual void OnRead(ssize_t nread, const char *buf);
+	virtual void onError( int error,const char* errorDescription ){	fprintf(stderr, "errCode=%d errDesc:%s\n",error,errorDescription);}
 	
 	virtual void OnRequest(std::string& req){printf("OnRequest,len = %d,buf = %s\n",req.size(),req.c_str());}
-	virtual int send(const char* buf,size_t len,ZQ::eloop::Handle* send_handle=NULL);
+	virtual int send(std::string buf,ZQ::eloop::Handle* send_handle=NULL);
 	
 	void encode(const std::string& src,std::string& dest);
 	void decode(ssize_t nread, const char *buf);
@@ -81,34 +86,18 @@ private:
 	bool				_sendAck;
 };
 
-/*
-// ------------------------------------------------
-// class ServantManager
-// ------------------------------------------------
-class Servant;
-class ServantManager
-{
-public:
-	ServantManager();
-	virtual ~ServantManager();
-	void addServant(Servant* svt);
-	void delServant(Servant* svt);
-	virtual void onRequest(const char* req,Servant* st){}
 
-private:
-	std::list<Servant*>			_servantMgr;
-};
-*/
 // -----------------------------
 // class TransferFdService
 // -----------------------------
-class TransferFdService:public ZQ::eloop::Pipe//,public ServantManager
+class TransferFdService:public ZQ::eloop::Pipe
 {
 public:
 	typedef std::list<PipePassiveConn*> PipeClientList;
 public:
 	TransferFdService();
 	~TransferFdService();
+	int init(ZQ::eloop::Loop &loop, int ipc=1);
 	void addConn(PipePassiveConn* conn);
 	void delConn(PipePassiveConn* conn);
 	PipeClientList& getPipeClientList(){return _ClientList;}
@@ -118,6 +107,7 @@ public:
 
 private:
 	PipeClientList _ClientList;
+	int				_ipc;
 };
 
 }}

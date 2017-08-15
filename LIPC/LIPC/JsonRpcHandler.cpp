@@ -2,147 +2,7 @@
 
 namespace ZQ{
 	namespace LIPC{
-/*
-// -------------------------------------------------
-// class JsonRpcMessage
-// -------------------------------------------------
-JsonRpcMessage::JsonRpcMessage()
-{
 
-}
-
-JsonRpcMessage::~JsonRpcMessage()
-{
-
-}
-
-void JsonRpcMessage::setMethod(std::string method)
-{
-	m_value["method"] = method;
-}
-void JsonRpcMessage::setid(int id)
-{
-	m_value["id"] = id;
-}
-
-void JsonRpcMessage::parse(const char* data, size_t size)
-{
-
-}
-
-std::string JsonRpcMessage::toRaw()
-{
-
-}
-*/
-// -------------------------------------------------
-// class Request
-// -------------------------------------------------
-Request::Request(Arbitrary id,Arbitrary methodname,int argc, Arbitrary argv,...)
-:m_request(Arbitrary::null)
-{
-	append(id,methodname,argc,argv);
-}
-
-Request::Request():m_request(Arbitrary::null){}
-Request::~Request(){}
-
-void Request::append(Arbitrary id,Arbitrary methodname,int argc, Arbitrary argv,...)
-{
-	Arbitrary tempValue;
-	if (argc > 0)
-	{
-		va_list arg_ptr;  
-		Arbitrary nArgValue,params;  
-		va_start(arg_ptr, argv);
-		for(int i=0;i<argc;i++)
-		{
-			nArgValue = va_arg(arg_ptr, Arbitrary);
-			params.append(nArgValue);
-		}
-		va_end(arg_ptr);
-		tempValue[JSON_RPC_PARAMS] = params;
-	}
-
-	tempValue[JSON_RPC_PROTO] = JSON_RPC_PROTO_VERSION;
-	tempValue[JSON_RPC_METHOD] = methodname;
-	tempValue[JSON_RPC_ID] = id;
-	m_request.append(tempValue);
-}
-
-std::string Request::toRaw()
-{
-	return m_writer.write(m_request);
-}
-
-// -------------------------------------------------
-// class PassiveReq
-// -------------------------------------------------
-PassiveReq::PassiveReq(Arbitrary req)
-:m_request(req)
-{
-}
-PassiveReq::~PassiveReq()
-{
-}
-Arbitrary PassiveReq::id()
-{
-	return m_request[JSON_RPC_ID];
-}
-Arbitrary PassiveReq::method()
-{
-	return m_request[JSON_RPC_METHOD];
-}
-Arbitrary PassiveReq::param()
-{
-	return m_request[JSON_RPC_PARAMS];
-}
-
-// -------------------------------------------------
-// class Respon
-// -------------------------------------------------
-Respon::Respon()
-:m_Result(Arbitrary::null),
-m_Error(Arbitrary::null)
-{
-
-}
-Respon::~Respon(){}
-
-void Respon::setResult(Arbitrary id,Arbitrary result)
-{
-	m_Result[JSON_RPC_PROTO] = JSON_RPC_PROTO_VERSION;
-	m_Result[JSON_RPC_ID] = id;
-	m_Result[JSON_RPC_RESULT] = result;
-}
-void Respon::setError(Arbitrary id,Arbitrary code,Arbitrary desc)
-{
-	Arbitrary error;
-	error[JSON_RPC_ERROR_CODE] = code;
-	error[JSON_RPC_ERROR_MESSAGE] = desc;
-
-	m_Error[JSON_RPC_PROTO] = JSON_RPC_PROTO_VERSION;
-	m_Error[JSON_RPC_ID] = id;
-	m_Error[JSON_RPC_ERROR] = error;
-}
-
-std::string Respon::toRaw()
-{
-	if (m_Result != Arbitrary::null)
-		return m_writer.write(m_Result);
-	if (m_Error != Arbitrary::null)
-		return m_writer.write(m_Error);
-	return NULL;
-}
-
-Arbitrary Respon::getvalue()
-{
-	if (m_Result != Arbitrary::null)
-		return m_Result;
-	if (m_Error != Arbitrary::null)
-		return m_Error;
-	return Arbitrary::null;
-}
 // ---------------------------------------------------
 // class Handler
 // ---------------------------------------------------
@@ -175,6 +35,11 @@ void Handler::AddMethod(CallbackMethod* method)
 	m_methods.push_back(method);
 }
 
+void Handler::Addcb(std::string seqId,RpcCB cb)
+{
+	m_seqIds[seqId] = cb;
+}
+
 void Handler::DeleteMethod(const std::string& name)
 {
     /* do not delete system defined method */
@@ -192,7 +57,7 @@ void Handler::DeleteMethod(const std::string& name)
 	}
 }
 
-int Handler::SystemDescribe(const Arbitrary& msg, Arbitrary& response)
+void Handler::SystemDescribe(const Arbitrary& msg, Arbitrary& response)
 {
 	Arbitrary methods;
 	response["jsonrpc"] = "2.0";
@@ -204,7 +69,6 @@ int Handler::SystemDescribe(const Arbitrary& msg, Arbitrary& response)
 	}
 
 	response["result"] = methods;
-	return 0;
 }
 
 std::string Handler::GetString(Arbitrary value)
@@ -255,25 +119,52 @@ bool Handler::Check(const Arbitrary& root, Arbitrary& error)
 	return true;
 }
 
-bool Handler::Process(const Arbitrary& root, Arbitrary& response)
+void Handler::Process(const Arbitrary& root, Arbitrary& response)
 {
-	Arbitrary error;
+	response = Arbitrary::null;
 	std::string method;
 
-	if(!Check(root, error))
+	Arbitrary err;
+	/* check the JSON-RPC version => 2.0 */
+	if(!root.isObject() || !root.isMember("jsonrpc") ||
+		root["jsonrpc"] != "2.0") 
 	{
-		response = error;
-		return false;
+		response["id"] = Arbitrary::null;
+		response["jsonrpc"] = "2.0";
+
+		err["code"] = INVALID_REQUEST;
+		err["message"] = "Invalid JSON-RPC request.";
+		response["error"] = err;
+		return;
 	}
 
-	method = root["method"].asString();
+	method = root[JSON_RPC_METHOD].asString();
 
 	if(method != "")
 	{
 		CallbackMethod* rpc = Lookup(method);
 		if(rpc)
+			rpc->Call(root, response);
+		return;
+	}
+	else
+	{
+		std::string seqId = root[JSON_RPC_ID].asString();
+		if (seqId != "")
 		{
-			return rpc->Call(root, response);
+			RpcCB rpc = NULL;
+
+			std::map<std::string,RpcCB>::iterator it = m_seqIds.find(seqId);
+			if (it != m_seqIds.end())
+			{
+				rpc = it->second;
+				m_seqIds.erase(it);
+				if (rpc)
+				{
+					(*rpc)(root);
+				}
+			}
+			return;
 		}
 	}
 
@@ -281,14 +172,12 @@ bool Handler::Process(const Arbitrary& root, Arbitrary& response)
 	response["id"] = root.isMember("id") ? root["id"] : Arbitrary::null;
 	response["jsonrpc"] = "2.0";
 
-	error["code"] = METHOD_NOT_FOUND;
-	error["message"] = "Method not found.";
-	response["error"] = error;
-
-	return false;
+	err["code"] = METHOD_NOT_FOUND;
+	err["message"] = "Method not found.";
+	response["error"] = err;
 }
 
-bool Handler::Process(const std::string& msg, Arbitrary& response)
+void Handler::Process(const std::string& msg, Arbitrary& response)
 {
 	Arbitrary root;
 	Arbitrary error;
@@ -306,7 +195,6 @@ bool Handler::Process(const std::string& msg, Arbitrary& response)
 		error["code"] = PARSING_ERROR;
 		error["message"] = "Parse error.";
 		response["error"] = error; 
-		return false;
 	}
 
 	if(root.isArray())
@@ -327,19 +215,18 @@ bool Handler::Process(const std::string& msg, Arbitrary& response)
 				j++;
 			}
 		}
-		return true;
 	}
 	else
 	{
-		return Process(root, response);
+		 Process(root, response);
 	}
 }
 
-bool Handler::Process(const char* msg, Arbitrary& response)
+void Handler::Process(const char* msg, Arbitrary& response)
 {
 	std::string str(msg);
 
-	return Process(str, response);
+	Process(str, response);
 }
 
 CallbackMethod* Handler::Lookup(const std::string& name) const
@@ -351,7 +238,15 @@ CallbackMethod* Handler::Lookup(const std::string& name) const
 			return (*it);
 		}
 	}
-	return 0;
+	return NULL;
+}
+
+Handler::RpcCB Handler::find(const std::string& seqId) const
+{
+	std::map<std::string,RpcCB>::const_iterator it = m_seqIds.find(seqId);
+	if (it != m_seqIds.end())
+		return it->second;
+	return NULL;
 }
 
 }}

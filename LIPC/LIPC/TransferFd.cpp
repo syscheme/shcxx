@@ -10,21 +10,18 @@ namespace ZQ {
 void PipeConnection::OnRead(ssize_t nread, const char *buf)
 {
 	if (nread <= 0) {
-//			if (nread != elpe__EOF)
-		fprintf(stderr, "Read error %s\n", errName(nread));
-		close();
+		std::string desc = "Read error:";
+		desc.append(errDesc(nread));
+		onError(nread,desc.c_str());
 		return;
 	}
-	std::string temp = buf;
-//	printf("PipeConnection read:%s\n",buf);
 	decode(nread,buf);
 }
 
-int PipeConnection::send(const char* buf,size_t len,ZQ::eloop::Handle* send_handle)
+int PipeConnection::send(std::string buf,ZQ::eloop::Handle* send_handle)
 {
-	std::string src = buf;
 	std::string dest;
-	encode(src,dest);
+	encode(buf,dest);
 	return write(dest.c_str(),dest.size(),send_handle);
 }
 
@@ -52,21 +49,24 @@ void PipeConnection::decode(ssize_t nread, const char *buf)
 		index = _buf.find_first_of(":");
 		if(index == std::string::npos)
 		{
-			//parse error
+			onError(lipcParseError,"parse error");
+			return;
 		}
   
 		const char* data = _buf.data();
 		len = 0;
 		for(i = 0 ; i < index ; i++)
 		{
-		  if(isdigit(data[i]))
-		  {
+			if(isdigit(data[i]))
+			{
 			len = len * 10 + (data[i] - (char)0x30);
-		  }
-		  else
-		  {
+			}
+			else
+			{
+			  onError(lipcParseError,"parse error");
+			  return;
 			//parse error
-		  }
+			}
 		}
 		if(len < _buf.size()-index-2)
 		{
@@ -137,7 +137,9 @@ void PipePassiveConn::OnRequest(std::string& req)
 int PipePassiveConn::send(const char* buf,size_t len)
 {
 	_sendAck = false;
-	return PipeConnection::send(buf,len);
+	std::string str;
+	str.append(buf,len);
+	return PipeConnection::send(str);
 }
 
 void PipePassiveConn::OnWrote(int status)
@@ -162,6 +164,12 @@ TransferFdService::TransferFdService()
 TransferFdService::~TransferFdService()
 {
 
+}
+
+int TransferFdService::init(ZQ::eloop::Loop &loop, int ipc)
+{
+	_ipc = ipc;
+	return ZQ::eloop::Pipe::init(loop,ipc);
 }
 
 void TransferFdService::addConn(PipePassiveConn* conn)
@@ -189,13 +197,15 @@ void TransferFdService::doAccept(ZQ::eloop::Handle::ElpeError status)
 	}
 
 	PipePassiveConn *client = new PipePassiveConn(*this);
-	client->init(get_loop());
+	client->init(get_loop(),_ipc);
 
-	if (accept(client) == 0) {
+	int ret = accept(client);
+	if (ret == 0) {
 		client->start();
 	}
 	else {
 		client->close();
+		printf("accept error,code = %d,desc:%s\n",ret,ZQ::eloop::Handle::errDesc(ret));
 	}
 }
 

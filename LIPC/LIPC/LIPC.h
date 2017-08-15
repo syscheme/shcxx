@@ -74,25 +74,6 @@ private:
 	std::vector<TransferFdClient*> _servantVec;
 };
 
-
-/*
-// -----------------------------
-// class Servant
-// -----------------------------
-class Servant:public ZQ::eloop::TCP
-{
-public:
-	Servant(ServantManager& mgr);
-	~Servant();
-	void start();
-	virtual void OnRead(ssize_t nread, const char *buf);
-	virtual void OnWrote(ZQ::eloop::Handle::ElpeError status);
-	virtual void OnClose();
-
-private:
-	ServantManager&	_Mgr;
-};
-*/
 // ------------------------------------------------
 // class JsonRpcService
 // ------------------------------------------------

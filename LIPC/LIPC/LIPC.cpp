@@ -99,46 +99,7 @@ void Dispatcher::doAccept(ZQ::eloop::Handle::ElpeError status)
 	}
 }
 
-/*
-// -------------------------------------------------
-// class Servant
-// -------------------------------------------------
-Servant::Servant(ServantManager& mgr)
-:_Mgr(mgr)
-{
-}
-Servant::~Servant()
-{
-}
-void Servant::start()
-{
-//	read_start();
-	_Mgr.addServant(this);
-}
 
-void Servant::OnRead(ssize_t nread, const char *buf)
-{
-	printf("service recv data:%s,len = %d\n", buf,nread);
-	if (nread < 0) {
-		//			if (nread != elpe__EOF)
-		fprintf(stderr, "Read error %s\n", errName(nread));
-		close();
-		return;
-	}
-	_Mgr.onRequest(buf,this);
-}
-
-void Servant::OnWrote(ZQ::eloop::Handle::ElpeError status)
-{
-
-}
-
-void Servant::OnClose()
-{
-	_Mgr.delServant(this);
-	delete this;
-}
-*/
 // -------------------------------------------------
 // class JsonRpcService
 // -------------------------------------------------
@@ -151,16 +112,14 @@ JsonRpcService::~JsonRpcService()
 
 void JsonRpcService::onRequest(std::string& req,PipePassiveConn* conn)
 {
-	printf("-----recv:%s\n",req.c_str());
 	_conn = conn;
 	Arbitrary respon = Arbitrary::null;
 	Process(req,respon);
-/*	if(respon != Arbitrary::null)
+	if(respon != Arbitrary::null)
 	{
 		std::string resp = GetString(respon).c_str();
-		//	printf("send:%s\n",resp.c_str());
 		conn->send(resp.c_str(),resp.size());		
-	}*/
+	}
 }
 
 int JsonRpcService::acceptPendingHandle(ZQ::eloop::Handle* h)
@@ -184,23 +143,14 @@ int JsonRpcService::getPendingCount()
 	return _conn->pending_count();
 }
 
-/*void JsonRpcService::start(Loop& loop,const char* pathname)
-{
-	init(loop);
-	bind(pathname);
-	listen();
-}*/
 
 // ------------------------------------------------
 // class JsonRpcClient
 // ------------------------------------------------
-
 int JsonRpcClient::sendRequest(ZQ::LIPC::Arbitrary& value,ZQ::eloop::Handle* send_Handler)
 {
 	std::string src = GetString(value);
-	std::string dest;
-	encode(src,dest);
-	return write(dest.c_str(),dest.size(),send_Handler);	
+	return send(src,send_Handler);
 }
 void JsonRpcClient::OnRequest(std::string& req)
 {
@@ -208,60 +158,9 @@ void JsonRpcClient::OnRequest(std::string& req)
 	Process(req,respon);
 	if(respon != Arbitrary::null)
 	{
-		std::string resp = GetString(respon).c_str();
-		//	printf("send:%s\n",resp.c_str());
-		send(resp.c_str(),resp.size());		
+		std::string resp = GetString(respon);
+		send(resp);		
 	}
 }
-
-
-
-	
-
-
-/*
-void JsonRpcClient::beginRequest(const char* ip,int port,Request::Ptr req)
-{
-	connect4(ip,port);
-	m_req = req;
-}
-
-void JsonRpcClient::Request(Request::Ptr req)
-{
-	if (req != NULL)
-	{
-		std::string str = req->toRaw();
-		printf("send str = %s\n",str.c_str());
-		write(str.c_str(),str.length());
-	}
-}
-
-void JsonRpcClient::OnConnected(ZQ::eloop::Handle::ElpeError status)
-{
-	if (status != ZQ::eloop::Handle::elpeSuccess) {
-		fprintf(stderr, "on_connect error %s\n", ZQ::eloop::Handle::errDesc(status));
-		return;
-	}
-	read_start();
-	Request(m_req);
-}
-
-void JsonRpcClient::OnRead(ssize_t nread, const char *buf)
-{
-	printf("recv:%s,nread:%d\n",buf,nread);
-	char sendbuf[1024];
-	memset(sendbuf,0,1024);
-	scanf("%s",sendbuf);
-
-	write(sendbuf,strlen(sendbuf)+1);
-}
-
-void JsonRpcClient::OnWrote(ZQ::eloop::Handle::ElpeError status)
-{
-
-}*/
-
-
-
 
 }}//ZQ::LIPC

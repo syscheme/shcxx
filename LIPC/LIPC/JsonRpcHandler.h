@@ -45,7 +45,7 @@ class CallbackMethod
 public:
 	virtual ~CallbackMethod(){}
 
-    virtual int Call(const Arbitrary& msg, Arbitrary& response) = 0;
+    virtual void Call(const Arbitrary& msg, Arbitrary& response) = 0;
 
     virtual std::string GetName() const = 0;
 
@@ -58,7 +58,7 @@ public:
 template<class T> class RpcMethod : public CallbackMethod
 {
 public:
-    typedef int (T::*Method)(const Arbitrary& msg,Arbitrary& response);
+    typedef void (T::*Method)(const Arbitrary& msg,Arbitrary& response);
 
     RpcMethod(T& obj, Method method, const std::string& name,const Arbitrary description = Arbitrary::null)
 		:m_obj(&obj),
@@ -68,8 +68,8 @@ public:
     {
     }
 
-    virtual int Call(const Arbitrary& msg, Arbitrary& response){
-		return (m_obj->*m_method)(msg, response);
+    virtual void Call(const Arbitrary& msg, Arbitrary& response){
+		(m_obj->*m_method)(msg, response);
     }
 
     virtual std::string GetName() const{
@@ -92,67 +92,6 @@ private:
     Arbitrary m_description;
 };
 
-// -------------------------------------------------
-// class Request
-// -------------------------------------------------
-class Request: public ZQ::common::SharedObject
-{
-public:
-	typedef ZQ::common::Pointer<Request> Ptr;
-public:
-	Request(Arbitrary id,Arbitrary methodname,int argc=0, Arbitrary argv=Arbitrary::null,...);
-	Request();
-	~Request();
-
-	void append(Arbitrary id,Arbitrary methodname,int argc=0, Arbitrary argv=Arbitrary::null,...);
-	std::string toRaw();
-
-private:
-	Json::FastWriter	m_writer;
-	Arbitrary			m_request;
-};
-
-
-// -------------------------------------------------
-// class PassiveReq
-// -------------------------------------------------
-class PassiveReq: public ZQ::common::SharedObject
-{
-public:
-	typedef ZQ::common::Pointer<PassiveReq> Ptr;
-public:
-	PassiveReq(Arbitrary req);
-	~PassiveReq();
-
-	Arbitrary id();
-	Arbitrary method();
-	Arbitrary param();
-
-private:
-	Arbitrary			m_request;
-};
-
-// -------------------------------------------------
-// class Respon
-// -------------------------------------------------
-class Respon: public ZQ::common::SharedObject
-{
-public:
-	typedef ZQ::common::Pointer<Respon> Ptr;
-	Respon();
-	~Respon();
-
-	void setResult(Arbitrary id,Arbitrary result);
-	void setError(Arbitrary id,Arbitrary code,Arbitrary desc);
-	std::string toRaw();
-	Arbitrary getvalue();
-private:
-	Json::FastWriter	m_writer;
-	Arbitrary			m_Result;
-	Arbitrary			m_Error;
-};
-
-
 // ---------------------------------------------------
 // class Handler
 // ---------------------------------------------------
@@ -167,6 +106,7 @@ public:
 		INVALID_PARAMS = -32602, /**< Invalid method parameters. */
 		INTERNAL_ERROR = -32603 /**< Internal JSON-RPC error. */
 	};
+	typedef void (*RpcCB)(const Arbitrary& param);
 	static const char* errDesc(ErrorCode code)
 	{
 		switch(code)
@@ -185,18 +125,19 @@ public:
 
 	void AddMethod(CallbackMethod* method);
 
+	void Addcb(std::string seqId,RpcCB cb);
+
 	void DeleteMethod(const std::string& name);
 
-	bool Process(const std::string& msg, Arbitrary& response);
+	void Process(const std::string& msg, Arbitrary& response);
 
-	bool Process(const char* msg, Arbitrary& response);
+	void Process(const char* msg, Arbitrary& response);
 
-	int SystemDescribe(const Arbitrary& msg, Arbitrary& response);
+	void SystemDescribe(const Arbitrary& msg, Arbitrary& response);
 
 	std::string GetString(Arbitrary value);
 
 private:
-
 	Handler(const Handler& obj);
 	Handler& operator=(const Handler& obj);
 
@@ -208,9 +149,13 @@ private:
 
 	CallbackMethod* Lookup(const std::string& name) const;
 
+	RpcCB find(const std::string& seqId) const;
+
 	bool Check(const Arbitrary& root, Arbitrary& error);
 
-	bool Process(const Arbitrary& root, Arbitrary& response);
+	void Process(const Arbitrary& root, Arbitrary& response);
+
+	std::map<std::string,RpcCB> m_seqIds;
 };
 
 }}
