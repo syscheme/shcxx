@@ -15,7 +15,8 @@ void PipeConnection::OnRead(ssize_t nread, const char *buf)
 		onError(nread,desc.c_str());
 		return;
 	}
-	decode(nread,buf);
+
+	processMessage(nread,buf)
 }
 
 int PipeConnection::send(std::string buf,ZQ::eloop::Handle* send_handle)
@@ -30,14 +31,14 @@ void PipeConnection::encode(const std::string& src,std::string& dest)
 	unsigned long len = src.length();
     char strLen[32];
 
-    /* format of a netstring is [len]:[string], */
+    // format of a netstring is [len]:[string]
     sprintf(strLen, "%lu:", len);
     dest.append(strLen);
     dest.append(src);
     dest.append(",");
 }
 
-void PipeConnection::decode(ssize_t nread, const char *buf)
+void PipeConnection::processMessage(ssize_t nread, const char *buf)
 {
 	_buf.append(buf,nread);
 	size_t len = 0;
@@ -49,39 +50,40 @@ void PipeConnection::decode(ssize_t nread, const char *buf)
 		index = _buf.find_first_of(":");
 		if(index == std::string::npos)
 		{
-			onError(lipcParseError,"parse error");
+			onError(lipcParseError, "parse error");
 			return;
 		}
-  
+
 		const char* data = _buf.data();
 		len = 0;
 		for(i = 0 ; i < index ; i++)
 		{
 			if(isdigit(data[i]))
 			{
-			len = len * 10 + (data[i] - (char)0x30);
+				len = len * 10 + (data[i] - (char)0x30);
 			}
 			else
 			{
-			  onError(lipcParseError,"parse error");
-			  return;
-			//parse error
+				onError(lipcParseError,"parse error");
+				return;
+				//parse error
 			}
 		}
+
 		if(len < _buf.size()-index-2)
 		{
 			temp = _buf.substr(index+1,len);
 			_buf = _buf.substr(index+len+2);
-			OnRequest(temp);
+			OnMessage(temp);
 		}
 		else if(len = _buf.size()-index-2)
 		{
 			temp = _buf.substr(index+1,len);
-			OnRequest(temp);
+			OnMessage(temp);
 			_buf.clear();
 		}
-		else
-			break;
+
+		break;
 	}
 }
 // -----------------------------

@@ -39,7 +39,7 @@ public:
 	virtual void OnRead(ssize_t nread, const char *buf);
 	virtual void onError( int error,const char* errorDescription ){	fprintf(stderr, "errCode=%d errDesc:%s\n",error,errorDescription);}
 	
-	virtual void OnRequest(std::string& req){printf("OnRequest,len = %d,buf = %s\n",req.size(),req.c_str());}
+	virtual void OnMessage(std::string& req) { printf("OnRequest,len = %d,buf = %s\n",req.size(),req.c_str()); }
 	virtual int send(std::string buf,ZQ::eloop::Handle* send_handle=NULL);
 	
 	void encode(const std::string& src,std::string& dest);
@@ -69,7 +69,7 @@ private:
 // class PipePassiveConn
 // -----------------------------
 class TransferFdService;
-class PipePassiveConn:public PipeConnection
+class PipePassiveConn : public PipeConnection
 {
 public:
 	PipePassiveConn(TransferFdService& service);
@@ -90,10 +90,11 @@ private:
 // -----------------------------
 // class TransferFdService
 // -----------------------------
-class TransferFdService:public ZQ::eloop::Pipe
+class TransferFdService : public ZQ::eloop::Pipe
 {
 public:
-	typedef std::list<PipePassiveConn*> PipeClientList;
+	typedef std::list< PipePassiveConn* > PipeClientList;
+
 public:
 	TransferFdService();
 	~TransferFdService();

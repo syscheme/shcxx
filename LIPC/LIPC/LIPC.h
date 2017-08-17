@@ -75,15 +75,37 @@ private:
 };
 
 // ------------------------------------------------
-// class JsonRpcService
+// class Service
 // ------------------------------------------------
-class Service:public TransferFdService,public Handler
+// template<PipePassiveConn>
+class Service : public Handler // public TransferFdService
 {
 public:
 	Service();
 	~Service();
-	
-	virtual void onRequest(std::string& req,PipePassiveConn* conn);	
+
+//public:
+//	typedef std::list< PipePassiveConn* > PipeClientList;
+
+//public:
+//	TransferFdService();
+//	~TransferFdService();
+//	int init(ZQ::eloop::Loop &loop, int ipc=1);
+//	void addConn(PipePassiveConn* conn);
+//	void delConn(PipePassiveConn* conn);
+//	PipeClientList& getPipeClientList(){return _ClientList;}
+//	
+//	virtual void doAccept(ZQ::eloop::Handle::ElpeError status);
+//	virtual void onRequest(std::string& req,PipePassiveConn* conn){}
+//
+//private:
+//	PipeClientList _ClientList;
+//	int				_ipc;
+//
+
+	// supposed to receive a new in-comming request from client
+	virtual void OnMessage(std::string& req, PipePassiveConn* conn);	
+
 	PipePassiveConn* getConn(){return _conn;}
 	int acceptPendingHandle(ZQ::eloop::Handle* h);
 	ZQ::eloop::Handle::eloop_handle_type getPendingHandleType();
@@ -94,13 +116,15 @@ private:
 
 
 // ------------------------------------------------
-// class JsonRpcClient
+// class Client
 // ------------------------------------------------
-class Client:public PipeConnection,public ZQ::LIPC::Handler
+class Client : public PipeConnection, public ZQ::LIPC::Handler
 {
 public:
-	int sendRequest(ZQ::LIPC::Arbitrary& value,ZQ::eloop::Handle* send_Handler = NULL);
-	virtual void OnRequest(std::string& req);
+	virtual int sendRequest(ZQ::LIPC::Arbitrary& value, int fd); // ZQ::eloop::Handle* send_Handler = NULL);
+
+	// supposed to receive a response of request just sent
+	virtual void OnMessage(std::string& req);
 };
 
 }}//ZQ::LIPC

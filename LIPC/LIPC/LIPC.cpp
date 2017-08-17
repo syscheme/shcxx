@@ -110,15 +110,15 @@ Service::~Service()
 {
 }
 
-void Service::onRequest(std::string& req,PipePassiveConn* conn)
+void Service::OnMessage(std::string& req, PipePassiveConn* conn)
 {
 	_conn = conn;
 	Arbitrary respon = Arbitrary::null;
-	Process(req,respon);
+	Process(req, respon);
 	if(respon != Arbitrary::null)
 	{
 		std::string resp = GetString(respon).c_str();
-		conn->send(resp.c_str(),resp.size());		
+		conn->send(resp.c_str(), resp.size());		
 	}
 }
 
@@ -145,17 +145,24 @@ int Service::getPendingCount()
 
 
 // ------------------------------------------------
-// class JsonRpcClient
+// class Client
 // ------------------------------------------------
-int Client::sendRequest(ZQ::LIPC::Arbitrary& value,ZQ::eloop::Handle* send_Handler)
+int Client::sendRequest(ZQ::LIPC::Arbitrary& value, ZQ::eloop::Handle* send_Handler)
 {
 	std::string src = GetString(value);
-	return send(src,send_Handler);
+	int cseq = nextCseq();
+	value.addcseq;
+
+	if (send(src, send_Handler) succ)
+		return cseq;
+	
+	return -1;
 }
-void Client::OnRequest(std::string& req)
+
+void Client::OnMessage(std::string& req)
 {
 	Arbitrary respon = Arbitrary::null;
-	Process(req,respon);
+	Process(req, respon);
 	if(respon != Arbitrary::null)
 	{
 		std::string resp = GetString(respon);
