@@ -101,16 +101,16 @@ void Dispatcher::doAccept(ZQ::eloop::Handle::ElpeError status)
 
 
 // -------------------------------------------------
-// class JsonRpcService
+// class Service
 // -------------------------------------------------
-JsonRpcService::JsonRpcService()
+Service::Service()
 {
 }
-JsonRpcService::~JsonRpcService()
+Service::~Service()
 {
 }
 
-void JsonRpcService::onRequest(std::string& req,PipePassiveConn* conn)
+void Service::onRequest(std::string& req,PipePassiveConn* conn)
 {
 	_conn = conn;
 	Arbitrary respon = Arbitrary::null;
@@ -122,21 +122,21 @@ void JsonRpcService::onRequest(std::string& req,PipePassiveConn* conn)
 	}
 }
 
-int JsonRpcService::acceptPendingHandle(ZQ::eloop::Handle* h)
+int Service::acceptPendingHandle(ZQ::eloop::Handle* h)
 {
 	if(_conn == NULL)
 		return -1;
 	return _conn->accept(h);
 }
 
-ZQ::eloop::Handle::eloop_handle_type JsonRpcService::getPendingHandleType()
+ZQ::eloop::Handle::eloop_handle_type Service::getPendingHandleType()
 {
 	if(_conn == NULL)
 		return ZQ::eloop::Handle::ELOOP_UNKNOWN_HANDLE;
 	return _conn->pending_type();
 }
 
-int JsonRpcService::getPendingCount()
+int Service::getPendingCount()
 {
 	if(_conn == NULL)
 		return -1;
@@ -147,12 +147,12 @@ int JsonRpcService::getPendingCount()
 // ------------------------------------------------
 // class JsonRpcClient
 // ------------------------------------------------
-int JsonRpcClient::sendRequest(ZQ::LIPC::Arbitrary& value,ZQ::eloop::Handle* send_Handler)
+int Client::sendRequest(ZQ::LIPC::Arbitrary& value,ZQ::eloop::Handle* send_Handler)
 {
 	std::string src = GetString(value);
 	return send(src,send_Handler);
 }
-void JsonRpcClient::OnRequest(std::string& req)
+void Client::OnRequest(std::string& req)
 {
 	Arbitrary respon = Arbitrary::null;
 	Process(req,respon);

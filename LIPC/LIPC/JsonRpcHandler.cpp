@@ -161,7 +161,7 @@ void Handler::Process(const Arbitrary& root, Arbitrary& response)
 				m_seqIds.erase(it);
 				if (rpc)
 				{
-					(*rpc)(root);
+					(*rpc)(root,this);
 				}
 			}
 			return;

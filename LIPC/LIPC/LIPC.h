@@ -53,8 +53,8 @@ namespace ZQ {
 	namespace LIPC {
 
 class ZQ_LIPC_API Dispatcher;
-class ZQ_LIPC_API JsonRpcService;
-class ZQ_LIPC_API JsonRpcClient;
+class ZQ_LIPC_API Service;
+class ZQ_LIPC_API Client;
 
 // ------------------------------------------------
 // class Dispatcher
@@ -77,11 +77,11 @@ private:
 // ------------------------------------------------
 // class JsonRpcService
 // ------------------------------------------------
-class JsonRpcService:public TransferFdService,public Handler
+class Service:public TransferFdService,public Handler
 {
 public:
-	JsonRpcService();
-	~JsonRpcService();
+	Service();
+	~Service();
 	
 	virtual void onRequest(std::string& req,PipePassiveConn* conn);	
 	PipePassiveConn* getConn(){return _conn;}
@@ -96,7 +96,7 @@ private:
 // ------------------------------------------------
 // class JsonRpcClient
 // ------------------------------------------------
-class JsonRpcClient:public PipeConnection,public ZQ::LIPC::Handler
+class Client:public PipeConnection,public ZQ::LIPC::Handler
 {
 public:
 	int sendRequest(ZQ::LIPC::Arbitrary& value,ZQ::eloop::Handle* send_Handler = NULL);

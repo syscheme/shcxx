@@ -106,7 +106,7 @@ public:
 		INVALID_PARAMS = -32602, /**< Invalid method parameters. */
 		INTERNAL_ERROR = -32603 /**< Internal JSON-RPC error. */
 	};
-	typedef void (*RpcCB)(const Arbitrary& param);
+	typedef void (*RpcCB)(const Arbitrary& param,void* data);
 	static const char* errDesc(ErrorCode code)
 	{
 		switch(code)
