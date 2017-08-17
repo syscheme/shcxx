@@ -15,7 +15,7 @@
 #endif // OS
 
 
-#include "eloop_file.h"
+#include "eloop/eloop_file.h"
 #include <list>
 namespace ZQ {
 	namespace LIPC {

@@ -43,7 +43,7 @@
 #  define ZQ_LIPC_API
 #endif // OS
 
-#include "eloop_net.h"
+#include "eloop/eloop_net.h"
 #include "TransferFd.h"
 #include "JsonRpcHandler.h"
 #include <vector>
