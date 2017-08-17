@@ -15,8 +15,7 @@ void PipeConnection::OnRead(ssize_t nread, const char *buf)
 		onError(nread,desc.c_str());
 		return;
 	}
-
-	processMessage(nread,buf)
+	processMessage(nread,buf);
 }
 
 int PipeConnection::send(std::string buf,ZQ::eloop::Handle* send_handle)
@@ -82,38 +81,14 @@ void PipeConnection::processMessage(ssize_t nread, const char *buf)
 			OnMessage(temp);
 			_buf.clear();
 		}
-
 		break;
 	}
 }
-// -----------------------------
-// class TransferFdClient
-// -----------------------------
-TransferFdClient::TransferFdClient(Dispatcher& disp)
-:_disp(disp)
-{
-}
-	
-TransferFdClient::~TransferFdClient()
-{
-}
-	 
-void TransferFdClient::OnConnected(ZQ::eloop::Handle::ElpeError status)
-{
-	if (status != Handle::elpeSuccess) {
-			fprintf(stderr, "on_connect error %s\n", Handle::errDesc(status));
-			return;
-		}
-//	read_start();
-	printf("connect suc!");
-	_disp.addServant(this);
-}
-
 
 // -----------------------------
 // class PipePassiveConn
 // -----------------------------
-PipePassiveConn::PipePassiveConn(TransferFdService& service)
+PipePassiveConn::PipePassiveConn(Service& service)
 :_service(service),_sendAck(true)
 {
 
@@ -153,62 +128,6 @@ void PipePassiveConn::OnClose()
 {
 	_service.delConn(this);
 	delete this;
-}
-
-// -----------------------------
-// class TransferFdService
-// -----------------------------
-TransferFdService::TransferFdService()
-{
-
-}
-
-TransferFdService::~TransferFdService()
-{
-
-}
-
-int TransferFdService::init(ZQ::eloop::Loop &loop, int ipc)
-{
-	_ipc = ipc;
-	return ZQ::eloop::Pipe::init(loop,ipc);
-}
-
-void TransferFdService::addConn(PipePassiveConn* conn)
-{
-	_ClientList.push_back(conn);
-}
-
-void TransferFdService::delConn(PipePassiveConn* conn)
-{
-	PipeClientList::iterator iter = _ClientList.begin();
-	while(iter != _ClientList.end())
-	{
-		if (*iter == conn)
-			iter = _ClientList.erase(iter);		//_PipeConn.erase(iter++);
-		else
-			iter++;
-	}
-}
-
-void TransferFdService::doAccept(ZQ::eloop::Handle::ElpeError status)
-{
-	if (status != Handle::elpeSuccess) {
-		fprintf(stderr, "New connection error %s\n",Handle::errDesc(status));
-		return;
-	}
-
-	PipePassiveConn *client = new PipePassiveConn(*this);
-	client->init(get_loop(),_ipc);
-
-	int ret = accept(client);
-	if (ret == 0) {
-		client->start();
-	}
-	else {
-		client->close();
-		printf("accept error,code = %d,desc:%s\n",ret,ZQ::eloop::Handle::errDesc(ret));
-	}
 }
 
 }}

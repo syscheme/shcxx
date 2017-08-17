@@ -1,5 +1,5 @@
 #include "JsonRpcHandler.h"
-
+#include "Locks.h"
 namespace ZQ{
 	namespace LIPC{
 
@@ -11,6 +11,7 @@ Handler::Handler()
   /* add a RPC method that list the actual RPC methods contained in 
    * the Handler 
    */
+	_lastCSeq.set(1);
 	 Arbitrary root;
 
 	 root["description"] = "List the RPC methods available";
@@ -28,6 +29,34 @@ Handler::~Handler()
 		delete (*it);
 	}
 	m_methods.clear();
+}
+
+uint Handler::lastCSeq()
+{
+	int v = _lastCSeq.add(1);
+	if (v>0 && v < MAX_CSEQ)
+		return (uint) v;
+
+	static ZQ::common::Mutex lock;
+	ZQ::common::MutexGuard g(lock);
+	v = _lastCSeq.add(1);
+	if (v >0 && v < MAX_CSEQ)
+		return (uint) v;
+
+	_lastCSeq.set(1);
+	v = _lastCSeq.add(1);
+
+	return (uint) v;
+}
+
+std::string Handler::generateId()
+{
+	std::string id;
+	id.append(_SeqHead);
+	char SegId[32];
+	sprintf(SegId, "%d", lastCSeq());
+	id.append(SegId);
+	return id;
 }
 
 void Handler::AddMethod(CallbackMethod* method)

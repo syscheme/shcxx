@@ -43,36 +43,21 @@ public:
 	virtual int send(std::string buf,ZQ::eloop::Handle* send_handle=NULL);
 	
 	void encode(const std::string& src,std::string& dest);
-	void decode(ssize_t nread, const char *buf);
+	void processMessage(ssize_t nread, const char *buf);
 	 
 private:
 	std::string		_buf;
-};
-
-class Dispatcher;
-// -----------------------------
-// class TransferFdClient
-// -----------------------------
-class TransferFdClient:public PipeConnection
-{
-public:
-	TransferFdClient(Dispatcher& disp);
-	~TransferFdClient();
-	virtual void OnConnected(ZQ::eloop::Handle::ElpeError status);
-//	virtual void OnWrote(ZQ::eloop::Handle::ElpeError status);
-private:
-	Dispatcher& _disp;
 };
 
 
 // -----------------------------
 // class PipePassiveConn
 // -----------------------------
-class TransferFdService;
+class Service;
 class PipePassiveConn : public PipeConnection
 {
 public:
-	PipePassiveConn(TransferFdService& service);
+	PipePassiveConn(Service& service);
 	~PipePassiveConn();
 	void start();
 	virtual void OnRequest(std::string& req);
@@ -82,33 +67,8 @@ public:
 	bool	isAck(){return _sendAck;}
 
 private:
-	TransferFdService&	_service;
+	Service&	_service;
 	bool				_sendAck;
-};
-
-
-// -----------------------------
-// class TransferFdService
-// -----------------------------
-class TransferFdService : public ZQ::eloop::Pipe
-{
-public:
-	typedef std::list< PipePassiveConn* > PipeClientList;
-
-public:
-	TransferFdService();
-	~TransferFdService();
-	int init(ZQ::eloop::Loop &loop, int ipc=1);
-	void addConn(PipePassiveConn* conn);
-	void delConn(PipePassiveConn* conn);
-	PipeClientList& getPipeClientList(){return _ClientList;}
-	
-	virtual void doAccept(ZQ::eloop::Handle::ElpeError status);
-	virtual void onRequest(std::string& req,PipePassiveConn* conn){}
-
-private:
-	PipeClientList _ClientList;
-	int				_ipc;
 };
 
 }}

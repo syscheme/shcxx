@@ -52,66 +52,47 @@
 namespace ZQ {
 	namespace LIPC {
 
-class ZQ_LIPC_API Dispatcher;
 class ZQ_LIPC_API Service;
 class ZQ_LIPC_API Client;
-
-// ------------------------------------------------
-// class Dispatcher
-// ------------------------------------------------
-class Dispatcher:public ZQ::eloop::TCP
-{
-public:
-	Dispatcher();
-	~Dispatcher();
-	
-	void scan(const char* pathname);
-	void addServant(TransferFdClient* client);
-
-	virtual void doAccept(ZQ::eloop::Handle::ElpeError status);
-
-private:
-	std::vector<TransferFdClient*> _servantVec;
-};
-
 // ------------------------------------------------
 // class Service
 // ------------------------------------------------
 // template<PipePassiveConn>
-class Service : public Handler // public TransferFdService
+class Service : public Handler,public ZQ::eloop::Pipe
 {
+public:
+	friend PipePassiveConn;
+public:
+	typedef std::list< PipePassiveConn* > PipeClientList;
+
 public:
 	Service();
 	~Service();
 
-//public:
-//	typedef std::list< PipePassiveConn* > PipeClientList;
+	int init(ZQ::eloop::Loop &loop, int ipc=1);
+	PipeClientList& getPipeClientList(){return _ClientList;}
+	int getPendingCount();
 
-//public:
-//	TransferFdService();
-//	~TransferFdService();
-//	int init(ZQ::eloop::Loop &loop, int ipc=1);
-//	void addConn(PipePassiveConn* conn);
-//	void delConn(PipePassiveConn* conn);
-//	PipeClientList& getPipeClientList(){return _ClientList;}
-//	
-//	virtual void doAccept(ZQ::eloop::Handle::ElpeError status);
-//	virtual void onRequest(std::string& req,PipePassiveConn* conn){}
-//
-//private:
-//	PipeClientList _ClientList;
-//	int				_ipc;
-//
+	int acceptPendingHandle(ZQ::eloop::Handle* h);
+	ZQ::eloop::Handle::eloop_handle_type getPendingHandleType();
+
+protected:
+	void addConn(PipePassiveConn* conn);
+	void delConn(PipePassiveConn* conn);
+	
+	virtual void doAccept(ZQ::eloop::Handle::ElpeError status);
+	virtual void onRequest(std::string& req,PipePassiveConn* conn){}
 
 	// supposed to receive a new in-comming request from client
 	virtual void OnMessage(std::string& req, PipePassiveConn* conn);	
 
 	PipePassiveConn* getConn(){return _conn;}
-	int acceptPendingHandle(ZQ::eloop::Handle* h);
-	ZQ::eloop::Handle::eloop_handle_type getPendingHandleType();
-	int getPendingCount();
+
 private:
 	PipePassiveConn* _conn;
+	PipeClientList _ClientList;
+	int				_ipc;
+
 };
 
 
@@ -121,13 +102,13 @@ private:
 class Client : public PipeConnection, public ZQ::LIPC::Handler
 {
 public:
-	virtual int sendRequest(ZQ::LIPC::Arbitrary& value, int fd); // ZQ::eloop::Handle* send_Handler = NULL);
+	virtual int sendRequest(ZQ::LIPC::Arbitrary& value,ZQ::eloop::Handle* send_Handler = NULL);
 
 	// supposed to receive a response of request just sent
 	virtual void OnMessage(std::string& req);
 };
 
+
+
 }}//ZQ::LIPC
-
-
 #endif

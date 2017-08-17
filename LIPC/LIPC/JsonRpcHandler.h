@@ -19,6 +19,8 @@
 #include "Pointer.h"
 #include <list>
 
+#define MAX_CSEQ    0x0fffffff
+
 #define JSON_RPC_PROTO "jsonrpc"
 #define JSON_RPC_PROTO_VERSION "2.0"
 #define JSON_RPC_ID "id"
@@ -137,9 +139,15 @@ public:
 
 	std::string GetString(Arbitrary value);
 
+	std::string generateId();
+	uint lastCSeq();
+
 private:
 	Handler(const Handler& obj);
 	Handler& operator=(const Handler& obj);
+
+	ZQ::common::AtomicInt _lastCSeq;
+	std::string _SeqHead;
 
 	Json::Reader m_reader;
 
