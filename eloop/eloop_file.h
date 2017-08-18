@@ -181,6 +181,8 @@ public:
 	void pending_instances(int count);
 	int  pending_count();
 	eloop_handle_type pending_type();
+	int sendfd(const eloop_buf_t bufs[],unsigned int nbufs,int fd);
+	int acceptfd();
 
 protected:
 	//TODO: why wiped uv_connect_t here??
@@ -188,6 +190,7 @@ protected:
 
 private:
 	static void _cbConnected(uv_connect_t *req, int status);
+	uv_tcp_t*	_fdContainer;
 	
 };
 

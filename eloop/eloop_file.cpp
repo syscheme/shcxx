@@ -247,6 +247,18 @@ Pipe::eloop_handle_type Pipe::pending_type()
 	return (eloop_handle_type)uv_pipe_pending_type(pipe);
 }
 
+int Pipe::sendfd(const eloop_buf_t bufs[],unsigned int nbufs,int fd)
+{
+
+	return 0;
+}
+
+int Pipe::acceptfd()
+{
+	int fd = -1;
+	return fd;
+}
+
 void Pipe::_cbConnected(uv_connect_t *req, int status) {
 	uv_stream_t* stream = req->handle;
 

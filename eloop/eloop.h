@@ -37,7 +37,6 @@
 #include "Locks.h"
 #include "NativeThread.h"*/
 #include "libuv_1.9.1/include/uv.h"
-
 #include <string>
 #include <vector>
 //#include <map>
