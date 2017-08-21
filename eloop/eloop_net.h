@@ -96,6 +96,8 @@ protected:
 		} 
 	}
 
+	int write(const eloop_buf_t bufs[],unsigned int nbufs,uv_stream_t *send_handle);
+
 private:
 	static void _cbShutdown(uv_shutdown_t *req, int status);
 	static void _cbConnection(uv_stream_t *stream, int status);

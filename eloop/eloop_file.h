@@ -190,7 +190,7 @@ protected:
 
 private:
 	static void _cbConnected(uv_connect_t *req, int status);
-	uv_tcp_t*	_fdContainer;
+	uv_pipe_t	_fdContainer;
 	
 };
 

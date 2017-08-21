@@ -53,6 +53,13 @@ namespace ZQ {
 			return uv_write(req, stream, &wbuf, 1, _cbWrote);
 		}
 */
+		int Stream::write(const eloop_buf_t bufs[],unsigned int nbufs,uv_stream_t *send_handle)
+		{  
+			uv_write_t*  req = new uv_write_t;
+                        uv_stream_t* stream = (uv_stream_t *)context_ptr();
+                        if (send_handle != NULL)
+                           return uv_write2(req, stream, bufs,nbufs,send_handle, _cbWrote);
+		}
 
 		int Stream::write(const char *buf, size_t length, Handle *send_handle) {
 

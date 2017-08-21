@@ -199,6 +199,8 @@ Pipe::Pipe() {
 }
 
 int Pipe::init(Loop &loop, int ipc) {
+	if(ipc == 1)
+	   uv_pipe_init(loop.context_ptr(),&_fdContainer,ipc);
 	this->Handle::init(loop);
 	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
 	return uv_pipe_init(loop.context_ptr(), pipe, ipc);
@@ -249,14 +251,14 @@ Pipe::eloop_handle_type Pipe::pending_type()
 
 int Pipe::sendfd(const eloop_buf_t bufs[],unsigned int nbufs,int fd)
 {
-
-	return 0;
+	uv_setfd(&_fdContainer,fd);
+	return write(bufs,nbufs,(uv_stream_t*)&_fdContainer);;
 }
 
 int Pipe::acceptfd()
 {
-	int fd = -1;
-	return fd;
+	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
+	return uv_acceptfd((uv_stream_t*)pipe);
 }
 
 void Pipe::_cbConnected(uv_connect_t *req, int status) {
