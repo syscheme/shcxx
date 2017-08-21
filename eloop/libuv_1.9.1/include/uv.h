@@ -689,7 +689,8 @@ struct uv_pipe_s {
   int ipc; /* non-zero if this pipe is used for passing handles */
   UV_PIPE_PRIVATE_FIELDS
 };
-
+UV_EXTERN void uv_setfd(uv_pipe_t* handle, int fd);
+UV_EXTERN int uv_acceptfd(uv_stream_t* server);
 UV_EXTERN int uv_pipe_init(uv_loop_t*, uv_pipe_t* handle, int ipc);
 UV_EXTERN int uv_pipe_open(uv_pipe_t*, uv_file file);
 UV_EXTERN int uv_pipe_bind(uv_pipe_t* handle, const char* name);

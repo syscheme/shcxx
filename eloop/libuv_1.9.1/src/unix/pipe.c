@@ -29,7 +29,42 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+void uv_setfd(uv_pipe_t* handle, int fd)
+{
+	handle->io_watcher.fd = fd;
+}
+int uv_acceptfd(uv_stream_t* server)
+{
+  if (server->accepted_fd == -1)
+    return -EAGAIN;
+  int fd = server->accepted_fd;
+ /* Process queued fds */
+  if (server->queued_fds != NULL) {
+    uv__stream_queued_fds_t* queued_fds;
 
+    queued_fds = server->queued_fds;
+
+    /* Read first */
+    server->accepted_fd = queued_fds->fds[0];
+
+    /* All read, free */
+    assert(queued_fds->offset > 0);
+    if (--queued_fds->offset == 0) {
+      uv__free(queued_fds);
+      server->queued_fds = NULL;
+    } else {
+      /* Shift rest */
+      memmove(queued_fds->fds,
+              queued_fds->fds + 1,
+              queued_fds->offset * sizeof(*queued_fds->fds));
+    }
+  } else {
+    server->accepted_fd = -1;
+    uv__io_start(server->loop, &server->io_watcher, POLLIN);
+  }
+  return fd;
+}
+	
 int uv_pipe_init(uv_loop_t* loop, uv_pipe_t* handle, int ipc) {
   uv__stream_init(loop, (uv_stream_t*)handle, UV_NAMED_PIPE);
   handle->shutdown_req = NULL;
