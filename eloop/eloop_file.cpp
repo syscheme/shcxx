@@ -248,7 +248,7 @@ Pipe::eloop_handle_type Pipe::pending_type()
 	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
 	return (eloop_handle_type)uv_pipe_pending_type(pipe);
 }
-
+#ifdef ZQ_OS_LINUX
 int Pipe::sendfd(const eloop_buf_t bufs[],unsigned int nbufs,int fd)
 {
 	uv_setfd(&_fdContainer,fd);
@@ -260,6 +260,7 @@ int Pipe::acceptfd()
 	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
 	return uv_acceptfd((uv_stream_t*)pipe);
 }
+#endif
 
 void Pipe::_cbConnected(uv_connect_t *req, int status) {
 	uv_stream_t* stream = req->handle;

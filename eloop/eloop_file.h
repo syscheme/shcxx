@@ -181,8 +181,10 @@ public:
 	void pending_instances(int count);
 	int  pending_count();
 	eloop_handle_type pending_type();
-	int sendfd(const eloop_buf_t bufs[],unsigned int nbufs,int fd);
-	int acceptfd();
+	#ifdef ZQ_OS_LINUX
+		int sendfd(const eloop_buf_t bufs[],unsigned int nbufs,int fd);
+		int acceptfd();
+	#endif
 
 protected:
 	//TODO: why wiped uv_connect_t here??
