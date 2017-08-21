@@ -61,7 +61,7 @@ class ZQ_LIPC_API Client;
 class Service : public Handler,public ZQ::eloop::Pipe
 {
 public:
-	friend PipePassiveConn;
+	friend class PipePassiveConn;
 public:
 	typedef std::list< PipePassiveConn* > PipeClientList;
 
@@ -81,7 +81,6 @@ protected:
 	void delConn(PipePassiveConn* conn);
 	
 	virtual void doAccept(ZQ::eloop::Handle::ElpeError status);
-	virtual void onRequest(std::string& req,PipePassiveConn* conn){}
 
 	// supposed to receive a new in-comming request from client
 	virtual void OnMessage(std::string& req, PipePassiveConn* conn);	
@@ -103,6 +102,7 @@ class Client : public PipeConnection, public ZQ::LIPC::Handler
 {
 public:
 	virtual int sendRequest(ZQ::LIPC::Arbitrary& value,ZQ::eloop::Handle* send_Handler = NULL);
+	virtual int sendRequest(ZQ::LIPC::Arbitrary& value,int fd = -1);
 
 	// supposed to receive a response of request just sent
 	virtual void OnMessage(std::string& req);

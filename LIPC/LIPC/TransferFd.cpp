@@ -15,6 +15,7 @@ void PipeConnection::OnRead(ssize_t nread, const char *buf)
 		onError(nread,desc.c_str());
 		return;
 	}
+//	printf("read buf :%s\n",buf);
 	processMessage(nread,buf);
 }
 
@@ -23,6 +24,20 @@ int PipeConnection::send(std::string buf,ZQ::eloop::Handle* send_handle)
 	std::string dest;
 	encode(buf,dest);
 	return write(dest.c_str(),dest.size(),send_handle);
+}
+
+int PipeConnection::sendfd(std::string buf,int fd)
+{
+	std::string dest;
+	encode(buf,dest);
+	if (fd > 0)
+	{
+		eloop_buf_t temp;
+		temp.base = const_cast<char*>(dest.c_str());
+		temp.len = dest.size();
+//		return sendfd(&temp,1,fd);
+	}
+	return write(dest.c_str(),dest.size());
 }
 
 void PipeConnection::encode(const std::string& src,std::string& dest)
@@ -99,24 +114,16 @@ PipePassiveConn::~PipePassiveConn()
 
 }
 
+void PipePassiveConn::OnMessage(std::string& req)
+{
+	_service.OnMessage(req,this);
+}
+
 void PipePassiveConn::start()
 {
 	read_start();
 	_service.addConn(this);
 	printf("new pipe Passive Conn\n");
-}
-
-void PipePassiveConn::OnRequest(std::string& req)
-{
-	_service.onRequest(req,this);
-}
-
-int PipePassiveConn::send(const char* buf,size_t len)
-{
-	_sendAck = false;
-	std::string str;
-	str.append(buf,len);
-	return PipeConnection::send(str);
 }
 
 void PipePassiveConn::OnWrote(int status)

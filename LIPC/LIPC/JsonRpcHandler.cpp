@@ -11,9 +11,7 @@ Handler::Handler()
   /* add a RPC method that list the actual RPC methods contained in 
    * the Handler 
    */
-	_lastCSeq.set(1);
 	 Arbitrary root;
-
 	 root["description"] = "List the RPC methods available";
 	 root["parameters"] = Arbitrary::null;
 	 root["returns"] = "Object that contains description of all methods registered";
@@ -23,7 +21,7 @@ Handler::Handler()
 
 Handler::~Handler()
 {
-	/* delete all objects from the list */
+	// delete all objects from the list 
 	for(std::list<CallbackMethod*>::const_iterator it = m_methods.begin() ; it != m_methods.end() ; it++)
 	{
 		delete (*it);
@@ -31,42 +29,17 @@ Handler::~Handler()
 	m_methods.clear();
 }
 
-uint Handler::lastCSeq()
-{
-	int v = _lastCSeq.add(1);
-	if (v>0 && v < MAX_CSEQ)
-		return (uint) v;
-
-	static ZQ::common::Mutex lock;
-	ZQ::common::MutexGuard g(lock);
-	v = _lastCSeq.add(1);
-	if (v >0 && v < MAX_CSEQ)
-		return (uint) v;
-
-	_lastCSeq.set(1);
-	v = _lastCSeq.add(1);
-
-	return (uint) v;
-}
-
-std::string Handler::generateId()
-{
-	std::string id;
-	id.append(_SeqHead);
-	char SegId[32];
-	sprintf(SegId, "%d", lastCSeq());
-	id.append(SegId);
-	return id;
-}
-
 void Handler::AddMethod(CallbackMethod* method)
 {
 	m_methods.push_back(method);
 }
 
-void Handler::Addcb(std::string seqId,RpcCB cb)
+void Handler::Addcb(std::string seqId,RpcCB cb,void* data)
 {
-	m_seqIds[seqId] = cb;
+	RpcCBInfo info;
+	info.cb = cb;
+	info.data = data;
+	m_seqIds[seqId] = info;
 }
 
 void Handler::DeleteMethod(const std::string& name)
@@ -183,15 +156,15 @@ void Handler::Process(const Arbitrary& root, Arbitrary& response)
 		{
 			RpcCB rpc = NULL;
 
-			std::map<std::string,RpcCB>::iterator it = m_seqIds.find(seqId);
+			seqToCBInfoMap::iterator it = m_seqIds.find(seqId);
 			if (it != m_seqIds.end())
 			{
-				rpc = it->second;
-				m_seqIds.erase(it);
+				rpc = it->second.cb;
 				if (rpc)
 				{
-					(*rpc)(root,this);
+					(*rpc)(root,it->second.data);
 				}
+				m_seqIds.erase(it);
 			}
 			return;
 		}
@@ -267,14 +240,6 @@ CallbackMethod* Handler::Lookup(const std::string& name) const
 			return (*it);
 		}
 	}
-	return NULL;
-}
-
-Handler::RpcCB Handler::find(const std::string& seqId) const
-{
-	std::map<std::string,RpcCB>::const_iterator it = m_seqIds.find(seqId);
-	if (it != m_seqIds.end())
-		return it->second;
 	return NULL;
 }
 

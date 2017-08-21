@@ -39,8 +39,9 @@ public:
 	virtual void OnRead(ssize_t nread, const char *buf);
 	virtual void onError( int error,const char* errorDescription ){	fprintf(stderr, "errCode=%d errDesc:%s\n",error,errorDescription);}
 	
-	virtual void OnMessage(std::string& req) { printf("OnRequest,len = %d,buf = %s\n",req.size(),req.c_str()); }
+	virtual void OnMessage(std::string& req){}
 	virtual int send(std::string buf,ZQ::eloop::Handle* send_handle=NULL);
+	virtual int sendfd(std::string buf,int fd = -1);
 	
 	void encode(const std::string& src,std::string& dest);
 	void processMessage(ssize_t nread, const char *buf);
@@ -60,10 +61,11 @@ public:
 	PipePassiveConn(Service& service);
 	~PipePassiveConn();
 	void start();
-	virtual void OnRequest(std::string& req);
+
+	virtual void OnMessage(std::string& req);
 	virtual void OnWrote(int status);
 	virtual void OnClose();
-	virtual int send(const char* buf,size_t len);
+//	virtual int send(const char* buf,size_t len);
 	bool	isAck(){return _sendAck;}
 
 private:

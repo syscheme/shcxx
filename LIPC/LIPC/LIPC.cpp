@@ -70,7 +70,7 @@ void Service::OnMessage(std::string& req, PipePassiveConn* conn)
 	if(respon != Arbitrary::null)
 	{
 		std::string resp = GetString(respon).c_str();
-		conn->send(resp.c_str(), resp.size());		
+		conn->send(resp);		
 	}
 }
 
@@ -102,12 +102,13 @@ int Service::getPendingCount()
 int Client::sendRequest(ZQ::LIPC::Arbitrary& value, ZQ::eloop::Handle* send_Handler)
 {
 	std::string src = GetString(value);
-	int cseq = lastCSeq();
-	value[JSON_RPC_ID] = cseq;
+	return send(src, send_Handler);
+}
 
-	if (send(src, send_Handler) == 0)
-		return cseq;
-	return -1;
+int Client::sendRequest(ZQ::LIPC::Arbitrary& value,int fd)
+{
+	std::string src = GetString(value);
+	return sendfd(src, fd);
 }
 
 void Client::OnMessage(std::string& req)

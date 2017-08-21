@@ -109,6 +109,11 @@ public:
 		INTERNAL_ERROR = -32603 /**< Internal JSON-RPC error. */
 	};
 	typedef void (*RpcCB)(const Arbitrary& param,void* data);
+	typedef struct{
+		RpcCB cb;
+		void* data;
+	}RpcCBInfo;
+	typedef std::map<std::string,RpcCBInfo> seqToCBInfoMap;
 	static const char* errDesc(ErrorCode code)
 	{
 		switch(code)
@@ -127,11 +132,11 @@ public:
 
 	void AddMethod(CallbackMethod* method);
 
-	void Addcb(std::string seqId,RpcCB cb);
+	void Addcb(std::string seqId,RpcCB cb,void* data);
 
 	void DeleteMethod(const std::string& name);
 
-	void Process(const std::string& msg, Arbitrary& response);
+	virtual void Process(const std::string& msg, Arbitrary& response);
 
 	void Process(const char* msg, Arbitrary& response);
 
@@ -139,15 +144,9 @@ public:
 
 	std::string GetString(Arbitrary value);
 
-	std::string generateId();
-	uint lastCSeq();
-
 private:
 	Handler(const Handler& obj);
 	Handler& operator=(const Handler& obj);
-
-	ZQ::common::AtomicInt _lastCSeq;
-	std::string _SeqHead;
 
 	Json::Reader m_reader;
 
@@ -157,13 +156,11 @@ private:
 
 	CallbackMethod* Lookup(const std::string& name) const;
 
-	RpcCB find(const std::string& seqId) const;
-
 	bool Check(const Arbitrary& root, Arbitrary& error);
 
 	void Process(const Arbitrary& root, Arbitrary& response);
 
-	std::map<std::string,RpcCB> m_seqIds;
+	seqToCBInfoMap m_seqIds;
 };
 
 }}
