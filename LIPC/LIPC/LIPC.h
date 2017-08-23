@@ -44,8 +44,8 @@
 #endif // OS
 
 #include "eloop/eloop_net.h"
-#include "TransferFd.h"
-#include "JsonRpcHandler.h"
+#include "PipeConnection.h"
+#include "Handler.h"
 #include <vector>
 #include <list>
 
@@ -82,9 +82,6 @@ protected:
 	
 	virtual void doAccept(ZQ::eloop::Handle::ElpeError status);
 
-	// supposed to receive a new in-comming request from client
-	virtual void OnMessage(std::string& req, PipePassiveConn* conn);	
-
 	PipePassiveConn* getConn(){return _conn;}
 
 private:
@@ -101,11 +98,11 @@ private:
 class Client : public PipeConnection, public ZQ::LIPC::Handler
 {
 public:
-	virtual int sendRequest(ZQ::LIPC::Arbitrary& value,ZQ::eloop::Handle* send_Handler = NULL);
-	virtual int sendRequest(ZQ::LIPC::Arbitrary& value,int fd = -1);
+	virtual int sendHandlerRequest(ZQ::LIPC::Arbitrary& value,RpcCB cb = NULL,void* data = NULL,ZQ::eloop::Handle* send_Handler = NULL);
+	virtual int sendRequest(std::string method,ZQ::LIPC::Arbitrary param,RpcCB cb = NULL,void* data = NULL,int fd = -1);
 
 	// supposed to receive a response of request just sent
-	virtual void OnMessage(std::string& req);
+	virtual void OnMessage(std::string& msg);
 };
 
 

@@ -3,6 +3,8 @@
 
 
 #include "ZQ_common_conf.h"
+#include "json/json.h"
+#include "Handler.h"
 
 #ifdef ZQ_OS_MSWIN
 #  ifdef LIPC_EXPORTS
@@ -21,8 +23,6 @@ namespace ZQ {
 	namespace LIPC {
 
 class ZQ_LIPC_API PipeConnection;
-class ZQ_LIPC_API TransferFdClient;
-class ZQ_LIPC_API TransferFdService;
 // -----------------------------
 // class PipeConnection
 // -----------------------------
@@ -33,21 +33,22 @@ public:
 		lipcParseError = -4396
 	} LipcError;
 public:
-	PipeConnection(){}
-	~PipeConnection(){}
 	
 	virtual void OnRead(ssize_t nread, const char *buf);
 	virtual void onError( int error,const char* errorDescription ){	fprintf(stderr, "errCode=%d errDesc:%s\n",error,errorDescription);}
 	
-	virtual void OnMessage(std::string& req){}
-	virtual int send(std::string buf,ZQ::eloop::Handle* send_handle=NULL);
-	virtual int sendfd(std::string buf,int fd = -1);
+	virtual void OnMessage(std::string& msg){}
+	virtual int send(Arbitrary value,ZQ::eloop::Handle* send_handle=NULL);
+	virtual int sendfd(Arbitrary value,int fd = -1);
 	
 	void encode(const std::string& src,std::string& dest);
 	void processMessage(ssize_t nread, const char *buf);
+
+	std::string GetString(Arbitrary value);
 	 
 private:
 	std::string		_buf;
+	Json::FastWriter m_writer;
 };
 
 
@@ -62,10 +63,9 @@ public:
 	~PipePassiveConn();
 	void start();
 
-	virtual void OnMessage(std::string& req);
+	virtual void OnMessage(std::string& msg);
 	virtual void OnWrote(int status);
 	virtual void OnClose();
-//	virtual int send(const char* buf,size_t len);
 	bool	isAck(){return _sendAck;}
 
 private:

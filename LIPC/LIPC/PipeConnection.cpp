@@ -1,4 +1,4 @@
-#include "TransferFd.h"
+#include "PipeConnection.h"
 #include "LIPC.h"
 
 namespace ZQ {
@@ -19,17 +19,19 @@ void PipeConnection::OnRead(ssize_t nread, const char *buf)
 	processMessage(nread,buf);
 }
 
-int PipeConnection::send(std::string buf,ZQ::eloop::Handle* send_handle)
+int PipeConnection::send(Arbitrary value,ZQ::eloop::Handle* send_handle)
 {
+	std::string msg = GetString(value);
 	std::string dest;
-	encode(buf,dest);
+	encode(msg,dest);
 	return write(dest.c_str(),dest.size(),send_handle);
 }
 
-int PipeConnection::sendfd(std::string buf,int fd)
+int PipeConnection::sendfd(Arbitrary value,int fd)
 {
+	std::string msg = GetString(value);
 	std::string dest;
-	encode(buf,dest);
+	encode(msg,dest);
 	if (fd > 0)
 	{
 		eloop_buf_t temp;
@@ -37,6 +39,7 @@ int PipeConnection::sendfd(std::string buf,int fd)
 		temp.len = dest.size();
 //		return sendfd(&temp,1,fd);
 	}
+	printf("send msg:%s\n",dest.c_str());
 	return write(dest.c_str(),dest.size());
 }
 
@@ -100,6 +103,11 @@ void PipeConnection::processMessage(ssize_t nread, const char *buf)
 	}
 }
 
+std::string PipeConnection::GetString(Arbitrary value)
+{
+	return m_writer.write(value);
+}
+
 // -----------------------------
 // class PipePassiveConn
 // -----------------------------
@@ -114,9 +122,9 @@ PipePassiveConn::~PipePassiveConn()
 
 }
 
-void PipePassiveConn::OnMessage(std::string& req)
+void PipePassiveConn::OnMessage(std::string& msg)
 {
-	_service.OnMessage(req,this);
+	_service.Process(msg,*this);
 }
 
 void PipePassiveConn::start()

@@ -36,8 +36,7 @@ namespace ZQ {
 	namespace LIPC {
 
 class ZQ_LIPC_API Handler;
-//class ZQ_LIPC_API TransferFdService;
-		
+class PipeConnection;
 typedef Json::Value Arbitrary;
 // -----------------------------
 // interface CallbackMethod
@@ -47,7 +46,7 @@ class CallbackMethod
 public:
 	virtual ~CallbackMethod(){}
 
-    virtual void Call(const Arbitrary& msg, Arbitrary& response) = 0;
+	virtual void Call(const Arbitrary& msg, PipeConnection& conn) = 0;
 
     virtual std::string GetName() const = 0;
 
@@ -60,7 +59,7 @@ public:
 template<class T> class RpcMethod : public CallbackMethod
 {
 public:
-    typedef void (T::*Method)(const Arbitrary& msg,Arbitrary& response);
+    typedef void (T::*Method)(const Arbitrary& msg,PipeConnection& conn);
 
     RpcMethod(T& obj, Method method, const std::string& name,const Arbitrary description = Arbitrary::null)
 		:m_obj(&obj),
@@ -70,9 +69,9 @@ public:
     {
     }
 
-    virtual void Call(const Arbitrary& msg, Arbitrary& response){
-		(m_obj->*m_method)(msg, response);
-    }
+	virtual void Call(const Arbitrary& msg, PipeConnection& conn){
+		(m_obj->*m_method)(msg, conn);
+	}
 
     virtual std::string GetName() const{
 		return m_name;
@@ -136,31 +135,30 @@ public:
 
 	void DeleteMethod(const std::string& name);
 
-	virtual void Process(const std::string& msg, Arbitrary& response);
+	void SystemDescribe(const Arbitrary& msg, PipeConnection& conn);
 
-	void Process(const char* msg, Arbitrary& response);
+	void Process(const std::string& msg,PipeConnection& conn);
 
-	void SystemDescribe(const Arbitrary& msg, Arbitrary& response);
+	std::string generateId();
 
-	std::string GetString(Arbitrary value);
+	CallbackMethod* Lookup(const std::string& name) const;
 
 private:
 	Handler(const Handler& obj);
 	Handler& operator=(const Handler& obj);
 
-	Json::Reader m_reader;
-
-	Json::FastWriter m_writer;
-
 	std::list<CallbackMethod*> m_methods;
 
-	CallbackMethod* Lookup(const std::string& name) const;
+	void Process(const Arbitrary& root,PipeConnection& conn);
 
 	bool Check(const Arbitrary& root, Arbitrary& error);
 
-	void Process(const Arbitrary& root, Arbitrary& response);
-
+	Json::Reader m_reader;
 	seqToCBInfoMap m_seqIds;
+	std::string	_seqHead;
+	
+	uint lastCSeq();
+	ZQ::common::AtomicInt _lastCSeq;
 };
 
 }}

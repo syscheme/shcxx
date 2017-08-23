@@ -1,12 +1,13 @@
-#include "JsonRpcHandler.h"
+#include "Handler.h"
 #include "Locks.h"
+#include "PipeConnection.h"
 namespace ZQ{
 	namespace LIPC{
 
 // ---------------------------------------------------
 // class Handler
 // ---------------------------------------------------
-Handler::Handler()
+Handler::Handler():_seqHead("Handler")
 {
   /* add a RPC method that list the actual RPC methods contained in 
    * the Handler 
@@ -27,6 +28,33 @@ Handler::~Handler()
 		delete (*it);
 	}
 	m_methods.clear();
+}
+uint Handler::lastCSeq()
+{
+	int v = _lastCSeq.add(1);
+	if (v>0 && v < MAX_CSEQ)
+		return (uint) v;
+
+	static ZQ::common::Mutex lock;
+	ZQ::common::MutexGuard g(lock);
+	v = _lastCSeq.add(1);
+	if (v >0 && v < MAX_CSEQ)
+		return (uint) v;
+
+	_lastCSeq.set(1);
+	v = _lastCSeq.add(1);
+
+	return (uint) v;
+}
+
+std::string Handler::generateId()
+{
+	std::string id;
+	id.append(_seqHead);
+	char SegId[32];
+	sprintf(SegId, "%d", lastCSeq());
+	id.append(SegId);
+	return id;
 }
 
 void Handler::AddMethod(CallbackMethod* method)
@@ -59,8 +87,9 @@ void Handler::DeleteMethod(const std::string& name)
 	}
 }
 
-void Handler::SystemDescribe(const Arbitrary& msg, Arbitrary& response)
+void Handler::SystemDescribe(const Arbitrary& msg,PipeConnection& conn)
 {
+	Arbitrary response;
 	Arbitrary methods;
 	response["jsonrpc"] = "2.0";
 	response["id"] = msg["id"];
@@ -71,11 +100,106 @@ void Handler::SystemDescribe(const Arbitrary& msg, Arbitrary& response)
 	}
 
 	response["result"] = methods;
+
 }
 
-std::string Handler::GetString(Arbitrary value)
+void Handler::Process(const std::string& msg,PipeConnection& conn)
 {
-	return m_writer.write(value);
+	Arbitrary root;
+	Arbitrary response;
+	Arbitrary error;
+	bool parsing = false;
+
+	printf("msg:%s\n",msg.c_str());
+	/* parsing */
+	parsing = m_reader.parse(msg, root);
+
+	if(!parsing)
+	{
+		/* request or batched call is not in JSON format */
+		response["id"] = Arbitrary::null;
+		response["jsonrpc"] = "2.0";
+
+		error["code"] = Handler::PARSING_ERROR;
+		error["message"] = "Parse error.";
+		response["error"] = error; 
+	}
+
+	if(root.isArray())
+	{
+		/* batched call */
+		Arbitrary::ArrayIndex i = 0;
+		Arbitrary::ArrayIndex j = 0;
+
+		for(i = 0 ; i < root.size() ; i++)
+		{
+			Arbitrary ret;
+			Process(root[i],conn);
+		}
+	}
+	else
+	{
+		Process(root,conn);
+	}
+}
+
+void Handler::Process(const Arbitrary& root,PipeConnection& conn)
+{
+	Arbitrary response = Arbitrary::null;
+	std::string method;
+
+	Arbitrary err;
+	/* check the JSON-RPC version => 2.0 */
+	if(!root.isObject() || !root.isMember("jsonrpc") ||
+		root["jsonrpc"] != "2.0") 
+	{
+		response["id"] = Arbitrary::null;
+		response["jsonrpc"] = "2.0";
+
+		err["code"] = Handler::INVALID_REQUEST;
+		err["message"] = "Invalid JSON-RPC request.";
+		response["error"] = err;
+		conn.send(response);
+		return;
+	}
+
+	method = root[JSON_RPC_METHOD].asString();
+
+	if(method != "")
+	{
+		CallbackMethod* rpc = Lookup(method);
+		if(rpc)
+			rpc->Call(root,conn);
+		return;
+	}
+	else
+	{
+		std::string seqId = root[JSON_RPC_ID].asString();
+		if (seqId != "")
+		{
+			seqToCBInfoMap::iterator it = m_seqIds.find(seqId);
+			if (it != m_seqIds.end())
+			{
+				RpcCB cb = it->second.cb;
+				void* data = it->second.data;
+				if (cb!=NULL&&data!=NULL)
+				{
+					(*cb)(root,data);
+				}
+				m_seqIds.erase(it);
+			}
+			return;
+		}
+	}
+
+	/* forge an error response */
+	response["id"] = root.isMember("id") ? root["id"] : Arbitrary::null;
+	response["jsonrpc"] = "2.0";
+
+	err["code"] = Handler::METHOD_NOT_FOUND;
+	err["message"] = "Method not found.";
+	response["error"] = err;
+	conn.send(response);
 }
 
 bool Handler::Check(const Arbitrary& root, Arbitrary& error)
@@ -119,116 +243,6 @@ bool Handler::Check(const Arbitrary& root, Arbitrary& error)
 	}
 
 	return true;
-}
-
-void Handler::Process(const Arbitrary& root, Arbitrary& response)
-{
-	response = Arbitrary::null;
-	std::string method;
-
-	Arbitrary err;
-	/* check the JSON-RPC version => 2.0 */
-	if(!root.isObject() || !root.isMember("jsonrpc") ||
-		root["jsonrpc"] != "2.0") 
-	{
-		response["id"] = Arbitrary::null;
-		response["jsonrpc"] = "2.0";
-
-		err["code"] = INVALID_REQUEST;
-		err["message"] = "Invalid JSON-RPC request.";
-		response["error"] = err;
-		return;
-	}
-
-	method = root[JSON_RPC_METHOD].asString();
-
-	if(method != "")
-	{
-		CallbackMethod* rpc = Lookup(method);
-		if(rpc)
-			rpc->Call(root, response);
-		return;
-	}
-	else
-	{
-		std::string seqId = root[JSON_RPC_ID].asString();
-		if (seqId != "")
-		{
-			RpcCB rpc = NULL;
-
-			seqToCBInfoMap::iterator it = m_seqIds.find(seqId);
-			if (it != m_seqIds.end())
-			{
-				rpc = it->second.cb;
-				if (rpc)
-				{
-					(*rpc)(root,it->second.data);
-				}
-				m_seqIds.erase(it);
-			}
-			return;
-		}
-	}
-
-	/* forge an error response */
-	response["id"] = root.isMember("id") ? root["id"] : Arbitrary::null;
-	response["jsonrpc"] = "2.0";
-
-	err["code"] = METHOD_NOT_FOUND;
-	err["message"] = "Method not found.";
-	response["error"] = err;
-}
-
-void Handler::Process(const std::string& msg, Arbitrary& response)
-{
-	Arbitrary root;
-	Arbitrary error;
-	bool parsing = false;
-
-	/* parsing */
-	parsing = m_reader.parse(msg, root);
-
-	if(!parsing)
-	{
-		/* request or batched call is not in JSON format */
-		response["id"] = Arbitrary::null;
-		response["jsonrpc"] = "2.0";
-
-		error["code"] = PARSING_ERROR;
-		error["message"] = "Parse error.";
-		response["error"] = error; 
-	}
-
-	if(root.isArray())
-	{
-		/* batched call */
-		Arbitrary::ArrayIndex i = 0;
-		Arbitrary::ArrayIndex j = 0;
-
-		for(i = 0 ; i < root.size() ; i++)
-		{
-			Arbitrary ret;
-			Process(root[i], ret);
-
-			if(ret != Arbitrary::null)
-			{
-				/* it is not a notification, add to array of responses */
-				response[j] = ret;
-				j++;
-			}
-		}
-	}
-	else
-	{
-		 Process(root, response);
-	}
-}
-
-void Handler::Process(const char* msg, Arbitrary& response)
-{
-	std::string str(msg);
-
-	Process(str, response);
 }
 
 CallbackMethod* Handler::Lookup(const std::string& name) const

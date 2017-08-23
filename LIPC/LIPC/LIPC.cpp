@@ -1,6 +1,5 @@
 #include "ZQ_common_conf.h"
 #include "LIPC.h"
-#include "TransferFd.h"
 
 #ifdef ZQ_OS_LINUX
 	#include <dirent.h>
@@ -62,18 +61,6 @@ void Service::doAccept(ZQ::eloop::Handle::ElpeError status)
 	}
 }
 
-void Service::OnMessage(std::string& req, PipePassiveConn* conn)
-{
-	_conn = conn;
-	Arbitrary respon = Arbitrary::null;
-	Process(req, respon);
-	if(respon != Arbitrary::null)
-	{
-		std::string resp = GetString(respon).c_str();
-		conn->send(resp);		
-	}
-}
-
 int Service::acceptPendingHandle(ZQ::eloop::Handle* h)
 {
 	if(_conn == NULL)
@@ -99,27 +86,37 @@ int Service::getPendingCount()
 // ------------------------------------------------
 // class Client
 // ------------------------------------------------
-int Client::sendRequest(ZQ::LIPC::Arbitrary& value, ZQ::eloop::Handle* send_Handler)
+int Client::sendHandlerRequest(ZQ::LIPC::Arbitrary& value,RpcCB cb,void* data,ZQ::eloop::Handle* send_Handler)
 {
+	if (cb !=NULL)
+	{
+		std::string seqId = generateId();
+		Addcb(seqId,cb,data);
+		value[JSON_RPC_ID] = seqId;
+	}
 	std::string src = GetString(value);
 	return send(src, send_Handler);
 }
 
-int Client::sendRequest(ZQ::LIPC::Arbitrary& value,int fd)
+int Client::sendRequest(std::string method,ZQ::LIPC::Arbitrary param,RpcCB cb,void* data,int fd)
 {
-	std::string src = GetString(value);
-	return sendfd(src, fd);
+	ZQ::LIPC::Arbitrary req;
+	req[JSON_RPC_PROTO] = JSON_RPC_PROTO_VERSION;
+	req[JSON_RPC_METHOD] = method;
+	if (param != ZQ::LIPC::Arbitrary::null)
+		req[JSON_RPC_PARAMS] = param;
+	if (cb !=NULL)
+	{
+		std::string seqId = generateId();
+		Addcb(seqId,cb,data);
+		req[JSON_RPC_ID] = seqId;
+	}
+	return sendfd(req, fd);
 }
 
-void Client::OnMessage(std::string& req)
+void Client::OnMessage(std::string& msg)
 {
-	Arbitrary respon = Arbitrary::null;
-	Process(req, respon);
-	if(respon != Arbitrary::null)
-	{
-		std::string resp = GetString(respon);
-		send(resp);		
-	}
+	Process(msg, *this);
 }
 
 }}//ZQ::LIPC

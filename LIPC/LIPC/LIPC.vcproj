@@ -179,7 +179,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\JsonRpcHandler.cpp"
+				RelativePath=".\Handler.cpp"
 				>
 			</File>
 			<File
@@ -187,7 +187,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\TransferFd.cpp"
+				RelativePath=".\PipeConnection.cpp"
 				>
 			</File>
 		</Filter>
@@ -197,7 +197,7 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\JsonRpcHandler.h"
+				RelativePath=".\Handler.h"
 				>
 			</File>
 			<File
@@ -205,7 +205,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\TransferFd.h"
+				RelativePath=".\PipeConnection.h"
 				>
 			</File>
 		</Filter>
