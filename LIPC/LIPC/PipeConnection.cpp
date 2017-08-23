@@ -15,7 +15,6 @@ void PipeConnection::OnRead(ssize_t nread, const char *buf)
 		onError(nread,desc.c_str());
 		return;
 	}
-//	printf("read buf :%s\n",buf);
 	processMessage(nread,buf);
 }
 
@@ -34,10 +33,14 @@ int PipeConnection::sendfd(Arbitrary value,int fd)
 	encode(msg,dest);
 	if (fd > 0)
 	{
+#ifdef ZQ_OS_LINUX
 		eloop_buf_t temp;
 		temp.base = const_cast<char*>(dest.c_str());
 		temp.len = dest.size();
-//		return sendfd(&temp,1,fd);
+		return sendfd(&temp,1,fd);
+#else
+		return -1;
+#endif
 	}
 	printf("send msg:%s\n",dest.c_str());
 	return write(dest.c_str(),dest.size());
