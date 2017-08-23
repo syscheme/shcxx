@@ -126,7 +126,7 @@ public:
 		}
 	}
 public:
-	Handler();
+	Handler(const std::string& segHead);
 	virtual ~Handler();
 
 	void AddMethod(CallbackMethod* method);
@@ -155,7 +155,7 @@ private:
 
 	Json::Reader m_reader;
 	seqToCBInfoMap m_seqIds;
-	std::string	_seqHead;
+	const std::string&	_seqHead;
 	
 	uint lastCSeq();
 	ZQ::common::AtomicInt _lastCSeq;

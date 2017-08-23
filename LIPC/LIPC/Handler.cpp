@@ -7,7 +7,7 @@ namespace ZQ{
 // ---------------------------------------------------
 // class Handler
 // ---------------------------------------------------
-Handler::Handler():_seqHead("Handler")
+Handler::Handler(const std::string& segHead):_seqHead(segHead)
 {
   /* add a RPC method that list the actual RPC methods contained in 
    * the Handler 

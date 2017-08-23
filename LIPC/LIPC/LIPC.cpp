@@ -11,13 +11,6 @@ namespace ZQ {
 // -------------------------------------------------
 // class Service
 // -------------------------------------------------
-Service::Service()
-{
-}
-Service::~Service()
-{
-}
-
 int Service::init(ZQ::eloop::Loop &loop, int ipc)
 {
 	_ipc = ipc;
@@ -86,32 +79,36 @@ int Service::getPendingCount()
 // ------------------------------------------------
 // class Client
 // ------------------------------------------------
-int Client::sendHandlerRequest(ZQ::LIPC::Arbitrary& value,RpcCB cb,void* data,ZQ::eloop::Handle* send_Handler)
+std::string Client::sendHandlerRequest(ZQ::LIPC::Arbitrary& value,RpcCB cb,void* data,ZQ::eloop::Handle* send_Handler)
 {
+	std::string seqId = generateId();
 	if (cb !=NULL)
 	{
-		std::string seqId = generateId();
 		Addcb(seqId,cb,data);
 		value[JSON_RPC_ID] = seqId;
 	}
 	std::string src = GetString(value);
-	return send(src, send_Handler);
+	if (send(src, send_Handler) < 0)
+		return NULL;
+	return seqId;
 }
 
-int Client::sendRequest(std::string method,ZQ::LIPC::Arbitrary param,RpcCB cb,void* data,int fd)
+std::string Client::sendRequest(std::string method,ZQ::LIPC::Arbitrary param,RpcCB cb,void* data,int fd)
 {
 	ZQ::LIPC::Arbitrary req;
+	std::string seqId = generateId();
 	req[JSON_RPC_PROTO] = JSON_RPC_PROTO_VERSION;
 	req[JSON_RPC_METHOD] = method;
 	if (param != ZQ::LIPC::Arbitrary::null)
 		req[JSON_RPC_PARAMS] = param;
 	if (cb !=NULL)
 	{
-		std::string seqId = generateId();
 		Addcb(seqId,cb,data);
 		req[JSON_RPC_ID] = seqId;
 	}
-	return sendfd(req, fd);
+	if (sendfd(req, fd) < 0)
+		return NULL;
+	return seqId;
 }
 
 void Client::OnMessage(std::string& msg)
