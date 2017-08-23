@@ -37,7 +37,7 @@ int PipeConnection::sendfd(Arbitrary value,int fd)
 		eloop_buf_t temp;
 		temp.base = const_cast<char*>(dest.c_str());
 		temp.len = dest.size();
-		return sendfd(&temp,1,fd);
+		return Pipe::sendfd(&temp,1,fd);
 #else
 		return -1;
 #endif
