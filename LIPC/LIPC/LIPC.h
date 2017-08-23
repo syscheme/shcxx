@@ -66,9 +66,6 @@ public:
 	typedef std::list< PipePassiveConn* > PipeClientList;
 
 public:
-	Service(const std::string& segHead = "LIPCService-"):Handler(segHead){}
-	~Service(){}
-
 	int init(ZQ::eloop::Loop &loop, int ipc=1);
 	PipeClientList& getPipeClientList(){return _ClientList;}
 	int getPendingCount();
@@ -98,9 +95,8 @@ private:
 class Client : public PipeConnection, public ZQ::LIPC::Handler
 {
 public:
-	Client(const std::string& segHead = "LIPCClient-"):Handler(segHead){}
-	virtual std::string sendHandlerRequest(ZQ::LIPC::Arbitrary& value,RpcCB cb = NULL,void* data = NULL,ZQ::eloop::Handle* send_Handler = NULL);
-	virtual std::string sendRequest(std::string method,ZQ::LIPC::Arbitrary param,RpcCB cb = NULL,void* data = NULL,int fd = -1);
+	virtual int sendHandlerRequest(ZQ::LIPC::Arbitrary& value,RpcCB cb = NULL,void* data = NULL,ZQ::eloop::Handle* send_Handler = NULL);
+	virtual int sendRequest(std::string method,ZQ::LIPC::Arbitrary param,RpcCB cb = NULL,void* data = NULL,int fd = -1);
 
 	// supposed to receive a response of request just sent
 	virtual void OnMessage(std::string& msg);

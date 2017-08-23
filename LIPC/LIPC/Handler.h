@@ -112,7 +112,7 @@ public:
 		RpcCB cb;
 		void* data;
 	}RpcCBInfo;
-	typedef std::map<std::string,RpcCBInfo> seqToCBInfoMap;
+	typedef std::map<int,RpcCBInfo> seqToCBInfoMap;
 	static const char* errDesc(ErrorCode code)
 	{
 		switch(code)
@@ -126,12 +126,12 @@ public:
 		}
 	}
 public:
-	Handler(const std::string& segHead);
+	Handler();
 	virtual ~Handler();
 
 	void AddMethod(CallbackMethod* method);
 
-	void Addcb(std::string seqId,RpcCB cb,void* data);
+	void Addcb(int seqId,RpcCB cb,void* data);
 
 	void DeleteMethod(const std::string& name);
 
@@ -139,9 +139,8 @@ public:
 
 	void Process(const std::string& msg,PipeConnection& conn);
 
-	std::string generateId();
-
 	CallbackMethod* Lookup(const std::string& name) const;
+	uint lastCSeq();
 
 private:
 	Handler(const Handler& obj);
@@ -155,9 +154,7 @@ private:
 
 	Json::Reader m_reader;
 	seqToCBInfoMap m_seqIds;
-	const std::string&	_seqHead;
 	
-	uint lastCSeq();
 	ZQ::common::AtomicInt _lastCSeq;
 };
 

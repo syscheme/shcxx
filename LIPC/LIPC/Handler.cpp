@@ -7,11 +7,12 @@ namespace ZQ{
 // ---------------------------------------------------
 // class Handler
 // ---------------------------------------------------
-Handler::Handler(const std::string& segHead):_seqHead(segHead)
+Handler::Handler()
 {
   /* add a RPC method that list the actual RPC methods contained in 
    * the Handler 
    */
+	_lastCSeq.set(1);
 	 Arbitrary root;
 	 root["description"] = "List the RPC methods available";
 	 root["parameters"] = Arbitrary::null;
@@ -47,22 +48,12 @@ uint Handler::lastCSeq()
 	return (uint) v;
 }
 
-std::string Handler::generateId()
-{
-	std::string id;
-	id.append(_seqHead);
-	char SegId[32];
-	sprintf(SegId, "%d", lastCSeq());
-	id.append(SegId);
-	return id;
-}
-
 void Handler::AddMethod(CallbackMethod* method)
 {
 	m_methods.push_back(method);
 }
 
-void Handler::Addcb(std::string seqId,RpcCB cb,void* data)
+void Handler::Addcb(int seqId,RpcCB cb,void* data)
 {
 	RpcCBInfo info;
 	info.cb = cb;
@@ -174,8 +165,8 @@ void Handler::Process(const Arbitrary& root,PipeConnection& conn)
 	}
 	else
 	{
-		std::string seqId = root[JSON_RPC_ID].asString();
-		if (seqId != "")
+		int seqId = root[JSON_RPC_ID].asInt();
+		if (seqId >= 0)
 		{
 			seqToCBInfoMap::iterator it = m_seqIds.find(seqId);
 			if (it != m_seqIds.end())

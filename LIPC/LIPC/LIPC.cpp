@@ -79,24 +79,25 @@ int Service::getPendingCount()
 // ------------------------------------------------
 // class Client
 // ------------------------------------------------
-std::string Client::sendHandlerRequest(ZQ::LIPC::Arbitrary& value,RpcCB cb,void* data,ZQ::eloop::Handle* send_Handler)
+int Client::sendHandlerRequest(ZQ::LIPC::Arbitrary& value,RpcCB cb,void* data,ZQ::eloop::Handle* send_Handler)
 {
-	std::string seqId = generateId();
+	int seqId = lastCSeq();
 	if (cb !=NULL)
 	{
 		Addcb(seqId,cb,data);
 		value[JSON_RPC_ID] = seqId;
 	}
 	std::string src = GetString(value);
-	if (send(src, send_Handler) < 0)
-		return NULL;
+	int ret = send(src, send_Handler); 
+	if (ret < 0)
+		return ret;
 	return seqId;
 }
 
-std::string Client::sendRequest(std::string method,ZQ::LIPC::Arbitrary param,RpcCB cb,void* data,int fd)
+int Client::sendRequest(std::string method,ZQ::LIPC::Arbitrary param,RpcCB cb,void* data,int fd)
 {
 	ZQ::LIPC::Arbitrary req;
-	std::string seqId = generateId();
+	int seqId = lastCSeq();
 	req[JSON_RPC_PROTO] = JSON_RPC_PROTO_VERSION;
 	req[JSON_RPC_METHOD] = method;
 	if (param != ZQ::LIPC::Arbitrary::null)
@@ -106,8 +107,9 @@ std::string Client::sendRequest(std::string method,ZQ::LIPC::Arbitrary param,Rpc
 		Addcb(seqId,cb,data);
 		req[JSON_RPC_ID] = seqId;
 	}
-	if (sendfd(req, fd) < 0)
-		return NULL;
+	int ret = sendfd(req, fd);
+	if (ret < 0)
+		return ret;
 	return seqId;
 }
 
