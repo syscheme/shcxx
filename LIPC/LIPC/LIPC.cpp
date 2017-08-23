@@ -81,9 +81,10 @@ int Service::getPendingCount()
 // ------------------------------------------------
 int Client::sendHandlerRequest(ZQ::LIPC::Arbitrary& value,RpcCB cb,void* data,ZQ::eloop::Handle* send_Handler)
 {
-	int seqId = lastCSeq();
+	int seqId = 0;
 	if (cb !=NULL)
 	{
+		seqId = lastCSeq();
 		Addcb(seqId,cb,data);
 		value[JSON_RPC_ID] = seqId;
 	}
@@ -97,13 +98,14 @@ int Client::sendHandlerRequest(ZQ::LIPC::Arbitrary& value,RpcCB cb,void* data,ZQ
 int Client::sendRequest(std::string method,ZQ::LIPC::Arbitrary param,RpcCB cb,void* data,int fd)
 {
 	ZQ::LIPC::Arbitrary req;
-	int seqId = lastCSeq();
+	int seqId = 0;
 	req[JSON_RPC_PROTO] = JSON_RPC_PROTO_VERSION;
 	req[JSON_RPC_METHOD] = method;
 	if (param != ZQ::LIPC::Arbitrary::null)
 		req[JSON_RPC_PARAMS] = param;
 	if (cb !=NULL)
 	{
+		seqId = seqId = lastCSeq();
 		Addcb(seqId,cb,data);
 		req[JSON_RPC_ID] = seqId;
 	}
