@@ -93,8 +93,8 @@ int Client::sendHandlerRequest(std::string method,ZQ::LIPC::Arbitrary param,RpcC
 		Addcb(seqId,cb,data);
 		req[JSON_RPC_ID] = seqId;
 	}
-	std::string src = GetString(req);
-	int ret = send(src, send_Handler); 
+
+	int ret = send(req, send_Handler); 
 	if (ret < 0)
 		return ret;
 	return seqId;
