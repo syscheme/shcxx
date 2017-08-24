@@ -68,10 +68,6 @@ public:
 public:
 	int init(ZQ::eloop::Loop &loop, int ipc=1);
 	PipeClientList& getPipeClientList(){return _ClientList;}
-	int getPendingCount();
-
-	int acceptPendingHandle(ZQ::eloop::Handle* h);
-	ZQ::eloop::Handle::eloop_handle_type getPendingHandleType();
 
 protected:
 	void addConn(PipePassiveConn* conn);
@@ -79,10 +75,8 @@ protected:
 	
 	virtual void doAccept(ZQ::eloop::Handle::ElpeError status);
 
-	PipePassiveConn* getConn(){return _conn;}
 
 private:
-	PipePassiveConn* _conn;
 	PipeClientList _ClientList;
 	int				_ipc;
 

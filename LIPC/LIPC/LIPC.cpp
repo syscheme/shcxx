@@ -54,28 +54,6 @@ void Service::doAccept(ZQ::eloop::Handle::ElpeError status)
 	}
 }
 
-int Service::acceptPendingHandle(ZQ::eloop::Handle* h)
-{
-	if(_conn == NULL)
-		return -1;
-	return _conn->accept(h);
-}
-
-ZQ::eloop::Handle::eloop_handle_type Service::getPendingHandleType()
-{
-	if(_conn == NULL)
-		return ZQ::eloop::Handle::ELOOP_UNKNOWN_HANDLE;
-	return _conn->pending_type();
-}
-
-int Service::getPendingCount()
-{
-	if(_conn == NULL)
-		return -1;
-	return _conn->pending_count();
-}
-
-
 // ------------------------------------------------
 // class Client
 // ------------------------------------------------
