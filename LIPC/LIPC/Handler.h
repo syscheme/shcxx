@@ -107,7 +107,7 @@ public:
 		INVALID_PARAMS = -32602, /**< Invalid method parameters. */
 		INTERNAL_ERROR = -32603 /**< Internal JSON-RPC error. */
 	};
-	typedef void (*RpcCB)(const Arbitrary& param,void* data);
+	typedef void (*RpcCB)(const Arbitrary& resp,void* data);
 	typedef struct{
 		RpcCB cb;
 		void* data;
