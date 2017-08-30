@@ -75,6 +75,11 @@ protected:
 	void delConn(PipePassiveConn* conn);
 	
 	virtual void doAccept(ZQ::eloop::Handle::ElpeError status);
+	virtual void onError( int error,const char* errorDescription )
+	{	
+		_log(ZQ::common::Log::L_ERROR, CLOGFMT(Service, "LIPC Service error,code:%d,Description:%s"),error,errorDescription);
+	}
+
 
 
 private:
@@ -96,6 +101,11 @@ public:
 
 	// supposed to receive a response of request just sent
 	virtual void OnMessage(std::string& msg);
+	virtual void onError( int error,const char* errorDescription )
+	{	
+		fprintf(stderr, "errCode=%d errDesc:%s\n",error,errorDescription);
+	}
+
 private:
 	ZQ::common::Log& _log;
 };

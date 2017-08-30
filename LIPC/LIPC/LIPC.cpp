@@ -37,7 +37,9 @@ void Service::delConn(PipePassiveConn* conn)
 void Service::doAccept(ZQ::eloop::Handle::ElpeError status)
 {
 	if (status != Handle::elpeSuccess) {
-		fprintf(stderr, "New connection error %s\n",Handle::errDesc(status));
+		std::string desc = "accept error:";
+		desc.append(ZQ::eloop::Handle::errDesc(status));
+		onError(status,desc.c_str());
 		return;
 	}
 
@@ -50,7 +52,9 @@ void Service::doAccept(ZQ::eloop::Handle::ElpeError status)
 	}
 	else {
 		client->close();
-		printf("accept error,code = %d,desc:%s\n",ret,ZQ::eloop::Handle::errDesc(ret));
+		std::string desc = "accept error:";
+		desc.append(ZQ::eloop::Handle::errDesc(ret));
+		onError(ret,desc.c_str());
 	}
 }
 

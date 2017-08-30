@@ -132,6 +132,11 @@ void PipePassiveConn::OnMessage(std::string& msg)
 	_service.Process(msg,*this);
 }
 
+void PipePassiveConn::onError(int error,const char* errorDescription)
+{
+	close();
+}
+
 void PipePassiveConn::start()
 {
 	read_start();

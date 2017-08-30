@@ -71,6 +71,7 @@ public:
 	void start();
 
 	virtual void OnMessage(std::string& msg);
+	virtual void onError( int error,const char* errorDescription);
 	virtual void OnWrote(int status);
 	virtual void OnClose();
 	bool	isAck(){return _sendAck;}
