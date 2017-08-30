@@ -89,8 +89,8 @@ private:
 class Client : public PipeConnection, public ZQ::LIPC::Handler
 {
 public:
-	virtual int sendHandlerRequest(std::string method,ZQ::LIPC::Arbitrary param,RpcCB cb = NULL,void* data = NULL,ZQ::eloop::Handle* send_Handler = NULL);
-	virtual int sendRequest(std::string method,ZQ::LIPC::Arbitrary param,RpcCB cb = NULL,void* data = NULL,int fd = -1);
+	int sendHandlerRequest(std::string method,ZQ::LIPC::Arbitrary param,RpcCB cb = NULL,void* data = NULL,ZQ::eloop::Handle* send_Handler = NULL);
+	int sendRequest(std::string method,ZQ::LIPC::Arbitrary param,RpcCB cb = NULL,void* data = NULL,int fd = -1);
 
 	// supposed to receive a response of request just sent
 	virtual void OnMessage(std::string& msg);
