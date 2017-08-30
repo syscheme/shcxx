@@ -66,6 +66,7 @@ public:
 	typedef std::list< PipePassiveConn* > PipeClientList;
 
 public:
+	Service(ZQ::common::Log& log):_log(log){}
 	int init(ZQ::eloop::Loop &loop, int ipc=1);
 	PipeClientList& getPipeClientList(){return _ClientList;}
 
@@ -79,7 +80,7 @@ protected:
 private:
 	PipeClientList _ClientList;
 	int				_ipc;
-
+	ZQ::common::Log& _log;
 };
 
 
@@ -89,11 +90,14 @@ private:
 class Client : public PipeConnection, public ZQ::LIPC::Handler
 {
 public:
+	Client(ZQ::common::Log& log):_log(log),PipeConnection(log){}
 	int sendHandlerRequest(std::string method,ZQ::LIPC::Arbitrary param,RpcCB cb = NULL,void* data = NULL,ZQ::eloop::Handle* send_Handler = NULL);
 	int sendRequest(std::string method,ZQ::LIPC::Arbitrary param,RpcCB cb = NULL,void* data = NULL,int fd = -1);
 
 	// supposed to receive a response of request just sent
 	virtual void OnMessage(std::string& msg);
+private:
+	ZQ::common::Log& _log;
 };
 
 

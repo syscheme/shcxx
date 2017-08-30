@@ -33,7 +33,13 @@ public:
 		lipcParseError = -4396
 	} LipcError;
 public:
-	
+	PipeConnection(ZQ::common::Log& log):_log(log)
+	{
+		#ifdef ZQ_OS_LINUX
+				//Ignore SIGPIPE signal
+				signal(SIGPIPE, SIG_IGN);
+		#endif
+	}
 	virtual void OnRead(ssize_t nread, const char *buf);
 	virtual void onError( int error,const char* errorDescription ){	fprintf(stderr, "errCode=%d errDesc:%s\n",error,errorDescription);}
 	
@@ -49,6 +55,7 @@ public:
 private:
 	std::string		_buf;
 	Json::FastWriter m_writer;
+	ZQ::common::Log& _log;
 };
 
 
