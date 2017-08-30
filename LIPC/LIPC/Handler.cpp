@@ -101,7 +101,6 @@ void Handler::Process(const std::string& msg,PipeConnection& conn)
 	Arbitrary error;
 	bool parsing = false;
 
-	printf("msg:%s\n",msg.c_str());
 	/* parsing */
 	parsing = m_reader.parse(msg, root);
 

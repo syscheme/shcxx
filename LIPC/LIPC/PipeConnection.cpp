@@ -15,6 +15,7 @@ void PipeConnection::OnRead(ssize_t nread, const char *buf)
 		onError(nread,desc.c_str());
 		return;
 	}
+//	printf("recv msg:%s\n",buf);
 	processMessage(nread,buf);
 }
 
@@ -23,6 +24,7 @@ int PipeConnection::send(Arbitrary value,ZQ::eloop::Handle* send_handle)
 	std::string msg = GetString(value);
 	std::string dest;
 	encode(msg,dest);
+//	printf("send:%s\n",dest.c_str());
 	return write(dest.c_str(),dest.size(),send_handle);
 }
 
@@ -42,7 +44,7 @@ int PipeConnection::sendfd(Arbitrary value,int fd)
 		return -1;
 #endif
 	}
-	printf("send msg:%s\n",dest.c_str());
+//	printf("send msg:%s\n",dest.c_str());
 	return write(dest.c_str(),dest.size());
 }
 
