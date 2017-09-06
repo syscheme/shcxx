@@ -117,7 +117,7 @@ std::string PipeConnection::GetString(Arbitrary value)
 // class PipePassiveConn
 // -----------------------------
 PipePassiveConn::PipePassiveConn(Service& service)
-:_service(service),_sendAck(true),PipeConnection(service._log)
+:_service(service),_sendAck(true),PipeConnection(service._lipcLog)
 {
 
 }

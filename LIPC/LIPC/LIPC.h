@@ -66,7 +66,7 @@ public:
 	typedef std::list< PipePassiveConn* > PipeClientList;
 
 public:
-	Service(ZQ::common::Log& log):_log(log){}
+	Service(ZQ::common::Log& log):_lipcLog(log){}
 	int init(ZQ::eloop::Loop &loop, int ipc=1);
 	PipeClientList& getPipeClientList(){return _ClientList;}
 
@@ -77,7 +77,7 @@ protected:
 	virtual void doAccept(ZQ::eloop::Handle::ElpeError status);
 	virtual void onError( int error,const char* errorDescription )
 	{	
-		_log(ZQ::common::Log::L_ERROR, CLOGFMT(Service, "LIPC Service error,code:%d,Description:%s"),error,errorDescription);
+		_lipcLog(ZQ::common::Log::L_ERROR, CLOGFMT(Service, "LIPC Service error,code:%d,Description:%s"),error,errorDescription);
 	}
 
 
@@ -85,7 +85,7 @@ protected:
 private:
 	PipeClientList _ClientList;
 	int				_ipc;
-	ZQ::common::Log& _log;
+	ZQ::common::Log& _lipcLog;
 };
 
 
@@ -95,7 +95,7 @@ private:
 class Client : public PipeConnection, public ZQ::LIPC::Handler
 {
 public:
-	Client(ZQ::common::Log& log):_log(log),PipeConnection(log){}
+	Client(ZQ::common::Log& log):_lipcLog(log),PipeConnection(log){}
 	int sendHandlerRequest(std::string method,ZQ::LIPC::Arbitrary param,RpcCB cb = NULL,void* data = NULL,ZQ::eloop::Handle* send_Handler = NULL);
 	int sendRequest(std::string method,ZQ::LIPC::Arbitrary param,RpcCB cb = NULL,void* data = NULL,int fd = -1);
 
@@ -107,7 +107,7 @@ public:
 	}
 
 private:
-	ZQ::common::Log& _log;
+	ZQ::common::Log& _lipcLog;
 };
 
 
