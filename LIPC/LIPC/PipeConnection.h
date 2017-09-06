@@ -51,11 +51,13 @@ public:
 	void processMessage(ssize_t nread, const char *buf);
 
 	std::string GetString(Arbitrary value);
+
+protected:
+	ZQ::common::Log& _lipcLog;
 	 
 private:
 	std::string		_buf;
 	Json::FastWriter m_writer;
-	ZQ::common::Log& _lipcLog;
 };
 
 

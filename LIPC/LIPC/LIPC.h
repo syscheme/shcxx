@@ -71,6 +71,7 @@ public:
 	PipeClientList& getPipeClientList(){return _ClientList;}
 
 protected:
+	ZQ::common::Log& _lipcLog;
 	void addConn(PipePassiveConn* conn);
 	void delConn(PipePassiveConn* conn);
 	
@@ -80,12 +81,9 @@ protected:
 		_lipcLog(ZQ::common::Log::L_ERROR, CLOGFMT(Service, "LIPC Service error,code:%d,Description:%s"),error,errorDescription);
 	}
 
-
-
 private:
 	PipeClientList _ClientList;
 	int				_ipc;
-	ZQ::common::Log& _lipcLog;
 };
 
 
@@ -99,14 +97,13 @@ public:
 	int sendHandlerRequest(std::string method,ZQ::LIPC::Arbitrary param,RpcCB cb = NULL,void* data = NULL,ZQ::eloop::Handle* send_Handler = NULL);
 	int sendRequest(std::string method,ZQ::LIPC::Arbitrary param,RpcCB cb = NULL,void* data = NULL,int fd = -1);
 
+protected:
 	// supposed to receive a response of request just sent
 	virtual void OnMessage(std::string& msg);
 	virtual void onError( int error,const char* errorDescription )
 	{	
 		fprintf(stderr, "errCode=%d errDesc:%s\n",error,errorDescription);
 	}
-
-private:
 	ZQ::common::Log& _lipcLog;
 };
 
