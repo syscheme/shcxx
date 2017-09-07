@@ -60,10 +60,12 @@ void HttpConnection::OnRead(ssize_t nread, const char *buf)
 		onError(nread,desc.c_str());
 		return;
 	}
+
 	if (nread == 0)
 		return;
 
 	onHttpDataReceived(nread);
+	
 	parse(buf, nread);
 }
 
@@ -78,8 +80,6 @@ void HttpConnection::OnWrote(int status)
 	}
 	
 	onHttpDataSent(status);
-
-//	_Logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"OnWrote\n"));
 
 	if ((_RespState == RESP_COMPLETE) && (!_listpipe.empty()))
 	{

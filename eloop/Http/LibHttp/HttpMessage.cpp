@@ -315,6 +315,7 @@ int HttpMessage::onHeadersComplete()
 	if (std::string::npos != pos)
 		_Uri = _Uri.substr(0, pos);
 
+	_encoding = None;
 	HEADERS::iterator it = _Headers.begin();
 	for(;it!=_Headers.end();it++)
 	{
@@ -531,12 +532,12 @@ std::string HttpMessage::toRaw()
 		_Headers.erase("Content-Length");
 	} else {
 		_Headers.erase("Transfer-Encoding");
-//		if(_BodyLength > 0 ) {
+		if(_BodyLength >= 0 ) {
 			std::ostringstream ossBL;ossBL<<_BodyLength;
 			_Headers["Content-Length"] = ossBL.str();
-// 		} else {
-// 			_Headers.erase("Content-Length");
-// 		}
+ 		} else {
+ 			_Headers.erase("Content-Length");
+ 		}
 	}
 
 	if(_bKeepAlive) {
