@@ -319,7 +319,7 @@ void Evictor::setDirty(const Ident& ident)
 //@return steps ever performed, 0-means idle/nothing done but wait
 bool Evictor::poll(bool flushAll)
 {
-	Queue modifiedBatch, deadObjects;
+	Queue modifiedBatch, deadObjects, aliveObjects;
 
 	{
 		MutexGuard g(_lkEvictor);
@@ -370,7 +370,9 @@ bool Evictor::poll(bool flushAll)
 			bStreamed = _stream(item, streamedObj, stampStart);
 			if (!bStreamed)
 				_log(Log::L_ERROR, CLOGFMT(Evictor, "failed to stream item[%s](%s)"), ident_cstr(item->_ident), Evictor::Item::stateToString(item->_data.status));
-			break;
+			
+            aliveObjects.push_back(item);
+            break;
 
 		case Evictor::Item::destroyed:
 			deadObjects.push_back(item);
@@ -435,7 +437,7 @@ bool Evictor::poll(bool flushAll)
 	int cEvicted =0;
 	{
 		ZQ::common::MutexGuard sync(_lkEvictor);
-		// step 1. about those dead objects
+		// step 1. about those dead objects and state of alive objects
 		for (Queue::iterator q = deadObjects.begin(); q != deadObjects.end(); q++)
 		{
 			Evictor::Item::Ptr& item = *q;
@@ -464,6 +466,26 @@ bool Evictor::poll(bool flushAll)
 			_log(Log::L_DEBUG, CLOGFMT(Evictor, "%d of %d dead objects evicted, new size %d"), cEvicted, deadObjects.size(), _evictorList.size());
 
 		deadObjects.clear();
+
+        cEvicted = 0;
+        for (Queue::iterator q = aliveObjects.begin(); q != aliveObjects.end(); q++)
+        {
+            Evictor::Item::Ptr& item = *q;
+            if (item->_orphan)
+                continue;
+
+            MutexGuard g(*item);
+            
+            item->_data.status = Evictor::Item::clean;
+            cEvicted++;
+            if (TRACE)
+                _log(Log::L_DEBUG, CLOGFMT(Evictor, "item[%s](%s) evicted"), ident_cstr(item->_ident), Evictor::Item::stateToString(item->_data.status));
+        }
+
+        if (cEvicted>0 && TRACE)
+            _log(Log::L_DEBUG, CLOGFMT(Evictor, "%d of %d objects is newly alive in saved"), cEvicted, aliveObjects.size());
+
+        aliveObjects.clear();
 
 		// step 2. evict the oldest object that not used recently
 		int cEvicted = _evictBySize();
