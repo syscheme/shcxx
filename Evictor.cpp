@@ -1,10 +1,34 @@
+// ============================================================================================
+// Copyright (c) 1997, 1998 by
+// ZQ Interactive, Inc., Shanghai, PRC.,
+// All Rights Reserved. Unpublished rights reserved under the copyright laws of the United States.
+// 
+// The software contained  on  this media is proprietary to and embodies the confidential
+// technology of ZQ Interactive, Inc. Possession, use, duplication or dissemination of the
+// software and media is authorized only pursuant to a valid written license from ZQ Interactive,
+// Inc.
+// This source was copied from shcxx, shcxx's copyright is belong to Hui Shao
+//
+// This software is furnished under a  license  and  may  be used and copied only in accordance
+// with the terms of  such license and with the inclusion of the above copyright notice.  This
+// software or any other copies thereof may not be provided or otherwise made available to any
+// other person.  No title to and ownership of the software is hereby transferred.
+//
+// The information in this software is subject to change without notice and should not be
+// construed as a commitment by ZQ Interactive, Inc.
+// --------------------------------------------------------------------------------------------
+// Author: Hui Shao
+// Desc  : impl an Evictor
+// --------------------------------------------------------------------------------------------
+// Revision History: 
+// $Log: /ZQProjs/Common/Evictor.cpp $
+// ============================================================================================
 #include "Evictor.h"
 #include "TimeUtil.h"
 
 namespace ZQ{
 namespace common{
 
-#define FLG_TRACE FLAG(0)
 #define TRACE (_flags & FLG_TRACE)
 
 // -----------------------------
@@ -291,7 +315,7 @@ Evictor::Item::ObjectPtr Evictor::locate(const Evictor::Ident& ident)
 	return item->_data.servant;
 }
 
-void Evictor::setDirty(const Ident& ident)
+void Evictor::setDirty(const Ident& ident, bool bCompleted)
 {
 	Evictor::Item::Ptr item = pin(ident);
 	if (NULL == item || NULL == item->_data.servant)
@@ -308,6 +332,7 @@ void Evictor::setDirty(const Ident& ident)
 	{
 		// Assume this operation updated the object
 		item->_data.status = Item::modified;
+		item->_data.completed = bCompleted;
 		_queueModified(item);
 		_requeue(item); // this is only be called while item is locked
 
@@ -319,7 +344,7 @@ void Evictor::setDirty(const Ident& ident)
 //@return steps ever performed, 0-means idle/nothing done but wait
 bool Evictor::poll(bool flushAll)
 {
-	Queue modifiedBatch, deadObjects, aliveObjects;
+	Queue modifiedBatch, deadObjects, flushObjects, requeObjects;
 
 	{
 		MutexGuard g(_lkEvictor);
@@ -354,9 +379,8 @@ bool Evictor::poll(bool flushAll)
 		if (!item)
 			continue;
 
-		// These elements can't be stale as only elements with 
-		// usageCount == 0 can become stale, and the modifiedQueue
-		// (us now) owns one count.
+		// These elements can't be stale as only elements with usageCount == 0 can become stale, and 
+		// the modifiedQueue (us now) owns one count.
 		MutexGuard gElem(*item);
 		StreamedObject streamedObj;
 		bool bStreamed =false;
@@ -365,13 +389,21 @@ bool Evictor::poll(bool flushAll)
 		{
 		case Evictor::Item::created:
 		case Evictor::Item::modified:
+
+			// skip flushing those incompleted objects if the Evictor is configured to save completed-objects only
+			if ((FLG_SAVE_COMPLETED_ONLY & _flags) && !item->_data.completed)
+			{
+				requeObjects.push_back(item);
+				break;
+			}
+
 			servant = item->_data.servant;
 			// stream the item per its state by calling mashal() 
 			bStreamed = _stream(item, streamedObj, stampStart);
 			if (!bStreamed)
 				_log(Log::L_ERROR, CLOGFMT(Evictor, "failed to stream item[%s](%s)"), ident_cstr(item->_ident), Evictor::Item::stateToString(item->_data.status));
 			
-            aliveObjects.push_back(item);
+            flushObjects.push_back(item);
             break;
 
 		case Evictor::Item::destroyed:
@@ -402,13 +434,23 @@ bool Evictor::poll(bool flushAll)
 
 	modifiedBatch.clear(); // to reduce the item->_usageInEvictor()
 
+	int cReque = requeObjects.size();
+	{
+		MutexGuard g(_lkEvictor);
+		for (Queue::iterator q = requeObjects.begin(); q != requeObjects.end(); q++)
+			_queueModified(*q);
+	}
+	requeObjects.clear();
+
 	int64 stampNow = now();
 	if (TRACE)
-		_log((size != cToStream +deadObjects.size())?Log::L_WARNING : Log::L_DEBUG, CLOGFMT(Evictor, "streamed %d to %d modified +%d dead, pending %d streamed, took %dmsec"), size, cToStream, deadObjects.size(), _streamedList.size(), (int) (stampNow - stampStart));
+	{
+		_log((size != cToStream +deadObjects.size())?Log::L_WARNING : Log::L_DEBUG, CLOGFMT(Evictor, "streamed %d to %d modified +%d dead, pending %d streamed, took %dmsec"), 
+			size, cToStream, deadObjects.size(), _streamedList.size(), (int) (stampNow - stampStart));
+	}
 
 	// Now let's save all these streamed objects to disk using a transaction
-	// Each time we get a deadlock, we reduce the number of objects to save
-	// per transaction
+	// Each time we get a deadlock, we reduce the number of objects to save per transaction
 	stampStart = stampNow;
 	stampNow = now();
 
@@ -433,11 +475,11 @@ bool Evictor::poll(bool flushAll)
 	if (TRACE)
 		_log(Log::L_DEBUG, CLOGFMT(Evictor, "flushed a batch: %d of %d streamed objects, %d pending, took %dmsec"), c, batch.size(), size, (int) (now() - stampStart));
 
-	// do evicting
-	int cEvicted =0;
+	// do flushing and evicting
+	int cEvictedPerDead =0, cEvictedBySize =0, cFlushed =0;
 	{
 		ZQ::common::MutexGuard sync(_lkEvictor);
-		// step 1. about those dead objects and state of alive objects
+		// step 1. evict those dead objects
 		for (Queue::iterator q = deadObjects.begin(); q != deadObjects.end(); q++)
 		{
 			Evictor::Item::Ptr& item = *q;
@@ -457,18 +499,15 @@ bool Evictor::poll(bool flushAll)
 			}
 
 			_evict(item);
-			cEvicted++;
+			cEvictedPerDead++;
 			if (TRACE)
 				_log(Log::L_DEBUG, CLOGFMT(Evictor, "item[%s](%s) evicted"), ident_cstr(item->_ident), Evictor::Item::stateToString(item->_data.status));
 		}
 
-		if (cEvicted>0 && TRACE)
-			_log(Log::L_DEBUG, CLOGFMT(Evictor, "%d of %d dead objects evicted, new size %d"), cEvicted, deadObjects.size(), _evictorList.size());
-
 		deadObjects.clear();
 
-        cEvicted = 0;
-        for (Queue::iterator q = aliveObjects.begin(); q != aliveObjects.end(); q++)
+		// step 2. flush those dirty objects
+        for (Queue::iterator q = flushObjects.begin(); q != flushObjects.end(); q++)
         {
             Evictor::Item::Ptr& item = *q;
             if (item->_orphan)
@@ -477,21 +516,19 @@ bool Evictor::poll(bool flushAll)
             MutexGuard g(*item);
             
             item->_data.status = Evictor::Item::clean;
-            cEvicted++;
+            cFlushed++;
             if (TRACE)
-                _log(Log::L_DEBUG, CLOGFMT(Evictor, "item[%s](%s) evicted"), ident_cstr(item->_ident), Evictor::Item::stateToString(item->_data.status));
+                _log(Log::L_DEBUG, CLOGFMT(Evictor, "item[%s](%s) flushed"), ident_cstr(item->_ident), Evictor::Item::stateToString(item->_data.status));
         }
 
-        if (cEvicted>0 && TRACE)
-            _log(Log::L_DEBUG, CLOGFMT(Evictor, "%d of %d objects is newly alive in saved"), cEvicted, aliveObjects.size());
+		flushObjects.clear();
 
-        aliveObjects.clear();
-
-		// step 2. evict the oldest object that not used recently
-		int cEvicted = _evictBySize();
-		if (cEvicted>0 && TRACE)
-			_log(Log::L_DEBUG, CLOGFMT(Evictor, "%d objects evicted by size, new size %d"), cEvicted, _evictorList.size());
+		// step 3. evict the oldest object that not used recently
+		cEvictedBySize = _evictBySize();
 	}
+
+	if ((cEvictedPerDead + cEvictedBySize + cFlushed)>0 && TRACE)
+		_log(Log::L_INFO, CLOGFMT(Evictor, "%d+%d objects evicted and %d objects flushed, new size %d, %d requeued"), cEvictedPerDead, cEvictedBySize, cFlushed, _evictorList.size(), cReque);
 
 	return true;
 }

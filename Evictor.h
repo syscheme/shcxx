@@ -1,3 +1,28 @@
+// ============================================================================================
+// Copyright (c) 1997, 1998 by
+// ZQ Interactive, Inc., Shanghai, PRC.,
+// All Rights Reserved. Unpublished rights reserved under the copyright laws of the United States.
+// 
+// The software contained  on  this media is proprietary to and embodies the confidential
+// technology of ZQ Interactive, Inc. Possession, use, duplication or dissemination of the
+// software and media is authorized only pursuant to a valid written license from ZQ Interactive,
+// Inc.
+// This source was copied from shcxx, shcxx's copyright is belong to Hui Shao
+//
+// This software is furnished under a  license  and  may  be used and copied only in accordance
+// with the terms of  such license and with the inclusion of the above copyright notice.  This
+// software or any other copies thereof may not be provided or otherwise made available to any
+// other person.  No title to and ownership of the software is hereby transferred.
+//
+// The information in this software is subject to change without notice and should not be
+// construed as a commitment by ZQ Interactive, Inc.
+// --------------------------------------------------------------------------------------------
+// Author: Hui Shao
+// Desc  : impl an Evictor
+// --------------------------------------------------------------------------------------------
+// Revision History: 
+// $Log: /ZQProjs/Common/Evictor.h $
+// ============================================================================================
 #ifndef __ZQ_COMMON_Evictor_H__
 #define __ZQ_COMMON_Evictor_H__
 
@@ -18,6 +43,9 @@ class ZQ_COMMON_API EvictorException;
 class ZQ_COMMON_API Evictor;
 
 #define EVICTOR_DEFAULT_SIZE (30)
+
+#define FLG_TRACE               FLAG(0)
+#define FLG_SAVE_COMPLETED_ONLY FLAG(8)
 
 // -----------------------------
 // class EvictorException
@@ -63,6 +91,7 @@ public:
 	// -----------------------------
 	// sub class Item
 	// -----------------------------
+	// the data node maintenced in the evictor
 	class Item : virtual public SharedObject, public Mutex
 	{
 		friend class Evictor;
@@ -76,23 +105,27 @@ public:
 
 		typedef enum _State
 		{
-			clean = 0,     // the element is as that of ObjectStore
-			created = 1,   // the element is created in the cache, and has not present in the ObjectStore
-			modified = 2,  // the element is modified but not yet flushed to the ObjectStore
-			destroyed = 3,  // the element is required to destroy but not yet deleted from ObjectStore
-			dead = 4       // the element should be evicted from the local cache
+			clean      = 0,  // the element is as that of ObjectStore
+			created    = 1,  // the element is created in the cache, and has not present in the ObjectStore
+			modified   = 2,  // the element is modified but not yet flushed to the ObjectStore
+			destroyed  = 3,  // the element is required to destroy but not yet deleted from ObjectStore
+			dead       = 4   // the element should be evicted from the local cache
 		} State;
 
 		static const char* stateToString(State s);
 
 		Ident _ident;
 
-		typedef struct _Data {
+		typedef struct _Data
+		{
 			State     status;
 			int64     stampCreated, stampLastSave;
 			ObjectPtr servant;
+			bool      completed; // indicate whether the object has been filled completed. Upon to the configuration
+			                     // (FLG_SAVE_COMPLETED_ONLY& Evictor::_flags), some Evictor may be required to save
+			                     // only completed objects in the data-storage
 
-			_Data() : status(clean) {  stampCreated = stampLastSave = 0; }
+			_Data() : status(clean), completed(false) {  stampCreated = stampLastSave = 0; }
 		} Data;
 
 		Data _data;
@@ -124,13 +157,36 @@ public:
 	Evictor(Log& log, const std::string& name, const Properties& props);
 	virtual ~Evictor();
 
+	/// to limit the in-memory evictor size
+	///@param size     the size of evictor, the less-used object may be evicted if the container has more than this size
 	virtual void setSize(int size) { _evictorSize = size>0 ? size: EVICTOR_DEFAULT_SIZE; }
+
+	/// get the size limitation of the evictor
+	///@return the size of evictor
 	virtual int getSize() const { return _evictorSize; }
 
+	/// add an object into the evictor
+	///@param obj     the object to add
+	///@param ident   the unique identification of the object
+	///@return the pointer to Evictor::Item wraps the object
 	virtual Item::Ptr       add(const Item::ObjectPtr& obj, const Ident& ident);
+
+	/// remove an object from the evictor
+	///@param ident   the unique identification of the object
+	///@return the pointer to the object
 	virtual Item::ObjectPtr remove(const Ident& ident);
+
+	/// locate an object from the evictor
+	///@param ident   the unique identification of the object
+	///@return the pointer to the object, NULL if not found
 	virtual Item::ObjectPtr locate(const Ident& ident);
-	virtual void            setDirty(const Ident& ident);
+
+	/// mark the object has been updated and dirty
+	///@param ident   the unique identification of the object
+	///@param bCompleted  to indicate whether the object has been updated completed
+	///@note when configuration (FLG_SAVE_COMPLETED_ONLY& Evictor::_flags) is set, the evictor only flushes the completed object into the 
+	//   data-store, bCompleted=true hereby indicates the evictor that the object is ready to flush
+	virtual void            setDirty(const Ident& ident, bool bCompleted =false);
 
 	// the evictor relies on a thread to to evict/flush data
 	//@return false if completely idle
@@ -210,7 +266,11 @@ protected: // the child class inherited from this evictor should implement the f
 
 #endif // #define __ZQ_COMMON_Evictor_H__
 
-/* Usage sample
+/*
+// --------------------------------------------------------------------------------------------
+// Usage Sample
+// ============================================================================================
+
 class TestData : public SharedObject
 {
 public:
