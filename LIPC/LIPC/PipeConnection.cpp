@@ -11,7 +11,7 @@ void PipeConnection::OnRead(ssize_t nread, const char *buf)
 {
 	if (nread <= 0) {
 		std::string desc = "Read error:";
-		desc.append(errDesc(nread));
+		desc.append(errDesc((int)nread));
 		onError(nread,desc.c_str());
 		return;
 	}
@@ -19,18 +19,15 @@ void PipeConnection::OnRead(ssize_t nread, const char *buf)
 	processMessage(nread,buf);
 }
 
-int PipeConnection::send(Arbitrary value,ZQ::eloop::Handle* send_handle)
+int PipeConnection::send(const std::string& msg, ZQ::eloop::Handle* send_handle)
 {
-	std::string msg = GetString(value);
 	std::string dest;
-	encode(msg,dest);
-//	printf("send:%s\n",dest.c_str());
-	return write(dest.c_str(),dest.size(),send_handle);
+	encode(msg, dest);
+	return write(dest.c_str(),dest.size(), send_handle);
 }
 
-int PipeConnection::sendfd(Arbitrary value,int fd)
+int PipeConnection::sendfd(const std::string& msg, int fd)
 {
-	std::string msg = GetString(value);
 	std::string dest;
 	encode(msg,dest);
 	if (fd > 0)
@@ -44,8 +41,9 @@ int PipeConnection::sendfd(Arbitrary value,int fd)
 		return -1;
 #endif
 	}
-//	printf("send msg:%s\n",dest.c_str());
-	return write(dest.c_str(),dest.size());
+
+	//	printf("send msg:%s\n",dest.c_str());
+	return write(dest.c_str(), dest.size());
 }
 
 void PipeConnection::encode(const std::string& src,std::string& dest)
@@ -66,7 +64,6 @@ void PipeConnection::processMessage(ssize_t nread, const char *buf)
 	size_t len = 0;
     size_t index = 0; /* position of ":" */
     size_t i = 0;
- 	std::string temp;  
 	while(!_buf.empty())
 	{
 		index = _buf.find_first_of(":");
@@ -80,79 +77,24 @@ void PipeConnection::processMessage(ssize_t nread, const char *buf)
 		len = 0;
 		for(i = 0 ; i < index ; i++)
 		{
-			if(isdigit(data[i]))
+			if(!isdigit(data[i]))
 			{
-				len = len * 10 + (data[i] - (char)0x30);
-			}
-			else
-			{
-				onError(lipcParseError,"parse error");
+				onError(lipcParseError, "parse error");
 				return;
 				//parse error
 			}
+
+			len = len * 10 + (data[i] - (char)0x30);
 		}
 
+		std::string temp = _buf.substr(index+1,len);
 		if(len < _buf.size()-index-2)
-		{
-			temp = _buf.substr(index+1,len);
 			_buf = _buf.substr(index+len+2);
-			OnMessage(temp);
-		}
-		else if(len = _buf.size()-index-2)
-		{
-			temp = _buf.substr(index+1,len);
-			OnMessage(temp);
-			_buf.clear();
-		}
+		else _buf.clear();
+
+		OnMessage(temp);
 		break;
 	}
-}
-
-std::string PipeConnection::GetString(Arbitrary value)
-{
-	return m_writer.write(value);
-}
-
-// -----------------------------
-// class PipePassiveConn
-// -----------------------------
-PipePassiveConn::PipePassiveConn(Service& service)
-:_service(service),_sendAck(true),PipeConnection(service._lipcLog)
-{
-
-}
-
-PipePassiveConn::~PipePassiveConn()
-{
-
-}
-
-void PipePassiveConn::OnMessage(std::string& msg)
-{
-	_service.Process(msg,*this);
-}
-
-void PipePassiveConn::onError(int error,const char* errorDescription)
-{
-	close();
-}
-
-void PipePassiveConn::start()
-{
-	read_start();
-	_service.addConn(this);
-	printf("new pipe Passive Conn\n");
-}
-
-void PipePassiveConn::OnWrote(int status)
-{
-	_sendAck = true;
-}
-
-void PipePassiveConn::OnClose()
-{
-	_service.delConn(this);
-	delete this;
 }
 
 }}
