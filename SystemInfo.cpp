@@ -1490,7 +1490,10 @@ void DeviceInfo::gatherNetAdapterInfo()
 				MOLOG(Log::L_WARNING, CLOGFMT(DeviceInfo,"gatherNetAdapterInfo() get the ip of the netInterfaceCard failed"));
 				continue;		  
 			}  
-			_NICs.push_back(theCard);
+			{
+				MutexGuard g(_lkInfo);
+				_NICs.push_back(theCard);
+			}
 			MOLOG(Log::L_INFO, CLOGFMT(DeviceInfo,"gatherNetAdapterInfo() get the NICInfo successful decription[%s] mac[%s] name[%s] "),theCard.cardDescription.c_str(), theCard.macAddress.c_str(), theCard.netCardName.c_str());
 		 }//while
 	 }// if (!ioctl(fd, SIOCGIFCONF, (char *)&ifc))
