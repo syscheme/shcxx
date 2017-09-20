@@ -397,14 +397,15 @@ bool SystemInfo::gatherProcessData(PPERF_DATA_BLOCK pPerfData)
 	return true;
 }
 bool SystemInfo::getProcessData()
-{
-	_listProcessInfo.clear();
+{	
 	LONGLONG sysPerfTimeInterval100nsec = _processRawData2.sysPerfTime100nsec.QuadPart - _processRawData1.sysPerfTime100nsec.QuadPart;
 	if(sysPerfTimeInterval100nsec <= 0)
 	{
 		MOLOG(Log::L_WARNING, CLOGFMT(SystemInfo,"getProcessData() failed to get the  cpu interval time"));
 		return false;
 	}
+	MutexGuard g(_lkInfo);
+	_listProcessInfo.clear();
 	std::vector< processRawInfo::RawData >::const_iterator cit_process2nd;
 	for(cit_process2nd = _processRawData2.processesRawData.begin(); cit_process2nd != _processRawData2.processesRawData.end(); ++cit_process2nd)
 	{
@@ -492,6 +493,7 @@ void SystemInfo::gatherStaticSystemInfo()
 		
 		//get the cpu info
 		HKEY hKey;
+		MutexGuard g(_lkInfo);
 		for (size_t i =0; i < _cpuCount; i++)
 		{
 			CPUINFO currentCPUInfo;
@@ -706,6 +708,7 @@ void SystemInfo::gatherStaticSystemInfo()
 	const unsigned SIZE = 1024;
 	char buf[SIZE];
 	//short resource = 3;
+	MutexGuard g(_lkInfo);
 	while(!feof(fd))
 	{
 		CPUINFO currentInfo;
@@ -1117,6 +1120,7 @@ bool SystemInfo::getProcessData()
 		MOLOG(Log::L_WARNING,CLOGFMT(SystemInfo,"getProcessData() the invalid data of process's using of CPU"));
 		return false;
 	}
+	MutexGuard g(_lkInfo);
 	_listProcessInfo.clear();
 	std::vector< processRawInfo::RawData >::const_iterator cit_process2nd;
 	for(cit_process2nd = _processRawData2.processesRawData.begin(); cit_process2nd != _processRawData2.processesRawData.end(); ++cit_process2nd)
@@ -1364,11 +1368,13 @@ void DeviceInfo::SetInfo(int drive, DWORD diskdata [256])
 			break;
 		diskModel[i] = buffer[i + 54];
 	}
-
-	DiskInfo theDisk;
-	theDisk.diskSeque.assign(diskId);
-	theDisk.diskModel.assign(diskModel);
-	_disks.push_back(theDisk);
+	{	
+		MutexGuard g(_lkInfo);
+		DiskInfo theDisk;
+		theDisk.diskSeque.assign(diskId);
+		theDisk.diskModel.assign(diskModel);
+		_disks.push_back(theDisk);
+	}
 	MOLOG(Log::L_INFO, CLOGFMT(DeviceInfo,"get the disk id[%s] and model [%s] successful"),diskId, diskModel);
      return;
 }
@@ -1418,7 +1424,6 @@ void DeviceInfo::gatherNetAdapterInfo()
 				netCard.IpMasks.push_back(pAddrString->IpMask.String);
 			}  
 			_NICs.push_back(netCard);
-			
 			MOLOG(Log::L_DEBUG, CLOGFMT(DeviceInfo,"got info of NIC[%s]: mac[%s] %s"), netCard.netCardName.c_str(), netCard.macAddress.c_str(), netCard.cardDescription.c_str());
 		}
 	} while(0);
@@ -1454,7 +1459,8 @@ void DeviceInfo::gatherNetAdapterInfo()
 	 ifc.ifc_len = sizeof(buf);
 	 ifc.ifc_buf = (caddr_t)buf;
 	 if (!ioctl(fd, SIOCGIFCONF, (char *)&ifc))
-	 {
+	 {	
+		 MutexGuard g(_lkInfo);
 		 interfaceNum = ifc.ifc_len / sizeof(struct ifreq);
 		 while (interfaceNum-- > 0)
 		 {
@@ -1490,10 +1496,7 @@ void DeviceInfo::gatherNetAdapterInfo()
 				MOLOG(Log::L_WARNING, CLOGFMT(DeviceInfo,"gatherNetAdapterInfo() get the ip of the netInterfaceCard failed"));
 				continue;		  
 			}  
-			{
-				MutexGuard g(_lkInfo);
-				_NICs.push_back(theCard);
-			}
+			_NICs.push_back(theCard);
 			MOLOG(Log::L_INFO, CLOGFMT(DeviceInfo,"gatherNetAdapterInfo() get the NICInfo successful decription[%s] mac[%s] name[%s] "),theCard.cardDescription.c_str(), theCard.macAddress.c_str(), theCard.netCardName.c_str());
 		 }//while
 	 }// if (!ioctl(fd, SIOCGIFCONF, (char *)&ifc))
@@ -1544,7 +1547,10 @@ bool DeviceInfo::getdiskInfo(const std::string& path)
 	if(pos != std::string::npos)
 		diskModel.erase(pos);
 	currentDisk.diskModel = diskModel;//.assign(buffer);
-	_disks.push_back(currentDisk);
+	{
+		MutexGuard g(_lkInfo);
+		_disks.push_back(currentDisk);
+	}
 	MOLOG(Log::L_INFO, CLOGFMT(DeviceInfo,"getdiskInfo() get the disk path[%s] id[%s] and model [%s] successful"),path.c_str(),currentDisk.diskSeque.c_str(), currentDisk.diskModel.c_str());
 	return true;
 }

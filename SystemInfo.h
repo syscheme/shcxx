@@ -209,6 +209,8 @@ public:	// exports all the members
 	uint32		_memTotalVirtual, _memAvailVirtual;
 	ProcessesInfo _listProcessInfo;
 
+	Mutex _lkInfo;//lock for vector operation
+
 protected:
 	processRawInfo::ProcessState _processRawData1;
 	processRawInfo::ProcessState _processRawData2;
