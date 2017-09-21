@@ -43,141 +43,156 @@
 #  define ZQ_LIPC_API
 #endif // OS
 
-#include "eloop/eloop_net.h"
 #include "PipeConnection.h"
-#include "Handler.h"
+#include "eloop/eloop_net.h"
+
 #include <vector>
 #include <list>
 
 namespace ZQ {
-namespace LIPC {
-
+	namespace LIPC {
 class ZQ_LIPC_API Service;
 class ZQ_LIPC_API Client;
+class ZQ_LIPC_API Request;
+class ZQ_LIPC_API Response;
+class ZQ_LIPC_API Message;
+class ZQ_LIPC_API Handler;
 
-// -----------------------------
+class PipePassiveConn;
+class Servant;
+
+// ------------------------------------------------
 // class Message
-// -----------------------------
-typedef struct _Message
-{
-	Json::Value params;
-	int cseq;
-
-	_Message() : params(Json::Value::null), cseq(-1) {}
-
-	std::string toString();
-	bool        fromString(const std::string& str);
-} Message;
-
-// -----------------------------
-// interface IMethod
-// -----------------------------
-class IMethod
+// ------------------------------------------------
+class Message
 {
 public:
-	virtual void Call(const Json::Value& params, Json::Value& result) = 0;
+	typedef enum _LIPCError
+	{
+		LIPC_OK = 0,
+		LIPC_PARSING_ERROR = -32700, /**< Invalid JSON. An error occurred on the server while parsing the JSON text. */
+		LIPC_INVALID_REQUEST = -32600, /**< The received JSON not a valid JSON-RPC Request. */
+		LIPC_METHOD_NOT_FOUND = -32601, /**< The requested remote-procedure does not exist / is not available. */
+		LIPC_INVALID_PARAMS = -32602, /**< Invalid method parameters. */
+		LIPC_INTERNAL_ERROR = -32603, /**< Internal JSON-RPC error. */
 
-    virtual std::string GetName() const = 0;
-	virtual std::string GetDescription() const = 0;
+		//user define error
+		LIPC_NOT_FD	= -33000,
+		LIPC_INVALID_FD_TYPE = -33001,
+
+	}LIPCError;
+
+	static const char* errDesc(LIPCError code);
+
+	typedef enum _FdType
+	{
+		LIPC_UDP,
+		LIPC_TCP,
+		LIPC_FILE,
+		LIPC_NONE,
+	}FdType;
+
+	Message(Json::Value msg):_msg(msg){}
+
+	void setErrorCode(LIPCError code);
+	void setCSeq(int cseq);
+	int getCSeq() const;
+	void setFd(int fd);
+	void setFdType(FdType type);
+
+	int getFd() const;
+	FdType getFdType() const;
+	bool hasFd();
+	bool empty();
+	std::string toString();
+	bool fromString(const std::string& str);
+
+protected:
+	Json::Value		_msg;
 };
 
-// -----------------------------
-// class RpcMethod
-// -----------------------------
-template<class T>
-class RpcMethod : public IMethod
+// ------------------------------------------------
+// class Response
+// ------------------------------------------------
+class Response:public Message,public ZQ::common::SharedObject
 {
 public:
-    typedef void (T::*Method)(const Message& msg, PipeConnection& conn);
+	typedef ZQ::common::Pointer<Response> Ptr;
+	Response(Json::Value msg = Json::Value::null):Message(msg){}
 
-	RpcMethod(T& obj, Method method, const std::string& name, const Json::Value& description)
-		: m_obj(&obj), m_name(name), m_method(method), m_description(description)
-    {}
+	void setResult(const Json::Value& result);
+	Json::Value getResult();
+};
 
-	virtual void Call(const Json::Value& params, Json::Value& result)
-	{
-		(m_obj->*m_method)(params, result);
-	}
+// ------------------------------------------------
+// class Request
+// ------------------------------------------------
+class Request:public Message,public ZQ::common::SharedObject
+{
+public:
+	typedef ZQ::common::Pointer<Request> Ptr;
+	Request(Json::Value msg = Json::Value::null):Message(msg){}
 
-    virtual std::string GetName() const	{ return m_name; }
-	virtual std::string GetDescription() const { return m_description; }
+	typedef void (*RpcCB)(const Response::Ptr& resp,void* data);
+
+	typedef struct _RpcCBInfo{
+		RpcCB cb;
+		void* data;
+		_RpcCBInfo(){cb = NULL;data = NULL;}
+	}RpcCBInfo;
+
+	void setMethodName(const std::string& methodName);
+	void setCb(RpcCB cb,void* data);
+	RpcCBInfo& getCb();
+	void setParam(const Json::Value& param);
+	Json::Value getParam() const;
 
 private:
-	//private to avoid copy
-    RpcMethod(const RpcMethod& obj);
-    RpcMethod& operator=(const RpcMethod& obj);
-
-    Json::Reader m_reader;
-    T* m_obj;
-    Method m_method;
-    std::string m_name;
-    std::string m_description;
+	RpcCBInfo			_cbInfo;
 };
 
 // ---------------------------------------------------
 // class Handler
 // ---------------------------------------------------
-/// class to process the messages exchanged thru a PipeConnection
 class Handler
 {
 public:
-	enum ErrorCode
-	{
-		PARSING_ERROR = -32700, /**< Invalid JSON. An error occurred on the server while parsing the JSON text. */
-		INVALID_REQUEST = -32600, /**< The received JSON not a valid JSON-RPC Request. */
-		METHOD_NOT_FOUND = -32601, /**< The requested remote-procedure does not exist / is not available. */
-		INVALID_PARAMS = -32602, /**< Invalid method parameters. */
-		INTERNAL_ERROR = -32603 /**< Internal JSON-RPC error. */
-	};
-
-	typedef void (*RpcCB)(const Message& resp, void* data);
-
-	typedef struct
-	{
-		RpcCB cb;
-		void* data;
-	} RpcCBInfo;
-
-	typedef std::map<int, RpcCBInfo> seqToCBInfoMap;
+	typedef std::map<int,Request::RpcCBInfo> seqToCBInfoMap;
 
 public:
-
 	Handler();
 	virtual ~Handler();
 
-	void AddMethod(IMethod* method);
-	void Addcb(int seqId,RpcCB cb,void* data);
-	void DeleteMethod(const std::string& name);
-	void SystemDescribe(const Json::Value& v, PipeConnection& conn);
+	void addcb(int seqId,Request::RpcCB cb,void* data);
 
-	void Process(const std::string& msg, PipeConnection& conn);
+	void process(const std::string& msg,PipeConnection& conn);
 
-	IMethod* Lookup(const std::string& name) const;
 	uint lastCSeq();
-	static const char* errDesc(ErrorCode code);
+
+protected:
+	virtual void execMethod(const std::string& methodName,const Request::Ptr& req,Response::Ptr& resp){resp->setErrorCode(Message::LIPC_METHOD_NOT_FOUND);}
 
 private:
-
 	Handler(const Handler& obj);
 	Handler& operator=(const Handler& obj);
 
-	std::list<IMethod*> m_methods;
-	bool invoke(const Json::Value& params, Json::Value& result);
-	bool Check(const Message& root, Json::Value& errResult);
+	void invoke(const Json::Value& msg,PipeConnection& conn);
 
+	Json::FastWriter m_writer;
 	Json::Reader m_reader;
 	seqToCBInfoMap m_seqIds;
+
 	ZQ::common::AtomicInt _lastCSeq;
 };
 
 // ------------------------------------------------
 // class Service
 // ------------------------------------------------
-// template<PipePassiveConn>
-class Service : public Handler, public ZQ::eloop::Pipe
+class Service : public Handler,public ZQ::eloop::Pipe
 {
 public:
 	friend class PipePassiveConn;
+public:
 	typedef std::list< PipePassiveConn* > PipeClientList;
 
 public:
@@ -193,7 +208,7 @@ protected:
 	virtual void doAccept(ZQ::eloop::Handle::ElpeError status);
 	virtual void onError( int error,const char* errorDescription )
 	{	
-		_lipcLog(ZQ::common::Log::L_ERROR, CLOGFMT(Service, "LIPC Service error,code:%d,Description:%s"),error,errorDescription);
+		_lipcLog(ZQ::common::Log::L_ERROR, CLOGFMT(Service, "errCode = %d,errDesc:%s"),error,errorDescription);
 	}
 
 private:
@@ -205,29 +220,45 @@ private:
 // ------------------------------------------------
 // class Client
 // ------------------------------------------------
-class Client : public PipeConnection, public ZQ::LIPC::Handler
+class Client : public ZQ::LIPC::Handler
 {
 public:
-	Client(ZQ::common::Log& log):_lipcLog(log),PipeConnection(log) {}
-	int sendHandlerRequest(std::string method, Json::Value param, RpcCB cb = NULL, void* data = NULL, ZQ::eloop::Handle* send_Handler = NULL);
-	int sendRequest(std::string method, Json::Value param, RpcCB cb = NULL, void* data = NULL, int fd = -1);
+	friend class Servant;
+public:
+	Client(ZQ::eloop::Loop &loop,ZQ::common::Log& log,int ipc=1):_loop(loop),_ipc(ipc),_lipcLog(log),_svt(NULL),_reconnect(false){}
+
+	int  init();
+	int  bind(const char *name);
+	int connect(const char *name);
+	ZQ::eloop::Loop& get_loop() const;
+
+	int read_start();
+	int read_stop();
+	int sendRequest(Request::Ptr req);
+	int shutdown();
+	void close();
 
 protected:
-
-	// the request has been composed and about to send out, this override-able method give the child class a chance to fixup to out-going request
-	virtual void OnRequestPrepared(const std::string& method, Message& pReq) {}
-
+	virtual void OnConnected(ZQ::eloop::Handle::ElpeError status);
+	virtual void OnWrote(int status){}
+	virtual void OnShutdown(ZQ::eloop::Handle::ElpeError status){}
+	virtual void OnClose();
 	// supposed to receive a response of request just sent
 	virtual void OnMessage(std::string& msg);
 	virtual void onError( int error,const char* errorDescription )
 	{	
-		fprintf(stderr, "errCode=%d errDesc:%s\n",error,errorDescription);
+		_lipcLog(ZQ::common::Log::L_ERROR, CLOGFMT(Client, "errCode = %d,errDesc:%s"),error,errorDescription);
 	}
 
 	ZQ::common::Log& _lipcLog;
+private:
+	std::string		_localPipeName;
+	std::string		_peerPipeName;
+	int			_ipc;
+	Servant*	_svt;
+	ZQ::eloop::Loop& _loop;
+	bool		_reconnect;
 };
 
 }}//ZQ::LIPC
-
-
 #endif

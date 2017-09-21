@@ -1,85 +1,284 @@
 #include "ZQ_common_conf.h"
 #include "LIPC.h"
 
-#ifdef ZQ_OS_LINUX
-	#include <dirent.h>
-#endif
+#define SYSTEM_DESCRIBE "systemDescribe"
+
+#define MAX_CSEQ    0x0fffffff
+#define JSON_RPC_PROTO "jsonrpc"
+#define JSON_RPC_PROTO_VERSION "2.0"
+#define JSON_RPC_ID "id"
+#define JSON_RPC_METHOD "method"
+#define JSON_RPC_PARAMS "params"
+#define JSON_RPC_RESULT "result"
+#define JSON_RPC_ERROR "error"
+#define JSON_RPC_ERROR_CODE "code"
+#define JSON_RPC_ERROR_MESSAGE "message"
+#define JSON_RPC_ERROR_DATA "data"
+#define JSON_RPC_FD "fd"
+#define JSON_RPC_FD_TYPE "fd_type"
 
 namespace ZQ {
-namespace LIPC {
+	namespace LIPC {
 
-// -------------------------------------------------
+// ------------------------------------------------
 // class Message
-// -------------------------------------------------
+// ------------------------------------------------
+const char* Message::errDesc(LIPCError code)
+{
+	switch(code)
+	{
+	case LIPC_PARSING_ERROR:return "Parse error.";
+	case LIPC_INVALID_REQUEST:return "Invalid JSON-RPC request.";
+	case LIPC_METHOD_NOT_FOUND:return "Method not found.";
+	case LIPC_INVALID_PARAMS:return "Invalid params.";
+	case LIPC_INTERNAL_ERROR:return "Internal error.";
+	default:return "server error.";
+	}
+}
+
+void Message::setErrorCode(LIPCError code){
+	Json::Value err;
+	err[JSON_RPC_ERROR_CODE] = code;
+	err[JSON_RPC_ERROR_MESSAGE] = errDesc(code);
+	_msg[JSON_RPC_ERROR] = err;
+}
+void Message::setCSeq(int cseq)	{
+	_msg[JSON_RPC_ID] = cseq;
+}
+
+int Message::getCSeq() const{
+	return _msg.isMember(JSON_RPC_ID)?_msg[JSON_RPC_ID].asInt():-1;
+}
+
+void Message::setFd(int fd)	
+{
+	_msg[JSON_RPC_FD] = fd;
+}
+
+void Message::setFdType(FdType type)
+{
+	_msg[JSON_RPC_FD_TYPE] = type;
+}
+
+int Message::getFd() const{
+	return _msg.isMember(JSON_RPC_FD)?_msg[JSON_RPC_FD].asInt():-1;
+}
+
+Message::FdType Message::getFdType() const{
+	return _msg.isMember(JSON_RPC_FD_TYPE)?(Message::FdType)(_msg[JSON_RPC_FD_TYPE].asUInt()):LIPC_NONE;
+}
+
+bool Message::hasFd(){
+	return _msg.isMember(JSON_RPC_FD)?true:false;
+}
+
+bool Message::empty()
+{
+	return (Json::Value::null == _msg)?true:false;
+}
+
 std::string Message::toString()
 {
-	if (cseq >0)
-		params[JSON_RPC_ID] = cseq;
-
-	params[VER] = cseq;
+	if (Json::Value::null == _msg)
+		return "";
+	_msg[JSON_RPC_PROTO] = JSON_RPC_PROTO_VERSION;
 	Json::FastWriter writer;
-	return writer.write(params);
+	return writer.write(_msg);
 }
 
 bool Message::fromString(const std::string& str)
 {
-	params = Json::Value::null;
-	cseq =-1;
-	bool ret = Json::Reader().parse(str, params);
-	if (ret && params.isMember(JSON_RPC_ID))
-		cseq = params[JSON_RPC_ID].asInt();
-
-	return ret;
+	_msg = Json::Value::null;
+	return Json::Reader().parse(str, _msg);
 }
 
 // ------------------------------------------------
-// class Client
+// class Request
 // ------------------------------------------------
-int Client::sendHandlerRequest(std::string method, Json::Value param, RpcCB cb, void* data, ZQ::eloop::Handle* send_Handler)
+void Request::setMethodName(const std::string& methodName)
 {
-	Message req;
-	req.params[JSON_RPC_PROTO] = JSON_RPC_PROTO_VERSION;
-	req.params[JSON_RPC_METHOD] = method;
-	if (param != Json::Value::null)
-		req.params[JSON_RPC_PARAMS] = param;
-
-	req.cseq = lastCSeq();
-
-	if (cb !=NULL)
-		Addcb(req.cseq, cb, data);
-
-	OnRequestPrepared(method, req);
-
-	int ret = send(req.toString(), send_Handler); 
-	if (ret < 0)
-		return ret;
-
-	return req.cseq;
+	_msg[JSON_RPC_METHOD] = methodName;
+}
+void Request::setCb(RpcCB cb,void* data)
+{
+	_cbInfo.cb = cb;
+	_cbInfo.data = data;
 }
 
-int Client::sendRequest(std::string method, Json::Value param, RpcCB cb, void* data, int fd)
+Request::RpcCBInfo& Request::getCb()
 {
-	Message req;
-	req.params[JSON_RPC_PROTO] = JSON_RPC_PROTO_VERSION;
-	req.params[JSON_RPC_METHOD] = method;
-	if (param != Json::Value::null)
-		req.params[JSON_RPC_PARAMS] = param;
-
-	req.cseq = lastCSeq();
-
-	if (cb !=NULL)
-		Addcb(req.cseq, cb, data);
-
-	int ret = sendfd(req.toString(), fd);
-	if (ret < 0)
-		return ret;
-
-	return req.cseq;
+	return _cbInfo;
 }
 
-void Client::OnMessage(std::string& msg)
+void Request::setParam(const Json::Value& param)
 {
-	Process(msg, *this);
+	_msg[JSON_RPC_PARAMS] = param;
+}
+
+Json::Value Request::getParam() const
+{
+	if (_msg.isMember(JSON_RPC_PARAMS))
+		 return _msg[JSON_RPC_PARAMS];
+	
+	return Json::Value::null;
+}
+
+// ------------------------------------------------
+// class Response
+// ------------------------------------------------
+void Response::setResult(const Json::Value& result)
+{
+	_msg[JSON_RPC_RESULT] = result;
+}
+
+Json::Value Response::getResult()
+{
+	if (_msg.isMember(JSON_RPC_RESULT))
+		return _msg[JSON_RPC_RESULT];
+
+	return Json::Value::null; 
+}
+
+
+// ---------------------------------------------------
+// class Handler
+// ---------------------------------------------------
+Handler::Handler()
+{
+  /* add a RPC method that list the actual RPC methods contained in 
+   * the Handler 
+   */
+	_lastCSeq.set(1);
+}
+
+Handler::~Handler()
+{
+}
+
+uint Handler::lastCSeq()
+{
+	int v = _lastCSeq.add(1);
+	if (v>0 && v < MAX_CSEQ)
+		return (uint) v;
+
+	static ZQ::common::Mutex lock;
+	ZQ::common::MutexGuard g(lock);
+	v = _lastCSeq.add(1);
+	if (v >0 && v < MAX_CSEQ)
+		return (uint) v;
+
+	_lastCSeq.set(1);
+	v = _lastCSeq.add(1);
+
+	return (uint) v;
+}
+
+
+void Handler::addcb(int seqId,Request::RpcCB cb,void* data)
+{
+	Request::RpcCBInfo info;
+	info.cb = cb;
+	info.data = data;
+	m_seqIds[seqId] = info;
+}
+
+void Handler::process(const std::string& msg,PipeConnection& conn)
+{
+	Json::Value root;
+	/* parsing */
+	bool parsing = m_reader.parse(msg, root);
+
+	if(!parsing)
+	{
+		Response::Ptr resp = new Response();
+		resp->setErrorCode(Message::LIPC_PARSING_ERROR);
+		conn.send(resp->toString());
+		return;
+	}
+
+	if(root.isArray())
+	{
+		/* batched call */
+		for(Json::Value::ArrayIndex i = 0 ; i < root.size() ; i++)
+		{
+			invoke(root[i],conn);
+		}
+	}
+	else
+	{
+		invoke(root,conn);
+	}
+}
+
+void Handler::invoke(const Json::Value& msg,PipeConnection& conn)
+{
+	Request::Ptr req = new Request(msg);
+	Response::Ptr resp = new Response();
+
+	Json::Value err;
+	/* check the JSON-RPC version => 2.0 */
+	if(!msg.isObject() || !msg.isMember(JSON_RPC_PROTO) || msg[JSON_RPC_PROTO] != JSON_RPC_PROTO_VERSION) 
+	{
+		resp->setErrorCode(Message::LIPC_PARSING_ERROR);
+		conn.send(resp->toString());
+		return;
+	}
+
+	if(msg.isMember(JSON_RPC_METHOD))
+	{
+		std::string method = msg[JSON_RPC_METHOD].asString();
+		if (req->hasFd())
+		{
+#ifdef ZQ_OS_LINUX
+			req->setFd(conn.acceptfd());
+#else
+			req->setFd(-1);
+			req->setFdType(Message::LIPC_NONE);
+#endif
+		}
+		
+		execMethod(method,req,resp);
+		
+		if (!resp->empty())
+		{
+			resp->setCSeq(req->getCSeq());
+			conn.send(resp->toString(),resp->getFd());
+		}
+		return;
+	}
+	else
+	{
+		if (msg.isMember(JSON_RPC_ID))
+		{
+			int seqId = msg[JSON_RPC_ID].asInt();
+			seqToCBInfoMap::iterator it = m_seqIds.find(seqId);
+			if (it != m_seqIds.end())
+			{
+				Response::Ptr cbMsg = new Response(msg);
+
+				if (cbMsg->hasFd())
+				{
+#ifdef ZQ_OS_LINUX
+					cbMsg->setFd(conn.acceptfd());
+#else
+					cbMsg->setFd(-1);
+					cbMsg->setFdType(Message::LIPC_NONE);
+#endif
+				}
+
+				Request::RpcCB cb = it->second.cb;
+				void* data = it->second.data;
+				if (cb!=NULL&&data!=NULL)
+					(*cb)(cbMsg,data);
+				m_seqIds.erase(it);
+			}
+			return;
+		}
+	}
+
+	/* forge an error response */
+	resp->setErrorCode(Message::LIPC_METHOD_NOT_FOUND);
+	conn.send(resp->toString());
 }
 
 // -----------------------------
@@ -88,32 +287,39 @@ void Client::OnMessage(std::string& msg)
 class PipePassiveConn : public PipeConnection
 {
 public:
-	PipePassiveConn::PipePassiveConn(Service& service)
-		:_service(service),_sendAck(true),PipeConnection(service._lipcLog)
+	PipePassiveConn(Service& service)
+		:_service(service),PipeConnection(service._lipcLog)
 	{}
 
-	~PipePassiveConn();
 	void start()
 	{
 		read_start();
 		_service.addConn(this);
 		printf("new pipe Passive Conn\n");
+		_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(PipePassiveConn, "new pipe Passive Conn"));
 	}
 
 
 	virtual void OnMessage(std::string& msg)
 	{
-		_service.Process(msg,*this);
+		_service.process(msg,*this);
 	}
 
 	virtual void onError( int error,const char* errorDescription)
 	{
+		_lipcLog(ZQ::common::Log::L_ERROR, CLOGFMT(PipePassiveConn, "errCode = %d,errDesc:%s"),error,errorDescription);
 		close();
 	}
 
 	virtual void OnWrote(int status)
 	{
-		_sendAck = true;
+		if (status != elpeSuccess)
+		{
+			std::string desc = "send error:";
+			desc.append(errDesc(status));
+			onError(status,desc.c_str());
+			return;
+		}
 	}
 
 	virtual void OnClose()
@@ -122,11 +328,8 @@ public:
 		delete this;
 	}
 
-	bool	isAck(){return _sendAck;}
-
 private:
 	Service&	_service;
-	bool		_sendAck;
 };
 
 // -------------------------------------------------
@@ -157,8 +360,7 @@ void Service::delConn(PipePassiveConn* conn)
 
 void Service::doAccept(ZQ::eloop::Handle::ElpeError status)
 {
-	if (status != Handle::elpeSuccess)
-	{
+	if (status != Handle::elpeSuccess) {
 		std::string desc = "accept error:";
 		desc.append(ZQ::eloop::Handle::errDesc(status));
 		onError(status,desc.c_str());
@@ -180,258 +382,183 @@ void Service::doAccept(ZQ::eloop::Handle::ElpeError status)
 	}
 }
 
-// ---------------------------------------------------
-// class Handler
-// ---------------------------------------------------
-const char* Handler::errDesc(ErrorCode code)
+
+// ------------------------------------------------
+// class Servant
+// ------------------------------------------------
+class Servant : public PipeConnection
 {
-	switch(code)
+public:
+	Servant(ZQ::common::Log& log,Client& client):PipeConnection(log),_client(client){}
+
+protected:
+
+	virtual void OnConnected(ElpeError status)
 	{
-	case PARSING_ERROR:   return "Parse error";
-	case INVALID_REQUEST: return "Invalid JSON-RPC request";
-	case METHOD_NOT_FOUND:return "Method not found";
-	case INVALID_PARAMS:  return "Invalid params";
-	case INTERNAL_ERROR:  return "Internal error";
-	default:
-		break;
+		_client.OnConnected(status);
+	}
+	virtual void OnWrote(int status)
+	{
+		_client.OnWrote(status);
+	}
+	virtual void OnShutdown(ElpeError status)
+	{
+		_client.OnShutdown(status);
+	}
+	virtual void OnClose()
+	{
+		_client.OnClose();
 	}
 
-	return "server error";
-}
-
-Handler::Handler()
-{
-	// add a RPC method that list the actual RPC methods contained in the Handler 
-	_lastCSeq.set(1);
-	Json::Value desc;
-	desc["description"] = "List the RPC methods available";
-	desc["parameters"] = Json::Value::null;
-	desc["returns"] = "Object that contains description of all methods registered";
-
-	AddMethod(new RpcMethod<Handler>(*this, &Handler::SystemDescribe, std::string("system.describe"), desc));
-}
-
-Handler::~Handler()
-{
-	// delete all objects from the list 
-	for(std::list<IMethod*>::const_iterator it = m_methods.begin() ; it != m_methods.end() ; it++)
-		delete (*it);
-
-	m_methods.clear();
-}
-
-uint Handler::lastCSeq()
-{
-	int v = _lastCSeq.add(1);
-	if (v>0 && v < MAX_CSEQ)
-		return (uint) v;
-
-	static ZQ::common::Mutex lock;
-	ZQ::common::MutexGuard g(lock);
-	v = _lastCSeq.add(1);
-	if (v >0 && v < MAX_CSEQ)
-		return (uint) v;
-
-	_lastCSeq.set(1);
-	v = _lastCSeq.add(1);
-
-	return (uint) v;
-}
-
-void Handler::AddMethod(IMethod* method)
-{
-	m_methods.push_back(method);
-}
-
-void Handler::Addcb(int seqId,RpcCB cb,void* data)
-{
-	RpcCBInfo info;
-	info.cb = cb;
-	info.data = data;
-	m_seqIds[seqId] = info;
-}
-
-void Handler::DeleteMethod(const std::string& name)
-{
-    // do not delete system defined method
-	if(name == "system.describe")
-		return;
-
-	for(std::list<IMethod*>::iterator it = m_methods.begin() ; it != m_methods.end() ; it++)
+	virtual void OnMessage(std::string& msg)
 	{
-		if((*it)->GetName() == name)
+		_client.OnMessage(msg);
+	}
+	virtual void onError( int error,const char* errorDescription )
+	{	
+		_client.onError(error,errorDescription);
+	}
+
+private:
+	Client& _client;
+};
+
+// ------------------------------------------------
+// class Client
+// ------------------------------------------------
+int Client::init()
+{
+	_svt = new Servant(_lipcLog,*this);
+	return _svt->init(_loop,_ipc);
+}
+int  Client::bind(const char *name)
+{
+	if (_svt == NULL)
+		return -1;
+	_localPipeName = name;
+	return _svt->bind(name);
+}
+
+ZQ::eloop::Loop& Client::get_loop() const
+{
+	return _loop;
+}
+int Client::connect(const char *name)
+{
+	_peerPipeName = name;
+	int ret = 0;
+	if (_svt == NULL)
+	{
+		ret = init();
+		if (ret < 0)
+			return ret;
+		_svt->connect(name);
+		return 0;
+	}
+	if (_reconnect)
+	{
+		_svt->close();
+		return 0;
+	}
+	_reconnect = true;
+	_svt->connect(name);
+	return 0;
+}
+
+void Client::OnClose()
+{
+	if (_svt != NULL)
+	{
+		delete _svt;
+		_svt = NULL;
+	}
+
+	if (_reconnect)
+	{
+		int ret = init();
+		if (ret < 0)
 		{
-			delete (*it);
-			m_methods.erase(it);
+			std::string desc = "reconnect init error:";
+			desc.append(ZQ::eloop::Handle::errDesc(ret));
+			onError(ret,desc.c_str());
 			return;
 		}
+		if (!_localPipeName.empty())
+		{
+			#ifdef ZQ_OS_LINUX
+				unlink(_localPipeName.c_str());
+			#else
+			#endif
+			_svt->bind(_localPipeName.c_str());
+		}
+		_svt->connect(_peerPipeName.c_str());
 	}
 }
 
-void Handler::SystemDescribe(const Json::Value& params, Json::Value& result)
+void Client::close()
 {
-	Json::Value methods;
-	result["jsonrpc"] = "2.0";
-
-	for(std::list<IMethod*>::iterator it = m_methods.begin() ; it != m_methods.end() ; it++)
-		methods[(*it)->GetName()] = (*it)->GetDescription();
-
-	result["result"] = methods;
-}
-
-void Handler::Process(const std::string& msgstr, PipeConnection& conn)
-{
-	Message msg;
-	Message resp;
-
-	bool parsing = msg.fromString(msgstr);
-	resp.cseq = msg.cseq;
-	if (!parsing)
-	{
-		Json::Value error;
-
-		//TODO: error[xxx]=xxxx
-		resp.params["error"] = error; 
-		conn.send(resp.toString());
+	if (_svt == NULL)
 		return;
-	}
-
-	if(!msg.params.isArray())
-	{
-		if (invoke(msg.params[i], resp.params))
-			conn.send(resp.toString());
-
-		return;
-	}
-
-	switch (msg.param[XXX_FD])
-	{
-	case UDP:
-		udpPump2* pump = new udpPump2(_engine,sess.sessId,ip.c_str(),port,sess.offset);
-		pump->init(get_loop());
-	case TCP
-	}
-
-
-	//  batched call
-	for(size_t i = 0 ; i < msg.params.size() ; i++)
-	{
-		resp.cseq = msg.params[i][JSON_RPC_ID].asInt();
-		if (resp.cseq <=0)
-			resp.cseq = -1;
-
-		resp.params = Json::Value::null;
-		if (invoke(msg.params[i], resp.params))
-			conn.send(resp.toString());
-	}
+	_reconnect = false;
+	_svt->close();
 }
 
-//@return true if the result is needed to feed back to the peer thru the connection
-bool Handler::invoke(const Json::Value& params, Json::Value& result)
+int Client::shutdown()
 {
-	Json::Value err;
-
-	// check the JSON-RPC version => 2.0
-	if(!params.isObject() || !params.isMember("jsonrpc") || params["jsonrpc"] != "2.0") 
-	{
-		result["jsonrpc"] = "2.0";
-		err["code"] = Handler::INVALID_REQUEST;
-		err["message"] = "Invalid JSON-RPC request.";
-		result["error"] = err;
-		return true;
-	}
-
-	std::string method = params[JSON_RPC_METHOD].asString();
-	if (method != "")
-	{
-		// this is an incomming request
-		IMethod* rpc = Lookup(method);
-		if (!rpc)
-			return false;
-
-		rpc->Call(reqParams, result);
-		return true;
-	}
-
-	// this is an incomming response
-	int seqId = params[JSON_RPC_ID].asInt();
-	if (seqId >= 0)
-	{
-		seqToCBInfoMap::iterator it = m_seqIds.find(seqId);
-		if (m_seqIds.end() == it)
-			return false;
-
-		RpcCB cb = it->second.cb;
-		void* data = it->second.data;
-		if (cb!=NULL && data!=NULL)
-			(*cb)(params, data);
-
-#pragma message(__MSGLOC__"TODO: this is a bug to erase CB here")
-		m_seqIds.erase(it);
-		return false;
-	}
-
-	// forge an error response
-	result["jsonrpc"] = "2.0";
-
-	err["code"] = Handler::METHOD_NOT_FOUND;
-	err["message"] = "Method not found";
-	result["error"] = err;
-
-	return true;
+	if (_svt == NULL)
+		return -1;
+	return _svt->shutdown();
 }
 
-bool Handler::Check(const Json::Value& params, Json::Value& error)
+int Client::read_start()
 {
-	Json::Value err;
-
-	// check the JSON-RPC version => 2.0
-	if (!params.isObject() || !params.isMember("jsonrpc") || params["jsonrpc"] != "2.0") 
-	{
-		error["id"] = Json::Value::null;
-		error["jsonrpc"] = "2.0";
-
-		err["code"] = INVALID_REQUEST;
-		err["message"] = "Invalid JSON-RPC request.";
-		error["error"] = err;
-		return false;
-	}
-
-	if (params.isMember("id") && (params["id"].isArray() || params["id"].isObject()))
-	{
-		error["id"] = Json::Value::null;
-		error["jsonrpc"] = "2.0";
-
-		err["code"] = INVALID_REQUEST;
-		err["message"] = "Invalid JSON-RPC request.";
-		error["error"] = err;
-		return false;
-	}
-
-	// extract "method" attribute
-	if (!params.isMember("method") || !params["method"].isString())
-	{
-		error["id"] = Json::Value::null;
-		error["jsonrpc"] = "2.0";
-
-		err["code"] = INVALID_REQUEST;
-		err["message"] = "Invalid JSON-RPC request.";
-		error["error"] = err;
-		return false;
-	}
-
-	return true;
+	if (_svt == NULL)
+		return -1;
+	return _svt->read_start();
+}
+int Client::read_stop()
+{
+	if (_svt == NULL)
+		return -1;
+	return _svt->read_stop();
 }
 
-IMethod* Handler::Lookup(const std::string& name) const
+int Client::sendRequest(Request::Ptr req)
 {
-	for(std::list<IMethod*>::const_iterator it = m_methods.begin() ; it != m_methods.end() ; it++)
+	if (_svt == NULL)
+		return -1;
+	int seqId = 0;
+	Request::RpcCBInfo info = req->getCb();
+	if ((info.cb != NULL)&&(info.data != NULL))
 	{
-		if((*it)->GetName() == name)
-			return (*it);
+		seqId = lastCSeq();
+		addcb(seqId,info.cb,info.data);
+		req->setCSeq(seqId);
 	}
+	else
+		_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(Client, "No callback function."));
+		
+	int ret = _svt->send(req->toString(),req->getFd());
+	if (ret < 0)
+	{
+		std::string desc = "send error:";
+		desc.append(ZQ::eloop::Handle::errDesc(ret));
+		onError(ret,desc.c_str());
+		return ret;
+	}
+	
+	return seqId;
+}
 
-	return NULL;
+
+void Client::OnConnected(ZQ::eloop::Handle::ElpeError status)
+{
+
+}
+
+void Client::OnMessage(std::string& msg)
+{
+	process(msg,*_svt);
 }
 
 }}//ZQ::LIPC
