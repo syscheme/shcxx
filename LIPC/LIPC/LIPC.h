@@ -96,10 +96,13 @@ public:
 	Message(Json::Value msg):_msg(msg){}
 
 	void setErrorCode(LIPCError code);
+	LIPCError getErrorCode();
+
+
 	void setCSeq(int cseq);
 	int getCSeq() const;
-	void setFd(fd_t fd);
-	void setFdType(FdType type);
+	
+	void setFd(fd_t fd,FdType type);
 
 	int getFd() const;
 	FdType getFdType() const;
@@ -142,8 +145,8 @@ public:
 		_RpcCBInfo(){cb = NULL;data = NULL;}
 	}RpcCBInfo;
 
-	void setMethodName(const std::string& methodName);
-	void setCb(RpcCB cb,void* data);
+	void setMethod(const std::string& methodName,RpcCB cb=NULL,void* data=NULL);
+	std::string getMethodName();
 	RpcCBInfo& getCb();
 	void setParam(const Json::Value& param);
 	Json::Value getParam() const;
@@ -238,11 +241,14 @@ public:
 	int shutdown();
 	void close();
 
+private:
+	void OnCloseHandle();
 protected:
+	virtual void OnRequestPrepared(const std::string& method, int cseq, Json::Value& pReq){}
 	virtual void OnConnected(ZQ::eloop::Handle::ElpeError status);
 	virtual void OnWrote(int status){}
 	virtual void OnShutdown(ZQ::eloop::Handle::ElpeError status){}
-	virtual void OnClose();
+	virtual void OnClose(){}
 	// supposed to receive a response of request just sent
 	virtual void OnMessage(std::string& msg);
 	virtual void onError( int error,const char* errorDescription )

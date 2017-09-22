@@ -42,6 +42,12 @@ void Message::setErrorCode(LIPCError code){
 	err[JSON_RPC_ERROR_MESSAGE] = errDesc(code);
 	_msg[JSON_RPC_ERROR] = err;
 }
+
+Message::LIPCError Message::getErrorCode()
+{
+	return _msg.isMember(JSON_RPC_ERROR_CODE)?(LIPCError)_msg[JSON_RPC_ERROR_CODE].asInt():LIPC_OK;
+}
+
 void Message::setCSeq(int cseq)	{
 	_msg[JSON_RPC_ID] = cseq;
 }
@@ -50,13 +56,9 @@ int Message::getCSeq() const{
 	return _msg.isMember(JSON_RPC_ID)?_msg[JSON_RPC_ID].asInt():-1;
 }
 
-void Message::setFd(fd_t fd)	
+void Message::setFd(fd_t fd,FdType type)
 {
 	_msg[JSON_RPC_FD] = fd;
-}
-
-void Message::setFdType(FdType type)
-{
 	_msg[JSON_RPC_FD_TYPE] = type;
 }
 
@@ -95,14 +97,18 @@ bool Message::fromString(const std::string& str)
 // ------------------------------------------------
 // class Request
 // ------------------------------------------------
-void Request::setMethodName(const std::string& methodName)
+void Request::setMethod(const std::string& methodName,RpcCB cb,void* data)
 {
 	_msg[JSON_RPC_METHOD] = methodName;
+	if ((cb != NULL)&&(data != NULL))
+	{
+		_cbInfo.cb = cb;
+		_cbInfo.data = data;
+	}
 }
-void Request::setCb(RpcCB cb,void* data)
+std::string Request::getMethodName()
 {
-	_cbInfo.cb = cb;
-	_cbInfo.data = data;
+	return _msg.isMember(JSON_RPC_METHOD)?_msg[JSON_RPC_METHOD].asString():"";
 }
 
 Request::RpcCBInfo& Request::getCb()
@@ -230,10 +236,9 @@ void Handler::invoke(const Json::Value& msg,PipeConnection& conn)
 		if (req->hasFd())
 		{
 #ifdef ZQ_OS_LINUX
-			req->setFd(conn.acceptfd());
+			req->setFd(conn.acceptfd(),req->getFdType());
 #else
-			req->setFd(-1);
-			req->setFdType(Message::LIPC_NONE);
+			req->setFd(-1,Message::LIPC_NONE);
 #endif
 		}
 		
@@ -259,10 +264,9 @@ void Handler::invoke(const Json::Value& msg,PipeConnection& conn)
 				if (cbMsg->hasFd())
 				{
 #ifdef ZQ_OS_LINUX
-					cbMsg->setFd(conn.acceptfd());
+					cbMsg->setFd(conn.acceptfd(),cbMsg->getFdType());
 #else
-					cbMsg->setFd(-1);
-					cbMsg->setFdType(Message::LIPC_NONE);
+					cbMsg->setFd(-1,Message::LIPC_NONE);
 #endif
 				}
 
@@ -407,7 +411,7 @@ protected:
 	}
 	virtual void OnClose()
 	{
-		_client.OnClose();
+		_client.OnCloseHandle();
 	}
 
 	virtual void OnMessage(std::string& msg)
@@ -461,14 +465,13 @@ int Client::connect(const char *name)
 	return 0;
 }
 
-void Client::OnClose()
+void Client::OnCloseHandle()
 {
 	if (_svt != NULL)
 	{
 		delete _svt;
 		_svt = NULL;
 	}
-
 	if (_reconnect)
 	{
 		_svt = new Servant(_lipcLog,*this);
@@ -482,14 +485,16 @@ void Client::OnClose()
 		}
 		if (!_localPipeName.empty())
 		{
-			#ifdef ZQ_OS_LINUX
-				unlink(_localPipeName.c_str());
-			#else
-			#endif
+#ifdef ZQ_OS_LINUX
+			unlink(_localPipeName.c_str());
+#else
+#endif
 			_svt->bind(_localPipeName.c_str());
 		}
 		_svt->connect(_peerPipeName.c_str());
 	}
+	else
+		OnClose();
 }
 
 void Client::close()
@@ -534,6 +539,8 @@ int Client::sendRequest(Request::Ptr req)
 	}
 	else
 		_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(Client, "No callback function."));
+
+	OnRequestPrepared(req->getMethodName(),seqId,req->getParam());
 		
 	int ret = _svt->send(req->toString(),req->getFd());
 	if (ret < 0)
