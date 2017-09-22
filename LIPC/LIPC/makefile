@@ -4,7 +4,7 @@ include $(TOPDIR)/build/defines.mk
 
 SOLIB	:= LIPC
 
-OBJS	:= LIPC.os Handler.os PipeConnection.os
+OBJS	:= LIPC.os PipeConnection.os
 
 INCDIR += . .. $(_uv_dir)/include $(_jsoncpp_dir)/include $(TOPDIR)/Common $(TOPDIR)/Common/eloop
 
