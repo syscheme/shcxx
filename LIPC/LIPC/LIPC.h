@@ -84,6 +84,7 @@ public:
 
 	static const char* errDesc(LIPCError code);
 
+	typedef int fd_t;
 	typedef enum _FdType
 	{
 		LIPC_UDP,
@@ -97,7 +98,7 @@ public:
 	void setErrorCode(LIPCError code);
 	void setCSeq(int cseq);
 	int getCSeq() const;
-	void setFd(int fd);
+	void setFd(fd_t fd);
 	void setFdType(FdType type);
 
 	int getFd() const;
@@ -206,7 +207,7 @@ protected:
 	void delConn(PipePassiveConn* conn);
 	
 	virtual void doAccept(ZQ::eloop::Handle::ElpeError status);
-	virtual void onError( int error,const char* errorDescription )
+	virtual void onError( int error,const char* errorDescription)
 	{	
 		_lipcLog(ZQ::common::Log::L_ERROR, CLOGFMT(Service, "errCode = %d,errDesc:%s"),error,errorDescription);
 	}
@@ -227,7 +228,6 @@ public:
 public:
 	Client(ZQ::eloop::Loop &loop,ZQ::common::Log& log,int ipc=1):_loop(loop),_ipc(ipc),_lipcLog(log),_svt(NULL),_reconnect(false){}
 
-	int  init();
 	int  bind(const char *name);
 	int connect(const char *name);
 	ZQ::eloop::Loop& get_loop() const;

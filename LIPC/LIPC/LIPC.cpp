@@ -50,7 +50,7 @@ int Message::getCSeq() const{
 	return _msg.isMember(JSON_RPC_ID)?_msg[JSON_RPC_ID].asInt():-1;
 }
 
-void Message::setFd(int fd)	
+void Message::setFd(fd_t fd)	
 {
 	_msg[JSON_RPC_FD] = fd;
 }
@@ -295,7 +295,7 @@ public:
 	{
 		read_start();
 		_service.addConn(this);
-		printf("new pipe Passive Conn\n");
+//		printf("new pipe Passive Conn\n");
 		_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(PipePassiveConn, "new pipe Passive Conn"));
 	}
 
@@ -307,7 +307,7 @@ public:
 
 	virtual void onError( int error,const char* errorDescription)
 	{
-		_lipcLog(ZQ::common::Log::L_ERROR, CLOGFMT(PipePassiveConn, "errCode = %d,errDesc:%s"),error,errorDescription);
+		_service.onError(error,errorDescription);
 		close();
 	}
 
@@ -426,11 +426,6 @@ private:
 // ------------------------------------------------
 // class Client
 // ------------------------------------------------
-int Client::init()
-{
-	_svt = new Servant(_lipcLog,*this);
-	return _svt->init(_loop,_ipc);
-}
 int  Client::bind(const char *name)
 {
 	if (_svt == NULL)
@@ -449,7 +444,8 @@ int Client::connect(const char *name)
 	int ret = 0;
 	if (_svt == NULL)
 	{
-		ret = init();
+		_svt = new Servant(_lipcLog,*this);
+		ret = _svt->init(_loop,_ipc);
 		if (ret < 0)
 			return ret;
 		_svt->connect(name);
@@ -475,7 +471,8 @@ void Client::OnClose()
 
 	if (_reconnect)
 	{
-		int ret = init();
+		_svt = new Servant(_lipcLog,*this);
+		int ret = _svt->init(_loop,_ipc);
 		if (ret < 0)
 		{
 			std::string desc = "reconnect init error:";

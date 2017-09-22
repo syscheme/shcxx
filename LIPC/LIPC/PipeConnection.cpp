@@ -40,7 +40,6 @@ int PipeConnection::send(const std::string& msg, int fd)
 #endif
 	}
 
-	//	printf("send msg:%s\n",dest.c_str());
 	return write(dest.c_str(), dest.length());
 }
 
