@@ -121,7 +121,7 @@ void Request::setParam(const Json::Value& param)
 	_msg[JSON_RPC_PARAMS] = param;
 }
 
-Json::Value Request::getParam() const
+Json::Value Request::getParam()
 {
 	if (_msg.isMember(JSON_RPC_PARAMS))
 		 return _msg[JSON_RPC_PARAMS];
@@ -540,7 +540,8 @@ int Client::sendRequest(Request::Ptr req)
 	else
 		_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(Client, "No callback function."));
 
-	OnRequestPrepared(req->getMethodName(),seqId,req->getParam());
+	Json::Value param = req->getParam();
+	OnRequestPrepared(req->getMethodName(),seqId,param);
 		
 	int ret = _svt->send(req->toString(),req->getFd());
 	if (ret < 0)

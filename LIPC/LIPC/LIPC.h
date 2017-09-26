@@ -149,7 +149,7 @@ public:
 	std::string getMethodName();
 	RpcCBInfo& getCb();
 	void setParam(const Json::Value& param);
-	Json::Value getParam() const;
+	Json::Value getParam();
 
 private:
 	RpcCBInfo			_cbInfo;
