@@ -657,10 +657,11 @@ void RedisClient::OnDataArrived()
 			if (pendingSize >0)
 				_log(pendingSize>100? Log::L_WARNING :Log::L_DEBUG, CLOGFMT(RedisClient, "OnDataArrived() client ThreadPool[%d/%d] pending [%d] requests"), activeCount, poolSize, pendingSize);
 		}
-
-		RedisCommand::Ptr pCmd = _commandQueueToReceive.empty() ? NULL : _commandQueueToReceive.front();
-		if (!pCmd)
+		
+		if(_commandQueueToReceive.empty())
 			return;
+		
+		RedisCommand::Ptr pCmd = _commandQueueToReceive.front();
 
 		char* pProcessed = _inCommingBuffer, *pEnd = _inCommingBuffer + _inCommingByteSeen + bytesRead;
 		bool bFinishedThisDataChuck = false;
@@ -721,7 +722,9 @@ void RedisClient::OnDataArrived()
 
 				// move to next await command
 				_commandQueueToReceive.pop();
-				pCmd = _commandQueueToReceive.empty() ? NULL :_commandQueueToReceive.front();
+				pCmd = NULL;
+				if(!_commandQueueToReceive.empty())
+					pCmd = _commandQueueToReceive.front();
 
 				if (!pCmd)
 					break;

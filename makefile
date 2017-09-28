@@ -34,7 +34,9 @@ OBJS := Exception.os       \
 		rwlock_Linux.os    \
 		XmlRpcSerializer.os\
 		RuleEngine.os	   \
+		RedisClient.os     \
 		TCPSocket.os       \
+		Evictor.os	   \
 		RTSPClient.os      \
 		RTSPSession.os     \
 		Pointer.os         \

@@ -93,8 +93,13 @@ Evictor::Item::Ptr Evictor::pin(const Ident& ident, Item::Ptr item)
 	for (int i=0; bRetry && i < 5; i++)
 	{
 		if (i>0)
-			Sleep(500 *i);
-
+		{
+			#ifdef ZQ_OS_LINUX
+				usleep(500*1000*i);
+			#else
+				Sleep(500*i);
+			#endif
+		}
 		{
 			MutexGuard g(_lkEvictor);
 			Map::iterator itCache = _cache.find(ident);
