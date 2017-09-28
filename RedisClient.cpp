@@ -189,7 +189,7 @@ protected:
 // class RedisClient
 // -----------------------------
 // represent a tcp connection to the RTSP server, may be shared by multiple RTSPSessions
-RedisClient::RedisClient(Log& log, NativeThreadPool& thrdpool, const std::string& server, tpport_t serverPort, InetHostAddress& bindAddress, Log::loglevel_t verbosityLevel, tpport_t bindPort)
+RedisClient::RedisClient(Log& log, NativeThreadPool& thrdpool, const std::string& server, tpport_t serverPort, const InetHostAddress& bindAddress, Log::loglevel_t verbosityLevel, tpport_t bindPort)
 : TCPClient(bindAddress, bindPort), _serverPort(serverPort), _thrdpool(thrdpool), _log(log, verbosityLevel),
 _inCommingByteSeen(0) 
 {
