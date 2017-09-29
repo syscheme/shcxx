@@ -1,9 +1,11 @@
 #include "eloop.h"
 #include "eloop_net.h"
-
+//#include <stdlib.h>
 namespace ZQ {
 namespace eloop {
 
+#define DEFAULT_THREADPOOL_SIZE 4
+#define ELOOP_THREADPOOL_SIZE  "UV_THREADPOOL_SIZE"
 // -----------------------------
 // class Handle
 // -----------------------------
@@ -127,33 +129,28 @@ Loop& Handle::get_loop()
 }
 
 // -----------------------------
-// class Request
+// class EloopRequest
 // -----------------------------
-Request::Request() {
-//	context = NULL;
+EloopRequest::EloopRequest() {
 	context = new uv_any_req;
 	context->req.data = static_cast<void *>(this);
 }
 
-Request::~Request() {
+EloopRequest::~EloopRequest() {
+
 	if (context != NULL) {
 		cancel();
 		delete context;
+		context = NULL;
 	}
 }
 
-void Request::init()
-{
-	context = new uv_any_req;
-	context->req.data = static_cast<void *>(this);
-}
-
-int Request::cancel()
+int EloopRequest::cancel()
 {
 	return uv_cancel(&context->req);
 }
 
-uv_req_t *Request::context_ptr()
+uv_req_t *EloopRequest::context_ptr()
 {
 	if (context)
 		return &context->req;
@@ -223,6 +220,24 @@ int Loop::backend_timeout()
 	return uv_backend_timeout(_uvLoop);
 }
 
+unsigned int Loop::getThreadPoolSize()
+{
+	const char* val = getenv(ELOOP_THREADPOOL_SIZE);
+	if (val != NULL)
+		return atoi(val);
+	return DEFAULT_THREADPOOL_SIZE;
+}
+int Loop::setThreadPoolSize(const unsigned int size)
+{
+	char chSize[8];
+	sprintf(chSize,"%d",size);
+#ifdef ZQ_OS_LINUX
+	return setenv(ELOOP_THREADPOOL_SIZE,chSize,1);
+#else	
+	return _putenv_s(ELOOP_THREADPOOL_SIZE,chSize);
+#endif
+}
+
 uint64_t Loop::now()
 {
 	return uv_now(_uvLoop);
@@ -276,11 +291,11 @@ int Idle::stop() {
 // -----------------------------
 // class Timer
 // -----------------------------
-
+/*
 Timer::Timer()
 {
 }
-
+*/
 void Timer::_cbOnTimer(uv_timer_t *timer)
 {
 	Timer *h = static_cast<Timer *>(timer->data);

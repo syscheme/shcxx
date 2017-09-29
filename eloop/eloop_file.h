@@ -33,7 +33,10 @@
 
 #include "eloop.h"
 #include "eloop_net.h"
-#include <fcntl.h>
+extern "C"{
+	#include <fcntl.h>
+};
+
 namespace ZQ {
 namespace eloop {
 class ZQ_ELOOP_API FileEvent;

@@ -252,7 +252,7 @@ Pipe::eloop_handle_type Pipe::pending_type()
 int Pipe::sendfd(const eloop_buf_t bufs[],unsigned int nbufs,int fd)
 {
 	uv_setfd(&_fdContainer,fd);
-	return write(bufs,nbufs,(uv_stream_t*)&_fdContainer);;
+	return write(bufs,nbufs,(uv_stream_t*)&_fdContainer);
 }
 
 int Pipe::acceptfd()

@@ -31,15 +31,15 @@
 #ifndef __ZQ_COMMON_ELOOP_H__
 #define __ZQ_COMMON_ELOOP_H__
 
+
 #include "ZQ_common_conf.h"
-/*#include "Pointer.h"
-#include "FileLog.h"
-#include "Locks.h"
-#include "NativeThread.h"*/
+
+extern "C"{
 #include "libuv_1.9.1/include/uv.h"
+};
+
 #include <string>
 #include <vector>
-//#include <map>
 
 #ifdef ZQ_OS_MSWIN
 #  ifdef ELOOP_EXPORTS
@@ -262,17 +262,16 @@ private:
 // -----------------------------
 // class Request
 // -----------------------------
-class Request
+class EloopRequest
 {
 protected:
-	Request();
-	virtual ~Request();
-	void init();
+	EloopRequest();
+	virtual ~EloopRequest();
 	int cancel();
 
 private:
-	Request(Request &){}
-	Request &operator=(Request &){}
+	EloopRequest(EloopRequest &){}
+	EloopRequest &operator=(EloopRequest &){}
 protected:
 	uv_req_t *context_ptr();
 	
@@ -301,6 +300,9 @@ public:
 	int alive();
 	int backend_fd();
 	int backend_timeout();
+
+	unsigned int getThreadPoolSize();
+	int setThreadPoolSize(const unsigned int size);
 
 	uint64_t now();
 	void update_time();
@@ -340,7 +342,7 @@ private:
 class Timer : public Handle
 {
 public:
-	Timer();
+//	Timer();
 	int init(Loop &loop);
 	int start(uint64_t timeout, uint64_t repeat);
 	int stop();

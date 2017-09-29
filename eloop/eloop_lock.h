@@ -30,7 +30,7 @@
 
 #ifndef __ZQ_COMMON_ELOOP_Lock_H__
 #define __ZQ_COMMON_ELOOP_Lock_H__
-#include <uv.h>
+
 #include "eloop.h"
 
 namespace ZQ {
