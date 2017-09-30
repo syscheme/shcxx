@@ -232,7 +232,7 @@ public:
 #endif
 		}
 
-		_service.dispatchInvocation(methodName, req, resp);
+		_service.execOrDispatch(methodName, req, resp);
 	}
 
 	virtual void onError( int error, const char* errorDescription)

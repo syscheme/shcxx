@@ -180,7 +180,7 @@ protected:
 	}
 
 	//@note the child impl is expected to call resp->post() to send the response out
-	virtual void dispatchInvocation(const std::string& methodName, const LIPCRequest::Ptr& req, LIPCResponse::Ptr& resp)
+	virtual void execOrDispatch(const std::string& methodName, const LIPCRequest::Ptr& req, LIPCResponse::Ptr& resp)
 	{ resp->setErrorCode(LIPCMessage::LIPC_METHOD_NOT_FOUND); resp->post(); }
 
 private:
