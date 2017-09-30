@@ -1,5 +1,6 @@
 #include "ZQ_common_conf.h"
 #include "LIPC.h"
+#include "TimeUtil.h"
 
 #define SYSTEM_DESCRIBE "systemDescribe"
 
@@ -18,77 +19,75 @@
 #define JSON_RPC_FD_TYPE "fd_type"
 
 namespace ZQ {
-	namespace eloop {
+namespace eloop {
 
 // ------------------------------------------------
-// class Message
+// class LIPCMessage
 // ------------------------------------------------
-const char* Message::errDesc(LIPCError code)
+LIPCMessage::LIPCMessage(int cseq, Json::Value msg)
+	: _msg(msg), _cSeq(cseq)
+{
+	_stampCreated = ZQ::common::now();
+}
+
+const char* LIPCMessage::errDesc(Error code)
 {
 	switch(code)
 	{
-	case LIPC_PARSING_ERROR:return "Parse error.";
-	case LIPC_INVALID_REQUEST:return "Invalid JSON-RPC request.";
-	case LIPC_METHOD_NOT_FOUND:return "Method not found.";
-	case LIPC_INVALID_PARAMS:return "Invalid params.";
-	case LIPC_INTERNAL_ERROR:return "Internal error.";
-	default:return "server error.";
+	case LIPC_PARSING_ERROR    : return "Parse error.";
+	case LIPC_INVALID_REQUEST  : return "Invalid JSON-RPC request.";
+	case LIPC_METHOD_NOT_FOUND : return "Method not found.";
+	case LIPC_INVALID_PARAMS   : return "Invalid params.";
+	case LIPC_INTERNAL_ERROR   : return "Internal error.";
+	default                    : return "server error.";
 	}
 }
 
-void Message::setErrorCode(LIPCError code){
-	Json::Value err;
-	err[JSON_RPC_ERROR_CODE] = code;
-	err[JSON_RPC_ERROR_MESSAGE] = errDesc(code);
-	_msg[JSON_RPC_ERROR] = err;
-}
-
-Message::LIPCError Message::getErrorCode()
+void LIPCMessage::setErrorCode(Error code)
 {
-	return _msg.isMember(JSON_RPC_ERROR_CODE)?(LIPCError)_msg[JSON_RPC_ERROR_CODE].asInt():LIPC_OK;
+	Json::Value err;
+	err[JSON_RPC_ERROR_CODE]    = code;
+	err[JSON_RPC_ERROR_MESSAGE] = errDesc(code);
+	_msg[JSON_RPC_ERROR]        = err;
 }
 
-void Message::setCSeq(int cseq)	{
-	if (cseq > 0)
-		_msg[JSON_RPC_ID] = cseq;
+LIPCMessage::Error LIPCMessage::getErrorCode()
+{
+	return _msg.isMember(JSON_RPC_ERROR_CODE)?(Error)_msg[JSON_RPC_ERROR_CODE].asInt():LIPC_OK;
 }
 
-int Message::getCSeq() const{
-	return _msg.isMember(JSON_RPC_ID)?_msg[JSON_RPC_ID].asInt():-1;
-}
+//int LIPCMessage::getCSeq() const
+//{
+//	return _msg.isMember(JSON_RPC_ID) ? _msg[JSON_RPC_ID].asInt() :-1;
+//}
 
-void Message::setFd(fd_t fd,FdType type)
+void LIPCMessage::setFd(fd_t fd, FdType type)
 {
 	_msg[JSON_RPC_FD] = fd;
 	_msg[JSON_RPC_FD_TYPE] = type;
 }
 
-int Message::getFd() const{
-	return _msg.isMember(JSON_RPC_FD)?_msg[JSON_RPC_FD].asInt():-1;
+int LIPCMessage::getFd() const
+{
+	return _msg.isMember(JSON_RPC_FD) ? _msg[JSON_RPC_FD].asInt() :-1;
 }
 
-Message::FdType Message::getFdType() const{
-	return _msg.isMember(JSON_RPC_FD_TYPE)?(Message::FdType)(_msg[JSON_RPC_FD_TYPE].asUInt()):LIPC_NONE;
+LIPCMessage::FdType LIPCMessage::getFdType() const
+{
+	return _msg.isMember(JSON_RPC_FD_TYPE) ?(LIPCMessage::FdType)(_msg[JSON_RPC_FD_TYPE].asUInt()) :LIPC_NONE;
 }
 
-bool Message::hasFd(){
+bool LIPCMessage::hasFd()
+{
 	return _msg.isMember(JSON_RPC_FD)?true:false;
 }
 
-bool Message::empty()
+bool LIPCMessage::empty()
 {
-	return (Json::Value::null == _msg)?true:false;
+	return (Json::Value::null == _msg);
 }
 
-Json::Value Message::getResult()
-{
-	if (_msg.isMember(JSON_RPC_RESULT))
-		return _msg[JSON_RPC_RESULT];
-
-	return Json::Value::null; 
-}
-
-std::string Message::toString()
+std::string LIPCMessage::toString()
 {
 	if (Json::Value::null == _msg)
 		return "";
@@ -97,40 +96,41 @@ std::string Message::toString()
 	return writer.write(_msg);
 }
 
-bool Message::fromString(const std::string& str)
+bool LIPCMessage::fromString(const std::string& str)
 {
 	_msg = Json::Value::null;
 	return Json::Reader().parse(str, _msg);
 }
 
 // ------------------------------------------------
-// class Request
+// class LIPCRequest
 // ------------------------------------------------
-void Request::setMethod(const std::string& methodName,RpcCB cb,void* data)
-{
-	_msg[JSON_RPC_METHOD] = methodName;
-	if ((cb != NULL)&&(data != NULL))
-	{
-		_cbInfo.cb = cb;
-		_cbInfo.data = data;
-	}
-}
-std::string Request::getMethodName()
-{
-	return _msg.isMember(JSON_RPC_METHOD)?_msg[JSON_RPC_METHOD].asString():"";
-}
-
-Request::RpcCBInfo& Request::getCb()
-{
-	return _cbInfo;
-}
-
-void Request::setParam(const Json::Value& param)
+//void LIPCRequest::setMethod(const std::string& methodName, Callback_t cb, void* data)
+//{
+//	_msg[JSON_RPC_METHOD] = methodName;
+//	if ((NULL == cb)|| (NULL == data))
+//		return;
+//
+//	_cbInfo.cb = cb;
+//	_cbInfo.data = data;
+//}
+//
+//std::string LIPCRequest::getMethodName()
+//{
+//	return _msg.isMember(JSON_RPC_METHOD)?_msg[JSON_RPC_METHOD].asString():"";
+//}
+//
+//LIPCRequest::Callback& LIPCRequest::getCb()
+//{
+//	return _cbInfo;
+//}
+//
+void LIPCRequest::setParam(const Json::Value& param)
 {
 	_msg[JSON_RPC_PARAMS] = param;
 }
 
-Json::Value Request::getParam()
+Json::Value LIPCRequest::getParam()
 {
 	if (_msg.isMember(JSON_RPC_PARAMS))
 		 return _msg[JSON_RPC_PARAMS];
@@ -139,35 +139,209 @@ Json::Value Request::getParam()
 }
 
 // ------------------------------------------------
-// class Response
+// class LIPCResponse
 // ------------------------------------------------
-Response::~Response()
+LIPCResponse::~LIPCResponse()
 {
-	if (getCSeq() > 0)
-		_conn.send(toString(),getFd());
 }
 
-void Response::setResult(const Json::Value& result)
+void LIPCResponse::setResult(const Json::Value& result)
 {
 	_msg[JSON_RPC_RESULT] = result;
 }
 
-// ---------------------------------------------------
-// class RPCProcess
-// ---------------------------------------------------
-RPCProcess::RPCProcess()
+void LIPCResponse::post()
 {
-  /* add a RPC method that list the actual RPC methods contained in 
-   * the Handler 
-   */
+	if (_cSeq > 0)
+		_conn.send(toString(), getFd());
+}
+
+Json::Value LIPCResponse::getResult()
+{
+	if (_msg.isMember(JSON_RPC_RESULT))
+		return _msg[JSON_RPC_RESULT];
+
+	return Json::Value::null; 
+}
+
+// -----------------------------
+// class PassiveConn
+// -----------------------------
+class PassiveConn : public UnixSocket
+{
+public:
+	PassiveConn(LIPCService& service)
+		:_service(service), UnixSocket(service._lipcLog)
+	{}
+
+	void start()
+	{
+		read_start();
+		_service.addConn(this);
+//		printf("new pipe Passive Conn\n");
+		_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(PassiveConn, "new passive conn"));
+	}
+
+	virtual void OnMessage(std::string& msg)
+	{
+		Json::Value root;
+		// parsing
+		bool parsing = Json::Reader().parse(msg, root);
+
+		if(!parsing)
+		{
+			LIPCResponse::Ptr resp = new LIPCResponse(0, *this);
+			resp->setErrorCode(LIPCMessage::LIPC_PARSING_ERROR);
+			send(resp->toString());
+			return;
+		}
+
+		if (!root.isArray())
+		{
+			OnIndividualMessage(root);
+			return;
+		}
+
+		//  batched call
+		for(Json::Value::ArrayIndex i = 0 ; i < root.size() ; i++)
+			OnIndividualMessage(root[i]);
+	}
+
+	void OnIndividualMessage(Json::Value& msg)
+	{
+		std::string methodName;
+		int cseq =-1;
+		if (msg.isMember(JSON_RPC_FD))
+			cseq = msg[JSON_RPC_FD].asInt();
+
+		if (msg.isMember(JSON_RPC_METHOD))
+			methodName = msg[JSON_RPC_METHOD].asString();
+
+		if (cseq <=0 || methodName.empty())
+			return;
+
+		LIPCRequest::Ptr req = new LIPCRequest(cseq, msg);
+		LIPCResponse::Ptr resp = new LIPCResponse(cseq, *this);
+
+		if (req->hasFd())
+		{
+#ifdef ZQ_OS_LINUX
+			req->setFd(acceptfd(), req->getFdType());
+#else
+			req->setFd(-1, LIPCMessage::LIPC_NONE);
+#endif
+		}
+
+		_service.dispatchInvocation(methodName, req, resp);
+	}
+
+	virtual void onError( int error, const char* errorDescription)
+	{
+		_service.onError(error, errorDescription);
+		close();
+	}
+
+	virtual void OnWrote(int status)
+	{
+		if (status != elpeSuccess)
+		{
+			std::string desc = "send error:";
+			desc.append(errDesc(status));
+			onError(status, desc.c_str());
+			return;
+		}
+	}
+
+	virtual void OnClose()
+	{
+		_service.delConn(this);
+		delete this;
+	}
+
+private:
+	LIPCService&	_service;
+};
+
+// -------------------------------------------------
+// class LIPCService
+// -------------------------------------------------
+int LIPCService::init(ZQ::eloop::Loop &loop, int ipc)
+{
+	_ipc = ipc;
+	return ZQ::eloop::Pipe::init(loop, ipc);
+}
+
+void LIPCService::addConn(PassiveConn* conn)
+{
+	_clients.push_back(conn);
+}
+
+void LIPCService::delConn(PassiveConn* conn)
+{
+	PipeClientList::iterator iter = _clients.begin();
+	while(iter != _clients.end())
+	{
+		if (*iter == conn)
+			iter = _clients.erase(iter);		//_PipeConn.erase(iter++);
+		else
+			iter++;
+	}
+}
+
+void LIPCService::doAccept(ZQ::eloop::Handle::ElpeError status)
+{
+	if (status != Handle::elpeSuccess) {
+		std::string desc = "accept error:";
+		desc.append(ZQ::eloop::Handle::errDesc(status));
+		onError(status, desc.c_str());
+		return;
+	}
+
+	PassiveConn *client = new PassiveConn(*this);
+	client->init(get_loop(), _ipc);
+
+	int ret = accept(client);
+	if (ret == 0) {
+		client->start();
+	}
+	else {
+		client->close();
+		std::string desc = "accept error:";
+		desc.append(ZQ::eloop::Handle::errDesc(ret));
+		onError(ret, desc.c_str());
+	}
+}
+
+// ------------------------------------------------
+// class ClientConn
+// ------------------------------------------------
+// as an established connection in Client
+class ClientConn : public UnixSocket
+{
+public:
+	ClientConn(ZQ::common::Log& log, LIPCClient& client):UnixSocket(log), _client(client){}
+
+	virtual void OnConnected(ElpeError status) { _client.OnConnected(status);	}
+	virtual void OnWrote(int status)  {	_client.OnWrote(status);	}
+	virtual void OnShutdown(ElpeError status)	{ _client.OnShutdown(status);	}
+	virtual void OnClose()	{	_client.OnCloseHandle(); }
+	virtual void OnMessage(std::string& msg) {	_client.OnMessage(msg); }
+	virtual void onError( int error, const char* errorDescription ) {	_client.onError(error, errorDescription); }
+
+private:
+	LIPCClient& _client;
+};
+
+// ------------------------------------------------
+// class LIPCClient
+// ------------------------------------------------
+LIPCClient::LIPCClient(Loop &loop, ZQ::common::Log& log, int ipc)
+		:_loop(loop), _ipc(ipc), _lipcLog(log), _conn(NULL), _reconnect(false)
+{
 	_lastCSeq.set(1);
 }
 
-RPCProcess::~RPCProcess()
-{
-}
-
-uint RPCProcess::lastCSeq()
+uint LIPCClient::lastCSeq()
 {
 	int v = _lastCSeq.add(1);
 	if (v>0 && v < MAX_CSEQ)
@@ -185,386 +359,167 @@ uint RPCProcess::lastCSeq()
 	return (uint) v;
 }
 
-
-void RPCProcess::addcb(int seqId,Request::RpcCB cb,void* data)
+int  LIPCClient::bind(const char *name)
 {
-	Request::RpcCBInfo info;
-	info.cb = cb;
-	info.data = data;
-	m_seqIds[seqId] = info;
-}
-
-void RPCProcess::process(const std::string& msg,PipeConnection& conn)
-{
-	Json::Value root;
-	/* parsing */
-	bool parsing = m_reader.parse(msg, root);
-
-	if(!parsing)
-	{
-		Response::Ptr resp = new Response(conn);
-		resp->setErrorCode(Message::LIPC_PARSING_ERROR);
-		conn.send(resp->toString());
-		return;
-	}
-
-	if(root.isArray())
-	{
-		/* batched call */
-		for(Json::Value::ArrayIndex i = 0 ; i < root.size() ; i++)
-		{
-			invoke(root[i],conn);
-		}
-	}
-	else
-	{
-		invoke(root,conn);
-	}
-}
-
-void RPCProcess::invoke(const Json::Value& msg,PipeConnection& conn)
-{
-	Request::Ptr req = new Request(msg);
-	Response::Ptr resp = new Response(conn);
-
-	Json::Value err;
-	/* check the JSON-RPC version => 2.0 */
-	if(!msg.isObject() || !msg.isMember(JSON_RPC_PROTO) || msg[JSON_RPC_PROTO] != JSON_RPC_PROTO_VERSION) 
-	{
-		resp->setErrorCode(Message::LIPC_PARSING_ERROR);
-		conn.send(resp->toString());
-		return;
-	}
-
-	if(msg.isMember(JSON_RPC_METHOD))
-	{
-		std::string method = msg[JSON_RPC_METHOD].asString();
-		if (req->hasFd())
-		{
-#ifdef ZQ_OS_LINUX
-			req->setFd(conn.acceptfd(),req->getFdType());
-#else
-			req->setFd(-1,Message::LIPC_NONE);
-#endif
-		}
-
-		resp->setCSeq(req->getCSeq());
-		execMethod(method,req,resp);
-		return;
-	}
-	else
-	{
-		if (msg.isMember(JSON_RPC_ID))
-		{
-			int seqId = msg[JSON_RPC_ID].asInt();
-			seqToCBInfoMap::iterator it = m_seqIds.find(seqId);
-			if (it != m_seqIds.end())
-			{
-				Message cbMsg(msg);
-
-				if (cbMsg.hasFd())
-				{
-#ifdef ZQ_OS_LINUX
-					cbMsg.setFd(conn.acceptfd(),cbMsg.getFdType());
-#else
-					cbMsg.setFd(-1,Message::LIPC_NONE);
-#endif
-				}
-
-				Request::RpcCB cb = it->second.cb;
-				void* data = it->second.data;
-				if (cb!=NULL&&data!=NULL)
-					(*cb)(cbMsg,data);
-				m_seqIds.erase(it);
-			}
-			return;
-		}
-	}
-
-	/* forge an error response */
-	resp->setErrorCode(Message::LIPC_METHOD_NOT_FOUND);
-	conn.send(resp->toString());
-}
-
-// -----------------------------
-// class PipePassiveConn
-// -----------------------------
-class PipePassiveConn : public PipeConnection
-{
-public:
-	PipePassiveConn(Service& service)
-		:_service(service),PipeConnection(service._lipcLog)
-	{}
-
-	void start()
-	{
-		read_start();
-		_service.addConn(this);
-//		printf("new pipe Passive Conn\n");
-		_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(PipePassiveConn, "new pipe Passive Conn"));
-	}
-
-
-	virtual void OnMessage(std::string& msg)
-	{
-		_service.process(msg,*this);
-	}
-
-	virtual void onError( int error,const char* errorDescription)
-	{
-		_service.onError(error,errorDescription);
-		close();
-	}
-
-	virtual void OnWrote(int status)
-	{
-		if (status != elpeSuccess)
-		{
-			std::string desc = "send error:";
-			desc.append(errDesc(status));
-			onError(status,desc.c_str());
-			return;
-		}
-	}
-
-	virtual void OnClose()
-	{
-		_service.delConn(this);
-		delete this;
-	}
-
-private:
-	Service&	_service;
-};
-
-// -------------------------------------------------
-// class Service
-// -------------------------------------------------
-int Service::init(ZQ::eloop::Loop &loop, int ipc)
-{
-	_ipc = ipc;
-	return ZQ::eloop::Pipe::init(loop,ipc);
-}
-
-void Service::addConn(PipePassiveConn* conn)
-{
-	_ClientList.push_back(conn);
-}
-
-void Service::delConn(PipePassiveConn* conn)
-{
-	PipeClientList::iterator iter = _ClientList.begin();
-	while(iter != _ClientList.end())
-	{
-		if (*iter == conn)
-			iter = _ClientList.erase(iter);		//_PipeConn.erase(iter++);
-		else
-			iter++;
-	}
-}
-
-void Service::doAccept(ZQ::eloop::Handle::ElpeError status)
-{
-	if (status != Handle::elpeSuccess) {
-		std::string desc = "accept error:";
-		desc.append(ZQ::eloop::Handle::errDesc(status));
-		onError(status,desc.c_str());
-		return;
-	}
-
-	PipePassiveConn *client = new PipePassiveConn(*this);
-	client->init(get_loop(),_ipc);
-
-	int ret = accept(client);
-	if (ret == 0) {
-		client->start();
-	}
-	else {
-		client->close();
-		std::string desc = "accept error:";
-		desc.append(ZQ::eloop::Handle::errDesc(ret));
-		onError(ret,desc.c_str());
-	}
-}
-
-
-// ------------------------------------------------
-// class Servant
-// ------------------------------------------------
-class Servant : public PipeConnection
-{
-public:
-	Servant(ZQ::common::Log& log,Client& client):PipeConnection(log),_client(client){}
-
-protected:
-
-	virtual void OnConnected(ElpeError status)
-	{
-		_client.OnConnected(status);
-	}
-	virtual void OnWrote(int status)
-	{
-		_client.OnWrote(status);
-	}
-	virtual void OnShutdown(ElpeError status)
-	{
-		_client.OnShutdown(status);
-	}
-	virtual void OnClose()
-	{
-		_client.OnCloseHandle();
-	}
-
-	virtual void OnMessage(std::string& msg)
-	{
-		_client.OnMessage(msg);
-	}
-	virtual void onError( int error,const char* errorDescription )
-	{	
-		_client.onError(error,errorDescription);
-	}
-
-private:
-	Client& _client;
-};
-
-// ------------------------------------------------
-// class Client
-// ------------------------------------------------
-int  Client::bind(const char *name)
-{
-	if (_svt == NULL)
+	if (_conn == NULL)
 		return -1;
 	_localPipeName = name;
-	return _svt->bind(name);
+	return _conn->bind(name);
 }
 
-ZQ::eloop::Loop& Client::get_loop() const
+ZQ::eloop::Loop& LIPCClient::get_loop() const
 {
 	return _loop;
 }
-int Client::connect(const char *name)
+int LIPCClient::connect(const char *name)
 {
 	_peerPipeName = name;
 	int ret = 0;
-	if (_svt == NULL)
+	if (_conn == NULL)
 	{
-		_svt = new Servant(_lipcLog,*this);
-		ret = _svt->init(_loop,_ipc);
+		_conn = new ClientConn(_lipcLog, *this);
+		ret = _conn->init(_loop, _ipc);
 		if (ret < 0)
 			return ret;
-		_svt->connect(name);
+		_conn->connect(name);
 		return 0;
 	}
 	if (_reconnect)
 	{
-		_svt->close();
+		_conn->close();
 		return 0;
 	}
 	_reconnect = true;
-	_svt->connect(name);
+	_conn->connect(name);
 	return 0;
 }
 
-void Client::OnCloseHandle()
+void LIPCClient::OnCloseHandle()
 {
-	if (_svt != NULL)
+	if (_conn != NULL)
 	{
-		delete _svt;
-		_svt = NULL;
+		delete _conn;
+		_conn = NULL;
 	}
-	if (_reconnect)
+
+	if (!_reconnect)
 	{
-		_svt = new Servant(_lipcLog,*this);
-		int ret = _svt->init(_loop,_ipc);
-		if (ret < 0)
-		{
-			std::string desc = "reconnect init error:";
-			desc.append(ZQ::eloop::Handle::errDesc(ret));
-			onError(ret,desc.c_str());
-			return;
-		}
-		if (!_localPipeName.empty())
-		{
+		OnClose();
+		return;
+	}
+
+	_conn = new ClientConn(_lipcLog, *this);
+	int ret = _conn->init(_loop, _ipc);
+	if (ret < 0)
+	{
+		std::string desc = "reconnect init error:";
+		desc.append(ZQ::eloop::Handle::errDesc(ret));
+		onError(ret, desc.c_str());
+		return;
+	}
+
+	if (!_localPipeName.empty())
+	{
 #ifdef ZQ_OS_LINUX
-			unlink(_localPipeName.c_str());
+		unlink(_localPipeName.c_str());
 #else
 #endif
-			_svt->bind(_localPipeName.c_str());
-		}
-		_svt->connect(_peerPipeName.c_str());
+		_conn->bind(_localPipeName.c_str());
 	}
-	else
-		OnClose();
+
+	_conn->connect(_peerPipeName.c_str());
 }
 
-void Client::close()
+void LIPCClient::close()
 {
-	if (_svt == NULL)
+	if (_conn == NULL)
 		return;
 	_reconnect = false;
-	_svt->close();
+	_conn->close();
 }
 
-int Client::shutdown()
+int LIPCClient::shutdown()
 {
-	if (_svt == NULL)
+	if (_conn == NULL)
 		return -1;
-	return _svt->shutdown();
+	return _conn->shutdown();
 }
 
-int Client::read_start()
+int LIPCClient::read_start()
 {
-	if (_svt == NULL)
+	if (_conn == NULL)
 		return -1;
-	return _svt->read_start();
+	return _conn->read_start();
 }
-int Client::read_stop()
+int LIPCClient::read_stop()
 {
-	if (_svt == NULL)
+	if (_conn == NULL)
 		return -1;
-	return _svt->read_stop();
+	return _conn->read_stop();
 }
 
-int Client::sendRequest(Request::Ptr req)
+int LIPCClient::sendRequest(const std::string& methodName, LIPCRequest::Ptr req)
 {
-	if (_svt == NULL)
+	if (_conn == NULL || !req || methodName.empty())
 		return -1;
-	int seqId = 0;
-	Request::RpcCBInfo info = req->getCb();
-	if ((info.cb != NULL)&&(info.data != NULL))
-	{
-		seqId = lastCSeq();
-		addcb(seqId,info.cb,info.data);
-		req->setCSeq(seqId);
-	}
-	else
-		_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(Client, "No callback function."));
 
+	req->_cSeq = lastCSeq();
+	req->_msg[JSON_RPC_METHOD] = methodName;
 	Json::Value param = req->getParam();
-	OnRequestPrepared(req->getMethodName(),seqId,param);
+	OnRequestPrepared(methodName, req->_cSeq, req->getParam());
 		
-	int ret = _svt->send(req->toString(),req->getFd());
+	int ret = _conn->send(req->toString(), req->getFd());
 	if (ret < 0)
 	{
 		std::string desc = "send error:";
 		desc.append(ZQ::eloop::Handle::errDesc(ret));
-		onError(ret,desc.c_str());
+		onError(ret, desc.c_str());
 		return ret;
 	}
 	
-	return seqId;
+	return req->_cSeq;
 }
 
-
-void Client::OnConnected(ZQ::eloop::Handle::ElpeError status)
+void LIPCClient::OnIndividualMessage(Json::Value& msg)
 {
+	int cseq =-1;
+	if (msg.isMember(JSON_RPC_FD))
+		 cseq = msg[JSON_RPC_FD].asInt();
 
+	if (cseq <=0)
+		return;
+
+	LIPCResponse::Ptr resp = new LIPCResponse(cseq, *_conn);
+	resp->_msg = msg;
+
+	OnResponse(resp);
 }
 
-void Client::OnMessage(std::string& msg)
+void LIPCClient::OnMessage(std::string& msg)
 {
-	process(msg,*_svt);
+	// process(msg,*_conn);
+	
+	Json::Value root;
+	// parsing
+	bool parsing = Json::Reader().parse(msg, root);
+
+	if(!parsing)
+	{
+		LIPCResponse::Ptr resp = new LIPCResponse(0, *_conn);
+		resp->setErrorCode(LIPCMessage::LIPC_PARSING_ERROR);
+		_conn->send(resp->toString());
+		return;
+	}
+
+	if (!root.isArray())
+	{
+		OnIndividualMessage(root);
+		return;
+	}
+
+	//  batched call
+	for(Json::Value::ArrayIndex i = 0 ; i < root.size() ; i++)
+		OnIndividualMessage(root[i]);
 }
 
 }}//ZQ::LIPC

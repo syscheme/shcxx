@@ -1,11 +1,11 @@
 // ===========================================================================
 // Copyright (c) 2015 by
-// XOR media, Shanghai, PRC.,
+// XOR media, Shanghai, PRC., 
 // All Rights Reserved.  Unpublished rights reserved under the copyright
 // laws of the United States.
 // 
 // The software contained  on  this media is proprietary to and embodies the
-// confidential technology of ZQ Interactive, Inc. Possession, use,
+// confidential technology of ZQ Interactive, Inc. Possession, use, 
 // duplication or dissemination of the software and media is authorized only
 // pursuant to a valid written license from ZQ Interactive, Inc.
 // 
@@ -18,7 +18,7 @@
 // The information in this software is subject to change without notice and
 // should not be construed as a commitment by ZQ Interactive, Inc.
 //
-// Ident : $Id: LIPC.h,v 1.8 2017/06/09 09:32:35 zhixiang.zhu Exp $
+// Ident : $Id: LIPC.h, v 1.8 2017/06/09 09:32:35 zhixiang.zhu Exp $
 // Branch: $Name:  $
 // Author: zhuzhixiang
 // Desc  : Define LIPC class
@@ -28,9 +28,8 @@
 // $Log: /ZQProjs/Common/LIPC/LIPC.h $
 // ===========================================================================
 
-#ifndef __ZQ_COMMON_LIPC_H__
-#define __ZQ_COMMON_LIPC_H__
-
+#ifndef __ZQ_COMMON_ELOOP_LIPC_H__
+#define __ZQ_COMMON_ELOOP_LIPC_H__
 
 #include "UnixSocket.h"
 
@@ -38,191 +37,170 @@
 #include <list>
 
 namespace ZQ {
-	namespace eloop {
-class ZQ_ELOOP_API Service;
-class ZQ_ELOOP_API Client;
-class ZQ_ELOOP_API Request;
-class ZQ_ELOOP_API Response;
-class ZQ_ELOOP_API Message;
-class ZQ_ELOOP_API RPCProcess;
+namespace eloop {
 
-class PipePassiveConn;
-class Servant;
+class ZQ_ELOOP_API LIPCService;
+class ZQ_ELOOP_API LIPCClient;
+class ZQ_ELOOP_API LIPCRequest;
+class ZQ_ELOOP_API LIPCResponse;
+class ZQ_ELOOP_API LIPCMessage;
+class ZQ_ELOOP_API LIPCProcess;
 
 // ------------------------------------------------
-// class Message
+// class LIPCMessage
 // ------------------------------------------------
-class Message
+class LIPCMessage : virtual public ZQ::common::SharedObject
 {
 public:
-	typedef enum _LIPCError
+	typedef ZQ::common::Pointer<LIPCMessage> Ptr;
+
+	typedef enum
 	{
-		LIPC_OK = 0,
+		LIPC_OK = 0, 
 		LIPC_PARSING_ERROR = -32700, /**< Invalid JSON. An error occurred on the server while parsing the JSON text. */
-		LIPC_INVALID_REQUEST = -32600, /**< The received JSON not a valid JSON-RPC Request. */
+		LIPC_INVALID_REQUEST = -32600, /**< The received JSON not a valid JSON-RPC LIPCRequest. */
 		LIPC_METHOD_NOT_FOUND = -32601, /**< The requested remote-procedure does not exist / is not available. */
 		LIPC_INVALID_PARAMS = -32602, /**< Invalid method parameters. */
 		LIPC_INTERNAL_ERROR = -32603, /**< Internal JSON-RPC error. */
 
 		//user define error
-		LIPC_NOT_FD	= -33000,
-		LIPC_INVALID_FD_TYPE = -33001,
+		LIPC_NOT_FD	= -33000, 
+		LIPC_INVALID_FD_TYPE = -33001, 
 
-	}LIPCError;
+	} Error;
 
-	static const char* errDesc(LIPCError code);
+	static const char* errDesc(Error code);
 
 	typedef int fd_t;
-	typedef enum _FdType
+	typedef enum
 	{
-		LIPC_UDP,
-		LIPC_TCP,
-		LIPC_FILE,
+		LIPC_UDP, 
+		LIPC_TCP, 
+		LIPC_FILE, 
 		LIPC_NONE,
-	}FdType;
 
-	Message(Json::Value msg = Json::Value::null):_msg(msg){}
+	} FdType;
 
-	void setErrorCode(LIPCError code);
-	LIPCError getErrorCode();
+	LIPCMessage(int cseq =0, Json::Value msg = Json::Value::null);
 
+	void  setErrorCode(Error code);
+	Error getErrorCode();
 
-	void setCSeq(int cseq);
-	int getCSeq() const;
+	int getCSeq() const { return _cSeq; }
 	
-	void setFd(fd_t fd,FdType type);
-
-	int getFd() const;
 	FdType getFdType() const;
-	bool hasFd();
+	int    getFd() const;
+	void   setFd(fd_t fd, FdType type);
+	bool   hasFd();
+
 	bool empty();
-	Json::Value getResult();
+
 	std::string toString();
 	bool fromString(const std::string& str);
 
 protected:
 	Json::Value		_msg;
+	uint32		    _cSeq;
+	int64			_stampCreated;
 };
 
 // ------------------------------------------------
-// class Response
+// class LIPCRequest
 // ------------------------------------------------
-class Response:public Message,virtual public ZQ::common::SharedObject
+class LIPCRequest : public LIPCMessage
 {
+	friend class LIPCClient;
+
 public:
-	typedef ZQ::common::Pointer<Response> Ptr;
-	Response(PipeConnection& conn):_conn(conn){}
-	~Response();
+	typedef ZQ::common::Pointer<LIPCRequest> Ptr;
 
-	void setResult(const Json::Value& result);
+	LIPCRequest(int cseq, Json::Value msg = Json::Value::null)
+		: LIPCMessage(cseq, msg)
+	{}
 
-private:
-	PipeConnection&	_conn;
-};
-
-// ------------------------------------------------
-// class Request
-// ------------------------------------------------
-class Request:public Message,virtual public ZQ::common::SharedObject
-{
-public:
-	typedef ZQ::common::Pointer<Request> Ptr;
-
-	Request(Json::Value msg = Json::Value::null):Message(msg){}
-
-	typedef void (*RpcCB)(Message& msg,void* data);
-
-	typedef struct _RpcCBInfo{
-		RpcCB cb;
-		void* data;
-		_RpcCBInfo(){cb = NULL;data = NULL;}
-	}RpcCBInfo;
-
-	void setMethod(const std::string& methodName,RpcCB cb=NULL,void* data=NULL);
-	std::string getMethodName();
-	RpcCBInfo& getCb();
+	// void setMethod(const std::string& methodName, Callback_t cb=NULL, void* data=NULL);
+	// std::string getMethodName();
+	// Callback& getCb();
 	void setParam(const Json::Value& param);
 	Json::Value getParam();
 
-private:
-	RpcCBInfo			_cbInfo;
-};
-
-// ---------------------------------------------------
-// class RPCProcess
-// ---------------------------------------------------
-class RPCProcess
-{
-public:
-	typedef std::map<int,Request::RpcCBInfo> seqToCBInfoMap;
-
-public:
-	RPCProcess();
-	virtual ~RPCProcess();
-
-	void addcb(int seqId,Request::RpcCB cb,void* data);
-
-	void process(const std::string& msg,PipeConnection& conn);
-
-	uint lastCSeq();
-
-protected:
-	virtual void execMethod(const std::string& methodName,const Request::Ptr& req,Response::Ptr& resp){resp->setErrorCode(Message::LIPC_METHOD_NOT_FOUND);}
-
-private:
-	RPCProcess(const RPCProcess& obj);
-	RPCProcess& operator=(const RPCProcess& obj);
-
-	void invoke(const Json::Value& msg,PipeConnection& conn);
-
-	Json::FastWriter m_writer;
-	Json::Reader m_reader;
-	seqToCBInfoMap m_seqIds;
-
-	ZQ::common::AtomicInt _lastCSeq;
+//private:
+//	Callback _cbInfo;
 };
 
 // ------------------------------------------------
-// class Service
+// class LIPCResponse
 // ------------------------------------------------
-class Service : public RPCProcess,public ZQ::eloop::Pipe
+class LIPCResponse : public LIPCMessage
 {
-public:
-	friend class PipePassiveConn;
-public:
-	typedef std::list< PipePassiveConn* > PipeClientList;
+	friend class LIPCClient;
 
 public:
-	Service(ZQ::common::Log& log):_lipcLog(log){}
+	typedef ZQ::common::Pointer<LIPCResponse> Ptr;
+
+	LIPCResponse(int cseq, UnixSocket& conn)
+		: _conn(conn), LIPCMessage(cseq)
+	{}
+
+	virtual ~LIPCResponse();
+
+	void setResult(const Json::Value& result);
+	void post();
+
+	Json::Value getResult();
+
+private:
+	UnixSocket&	_conn;
+};
+
+// ------------------------------------------------
+// class LIPCService
+// ------------------------------------------------
+class LIPCService : public ZQ::eloop::Pipe
+{
+	friend class PassiveConn;
+
+public:
+	typedef std::list< PassiveConn* > PipeClientList;
+
+public:
+
+	LIPCService(ZQ::common::Log& log):_lipcLog(log){}
 	int init(ZQ::eloop::Loop &loop, int ipc=1);
-	PipeClientList& getPipeClientList(){return _ClientList;}
+	PipeClientList& getPipeClientList() {return _clients;}
 
 protected:
 	ZQ::common::Log& _lipcLog;
-	void addConn(PipePassiveConn* conn);
-	void delConn(PipePassiveConn* conn);
-	
+	void addConn(PassiveConn* conn);
+	void delConn(PassiveConn* conn);
 	virtual void doAccept(ZQ::eloop::Handle::ElpeError status);
-	virtual void onError( int error,const char* errorDescription)
+	virtual void onError( int error, const char* errorDescription)
 	{	
-		_lipcLog(ZQ::common::Log::L_ERROR, CLOGFMT(Service, "errCode = %d,errDesc:%s"),error,errorDescription);
+		_lipcLog(ZQ::common::Log::L_ERROR, CLOGFMT(LIPCService, "errCode = %d, errDesc:%s"), error, errorDescription);
 	}
 
+	//@note the child impl is expected to call resp->post() to send the response out
+	virtual void dispatchInvocation(const std::string& methodName, const LIPCRequest::Ptr& req, LIPCResponse::Ptr& resp)
+	{ resp->setErrorCode(LIPCMessage::LIPC_METHOD_NOT_FOUND); resp->post(); }
+
 private:
-	PipeClientList _ClientList;
-	int				_ipc;
+	PipeClientList _clients;
+	int			   _ipc;
 };
 
-
 // ------------------------------------------------
-// class Client
+// class LIPCClient
 // ------------------------------------------------
-class Client : public RPCProcess
+class LIPCClient
 {
+	friend class ClientConn;
+
 public:
-	friend class Servant;
-public:
-	Client(Loop &loop,ZQ::common::Log& log,int ipc=1):_loop(loop),_ipc(ipc),_lipcLog(log),_svt(NULL),_reconnect(false){}
+	LIPCClient(Loop &loop, ZQ::common::Log& log, int ipc=1);
+
+	uint lastCSeq();
+
+	typedef void (*Callback_t)(LIPCMessage& msg, void* data);
 
 	int  bind(const char *name);
 	int connect(const char *name);
@@ -230,34 +208,43 @@ public:
 
 	int read_start();
 	int read_stop();
-	int sendRequest(Request::Ptr req);
+	int sendRequest(const std::string& methodName, LIPCRequest::Ptr req);
 	int shutdown();
 	void close();
 
-private:
-	void OnCloseHandle();
 protected:
 	virtual void OnRequestPrepared(const std::string& method, int cseq, Json::Value& pReq){}
-	virtual void OnConnected(ZQ::eloop::Handle::ElpeError status);
-	virtual void OnWrote(int status){}
-	virtual void OnShutdown(ZQ::eloop::Handle::ElpeError status){}
-	virtual void OnClose(){}
-	// supposed to receive a response of request just sent
-	virtual void OnMessage(std::string& msg);
-	virtual void onError( int error,const char* errorDescription )
+	virtual void OnIndividualMessage(Json::Value& msg);
+	virtual void OnResponse(LIPCResponse::Ptr resp) {}
+
+protected: // redirect from UnixSocket
+	virtual void OnConnected(ZQ::eloop::Handle::ElpeError status) {}
+	virtual void OnWrote(int status) {}
+	virtual void OnShutdown(ZQ::eloop::Handle::ElpeError status) {}
+	virtual void OnClose() {}
+	virtual void onError( int error, const char* errorDescription )
 	{	
-		_lipcLog(ZQ::common::Log::L_ERROR, CLOGFMT(Client, "errCode = %d,errDesc:%s"),error,errorDescription);
+		_lipcLog(ZQ::common::Log::L_ERROR, CLOGFMT(LIPCClient, "errCode = %d, errDesc:%s"), error, errorDescription);
 	}
 
+	// supposed to receive a response of request just sent
+	virtual void OnMessage(std::string& msg);
+
 	ZQ::common::Log& _lipcLog;
+
 private:
+	void OnCloseHandle();
+
 	std::string		_localPipeName;
 	std::string		_peerPipeName;
-	int			_ipc;
-	Servant*	_svt;
-	Loop& _loop;
-	bool		_reconnect;
+	int			    _ipc;
+	ClientConn*	    _conn; // for reconnect
+	Loop&           _loop;
+	bool		    _reconnect;
+
+	ZQ::common::AtomicInt _lastCSeq;
 };
 
 }}//ZQ::eloop
-#endif
+
+#endif //__ZQ_COMMON_ELOOP_LIPC_H__
