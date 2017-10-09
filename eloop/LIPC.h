@@ -45,6 +45,8 @@ class ZQ_ELOOP_API LIPCRequest;
 class ZQ_ELOOP_API LIPCResponse;
 class ZQ_ELOOP_API LIPCMessage;
 
+class PassiveConn;
+class ClientConn;
 // ------------------------------------------------
 // class LIPCMessage
 // ------------------------------------------------

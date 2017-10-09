@@ -456,7 +456,7 @@ void LIPCClient::OnTimer()
 		if (itW->second.expiration < stampExp)
 		{
 			OnRequestDone(itW->first, LIPCMessage::LIPC_REQUEST_TIMEOUT);
-			itW = _awaits.erase(itW);
+			_awaits.erase(itW++);
 			continue;
 		}
 
@@ -523,7 +523,7 @@ void LIPCClient::OnIndividualMessage(Json::Value& msg)
 	if (msg.isMember(JSON_RPC_FD))
 	{
 #ifdef ZQ_OS_LINUX
-		resp->setFd(acceptfd(), req->getFdType());
+		resp->setFd(_conn->acceptfd(), req->getFdType());
 #else
 		resp->setFd(-1, LIPCMessage::LIPC_NONE);
 #endif
