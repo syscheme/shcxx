@@ -523,7 +523,7 @@ void LIPCClient::OnIndividualMessage(Json::Value& msg)
 	if (msg.isMember(JSON_RPC_FD))
 	{
 #ifdef ZQ_OS_LINUX
-		resp->setFd(_conn->acceptfd(), req->getFdType());
+		resp->setFd(_conn->acceptfd(), resp->getFdType());
 #else
 		resp->setFd(-1, LIPCMessage::LIPC_NONE);
 #endif
