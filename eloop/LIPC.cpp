@@ -11,6 +11,7 @@
 #define JSON_RPC_METHOD "method"
 #define JSON_RPC_PARAMS "params"
 #define JSON_RPC_RESULT "result"
+#define JSON_RPC_EXCEPTION "exception"
 #define JSON_RPC_ERROR "error"
 #define JSON_RPC_ERROR_CODE "code"
 #define JSON_RPC_ERROR_MESSAGE "message"
@@ -156,6 +157,15 @@ void LIPCResponse::post()
 		_conn.send(toString(), getFd());
 }
 
+void LIPCResponse::postException(Error code, const Json::Value& exception)
+{
+	setErrorCode(code);
+	if (Json::Value::null != exception)
+		_msg[JSON_RPC_EXCEPTION] = exception;
+
+	post();
+}
+
 Json::Value LIPCResponse::getResult()
 {
 	if (_msg.isMember(JSON_RPC_RESULT))
@@ -191,8 +201,7 @@ public:
 		if(!parsing)
 		{
 			LIPCResponse::Ptr resp = new LIPCResponse(0, *this);
-			resp->setErrorCode(LIPCMessage::LIPC_PARSING_ERROR);
-			send(resp->toString());
+			resp->postException(LIPCMessage::LIPC_PARSING_ERROR);
 			return;
 		}
 
@@ -339,6 +348,8 @@ LIPCClient::LIPCClient(Loop &loop, ZQ::common::Log& log, int ipc)
 		:_loop(loop), _ipc(ipc), _lipcLog(log), _conn(NULL), _reconnect(false)
 {
 	_lastCSeq.set(1);
+	Timer::init(_loop);
+	Timer::start(0, 200); // set scan interval as 5Hz
 }
 
 uint LIPCClient::lastCSeq()
@@ -364,6 +375,7 @@ int  LIPCClient::bind(const char *name)
 	if (_conn == NULL)
 		return -1;
 	_localPipeName = name;
+
 	return _conn->bind(name);
 }
 
@@ -371,6 +383,7 @@ ZQ::eloop::Loop& LIPCClient::get_loop() const
 {
 	return _loop;
 }
+
 int LIPCClient::connect(const char *name)
 {
 	_peerPipeName = name;
@@ -384,11 +397,13 @@ int LIPCClient::connect(const char *name)
 		_conn->connect(name);
 		return 0;
 	}
+
 	if (_reconnect)
 	{
 		_conn->close();
 		return 0;
 	}
+
 	_reconnect = true;
 	_conn->connect(name);
 	return 0;
@@ -445,12 +460,30 @@ int LIPCClient::shutdown()
 	return _conn->shutdown();
 }
 
+void LIPCClient::OnTimer()
+{
+	int64 stampExp = ZQ::common::now() - _timeout;
+	for (AwaitMap::iterator itW = _awaits.begin(); itW != _awaits.end();)
+	{
+		if (itW->second.expiration < stampExp)
+		{
+			OnRequestDone(itW->first, LIPCMessage::LIPC_REQUEST_TIMEOUT);
+			itW = _awaits.erase(itW);
+			continue;
+		}
+
+		itW++;
+	}
+}
+
 int LIPCClient::read_start()
 {
 	if (_conn == NULL)
 		return -1;
+
 	return _conn->read_start();
 }
+
 int LIPCClient::read_stop()
 {
 	if (_conn == NULL)
@@ -466,14 +499,19 @@ int LIPCClient::sendRequest(const std::string& methodName, LIPCRequest::Ptr req)
 	req->_cSeq = lastCSeq();
 	req->_msg[JSON_RPC_METHOD] = methodName;
 	Json::Value param = req->getParam();
-	OnRequestPrepared(methodName, req->_cSeq, req->getParam());
+
+	AwaitRequest ar;
+	ar.req = req;
+	ar.method = methodName;
+	ar.expiration = ZQ::common::now() + _timeout;
+	_awaits.insert(AwaitMap::value_type(req->_cSeq, ar));
+
+	OnRequestPrepared(req);
 		
 	int ret = _conn->send(req->toString(), req->getFd());
 	if (ret < 0)
 	{
-		std::string desc = "send error:";
-		desc.append(ZQ::eloop::Handle::errDesc(ret));
-		onError(ret, desc.c_str());
+		OnRequestDone(req->_cSeq, LIPCMessage::LIPC_CLIENT_ERROR);
 		return ret;
 	}
 	
@@ -492,7 +530,13 @@ void LIPCClient::OnIndividualMessage(Json::Value& msg)
 	LIPCResponse::Ptr resp = new LIPCResponse(cseq, *_conn);
 	resp->_msg = msg;
 
-	OnResponse(resp);
+	AwaitMap::iterator itW = _awaits.find(cseq);
+	if (_awaits.end() == itW) // unknown request or it has been previously expired
+		return;
+
+	OnResponse(itW->second.method, resp);
+	OnRequestDone(cseq, LIPCMessage::LIPC_OK);
+	_awaits.erase(cseq);
 }
 
 void LIPCClient::OnMessage(std::string& msg)
@@ -506,8 +550,7 @@ void LIPCClient::OnMessage(std::string& msg)
 	if(!parsing)
 	{
 		LIPCResponse::Ptr resp = new LIPCResponse(0, *_conn);
-		resp->setErrorCode(LIPCMessage::LIPC_PARSING_ERROR);
-		_conn->send(resp->toString());
+		resp->postException(LIPCMessage::LIPC_PARSING_ERROR);
 		return;
 	}
 

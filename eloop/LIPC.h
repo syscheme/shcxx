@@ -56,12 +56,14 @@ public:
 
 	typedef enum
 	{
-		LIPC_OK = 0, 
+		LIPC_OK = 200, 
 		LIPC_PARSING_ERROR = -32700, /**< Invalid JSON. An error occurred on the server while parsing the JSON text. */
 		LIPC_INVALID_REQUEST = -32600, /**< The received JSON not a valid JSON-RPC LIPCRequest. */
 		LIPC_METHOD_NOT_FOUND = -32601, /**< The requested remote-procedure does not exist / is not available. */
 		LIPC_INVALID_PARAMS = -32602, /**< Invalid method parameters. */
 		LIPC_INTERNAL_ERROR = -32603, /**< Internal JSON-RPC error. */
+		LIPC_CLIENT_ERROR = 400, 
+		LIPC_REQUEST_TIMEOUT = 408, 
 
 		//user define error
 		LIPC_NOT_FD	= -33000, 
@@ -114,8 +116,8 @@ class LIPCRequest : public LIPCMessage
 public:
 	typedef ZQ::common::Pointer<LIPCRequest> Ptr;
 
-	LIPCRequest(int cseq, Json::Value msg = Json::Value::null)
-		: LIPCMessage(cseq, msg)
+	LIPCRequest(Json::Value msg = Json::Value::null)
+		: LIPCMessage(0, msg)
 	{}
 
 	// void setMethod(const std::string& methodName, Callback_t cb=NULL, void* data=NULL);
@@ -145,9 +147,10 @@ public:
 	virtual ~LIPCResponse();
 
 	void setResult(const Json::Value& result);
-	void post();
-
 	Json::Value getResult();
+
+	void post();
+	void postException(Error code, const Json::Value& exception = Json::Value::null);
 
 private:
 	UnixSocket&	_conn;
@@ -167,7 +170,7 @@ public:
 
 	LIPCService(ZQ::common::Log& log):_lipcLog(log){}
 	int init(ZQ::eloop::Loop &loop, int ipc=1);
-	PipeClientList& getPipeClientList() {return _clients;}
+	PipeClientList& getPipeClientList() { return _clients; }
 
 protected:
 	ZQ::common::Log& _lipcLog;
@@ -181,7 +184,7 @@ protected:
 
 	//@note the child impl is expected to call resp->post() to send the response out
 	virtual void execOrDispatch(const std::string& methodName, const LIPCRequest::Ptr& req, LIPCResponse::Ptr& resp)
-	{ resp->setErrorCode(LIPCMessage::LIPC_METHOD_NOT_FOUND); resp->post(); }
+	{ resp->postException(LIPCMessage::LIPC_METHOD_NOT_FOUND); }
 
 private:
 	PipeClientList _clients;
@@ -191,14 +194,12 @@ private:
 // ------------------------------------------------
 // class LIPCClient
 // ------------------------------------------------
-class LIPCClient
+class LIPCClient : protected ZQ::eloop::Timer
 {
 	friend class ClientConn;
 
 public:
 	LIPCClient(Loop &loop, ZQ::common::Log& log, int ipc=1);
-
-	uint lastCSeq();
 
 	typedef void (*Callback_t)(LIPCMessage& msg, void* data);
 
@@ -213,9 +214,11 @@ public:
 	void close();
 
 protected:
-	virtual void OnRequestPrepared(const std::string& method, int cseq, Json::Value& pReq){}
+	virtual void OnRequestPrepared(LIPCRequest::Ptr req) {}
+	virtual void OnResponse(const std::string& method, LIPCResponse::Ptr resp) {}
+	virtual void OnRequestDone(int cseq, ZQ::eloop::LIPCMessage::Error ret) {}
+
 	virtual void OnIndividualMessage(Json::Value& msg);
-	virtual void OnResponse(LIPCResponse::Ptr resp) {}
 
 protected: // redirect from UnixSocket
 	virtual void OnConnected(ZQ::eloop::Handle::ElpeError status) {}
@@ -230,10 +233,14 @@ protected: // redirect from UnixSocket
 	// supposed to receive a response of request just sent
 	virtual void OnMessage(std::string& msg);
 
+protected: // impl of ZQ::eloop::Timer
+	virtual void OnTimer();
+
 	ZQ::common::Log& _lipcLog;
 
 private:
 	void OnCloseHandle();
+	uint lastCSeq();
 
 	std::string		_localPipeName;
 	std::string		_peerPipeName;
@@ -241,8 +248,18 @@ private:
 	ClientConn*	    _conn; // for reconnect
 	Loop&           _loop;
 	bool		    _reconnect;
+	int		        _timeout;
 
 	ZQ::common::AtomicInt _lastCSeq;
+	typedef struct
+	{
+		LIPCRequest::Ptr req;
+		int64            expiration;
+		std::string      method;
+	} AwaitRequest;
+
+	typedef std::map<uint, AwaitRequest> AwaitMap;
+	AwaitMap _awaits;
 };
 
 }}//ZQ::eloop
