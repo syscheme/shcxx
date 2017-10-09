@@ -44,7 +44,6 @@ class ZQ_ELOOP_API LIPCClient;
 class ZQ_ELOOP_API LIPCRequest;
 class ZQ_ELOOP_API LIPCResponse;
 class ZQ_ELOOP_API LIPCMessage;
-class ZQ_ELOOP_API LIPCProcess;
 
 // ------------------------------------------------
 // class LIPCMessage
@@ -87,9 +86,9 @@ public:
 
 	void  setErrorCode(Error code);
 	Error getErrorCode();
-
-	int getCSeq() const { return _cSeq; }
 	
+	int getCSeq() const { return _cSeq; }
+
 	FdType getFdType() const;
 	int    getFd() const;
 	void   setFd(fd_t fd, FdType type);
@@ -120,14 +119,8 @@ public:
 		: LIPCMessage(0, msg)
 	{}
 
-	// void setMethod(const std::string& methodName, Callback_t cb=NULL, void* data=NULL);
-	// std::string getMethodName();
-	// Callback& getCb();
 	void setParam(const Json::Value& param);
 	Json::Value getParam();
-
-//private:
-//	Callback _cbInfo;
 };
 
 // ------------------------------------------------
@@ -209,7 +202,7 @@ public:
 
 	int read_start();
 	int read_stop();
-	int sendRequest(const std::string& methodName, LIPCRequest::Ptr req);
+	int sendRequest(const std::string& methodName, LIPCRequest::Ptr req, bool expectResp = true);
 	int shutdown();
 	void close();
 

@@ -92,6 +92,8 @@ std::string LIPCMessage::toString()
 {
 	if (Json::Value::null == _msg)
 		return "";
+	if (_cSeq > 0)
+		_msg[JSON_RPC_ID] = _cSeq;
 	_msg[JSON_RPC_PROTO] = JSON_RPC_PROTO_VERSION;
 	Json::FastWriter writer;
 	return writer.write(_msg);
@@ -106,26 +108,6 @@ bool LIPCMessage::fromString(const std::string& str)
 // ------------------------------------------------
 // class LIPCRequest
 // ------------------------------------------------
-//void LIPCRequest::setMethod(const std::string& methodName, Callback_t cb, void* data)
-//{
-//	_msg[JSON_RPC_METHOD] = methodName;
-//	if ((NULL == cb)|| (NULL == data))
-//		return;
-//
-//	_cbInfo.cb = cb;
-//	_cbInfo.data = data;
-//}
-//
-//std::string LIPCRequest::getMethodName()
-//{
-//	return _msg.isMember(JSON_RPC_METHOD)?_msg[JSON_RPC_METHOD].asString():"";
-//}
-//
-//LIPCRequest::Callback& LIPCRequest::getCb()
-//{
-//	return _cbInfo;
-//}
-//
 void LIPCRequest::setParam(const Json::Value& param)
 {
 	_msg[JSON_RPC_PARAMS] = param;
@@ -219,18 +201,24 @@ public:
 	void OnIndividualMessage(Json::Value& msg)
 	{
 		std::string methodName;
-		int cseq =-1;
-		if (msg.isMember(JSON_RPC_FD))
-			cseq = msg[JSON_RPC_FD].asInt();
+		int cseq = -1;
+		
+		if (msg.isMember(JSON_RPC_ID))
+			cseq = msg[JSON_RPC_ID].asUInt();
+
+		LIPCResponse::Ptr resp = new LIPCResponse(cseq, *this);
 
 		if (msg.isMember(JSON_RPC_METHOD))
 			methodName = msg[JSON_RPC_METHOD].asString();
 
-		if (cseq <=0 || methodName.empty())
+		if (methodName.empty())
+		{
+			resp->postException(LIPCMessage::LIPC_METHOD_NOT_FOUND);
 			return;
+		}
 
-		LIPCRequest::Ptr req = new LIPCRequest(cseq, msg);
-		LIPCResponse::Ptr resp = new LIPCResponse(cseq, *this);
+		LIPCRequest::Ptr req = new LIPCRequest(msg);
+		
 
 		if (req->hasFd())
 		{
@@ -491,20 +479,22 @@ int LIPCClient::read_stop()
 	return _conn->read_stop();
 }
 
-int LIPCClient::sendRequest(const std::string& methodName, LIPCRequest::Ptr req)
+int LIPCClient::sendRequest(const std::string& methodName, LIPCRequest::Ptr req,bool expectResp)
 {
 	if (_conn == NULL || !req || methodName.empty())
 		return -1;
 
-	req->_cSeq = lastCSeq();
 	req->_msg[JSON_RPC_METHOD] = methodName;
-	Json::Value param = req->getParam();
 
-	AwaitRequest ar;
-	ar.req = req;
-	ar.method = methodName;
-	ar.expiration = ZQ::common::now() + _timeout;
-	_awaits.insert(AwaitMap::value_type(req->_cSeq, ar));
+	if (expectResp)
+	{
+		req->_cSeq = lastCSeq();
+		AwaitRequest ar;
+		ar.req = req;
+		ar.method = methodName;
+		ar.expiration = ZQ::common::now() + _timeout;
+		_awaits.insert(AwaitMap::value_type(req->_cSeq, ar));
+	}
 
 	OnRequestPrepared(req);
 		
@@ -521,14 +511,23 @@ int LIPCClient::sendRequest(const std::string& methodName, LIPCRequest::Ptr req)
 void LIPCClient::OnIndividualMessage(Json::Value& msg)
 {
 	int cseq =-1;
-	if (msg.isMember(JSON_RPC_FD))
-		 cseq = msg[JSON_RPC_FD].asInt();
+	if (msg.isMember(JSON_RPC_ID))
+		 cseq = msg[JSON_RPC_ID].asInt();
 
 	if (cseq <=0)
 		return;
 
 	LIPCResponse::Ptr resp = new LIPCResponse(cseq, *_conn);
 	resp->_msg = msg;
+
+	if (msg.isMember(JSON_RPC_FD))
+	{
+#ifdef ZQ_OS_LINUX
+		resp->setFd(acceptfd(), req->getFdType());
+#else
+		resp->setFd(-1, LIPCMessage::LIPC_NONE);
+#endif
+	}
 
 	AwaitMap::iterator itW = _awaits.find(cseq);
 	if (_awaits.end() == itW) // unknown request or it has been previously expired
