@@ -57,18 +57,25 @@ public:
 
 	typedef enum
 	{
-		LIPC_OK = 200, 
-		LIPC_PARSING_ERROR = -32700, /**< Invalid JSON. An error occurred on the server while parsing the JSON text. */
-		LIPC_INVALID_REQUEST = -32600, /**< The received JSON not a valid JSON-RPC LIPCRequest. */
-		LIPC_METHOD_NOT_FOUND = -32601, /**< The requested remote-procedure does not exist / is not available. */
-		LIPC_INVALID_PARAMS = -32602, /**< Invalid method parameters. */
-		LIPC_INTERNAL_ERROR = -32603, /**< Internal JSON-RPC error. */
-		LIPC_CLIENT_ERROR = 400, 
-		LIPC_REQUEST_TIMEOUT = 408, 
+		LIPC_OK               = 200, 
+
+		LIPC_CLIENT_ERROR     = 400, 
+		LIPC_REQUEST_TIMEOUT  = 408, 
+		LIPC_REQUEST_CONFLICT = 409, 
+		LIPC_SERVER_ERROR     = 500, 
+		LIPC_NOT_IMPLEMENTED  = 501, 
+		LIPC_SERVICE_UNAVAIL  = 503, 
+		LIPC_UNSUPPORT_VERSION= 505, 
+
+		LIPC_PARSING_ERROR    = -32700, ///< Invalid JSON. An error occurred on the server while parsing the JSON text
+		LIPC_INVALID_REQUEST  = -32600, ///< The received JSON not a valid JSON-RPC LIPCRequest
+		LIPC_METHOD_NOT_FOUND = -32601, ///< The requested remote-procedure does not exist / is not available
+		LIPC_INVALID_PARAMS   = -32602, ///< Invalid method parameters
+		LIPC_INTERNAL_ERROR   = -32603, ///< Internal JSON-RPC error
 
 		//user define error
-		LIPC_NOT_FD	= -33000, 
-		LIPC_INVALID_FD_TYPE = -33001, 
+		LIPC_INVALID_FD	      = -33000, 
+		LIPC_INVALID_FD_TYPE  = -33001, 
 
 	} Error;
 
@@ -145,6 +152,7 @@ public:
 	Json::Value getResult();
 
 	void post();
+	void postResult(const Json::Value& result) { setResult(result); post(); } 
 	void postException(Error code, const Json::Value& exception = Json::Value::null);
 
 private:

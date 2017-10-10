@@ -2,22 +2,22 @@
 #include "LIPC.h"
 #include "TimeUtil.h"
 
-#define SYSTEM_DESCRIBE "systemDescribe"
-
 #define MAX_CSEQ    0x0fffffff
-#define JSON_RPC_PROTO "jsonrpc"
+
+#define SYSTEM_DESCRIBE        "systemDescribe"
+#define JSON_RPC_PROTO         "jsonrpc"
 #define JSON_RPC_PROTO_VERSION "2.0"
-#define JSON_RPC_ID "id"
-#define JSON_RPC_METHOD "method"
-#define JSON_RPC_PARAMS "params"
-#define JSON_RPC_RESULT "result"
-#define JSON_RPC_EXCEPTION "exception"
-#define JSON_RPC_ERROR "error"
-#define JSON_RPC_ERROR_CODE "code"
+#define JSON_RPC_ID            "id"
+#define JSON_RPC_METHOD        "method"
+#define JSON_RPC_PARAMS        "params"
+#define JSON_RPC_RESULT        "result"
+#define JSON_RPC_EXCEPTION     "exception"
+#define JSON_RPC_ERROR         "error"
+#define JSON_RPC_ERROR_CODE    "code"
 #define JSON_RPC_ERROR_MESSAGE "message"
-#define JSON_RPC_ERROR_DATA "data"
-#define JSON_RPC_FD "fd"
-#define JSON_RPC_FD_TYPE "fd_type"
+#define JSON_RPC_ERROR_DATA    "data"
+#define JSON_RPC_FD            "fd"
+#define JSON_RPC_FD_TYPE       "fd_type"
 
 namespace ZQ {
 namespace eloop {
@@ -35,12 +35,27 @@ const char* LIPCMessage::errDesc(Error code)
 {
 	switch(code)
 	{
-	case LIPC_PARSING_ERROR    : return "Parse error.";
-	case LIPC_INVALID_REQUEST  : return "Invalid JSON-RPC request.";
-	case LIPC_METHOD_NOT_FOUND : return "Method not found.";
-	case LIPC_INVALID_PARAMS   : return "Invalid params.";
-	case LIPC_INTERNAL_ERROR   : return "Internal error.";
-	default                    : return "server error.";
+	case LIPC_OK               : return "OK";
+
+	case LIPC_CLIENT_ERROR     : return "client error";
+	case LIPC_REQUEST_TIMEOUT  : return "request timeout";
+	case LIPC_REQUEST_CONFLICT : return "request conflict";
+	case LIPC_NOT_IMPLEMENTED  : return "not implemented";
+	case LIPC_SERVICE_UNAVAIL  : return "service unavailable";
+	case LIPC_UNSUPPORT_VERSION: return "unsupported version";
+
+	case LIPC_INVALID_FD	   : return "invalid fd";
+	case LIPC_INVALID_FD_TYPE  : return "invalid fd-type";
+
+
+	case LIPC_PARSING_ERROR    : return "parse error";
+	case LIPC_INVALID_REQUEST  : return "invalid JSON-RPC request";
+	case LIPC_METHOD_NOT_FOUND : return "method not found";
+	case LIPC_INVALID_PARAMS   : return "invalid params";
+	case LIPC_INTERNAL_ERROR   : return "internal error";
+
+	case LIPC_SERVER_ERROR     : 
+	default                    : return "server error";
 	}
 }
 
@@ -54,7 +69,7 @@ void LIPCMessage::setErrorCode(Error code)
 
 LIPCMessage::Error LIPCMessage::getErrorCode()
 {
-	return _msg.isMember(JSON_RPC_ERROR_CODE)?(Error)_msg[JSON_RPC_ERROR_CODE].asInt():LIPC_OK;
+	return _msg.isMember(JSON_RPC_ERROR_CODE) ? (Error)_msg[JSON_RPC_ERROR_CODE].asInt() :LIPC_OK;
 }
 
 //int LIPCMessage::getCSeq() const
@@ -75,12 +90,12 @@ int LIPCMessage::getFd() const
 
 LIPCMessage::FdType LIPCMessage::getFdType() const
 {
-	return _msg.isMember(JSON_RPC_FD_TYPE) ?(LIPCMessage::FdType)(_msg[JSON_RPC_FD_TYPE].asUInt()) :LIPC_NONE;
+	return _msg.isMember(JSON_RPC_FD_TYPE) ? (LIPCMessage::FdType)(_msg[JSON_RPC_FD_TYPE].asUInt()) :LIPC_NONE;
 }
 
 bool LIPCMessage::hasFd()
 {
-	return _msg.isMember(JSON_RPC_FD)?true:false;
+	return _msg.isMember(JSON_RPC_FD);
 }
 
 bool LIPCMessage::empty()
