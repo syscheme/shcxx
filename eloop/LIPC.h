@@ -171,7 +171,7 @@ public:
 
 public:
 
-	LIPCService(ZQ::common::Log& log):_lipcLog(log){}
+	LIPCService(ZQ::common::Log& log) : _lipcLog(log){}
 	int init(ZQ::eloop::Loop &loop, int ipc=1);
 	PipeClientList& getPipeClientList() { return _clients; }
 
