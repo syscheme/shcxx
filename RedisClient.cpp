@@ -951,7 +951,7 @@ RedisSink::Error RedisClient::GET(const std::string& key, uint8* value, uint& vl
 		vlen =0;
 		return RedisSink::rdeNil;
 	}
-
+    vlen = strlen(pCmd->_replyCtx.data.bulks[0].c_str());
 	vlen = decode(pCmd->_replyCtx.data.bulks[0].c_str(), value, vlen);
 	return RedisSink::rdeOK;
 }

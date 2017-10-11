@@ -693,6 +693,11 @@ int Evictor::_evictBySize()
 //}
 //
 
+Evictor::Item::_Data::_Data() : status(clean), completed(false)
+{  
+    stampCreated = stampLastSave = 0; 
+}
+
 }} // namespace
 
 

@@ -118,14 +118,14 @@ public:
 
 		typedef struct _Data
 		{
-            ObjectPtr servant;  // DONOT move this field
+            Pointer<SharedObject> servant;  // DONOT move this field
 			State     status;
 			int64     stampCreated, stampLastSave;
 			bool      completed; // indicate whether the object has been filled completed. Upon to the configuration
 			                     // (FLG_SAVE_COMPLETED_ONLY& Evictor::_flags), some Evictor may be required to save
 			                     // only completed objects in the data-storage
 
-			_Data() : status(clean), completed(false) {  stampCreated = stampLastSave = 0; }
+			_Data();
 		} Data;
 
 		Data _data;
