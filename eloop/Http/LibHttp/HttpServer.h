@@ -170,7 +170,7 @@ public:
 
 		std::string serverName;
 		std::string	host;
-		uint64		port;
+		int		    port;
 		ServerMode	mode;
 		int			threadCount;
 		uint64		httpHeaderAvailbleTimeout;
@@ -389,7 +389,7 @@ public:
 	int64		_mesureSince;
 
 	void reset();
-	void addCounter(HttpMessage::HttpMethod mtd, int32 errCode, int64 latencyHeader, int64 latencyBody );
+	void addCounter(HttpMessage::HttpMethod mtd, int32 errCode, int32 latencyHeader, int32 latencyBody);
 	static const char* nameOfMethod(int mtd);
 
 private:

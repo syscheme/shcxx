@@ -84,9 +84,9 @@ void HttpPassiveConn::errorResponse( int code ) {
 	stop();
 }
 
-void HttpPassiveConn::onError(int error,const char* errorDescription) {
-	
-	if (error != elpe__EOF)
+void HttpPassiveConn::onError(int error,const char* errorDescription)
+{
+	if (elpuEOF != error)
 	{
 		char locip[17] = { 0 };
 		int  locport = 0;
@@ -99,6 +99,7 @@ void HttpPassiveConn::onError(int error,const char* errorDescription) {
 		_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpPassiveConn, "onError [%p] [%s:%d => %s:%d], errorCode[%d],Description[%s]"), 
 			this, locip, locport, peerip, peerport,error,errorDescription);
 	}
+
 	if (error > 0)		//Parse error message
 	{
 		errorResponse(400);
@@ -141,7 +142,7 @@ void HttpPassiveConn::onRespComplete()
 	{
 		if (_startTime <= 0)
 			_startTime = ZQ::common::now();
-		int took = ZQ::common::now() - _startTime;
+		int took = (int) (ZQ::common::now() - _startTime);
 		_timer.start(_keepAlive_Timeout+took,0);
 	}
 	else
@@ -237,7 +238,7 @@ bool HttpServer::startAt()
 	
 	if (_Config.mode == MULTIPE_LOOP_MODE)
 	{
-		_engine = new MultipleLoopHttpEngine(_Config.host,_Config.port,_Logger,*this);
+		_engine = new MultipleLoopHttpEngine(_Config.host, _Config.port, _Logger, *this);
 	}
 	else
 		_engine = new SingleLoopHttpEngine(_Config.host,_Config.port,_Logger,*this);
@@ -741,7 +742,7 @@ void HttpStatistics::reset()
 	_mesureSince = ZQ::common::now();
 }
 
-void HttpStatistics::addCounter(HttpMessage::HttpMethod mtd, int32 errCode, int64 latencyHeader, int64 latencyBody )
+void HttpStatistics::addCounter(HttpMessage::HttpMethod mtd, int32 errCode, int32 latencyHeader, int32 latencyBody )
 {
 	Method method = httpMethodToMethod(mtd);
 
@@ -757,8 +758,8 @@ void HttpStatistics::addCounter(HttpMessage::HttpMethod mtd, int32 errCode, int6
 	_counters[method].subtotalLatencyInMs_Body += latencyBody;
 	_counters[method].subtotalLatencyInMs_Header += latencyHeader;
 
-	_counters[method].avgLatencyInMs_Body = _counters[method].totalCount ? (_counters[method].subtotalLatencyInMs_Body /_counters[method].totalCount) :0;
-	_counters[method].avgLatencyInMs_Header = _counters[method].totalCount ? (_counters[method].subtotalLatencyInMs_Header /_counters[method].totalCount) :0;
+	_counters[method].avgLatencyInMs_Body = _counters[method].totalCount ? (int)(_counters[method].subtotalLatencyInMs_Body /_counters[method].totalCount) :0;
+	_counters[method].avgLatencyInMs_Header = _counters[method].totalCount ? (int)(_counters[method].subtotalLatencyInMs_Header /_counters[method].totalCount) :0;
 }
 
 const char* HttpStatistics::nameOfMethod(int mtd)
