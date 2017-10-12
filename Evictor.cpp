@@ -86,7 +86,6 @@ Evictor::~Evictor()
 	// poll(true); MUST be called from the child class
 }
 
-
 Evictor::Item::Ptr Evictor::pin(const Ident& ident, Item::Ptr item)
 {
 	bool bRetry = true;

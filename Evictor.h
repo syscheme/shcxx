@@ -70,7 +70,7 @@ class Evictor // : public Mutex
 public:
 
 	typedef enum _Error {
-		eeOK =200, eeNotFound=404, eeTimeout=402, eeConnectErr=503
+		eeOK =200, eeNotFound=404, eeTimeout=402, eeConnectErr=503, eeNoMemory =507,
 	} Error;
 
 	// typedef std::vector<uint8> ByteStream;

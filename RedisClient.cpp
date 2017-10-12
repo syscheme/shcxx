@@ -186,6 +186,71 @@ protected:
 };
 
 // -----------------------------
+// class RedisEvictor
+// -----------------------------
+// save a batch of streamed object to the target object store
+int RedisEvictor::saveBatchToStore(StreamedList& batch)
+{
+	if (!_client)
+		return 0;
+
+	int cUpdated =0, cDeleted =0;
+	RedisSink::Error rcerr;
+	for (StreamedList::iterator it = batch.begin(); it!=batch.end(); it++)
+	{
+		switch(it->status)
+		{
+        case Item::created:   // the item is created in the cache, and has not present in the ObjectStore
+		case Item::modified:  // the item is modified but not yet flushed to the ObjectStore
+			rcerr = _client->SET(it->key, (uint8*)(it->data.c_str()), it->data.size());
+			if (RedisSink::rdeOK != rcerr)
+				Evictor::_log(Log::L_ERROR, CLOGFMT(RedisEvictor, "saveBatchToStore() save[%s] err(%d)"), it->key.c_str(), rcerr);
+			else
+				cUpdated++;
+			break;
+
+        case Item::destroyed:  // the item is required to destroy but not yet deleted from ObjectStore
+            rcerr = _client->DEL(it->key);
+			if (RedisSink::rdeOK != rcerr)
+				Evictor::_log(Log::L_ERROR, CLOGFMT(RedisEvictor, "saveBatchToStore() del[%s] err(%d)"), it->key.c_str(), rcerr);
+			else cDeleted++;
+            break;
+
+        default:
+            break;
+        }
+    }
+
+    Evictor::_log(Log::L_DEBUG, CLOGFMT(indexEvictor, "saveBatchToStore() %d updated and %d destroyed"), cUpdated, cDeleted);
+    return cUpdated+cDeleted;
+}
+
+// load a specified object from the object store
+//@ return IOError, NotFound, OK
+Evictor::Error RedisEvictor::loadFromStore(const std::string& key, StreamedObject& data)
+{
+	if (!_client)
+		return eeConnectErr;
+
+	uint vlen = _maxValueLen;
+	if (NULL == _recvBuf || vlen <=0)
+		return eeNoMemory;
+
+	 RedisSink::Error rcerr = _client->GET(key, _recvBuf, vlen);
+	if (RedisSink::rdeOK != rcerr)
+	{
+		Evictor::_log(Log::L_ERROR, CLOGFMT(RedisEvictor, "loadFromStore() load[%s] err(%d)"), key.c_str(), rcerr);
+		return eeConnectErr;
+	}
+
+	data.data.assign((char*)_recvBuf, vlen);
+	data.stampAsOf = ZQ::common::now();
+
+	Evictor::_log(Log::L_DEBUG, CLOGFMT(RedisEvictor, "loadFromStore() loaded[%s]: %s"), key.c_str(), data.data.c_str());
+	return eeOK;
+}
+
+// -----------------------------
 // class RedisClient
 // -----------------------------
 // represent a tcp connection to the RTSP server, may be shared by multiple RTSPSessions

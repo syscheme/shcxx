@@ -53,6 +53,7 @@
 #include "NativeThreadPool.h"
 #include "TimeUtil.h"
 #include "Pointer.h"
+#include "Evictor.h"
 
 #include <map>
 #include <vector>
@@ -289,6 +290,50 @@ protected:
 private:
 	void   _cancelCommands(); // private use, no mutex protection
 	static uint16 _verboseFlags;
+};
+
+// -----------------------------
+// class RedisEvictor
+// -----------------------------
+class RedisEvictor : public Evictor
+{
+public:
+	RedisEvictor(Log& log, RedisClient::Ptr& client, const std::string& name, const Properties& props = Properties())
+		: _client(client), Evictor(log, name, props), _maxValueLen(2048), _recvBuf(NULL)
+	{ 
+		_recvBuf = new uint8[_maxValueLen];
+	}
+
+	virtual ~RedisEvictor()
+	{
+		if (_recvBuf)
+			delete[] _recvBuf;
+		_recvBuf = NULL;
+	}
+
+	RedisClient::Ptr& getClient() { return _client; }
+
+protected: // overwrite of Evictor
+
+	// save a batch of streamed object to the target object store
+	int saveBatchToStore(StreamedList& batch);
+
+	// load a specified object from the object store
+	//@ return IOError, NotFound, OK
+	Evictor::Error loadFromStore(const std::string& key, StreamedObject& data);
+
+protected: // the child class inherited from this evictor should implement the folloing method
+
+	// marshal a servant object into a byte stream for saving to the object store
+	virtual bool marshal(const std::string& category, const Evictor::Item::Data& data, Evictor::ByteStream& streamedData);
+
+	// unmarshal a servant object from the byte stream read from the object store
+	virtual bool unmarshal(const std::string& category, Item::Data& data, const ByteStream& streamedData);
+
+protected:
+	RedisClient::Ptr   _client;
+	size_t             _maxValueLen;
+	uint8*             _recvBuf;
 };
 
 }}//endof namespace
