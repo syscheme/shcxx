@@ -136,6 +136,13 @@ Json::Value LIPCRequest::getParam()
 	return Json::Value::null;
 }
 
+std::string LIPCRequest::getMethod()
+{
+	if (_msg.isMember(JSON_RPC_METHOD))
+		return _msg[JSON_RPC_METHOD].asString();
+	return "";
+}
+
 // ------------------------------------------------
 // class LIPCResponse
 // ------------------------------------------------
@@ -549,6 +556,7 @@ void LIPCClient::OnIndividualMessage(Json::Value& msg)
 		return;
 
 	OnResponse(itW->second.method, resp);
+	_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCClient, "OnResponse method:%s,cseq:%d"), itW->second.method.c_str(),cseq);
 	OnRequestDone(cseq, LIPCMessage::LIPC_OK);
 	_awaits.erase(cseq);
 }

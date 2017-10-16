@@ -130,6 +130,7 @@ public:
 
 	void setParam(const Json::Value& param);
 	Json::Value getParam();
+	std::string getMethod();
 };
 
 // ------------------------------------------------
@@ -219,7 +220,7 @@ public:
 protected:
 	virtual void OnRequestPrepared(LIPCRequest::Ptr req) {}
 	virtual void OnResponse(const std::string& method, LIPCResponse::Ptr resp) {}
-	virtual void OnRequestDone(int cseq, ZQ::eloop::LIPCMessage::Error ret) {}
+	virtual void OnRequestDone(int cseq, int ret) {}
 
 	virtual void OnIndividualMessage(Json::Value& msg);
 
