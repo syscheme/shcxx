@@ -205,8 +205,7 @@ int RedisEvictor::saveBatchToStore(StreamedList& batch)
 			rcerr = _client->SET(it->key, (uint8*)(it->data.c_str()), it->data.size());
 			if (RedisSink::rdeOK != rcerr)
 				Evictor::_log(Log::L_ERROR, CLOGFMT(RedisEvictor, "saveBatchToStore() save[%s] err(%d)"), it->key.c_str(), rcerr);
-			else
-				cUpdated++;
+			else cUpdated++;
 			break;
 
         case Item::destroyed:  // the item is required to destroy but not yet deleted from ObjectStore

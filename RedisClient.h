@@ -325,10 +325,10 @@ protected: // overwrite of Evictor
 protected: // the child class inherited from this evictor should implement the folloing method
 
 	// marshal a servant object into a byte stream for saving to the object store
-	virtual bool marshal(const std::string& category, const Evictor::Item::Data& data, Evictor::ByteStream& streamedData);
+	virtual bool marshal(const std::string& category, const Evictor::Item::Data& data, Evictor::ByteStream& streamedData) { return false; }
 
 	// unmarshal a servant object from the byte stream read from the object store
-	virtual bool unmarshal(const std::string& category, Item::Data& data, const ByteStream& streamedData);
+	virtual bool unmarshal(const std::string& category, Item::Data& data, const ByteStream& streamedData) { return false; }
 
 protected:
 	RedisClient::Ptr   _client;
