@@ -82,7 +82,7 @@ protected:
 		buf->base = (char*)malloc(suggested_size);
 		if (buf->base)
 		{
-			buf->len = (ULONG)suggested_size;
+			buf->len = (unsigned long) suggested_size;
 			memset(buf->base,0,buf->len);
 		}
 	}
