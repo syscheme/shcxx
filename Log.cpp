@@ -313,6 +313,31 @@ void Log::emerg( const char* fmt, ... ) {
 	return formatLogMessage(Log::L_EMERG, fmt,args);
 }
 
+std::string Log::timestampStr()
+{
+	char stampbuf[22] ="\0";
+
+#ifdef ZQ_OS_MSWIN
+	SYSTEMTIME time;
+	GetLocalTime(&time);
+	_snprintf(stampbuf, sizeof(stampbuf)-2, "%02d-%02d %02d:%02d:%02d.%03d", time.wMonth, time.wDay, time.wHour, time.wMinute, time.wSecond, time.wMilliseconds);
+#else
+	struct timeval tv;
+	struct tm* ptm=NULL, tmret;
+	gettimeofday(&tv,  (struct timezone*)NULL);
+	ptm = localtime_r(&tv.tv_sec, &tmret);
+	if(ptm == NULL)
+	{
+		SYSTEMFILELOG(Log::L_ERROR, "writeMessage() failed get localtime_r code[%d] message[%s]", errno, msg);
+		return;
+	}
+	
+	snprintf(stampbuf, sizeof(stampbuf)-2, "%02d-%02d %02d:%02d:%02d.%03d", ptm->tm_mon+1,ptm->tm_mday,ptm->tm_hour,ptm->tm_min,ptm->tm_sec,(int)tv.tv_usec/1000);
+#endif // ZQ_OS
+
+	return stampbuf;
+}
+
 void Log::formatLogMessage( int level, const char* fmt, va_list args) {
 	if ((level & 0xff) > _verbosity)
 		return;

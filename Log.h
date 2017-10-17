@@ -154,6 +154,8 @@
 
 #include "ZQ_common_conf.h"
 
+#include <string>
+
 extern "C" {
 #include <stdio.h>
 #ifndef WIN32
@@ -267,6 +269,8 @@ public:
 	void hexDump(const int level, const void* startPos, const int size, const char *hint=NULL, bool textOnly=false);
 	void textDump(const int level, const void* startPos, const int size, const char* hint= NULL);
 
+	virtual std::string timestampStr();
+
 protected:
 	/// have to be implemented in the child, do nothing here as a NULL logger
 	/// @param msg     - the log msg body to write down
@@ -275,15 +279,14 @@ protected:
 	///                  can ignore this paramter mostly
 	virtual void writeMessage(const char *msg, int level=-1)
 	{
-#ifdef _DEBUG
-		printf("%02x %s\n", level, msg);
-#endif //
+		printf("%s %02x %s\n", timestampStr().c_str(), level, msg);
 	}
+
 	virtual void writeMessage(const wchar_t *msg , int level = -1)
 	{
 #ifdef _DEBUG
-		printf("%02x %ls\n",level,msg);
-#endif
+		printf("%s %02x %ls\n", timestampStr().c_str(), level, msg);
+#endif // _DEBUG
 	}
 
 	void formatLogMessage( int level, const char* fmt, va_list args);
