@@ -197,7 +197,7 @@ void Download::onError( int error,const char* errorDescription )
 		}
 	}
 
-	if (error != elpe__EOF)
+	if (error != elpuEOF)
 	{
 		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Download,"Download Error,errorCode[%d],Description:%s"),error,errorDescription);
 		printf("Download Error,errorCode[%d],Description:%s\n",error,errorDescription);
@@ -406,7 +406,7 @@ void ControlDownload::onError( int error,const char* errorDescription )
 		return;
 	}
 
-	if (error != elpe__EOF)
+	if (error != elpuEOF)
 	{
 		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(ControlDownload,"Download Error,errorCode[%d],Description:%s"),error,errorDescription);
 		printf("Download Error,errorCode[%d],Description:%s\n",error,errorDescription);
@@ -520,7 +520,7 @@ void Session::onMessageCompleted()
 
 void Session::onError( int error,const char* errorDescription )
 {
-	if (error != elpe__EOF)
+	if (error != elpuEOF)
 	{
 		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(Session,"Session Error,baseurl:%s,errorCode[%d],Description:%s"),_baseurl.c_str(),error,errorDescription);
 		printf("Session Error,errorCode[%d],Description:%s\n",error,errorDescription);

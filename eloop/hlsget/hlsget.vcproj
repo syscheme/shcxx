@@ -115,7 +115,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="&quot;$(ZQProjsPath)\common\eloop\libuv_1.9.1\include&quot;;&quot;$(ZQProjsPath)\common\eloop&quot;;&quot;$(ZQProjsPath)\common\eloop\Http\LibHttp&quot;;&quot;$(ZQProjsPath)\common\&quot;"
+				AdditionalIncludeDirectories="&quot;$(ZQProjsPath)\common\eloop\libuv_1.9.1\include&quot;;&quot;$(ZQProjsPath)\common\eloop&quot;;&quot;$(ZQProjsPath)\common\eloop\Http\LibHttp&quot;;&quot;$(ZQProjsPath)\common\&quot;;&quot;$(RegExppKit)&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
