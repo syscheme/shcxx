@@ -320,7 +320,7 @@ std::string Log::timestampStr()
 #ifdef ZQ_OS_MSWIN
 	SYSTEMTIME time;
 	GetLocalTime(&time);
-	_snprintf(stampbuf, sizeof(stampbuf)-2, "%02d-%02d %02d:%02d:%02d.%03d", time.wMonth, time.wDay, time.wHour, time.wMinute, time.wSecond, time.wMilliseconds);
+	_snprintf(stampbuf, sizeof(stampbuf)-2, "%02d:%02d:%02d.%03d", time.wHour, time.wMinute, time.wSecond, time.wMilliseconds);
 #else
 	struct timeval tv;
 	struct tm* ptm=NULL, tmret;
@@ -332,7 +332,7 @@ std::string Log::timestampStr()
 		return;
 	}
 	
-	snprintf(stampbuf, sizeof(stampbuf)-2, "%02d-%02d %02d:%02d:%02d.%03d", ptm->tm_mon+1,ptm->tm_mday,ptm->tm_hour,ptm->tm_min,ptm->tm_sec,(int)tv.tv_usec/1000);
+	snprintf(stampbuf, sizeof(stampbuf)-2, "%02d:%02d:%02d.%03d", ptm->tm_hour,ptm->tm_min,ptm->tm_sec,(int)tv.tv_usec/1000);
 #endif // ZQ_OS
 
 	return stampbuf;
