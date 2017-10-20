@@ -96,7 +96,7 @@ public:
 	void  setErrorCode(Error code);
 	Error getErrorCode();
 	
-	int getCSeq() const { return _cSeq; }
+	int getCSeq() const;
 
 	FdType getFdType() const;
 	int    getFd() const;
