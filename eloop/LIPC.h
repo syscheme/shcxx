@@ -25,7 +25,7 @@
 //
 // Revision History: 
 // ---------------------------------------------------------------------------
-// $Log: /ZQProjs/Common/LIPC/LIPC.h $
+// $Log: /ZQProjs/Common/eloop/LIPC.h $
 // ===========================================================================
 
 #ifndef __ZQ_COMMON_ELOOP_LIPC_H__
@@ -60,12 +60,16 @@ public:
 		LIPC_OK               = 200, 
 
 		LIPC_CLIENT_ERROR     = 400, 
+		LIPC_NOT_FOUND        = 404, 
 		LIPC_REQUEST_TIMEOUT  = 408, 
 		LIPC_REQUEST_CONFLICT = 409, 
 		LIPC_SERVER_ERROR     = 500, 
 		LIPC_NOT_IMPLEMENTED  = 501, 
 		LIPC_SERVICE_UNAVAIL  = 503, 
 		LIPC_UNSUPPORT_VERSION= 505, 
+		LIPC_SERVICE_TIMEOUT  = 506, 
+
+		LIPC_IO_ERROR         = 507, 
 
 		LIPC_PARSING_ERROR    = -32700, ///< Invalid JSON. An error occurred on the server while parsing the JSON text
 		LIPC_INVALID_REQUEST  = -32600, ///< The received JSON not a valid JSON-RPC LIPCRequest
