@@ -69,13 +69,22 @@ void LIPCMessage::setErrorCode(Error code)
 
 LIPCMessage::Error LIPCMessage::getErrorCode()
 {
-	return _msg.isMember(JSON_RPC_ERROR_CODE) ? (Error)_msg[JSON_RPC_ERROR_CODE].asInt() :LIPC_OK;
+	if (_msg.isMember(JSON_RPC_ERROR))
+	{
+		Json::Value err = _msg[JSON_RPC_ERROR];
+		return err.isMember(JSON_RPC_ERROR_CODE) ? (Error)err[JSON_RPC_ERROR_CODE].asInt() :LIPC_OK;
+	}
+	return LIPC_OK;
 }
 
-//int LIPCMessage::getCSeq() const
-//{
-//	return _msg.isMember(JSON_RPC_ID) ? _msg[JSON_RPC_ID].asInt() :-1;
-//}
+int LIPCMessage::getCSeq() const 
+{
+	if (_cSeq > 0)
+		return _cSeq; 
+
+	return _msg.isMember(JSON_RPC_ID) ? _msg[JSON_RPC_ID].asInt() :-1;
+}
+
 
 void LIPCMessage::setFd(fd_t fd, FdType type)
 {

@@ -162,6 +162,7 @@ extern "C"
 #define _snwprintf		vswprintf
 
 #include <ctype.h>
+#include<sys/time.h>
 #endif
 
 #define LOG_LINE_MAX_BUF     (2048)
@@ -326,13 +327,8 @@ std::string Log::timestampStr()
 	struct tm* ptm=NULL, tmret;
 	gettimeofday(&tv,  (struct timezone*)NULL);
 	ptm = localtime_r(&tv.tv_sec, &tmret);
-	if(ptm == NULL)
-	{
-		SYSTEMFILELOG(Log::L_ERROR, "writeMessage() failed get localtime_r code[%d] message[%s]", errno, msg);
-		return;
-	}
-	
-	snprintf(stampbuf, sizeof(stampbuf)-2, "%02d:%02d:%02d.%03d", ptm->tm_hour,ptm->tm_min,ptm->tm_sec,(int)tv.tv_usec/1000);
+	if(ptm != NULL)
+		snprintf(stampbuf, sizeof(stampbuf)-2, "%02d:%02d:%02d.%03d", ptm->tm_hour,ptm->tm_min,ptm->tm_sec,(int)tv.tv_usec/1000);
 #endif // ZQ_OS
 
 	return stampbuf;

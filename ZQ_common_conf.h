@@ -457,7 +457,14 @@ typedef	uint64			timeout64_t; // msec
 #endif
 
 #ifndef FLAG
-#  define FLAG(_X) (1<<_X)
+#  define FLAG_ISSET(_FLAGS, _MASK)   ((_FLAGS & _MASK) ? true: false)
+#  define FLAG_SET(_FLAGS, _MASK)     _FLAGS |= _MASK
+#  define FLAG_CLR(_FLAGS, _MASK)     _FLAGS &= ~((uint)_MASK)
+
+#  define FLAG(_X)                    (1<<_X)
+#  define FLAG_ISSETn(_FLAGS, _X)     FLAG_ISSET(_FLAGS, FLAG(_X))
+#  define FLAG_SETn(_FLAGS, _X)       FLAG_SET(_FLAGS, FLAG(_X))
+#  define FLAG_CLRn(_FLAGS, _X)       FLAG_CLR(_FLAGS, FLAG(_X))
 #endif
 
 #ifndef ZQ_FILELOG_V1
