@@ -279,13 +279,13 @@ protected:
 	///                  can ignore this paramter mostly
 	virtual void writeMessage(const char *msg, int level=-1)
 	{
-		printf("%s %02x %s\n", timestampStr().c_str(), level, msg);
+		printf("%s %-7s %s\n", timestampStr().c_str(), getVerbosityStr(level), msg);
 	}
 
 	virtual void writeMessage(const wchar_t *msg , int level = -1)
 	{
 #ifdef _DEBUG
-		printf("%s %02x %ls\n", timestampStr().c_str(), level, msg);
+		printf("%s %-7s %ls\n", timestampStr().c_str(), getVerbosityStr(level), msg);
 #endif // _DEBUG
 	}
 
