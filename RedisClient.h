@@ -299,7 +299,7 @@ class RedisEvictor : public Evictor
 {
 public:
 	RedisEvictor(Log& log, RedisClient::Ptr& client, const std::string& name, const Properties& props = Properties())
-		: _client(client), Evictor(log, name, props), _maxValueLen(2048), _recvBuf(NULL)
+		: _client(client), Evictor(log, name, props), _maxValueLen(REDIS_RECV_BUF_SIZE), _recvBuf(NULL)
 	{ 
 		_recvBuf = new uint8[_maxValueLen];
 	}
