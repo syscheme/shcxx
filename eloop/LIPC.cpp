@@ -597,7 +597,7 @@ void LIPCClient::OnIndividualMessage(Json::Value& msg)
 		return;
 
 	OnResponse(itW->second.method, resp);
-	_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCClient, "OnResponse method:%s,cseq:%d"), itW->second.method.c_str(),cseq);
+	_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCClient, "OnResponse %s(%d)"), itW->second.method.c_str(),cseq);
 	OnRequestDone(cseq, LIPCMessage::LIPC_OK);
 	_awaits.erase(cseq);
 }

@@ -20,7 +20,7 @@ void UnixSocket::OnRead(ssize_t nread, const char *buf)
 	std::string temp;
 	temp.assign(buf,nread);
 	//printf("recv msg:len = %d,data:%s\n",temp.length(),temp.c_str());
-	_lipcLog(ZQ::common::Log::L_DEBUG,CLOGFMT(OnRead, "recv data len=%d,data:%s"),temp.length(),temp.c_str());
+	_lipcLog(ZQ::common::Log::L_DEBUG,CLOGFMT(UnixSocket, "OnRead() recv data len=%d,data:%s"),temp.length(),temp.c_str());
 	processMessage(nread,buf);
 }
 
@@ -28,7 +28,7 @@ int UnixSocket::send(const std::string& msg, int fd)
 {
 	std::string dest;
 	encode(msg,dest);
-	_lipcLog(ZQ::common::Log::L_DEBUG,CLOGFMT(send, "send data len=%d, data:%s"),dest.length(),dest.c_str());
+	_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "send() datalen=%d, data:%s"), dest.length(), dest.c_str());
 	//printf("send msg len = %d,data=%s\n", dest.length(), dest.c_str());
 	if (fd > 0)
 	{
