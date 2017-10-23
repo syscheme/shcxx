@@ -352,7 +352,7 @@ public:
 	virtual void OnConnected(ElpeError status) { _client.OnConnected(status);	}
 	virtual void OnWrote(int status)  {	_client.OnWrote(status);	}
 	virtual void OnShutdown(ElpeError status)	{ _client.OnShutdown(status);	}
-	virtual void OnClose()	{	_client.OnCloseHandle(); }
+	virtual void OnClose()	{	_client.OnCloseConn(); }
 	virtual void OnMessage(std::string& msg) {	_client.OnMessage(msg); }
 	virtual void onError( int error, const char* errorDescription ) {	_client.onError(error, errorDescription); }
 
@@ -361,14 +361,27 @@ private:
 };
 
 // ------------------------------------------------
+// class ClientTimer
+// ------------------------------------------------
+class ClientTimer : public ZQ::eloop::Timer
+{
+public:
+	ClientTimer(LIPCClient& client):_client(client){}
+
+	virtual void OnTimer(){_client.OnTimer();}
+	virtual void OnClose(){_client.OnCloseTimer();}
+
+private:
+	LIPCClient& _client;
+};
+
+// ------------------------------------------------
 // class LIPCClient
 // ------------------------------------------------
-LIPCClient::LIPCClient(Loop &loop, ZQ::common::Log& log, int ipc)
-		:_loop(loop), _ipc(ipc), _lipcLog(log), _conn(NULL), _reconnect(false)
+LIPCClient::LIPCClient(Loop &loop, ZQ::common::Log& log, int64 timeout,int ipc)
+		:_loop(loop), _ipc(ipc), _lipcLog(log), _conn(NULL), _reconnect(false),_timeout(timeout),_timer(NULL)
 {
 	_lastCSeq.set(1);
-	Timer::init(_loop);
-	Timer::start(0, 200); // set scan interval as 5Hz
 }
 
 uint LIPCClient::lastCSeq()
@@ -405,6 +418,12 @@ ZQ::eloop::Loop& LIPCClient::get_loop() const
 
 int LIPCClient::connect(const char *name)
 {
+	if (_timer == NULL)
+	{
+		_timer = new ClientTimer(*this);
+		_timer->init(_loop);
+		_timer->start(0, 200); // set scan interval as 5Hz
+	}
 	_peerPipeName = name;
 	int ret = 0;
 	if (_conn == NULL)
@@ -428,7 +447,18 @@ int LIPCClient::connect(const char *name)
 	return 0;
 }
 
-void LIPCClient::OnCloseHandle()
+void LIPCClient::OnCloseTimer()
+{
+	if (_timer != NULL)
+	{
+		delete _timer;
+		_timer = NULL;
+	}
+	if (_conn == NULL)
+		OnClose();
+}
+
+void LIPCClient::OnCloseConn()
 {
 	if (_conn != NULL)
 	{
@@ -438,7 +468,8 @@ void LIPCClient::OnCloseHandle()
 
 	if (!_reconnect)
 	{
-		OnClose();
+		if (_timer == NULL)
+			OnClose();
 		return;
 	}
 
@@ -470,6 +501,7 @@ void LIPCClient::close()
 		return;
 	_reconnect = false;
 	_conn->close();
+	_timer->close();
 }
 
 int LIPCClient::shutdown()
@@ -481,10 +513,9 @@ int LIPCClient::shutdown()
 
 void LIPCClient::OnTimer()
 {
-	int64 stampExp = ZQ::common::now() - _timeout;
 	for (AwaitMap::iterator itW = _awaits.begin(); itW != _awaits.end();)
 	{
-		if (itW->second.expiration < stampExp)
+		if (itW->second.expiration > ZQ::common::now())
 		{
 			OnRequestDone(itW->first, LIPCMessage::LIPC_REQUEST_TIMEOUT);
 			_awaits.erase(itW++);
@@ -510,7 +541,7 @@ int LIPCClient::read_stop()
 	return _conn->read_stop();
 }
 
-int LIPCClient::sendRequest(const std::string& methodName, LIPCRequest::Ptr req,bool expectResp)
+int LIPCClient::sendRequest(const std::string& methodName, LIPCRequest::Ptr req,int64 timeout,bool expectResp)
 {
 	if (_conn == NULL || !req || methodName.empty())
 		return -1;
@@ -523,6 +554,7 @@ int LIPCClient::sendRequest(const std::string& methodName, LIPCRequest::Ptr req,
 		AwaitRequest ar;
 		ar.req = req;
 		ar.method = methodName;
+		_timeout = (timeout > 0)?timeout:_timeout;
 		ar.expiration = ZQ::common::now() + _timeout;
 		_awaits.insert(AwaitMap::value_type(req->_cSeq, ar));
 	}

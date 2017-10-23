@@ -47,6 +47,7 @@ class ZQ_ELOOP_API LIPCMessage;
 
 class PassiveConn;
 class ClientConn;
+class ClientTimer;
 // ------------------------------------------------
 // class LIPCMessage
 // ------------------------------------------------
@@ -202,12 +203,13 @@ private:
 // ------------------------------------------------
 // class LIPCClient
 // ------------------------------------------------
-class LIPCClient : protected ZQ::eloop::Timer
+class LIPCClient
 {
 	friend class ClientConn;
+	friend class ClientTimer;
 
 public:
-	LIPCClient(Loop &loop, ZQ::common::Log& log, int ipc=1);
+	LIPCClient(Loop &loop, ZQ::common::Log& log,int64 timeout = 500,int ipc=1); 
 
 	typedef void (*Callback_t)(LIPCMessage& msg, void* data);
 
@@ -217,7 +219,7 @@ public:
 
 	int read_start();
 	int read_stop();
-	int sendRequest(const std::string& methodName, LIPCRequest::Ptr req, bool expectResp = true);
+	int sendRequest(const std::string& methodName, LIPCRequest::Ptr req, int64 timeout = 500, bool expectResp = true);		//default timeout = 500ms
 	int shutdown();
 	void close();
 
@@ -247,16 +249,18 @@ protected: // impl of ZQ::eloop::Timer
 	ZQ::common::Log& _lipcLog;
 
 private:
-	void OnCloseHandle();
+	void OnCloseConn();
+	void OnCloseTimer();
 	uint lastCSeq();
 
 	std::string		_localPipeName;
 	std::string		_peerPipeName;
 	int			    _ipc;
 	ClientConn*	    _conn; // for reconnect
+	ClientTimer*	_timer;
 	Loop&           _loop;
 	bool		    _reconnect;
-	int		        _timeout;
+	int64			_timeout;
 
 	ZQ::common::AtomicInt _lastCSeq;
 	typedef struct
