@@ -64,6 +64,7 @@ namespace common{
 
 class ZQ_COMMON_API RedisClient;
 class ZQ_COMMON_API RedisCommand;
+class ZQ_COMMON_API RedisEvictor;
 
 #define DEFAULT_CLIENT_TIMEOUT      (5000) // 5sec
 #define DEFAULT_CONNECT_TIMEOUT     (3000) // 3sec
