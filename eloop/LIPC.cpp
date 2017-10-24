@@ -515,7 +515,7 @@ void LIPCClient::OnTimer()
 {
 	for (AwaitMap::iterator itW = _awaits.begin(); itW != _awaits.end();)
 	{
-		if (itW->second.expiration > ZQ::common::now())
+		if (itW->second.expiration < ZQ::common::now())
 		{
 			OnRequestDone(itW->first, LIPCMessage::LIPC_REQUEST_TIMEOUT);
 			_awaits.erase(itW++);
