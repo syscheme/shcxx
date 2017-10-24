@@ -513,7 +513,7 @@ int LIPCClient::shutdown()
 
 void LIPCClient::OnTimer()
 {
-	for (AwaitMap::iterator itW = _awaits.begin(); itW != _awaits.end();)
+	for (AwaitRequestMap::iterator itW = _awaits.begin(); itW != _awaits.end();)
 	{
 		if (itW->second.expiration < ZQ::common::now())
 		{
@@ -556,7 +556,7 @@ int LIPCClient::sendRequest(const std::string& methodName, LIPCRequest::Ptr req,
 		ar.method = methodName;
 		_timeout = (timeout > 0)?timeout:_timeout;
 		ar.expiration = ZQ::common::now() + _timeout;
-		_awaits.insert(AwaitMap::value_type(req->_cSeq, ar));
+		_awaits.insert(AwaitRequestMap::value_type(req->_cSeq, ar));
 	}
 
 	OnRequestPrepared(req);
@@ -592,9 +592,12 @@ void LIPCClient::OnIndividualMessage(Json::Value& msg)
 #endif
 	}
 
-	AwaitMap::iterator itW = _awaits.find(cseq);
+	AwaitRequestMap::iterator itW = _awaits.find(cseq);
 	if (_awaits.end() == itW) // unknown request or it has been previously expired
+	{
+		_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCClient, "unknown request or it has been previously expired. cseq(%d)"),cseq);
 		return;
+	}
 
 	OnResponse(itW->second.method, resp);
 	_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCClient, "OnResponse %s(%d)"), itW->second.method.c_str(),cseq);

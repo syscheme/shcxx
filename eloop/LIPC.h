@@ -270,8 +270,8 @@ private:
 		std::string      method;
 	} AwaitRequest;
 
-	typedef std::map<uint, AwaitRequest> AwaitMap;
-	AwaitMap _awaits;
+	typedef std::map<uint, AwaitRequest> AwaitRequestMap;
+	AwaitRequestMap _awaits;
 };
 
 }}//ZQ::eloop
