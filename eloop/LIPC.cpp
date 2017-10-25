@@ -424,14 +424,15 @@ int LIPCClient::connect(const char *name)
 		_timer->init(_loop);
 		_timer->start(0, 200); // set scan interval as 5Hz
 	}
+
 	_peerPipeName = name;
-	int ret = 0;
 	if (_conn == NULL)
 	{
 		_conn = new ClientConn(_lipcLog, *this);
-		ret = _conn->init(_loop, _ipc);
+		int ret = _conn->init(_loop, _ipc);
 		if (ret < 0)
 			return ret;
+
 		_conn->connect(name);
 		return 0;
 	}
@@ -450,10 +451,9 @@ int LIPCClient::connect(const char *name)
 void LIPCClient::OnCloseTimer()
 {
 	if (_timer != NULL)
-	{
 		delete _timer;
-		_timer = NULL;
-	}
+	_timer = NULL;
+
 	if (_conn == NULL)
 		OnClose();
 }
@@ -461,10 +461,8 @@ void LIPCClient::OnCloseTimer()
 void LIPCClient::OnCloseConn()
 {
 	if (_conn != NULL)
-	{
 		delete _conn;
-		_conn = NULL;
-	}
+	_conn = NULL;
 
 	if (!_reconnect)
 	{
@@ -499,6 +497,7 @@ void LIPCClient::close()
 {
 	if (_conn == NULL)
 		return;
+
 	_reconnect = false;
 	_conn->close();
 	_timer->close();
@@ -508,6 +507,7 @@ int LIPCClient::shutdown()
 {
 	if (_conn == NULL)
 		return -1;
+
 	return _conn->shutdown();
 }
 
@@ -538,6 +538,7 @@ int LIPCClient::read_stop()
 {
 	if (_conn == NULL)
 		return -1;
+
 	return _conn->read_stop();
 }
 
@@ -600,19 +601,17 @@ void LIPCClient::OnIndividualMessage(Json::Value& msg)
 	}
 
 	OnResponse(itW->second.method, resp);
-	_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCClient, "OnResponse %s(%d)"), itW->second.method.c_str(),cseq);
+	_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCClient, "OnResponse() %s(%d) triggered, cleaning from await list"), itW->second.method.c_str(), cseq);
 	OnRequestDone(cseq, LIPCMessage::LIPC_OK);
 	_awaits.erase(cseq);
 }
 
 void LIPCClient::OnMessage(std::string& msg)
 {
-	// process(msg,*_conn);
-	
 	Json::Value root;
+
 	// parsing
 	bool parsing = Json::Reader().parse(msg, root);
-
 	if(!parsing)
 	{
 		LIPCResponse::Ptr resp = new LIPCResponse(0, *_conn);
