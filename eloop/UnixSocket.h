@@ -33,6 +33,10 @@ public:
 	}
 
 	virtual void OnRead(ssize_t nread, const char *buf);
+
+	// called after buffer has been written into the stream
+	virtual void OnWrote(int status) {}
+
 	virtual void onError( int error,const char* errorDescription ){}
 	
 	virtual void OnMessage(std::string& msg){}
