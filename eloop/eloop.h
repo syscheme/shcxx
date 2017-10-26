@@ -421,7 +421,7 @@ class Stream;
 class Process : public Handle
 {
 public:
-	 enum {
+	 typedef enum _stdioFlags{
 		ELOOP_IGNORE = UV_IGNORE,
 		ELOOP_CREATE_PIPE = UV_CREATE_PIPE,
 		ELOOP_INHERIT_FD = UV_INHERIT_FD,
@@ -432,9 +432,43 @@ public:
 		// flags may be specified to create a duplex data stream.
 		ELOOP_READABLE_PIPE = UV_READABLE_PIPE,
 		ELOOP_WRITABLE_PIPE = UV_WRITABLE_PIPE
-	};
+	}eloop_stdio_flags;
 
-	typedef uv_stdio_flags eloop_stdio_flags;
+	 typedef enum _processFlags{
+			  /*
+		* Set the child process' user id. The user id is supplied in the `uid` field
+		* of the options struct. This does not work on windows; setting this flag
+		* will cause uv_spawn() to fail.
+		*/
+		ELOOP_PROCESS_SETUID = UV_PROCESS_SETUID,
+		/*
+		* Set the child process' group id. The user id is supplied in the `gid`
+		* field of the options struct. This does not work on windows; setting this
+		* flag will cause uv_spawn() to fail.
+		*/
+		ELOOP_PROCESS_SETGID = UV_PROCESS_SETGID,
+		/*
+		* Do not wrap any arguments in quotes, or perform any other escaping, when
+		* converting the argument list into a command line string. This option is
+		* only meaningful on Windows systems. On Unix it is silently ignored.
+		*/
+		ELOOP_PROCESS_WINDOWS_VERBATIM_ARGUMENTS = UV_PROCESS_WINDOWS_VERBATIM_ARGUMENTS,
+		/*
+		* Spawn the child process in a detached state - this will make it a process
+		* group leader, and will effectively enable the child to keep running after
+		* the parent exits.  Note that the child process will still keep the
+		* parent's event loop alive unless the parent process calls uv_unref() on
+		* the child's process handle.
+		*/
+		ELOOP_PROCESS_DETACHED = UV_PROCESS_DETACHED,
+		/*
+		* Hide the subprocess console window that would normally be created. This
+		* option is only meaningful on Windows systems. On Unix it is silently
+		* ignored.
+		*/
+		ELOOP_PROCESS_WINDOWS_HIDE = UV_PROCESS_WINDOWS_HIDE
+	 }eloop_process_flags;
+
 	typedef uv_stdio_container_t eloop_stdio_container_t;
 	typedef uv_uid_t	eloop_uid_t;
 	typedef uv_gid_t	eloop_gid_t;
@@ -442,11 +476,11 @@ public:
 public:
 	void setenv(char** env);
 	void setcwd(const char* cwd);
-	void setflags(unsigned int flags);
+	void setflags(eloop_process_flags flags);
 	void setuid(eloop_uid_t uid);
 	void setgid(eloop_gid_t gid);
 
-	int spawn(const char* file,char** args,eloop_stdio_container_t* container,int stdio_count);
+	int spawn(const char* file,char** args,eloop_stdio_container_t* container=NULL,int stdio_count=0);
 
 	int pid();
 	int kill(int signum);

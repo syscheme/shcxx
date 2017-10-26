@@ -447,7 +447,7 @@ void Process::setcwd(const char* cwd)
 {
 	_opt.cwd = cwd;
 }
-void Process::setflags(unsigned int flags)
+void Process::setflags(eloop_process_flags flags)
 {
 	_opt.flags = flags;
 }
