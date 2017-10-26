@@ -218,14 +218,14 @@ bool NativeThread::setCPUAffinity(uint cpuId)
 }
 
 // set the affinity of the current caller thread
-int NativeThread::setAffinityOfThread(uint cpuId, HANDLE hThread)
+bool NativeThread::setAffinityOfThread(uint cpuId, HANDLE hThread)
 {
 	DWORD_PTR mask = 1 << cpuId;
 
 	if (NULL == hThread)
 		hThread = ::GetCurrentThread();
 
-	return ::SetThreadAffinityMask(hThread, mask);
+	return (0 != ::SetThreadAffinityMask(hThread, mask));
 }
 
 
