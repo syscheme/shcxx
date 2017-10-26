@@ -303,7 +303,7 @@ Evictor::Item::ObjectPtr Evictor::locate(const Evictor::Ident& ident)
 	if(item->_data.status == Item::destroyed || item->_data.status == Item::dead)
 	{
 		if(TRACE)
-			_log(Log::L_DEBUG, CLOGFMT(Evictor, "locate() object[%s] in cache, but state[%s]"), ident_cstr(ident), Item::stateToString(item->_data.status));
+			_log(Log::L_DEBUG, CLOGFMT(Evictor, "locate() object[%s(%s)] invalid state of art"), ident_cstr(ident), Item::stateToString(item->_data.status));
 
 		return NULL;
 	}
@@ -314,7 +314,7 @@ Evictor::Item::ObjectPtr Evictor::locate(const Evictor::Ident& ident)
 	}
 	// It's a good one!
 	if(TRACE)
-		_log(Log::L_DEBUG, CLOGFMT(Evictor, "locate() object[%s]state[%s] in cache/DB"), ident_cstr(ident), Item::stateToString(item->_data.status));
+		_log(Log::L_DEBUG, CLOGFMT(Evictor, "locate() object[%s(%s)] found in cache/DB"), ident_cstr(ident), Item::stateToString(item->_data.status));
 
 	return item->_data.servant;
 }
