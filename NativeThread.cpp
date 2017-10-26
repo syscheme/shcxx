@@ -212,11 +212,22 @@ bool NativeThread::isThread(void)
 	return ((_thrdID == GetCurrentThreadId())) ? true : false;
 }
 
-int NativeThread::setCpuAffinity(int cpuId)
+bool NativeThread::setCPUAffinity(uint cpuId)
+{
+	return setAffinityOfThread(cpuId, _hThread);
+}
+
+// set the affinity of the current caller thread
+int NativeThread::setAffinityOfThread(uint cpuId, HANDLE hThread)
 {
 	DWORD_PTR mask = 1 << cpuId;
-	return SetThreadAffinityMask(_hThread, mask);
+
+	if (NULL == hThread)
+		hThread = ::GetCurrentThread();
+
+	return ::SetThreadAffinityMask(hThread, mask);
 }
+
 
 void NativeThread::terminate(int code /* = 0 */)
 {
@@ -535,21 +546,30 @@ con:
 	return res;
 }
 
-int NativeThread::setCpuAffinity(int cpuId)
+bool NativeThread::setCpuAffinity(uint cpuId)
+{
+	return setAffinityOfThread(cpuId, _thrdID);
+}
+
+// set the affinity of the current caller thread
+bool NativeThread::setAffinityOfThread(int cpuId, ThreadId_t thrdId)
 {
 	int policy;
 	struct sched_param param;
+	if (0 == thrdId)
+		thrdId = pthread_self();
 
-	pthread_getschedparam(pthread_self(), &policy, &param);
+	pthread_getschedparam(thrdId, &policy, &param);
 	param.sched_priority = sched_get_priority_max(policy);
-	pthread_setschedparam(pthread_self(), policy, &param);
+	pthread_setschedparam(thrdId, policy, &param);
 
-	cpu_set_t mask;  
-	CPU_ZERO(&mask);  
-	CPU_SET(cpuId,&mask);
+	cpu_set_t cpuset;
+	CPU_ZERO(&cpuset);
+	CPU_SET(cpuId, &cpuset);
 
-	return pthread_setaffinity_np(_thrdID ,sizeof(mask),&mask);
+	return pthread_setaffinity_np(thrdId, sizeof(cpu_set_t), &cpuset) ? false: true;
 }
+
 
 #endif
 

@@ -118,6 +118,13 @@ public:
 		stDisabled,
 		stDefault     =stDeferred
 	} status_t;
+
+#ifdef ZQ_OS_MSWIN
+	typedef  unsigned ThreadId_t;
+#else
+	typedef  pthread_t ThreadId_t;
+#endif
+
 #ifdef ZQ_OS_MSWIN
 	NativeThread(int stacksize =0);
 #else
@@ -126,18 +133,11 @@ public:
 #endif
 
 	virtual ~NativeThread();
-
 	
 private:
 
-#ifdef ZQ_OS_MSWIN
-//	unsigned long _thrdID;
-	unsigned _thrdID;
-#else
-	pthread_t _thrdID;
-#endif
-
-	status_t _status;
+	ThreadId_t _thrdID;
+	status_t   _status;
 
 	// log information
 	int _msgpos;
@@ -250,7 +250,14 @@ public:
 	/// A thread affinity mask is a bit vector in which each bit represents a logical processor that a thread is allowed to run on.
 	/// If the function succeeds, the return value is the thread's previous affinity mask.
 	/// If the function fails, the return value is zero. To get extended error information, call GetLastError.
-	int setCpuAffinity(int cpuId);
+	bool setCPUAffinity(uint cpuId);
+
+	/// set the affinity of the current caller thread
+#ifdef ZQ_OS_MSWIN
+	static bool setAffinityOfThread(uint cpuId, HANDLE hThread =NULL);
+#else
+	static bool setAffinityOfThread(uint cpuId, ThreadId_t hThread =0);
+#endif
 };
 
 
