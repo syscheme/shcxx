@@ -651,4 +651,39 @@ void LIPCClient::OnMessage(std::string& msg)
 		OnIndividualMessage(root[i]);
 }
 
+void LIPCClient::OnConnected(ZQ::eloop::Handle::ElpeError status)
+{
+	if (status != ZQ::eloop::Handle::elpeSuccess)
+	{
+		std::string desc = "connect error:";
+		desc.append(ZQ::eloop::Handle::errDesc(status));
+		onError(status,desc.c_str());
+		return;
+	}
+	read_start();
+}
+
+void LIPCClient::OnShutdown(ZQ::eloop::Handle::ElpeError status)
+{
+	if (status != ZQ::eloop::Handle::elpeSuccess)
+	{
+		std::string desc = "shutdown error:";
+		desc.append(ZQ::eloop::Handle::errDesc(status));
+		onError(status,desc.c_str());
+		return;
+	}
+	close();
+}
+
+void LIPCClient::OnClose()
+{
+	delete this;
+}
+
+void LIPCClient::onError( int error, const char* errorDescription )
+{	
+	_lipcLog(ZQ::common::Log::L_ERROR, CLOGFMT(LIPCClient, "errCode = %d, errDesc:%s"), error, errorDescription);
+	close();
+}
+
 }}//ZQ::LIPC

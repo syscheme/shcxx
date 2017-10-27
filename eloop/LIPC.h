@@ -241,14 +241,11 @@ protected:
 	virtual void OnIndividualMessage(Json::Value& msg);
 
 protected: // redirect from UnixSocket
-	virtual void OnConnected(ZQ::eloop::Handle::ElpeError status) {}
+	virtual void OnConnected(ZQ::eloop::Handle::ElpeError status);
 	virtual void OnWrote(int status) {}
-	virtual void OnShutdown(ZQ::eloop::Handle::ElpeError status) {}
-	virtual void OnClose() {}
-	virtual void onError( int error, const char* errorDescription )
-	{	
-		_lipcLog(ZQ::common::Log::L_ERROR, CLOGFMT(LIPCClient, "errCode = %d, errDesc:%s"), error, errorDescription);
-	}
+	virtual void OnShutdown(ZQ::eloop::Handle::ElpeError status);
+	virtual void OnClose();
+	virtual void onError( int error, const char* errorDescription );
 
 	// supposed to receive a response of request just sent
 	virtual void OnMessage(std::string& msg);

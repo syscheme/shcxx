@@ -29,6 +29,7 @@ int UnixSocket::send(const std::string& msg, int fd)
 	std::string dest;
 	encode(msg, dest);
 	//printf("send msg len = %d,data=%s\n", dest.length(), dest.c_str());
+	_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "send() sent %dB: %s"), dest.length(), dest.c_str());
 	if (fd > 0)
 	{
 #ifdef ZQ_OS_LINUX
@@ -42,7 +43,6 @@ int UnixSocket::send(const std::string& msg, int fd)
 	}
 
 	int ret = write(dest.c_str(), dest.length());
-	_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "send() sent %dB: %s"), dest.length(), dest.c_str());
 	return ret;
 }
 
