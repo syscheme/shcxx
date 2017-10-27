@@ -123,11 +123,11 @@ protected:
 
 #define LIPC_SET_JSON_PARAM(JVAR, CVAR, PARAM)                              JVAR[#PARAM] = CVAR.PARAM
 #define LIPC_SET_JSON_PARAM2(JVAR, CVAR, PARAM, CTYPE)                      JVAR[#PARAM] = (CTYPE)CVAR.PARAM
-#define LIPC_SET_JSON_PARAM_I64(JVAR, CVAR, PARAM)				            JVAR[#PARAM] = LIPCMessage::hexstr(CVAR.PARAM)
+#define LIPC_SET_JSON_PARAM_I64(JVAR, CVAR, PARAM)				            JVAR[#PARAM] = ZQ::eloop::LIPCMessage::hexstr(CVAR.PARAM)
 
 #define LIPC_EXIST_AND_TAKE_PARAM(JVAR, CVAR, PARAM, VALTYPE, OTHERWISE)    if (JVAR.isMember(#PARAM)) CVAR.PARAM = JVAR[#PARAM].as##VALTYPE(); else OTHERWISE
 #define LIPC_EXIST_AND_TAKE_PARAM2(JVAR, CVAR, PARAM, JVALTYPE, CVALTYPE, OTHERWISE)    if (JVAR.isMember(#PARAM)) CVAR.PARAM = (CVALTYPE)JVAR[#PARAM].as##JVALTYPE(); else OTHERWISE
-#define LIPC_EXIST_AND_TAKE_PARAM_I64(JVAR, CVAR, PARAM, OTHERWISE)         if (JVAR.isMember(#PARAM)) CVAR.PARAM = LIPCMessage::hexvalue(JVAR[#PARAM].asString().c_str()); else OTHERWISE
+#define LIPC_EXIST_AND_TAKE_PARAM_I64(JVAR, CVAR, PARAM, OTHERWISE)         if (JVAR.isMember(#PARAM)) CVAR.PARAM = ZQ::eloop::LIPCMessage::hexvalue(JVAR[#PARAM].asString().c_str()); else OTHERWISE
 
 // ------------------------------------------------
 // class LIPCRequest
