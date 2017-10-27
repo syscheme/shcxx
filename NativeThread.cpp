@@ -546,13 +546,13 @@ con:
 	return res;
 }
 
-bool NativeThread::setCpuAffinity(uint cpuId)
+bool NativeThread::setCPUAffinity(uint cpuId)
 {
 	return setAffinityOfThread(cpuId, _thrdID);
 }
 
 // set the affinity of the current caller thread
-bool NativeThread::setAffinityOfThread(int cpuId, ThreadId_t thrdId)
+bool NativeThread::setAffinityOfThread(uint cpuId, ThreadId_t thrdId)
 {
 	int policy;
 	struct sched_param param;
