@@ -518,7 +518,7 @@ MultipleLoopHttpEngine::MultipleLoopHttpEngine(const std::string& ip,int port,ZQ
 
 		//printf("cpuId = %d,cpuCount = %d,mask = %d\n",i,_threadCount,1<<i);
 		//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(MultipleLoopHttpEngine,"cpuId:%d,cpuCount:%d,mask:%d"),i,_threadCount,1<<i);
-		pthread->setCpuAffinity(i);
+		pthread->setCPUAffinity(i);
 
 		pthread->start();
 		_vecThread.push_back(pthread);
