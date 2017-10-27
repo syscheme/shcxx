@@ -455,6 +455,7 @@ int LIPCClient::connect(const char *name)
 			return ret;
 
 		_conn->connect(name);
+		_reconnect = true;
 		return 0;
 	}
 
