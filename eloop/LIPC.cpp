@@ -31,6 +31,27 @@ LIPCMessage::LIPCMessage(int cseq, Json::Value msg)
 	_stampCreated = ZQ::common::now();
 }
 
+int64 LIPCMessage::hexvalue(const char* hexstr)
+{
+	const char* p = strstr(hexstr, "0x");
+	if (NULL == p)
+		p = strstr(hexstr, "0X");
+	if (NULL == p)
+		p = hexstr;
+	else p +=2;
+
+	int64 ret = 0;
+	sscanf(p,"%lld",&ret);
+	return ret;
+}
+
+std::string LIPCMessage::hexstr(int64 value, bool prefix0X)
+{
+	char str[40];
+	snprintf(str, sizeof(str)-2, "%s%llX", prefix0X?"0X":"", value);
+	return str;
+}
+
 const char* LIPCMessage::errDesc(Error code)
 {
 	switch(code)
