@@ -71,7 +71,7 @@ class ZQ_COMMON_API RedisEvictor;
 #define MAX_SEND_ERROR_COUNT        (10)
 #define MAX_PENDING_REQUESTS        (1000)
 
-#define REDIS_RECV_BUF_SIZE         (128*1024)
+#define REDIS_RECV_BUF_SIZE         (64*1024) // 64KB
 #define REDIS_DEFAULT_PORT          (6379)
 
 #ifndef FLAG

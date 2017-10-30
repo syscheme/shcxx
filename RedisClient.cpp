@@ -52,6 +52,16 @@
 #include "SystemUtils.h"
 #include "CryptoAlgm.h"
 
+#include "libbz/bzlib.h"
+#ifndef LIBSUFFIX
+#  if defined(DEBUG) || defined(_DEBUG)
+#  define LIBSUFFIX "d"
+#  else
+#  define LIBSUFFIX ""
+#  endif
+#endif
+#pragma comment(lib, "libbz2" LIBSUFFIX)
+
 #define REDIS_NEWLINE              "\r\n"
 #define REDIS_LEADINGCH_ERROR      '-'
 #define REDIS_LEADINGCH_INLINE     '+'
@@ -95,7 +105,6 @@ bool RedisCommand::wait(int timeout)
 
 	return _pEvent->wait(timeout);
 }
-
 
 void RedisCommand::OnRequestError(RedisClient& client, RedisCommand& cmd, Error errCode, const char* errDesc)
 {
@@ -422,7 +431,30 @@ int RedisClient::encode(std::string& output, const void* source, size_t len)
 	if (len <0)
 		len = strlen((const char*) source);
 
-	output = Base64::encode((const uint8*)source, len);
+	// if (_bCompress)
+	{
+		char page[REDIS_RECV_BUF_SIZE];
+		bz_stream bzstrm;
+		memset(&bzstrm, 0x00, sizeof(bzstrm));
+		if (BZ_OK == BZ2_bzCompressInit(&bzstrm, 9, 4, 250))
+		{
+			bzstrm.next_in  =(char*) source;
+			bzstrm.avail_in =len;
+			bzstrm.next_out =(char*) page;
+			bzstrm.avail_out=sizeof(page);
+
+			if (BZ_OK == BZ2_bzCompress(&bzstrm, BZ_FINISH))
+			{
+				output = "bz2:";
+				source = page;
+				len = sizeof(page) - bzstrm.avail_out;
+			}
+
+			BZ2_bzCompressEnd(&bzstrm);
+		}
+	}
+
+	output += Base64::encode((const uint8*)source, len);
 	return output.size();
 }
 
@@ -434,6 +466,30 @@ int RedisClient::decode(const char* source, void* target, size_t maxlen)
 		return 0;
 
 	size_t tlen = maxlen;
+
+	if (0 == strncmp(source, "bz2:", 4))
+	{
+		char page[REDIS_RECV_BUF_SIZE];
+		bz_stream bzstrm;
+		memset(&bzstrm, 0x00, sizeof(bzstrm));
+		if (BZ_OK != BZ2_bzDecompressInit(&bzstrm, 4, 250))
+			return 0;
+
+		bzstrm.next_in  = (char*)source +4;
+		bzstrm.avail_in = strlen(source) -4;
+		bzstrm.next_out = page;
+		bzstrm.avail_out=sizeof(page);
+
+		if (BZ_OK == BZ2_bzDecompress(&bzstrm))
+		{
+			int len = sizeof(page) - bzstrm.avail_out;
+			page[len] ='\0';
+			source = page;
+		}
+
+		BZ2_bzCompressEnd(&bzstrm);
+	}
+
 	if (Base64::decode(source, targ, tlen))
 		return tlen;
 	

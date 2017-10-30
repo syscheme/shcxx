@@ -41,9 +41,9 @@
 #define	__ZQ_common_Bz2Stream_H__
 
 #include "ZQ_common_conf.h"
-
 #define BZ_NO_STDIO
-#include <bzlib.h>
+#include "libbz/bzlib.h"
+
 #ifdef min
 #  undef min
 #endif
@@ -95,7 +95,6 @@ public:
 		if ( bzip2_to_stream( pbase(), w)) { setp( pbase(), epptr() - 1); return c; } else return EOF;
 	}
 
-
 	std::streamsize flush();
 	int get_zerr() const { return m_err; }
 	long get_in_size() const { return (m_bzip2_stream.total_in_hi32 << 32) + m_bzip2_stream.total_in_lo32; }
@@ -135,6 +134,7 @@ public:
 	istream_reference get_istream()	    { return m_istream; }
 	bz_stream& get_bzip2_stream()		{ return m_bzip2_stream; }
 	int get_zerr() const			    { return m_err; }
+
 private:
 	std::streamsize unbzip2_from_stream( char_type*, std::streamsize);
 	void put_back_from_bzip2_stream();
@@ -451,8 +451,7 @@ std::streamsize BasicUnBz2StreamBuf<Elem,Tr,ElemA,ByteT,ByteAT>::unbzip2_from_st
 	return buffer_size_ - m_bzip2_stream.avail_out/sizeof(char_type);
 }
 
-} // namespace common
-} // namespace ZQ
+}} // namespaces
 
 #endif // __ZQ_common_Bz2Stream_H__
 
