@@ -47,7 +47,7 @@ OBJS := Exception.os       \
 		SystemInfo.os
 
 CXXFLAGS += -DZQ_FILELOG_V2
-LDFLAGS += -lpthread -ldl -lrt -luuid $(_expat_dir)/lib/libexpat.a -lboost_thread-mt
+LDFLAGS += -lpthread -ldl -lrt -luuid -lbz2 $(_expat_dir)/lib/libexpat.a -lboost_thread-mt
 
 include $(TOPDIR)/build/common.mk
 
