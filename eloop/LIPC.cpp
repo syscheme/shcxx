@@ -41,7 +41,7 @@ int64 LIPCMessage::hexvalue(const char* hexstr)
 	else p +=2;
 
 	int64 ret = 0;
-	sscanf(p,"%lld",&ret);
+	sscanf(p,"%llX",&ret);
 	return ret;
 }
 
