@@ -80,11 +80,13 @@ const char* LIPCMessage::errDesc(Error code)
 	}
 }
 
-void LIPCMessage::setErrorCode(Error code)
+void LIPCMessage::setErrorCode(int code,std::string errMsg)
 {
 	Json::Value err;
 	err[JSON_RPC_ERROR_CODE]    = code;
-	err[JSON_RPC_ERROR_MESSAGE] = errDesc(code);
+	if (errMsg.empty())
+		errMsg = errDesc((Error)code);
+	err[JSON_RPC_ERROR_MESSAGE] = errMsg;
 	_msg[JSON_RPC_ERROR]        = err;
 }
 
@@ -191,12 +193,9 @@ void LIPCResponse::post()
 		_conn.send(toString(), getFd());
 }
 
-void LIPCResponse::postException(Error code, const Json::Value& exception)
+void LIPCResponse::postException(int code, std::string errMsg)
 {
-	setErrorCode(code);
-	if (Json::Value::null != exception)
-		_msg[JSON_RPC_EXCEPTION] = exception;
-
+	setErrorCode(code,errMsg);
 	post();
 }
 

@@ -100,7 +100,7 @@ public:
 
 	LIPCMessage(int cseq =0, Json::Value msg = Json::Value::null);
 
-	void  setErrorCode(Error code);
+	void  setErrorCode(int code,std::string errMsg = "");
 	Error getErrorCode();
 	
 	int getCSeq() const;
@@ -169,7 +169,7 @@ public:
 
 	void post();
 	void postResult(const Json::Value& result) { setResult(result); post(); } 
-	void postException(Error code, const Json::Value& exception = Json::Value::null);
+	void postException(int code,std::string errMsg = "");
 
 private:
 	UnixSocket&	_conn;
