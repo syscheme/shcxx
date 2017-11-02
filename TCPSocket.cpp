@@ -806,7 +806,7 @@ TCPSocket::TCPSocket(void)
 : Socket(PF_INET, SOCK_STREAM, 0), _bBlockedIO(true), _timeout(0), _flagsPending(0)// , _bRecvdDataInPending(false)
 {
 	_lastUpdated = TimeUtil::now();
-	setBlock(NONBLOCK);
+	Socket::setCompletion(false); // initialize as NON-BLOCK until connected, then up to what _bBlockedIO wishes
 	refWatchDog();
 }
 
@@ -814,7 +814,7 @@ TCPSocket::TCPSocket(const InetAddress &host, tpport_t port)
 : Socket(PF_INET, SOCK_STREAM, 0), _bBlockedIO(true),  _timeout(0), _flagsPending(0)
 {
 	_lastUpdated = TimeUtil::now();
-	setBlock(NONBLOCK);
+	Socket::setCompletion(false); // initialize as NON-BLOCK until connected, then up to what _bBlockedIO wishes
 	setPeer(host, port);
 	refWatchDog();
 	bind();
