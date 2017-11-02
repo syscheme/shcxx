@@ -309,6 +309,7 @@ public:
 	{
 		if (_recvBuf)
 			delete[] _recvBuf;
+
 		_recvBuf = NULL;
 	}
 
