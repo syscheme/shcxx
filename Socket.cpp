@@ -601,30 +601,27 @@ Socket &Socket::operator=(const Socket &from)
 	return *this;
 }
 
-void Socket::setCompletion(bool immediate)
+void Socket::setCompletion(bool blockIO)
 {
-	flags.completion = immediate;
+	//if (flags.completion == immediate)
+	//	return;
+
 #ifdef ZQ_OS_MSWIN
 	// note that this will not work on some versions of Windows for Workgroups. Tough. -- jfc
-	unsigned long mode=(immediate) ? 0:1;
-
+	unsigned long mode= (blockIO ? 0:1);
 	ioctlsocket(_so, FIONBIO, &mode);
-
 #else
 	int fflags = fcntl(_so, F_GETFL);
 
-	switch(immediate)
-	{
-	case false:
-		fflags |= O_NONBLOCK;
-		fcntl(_so, F_SETFL, fflags);
-		break;
-	case true:
+	if (blockIO)
 		fflags &=~ O_NONBLOCK;
-		fcntl(_so, F_SETFL, fflags);
-		break;
-	}
+	else
+		fflags |= O_NONBLOCK;
+
+	fcntl(_so, F_SETFL, fflags);
 #endif
+
+	flags.blockIO = blockIO ?1:0;
 }
 
 InetHostAddress Socket::getSender(tpport_t *port) const

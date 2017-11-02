@@ -223,7 +223,7 @@ protected:
 		bool keepalive	: 1;
 		bool loopback	: 1;
 		bool multicast	: 1;
-		bool completion	: 1;
+		bool blockIO	: 1;
 		bool linger		: 1;
 		unsigned ttl	: 8;
 	} flags;
@@ -376,8 +376,8 @@ public:
 	/// on all access with setCompletion(true). not sure if this form of
 	/// non-blocking socket I/O is supported in winsock, though it
 	/// provides an alternate asynchronous set of socket services.
-	/// @param mode specify socket I/O call blocking mode.
-	void setCompletion(bool immediate);
+	/// @param mode true to specify socket I/O call in blocking mode.
+	virtual void setCompletion(bool blockIO);
 
 	/// Enable lingering sockets on close.
 	/// @param specify linger enable.

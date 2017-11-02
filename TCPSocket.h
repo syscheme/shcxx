@@ -94,10 +94,7 @@ class TCPSocket : public Socket
 
 protected:
 	void createSocket();
-	bool _bBlockEnable;
-#ifdef ZQ_OS_MSWIN
-	bool privateSetBlock(bool enable);
-#endif
+	bool _bBlockedIO;
 
 protected:
 
@@ -193,7 +190,7 @@ public:
 	/// Set TCP socket option
 	/// @param true to set socket use block type to receive, false to set unblock type
 	/// @return the operation result
-	bool setBlock(RECVMODEL model = BLOCK);
+	bool setBlock(RECVMODEL model = BLOCK) { _bBlockedIO =(model == BLOCK); Socket::setCompletion(_bBlockedIO); return _bBlockedIO; } 
 
 	/// disconnect to TCP server
 	/// @return success will return true, otherwise return false

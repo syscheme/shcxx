@@ -678,7 +678,7 @@ int SocketEventDispatcher::run()
 				else
 				{
 					_so.setKeepAlive(true);
-					_so.setBlock(_so._bBlockEnable ? TCPSocket::BLOCK : TCPSocket::NONBLOCK); // restore the old BLOCK setting
+					_so.setCompletion(_so._bBlockedIO); // restore the old BLOCK setting
 					_so._state = Socket::stConnected;
 					_so.updateConnDesc();
 					_so.OnConnected();
@@ -803,7 +803,7 @@ void TCPSocket::resizeThreadPool(int newSize)
 }
 
 TCPSocket::TCPSocket(void)
-: Socket(PF_INET, SOCK_STREAM, 0), _bBlockEnable(true), _timeout(0), _flagsPending(0)// , _bRecvdDataInPending(false)
+: Socket(PF_INET, SOCK_STREAM, 0), _bBlockedIO(true), _timeout(0), _flagsPending(0)// , _bRecvdDataInPending(false)
 {
 	_lastUpdated = TimeUtil::now();
 	setBlock(NONBLOCK);
@@ -811,7 +811,7 @@ TCPSocket::TCPSocket(void)
 }
 
 TCPSocket::TCPSocket(const InetAddress &host, tpport_t port)
-: Socket(PF_INET, SOCK_STREAM, 0), _bBlockEnable(true),  _timeout(0), _flagsPending(0)
+: Socket(PF_INET, SOCK_STREAM, 0), _bBlockedIO(true),  _timeout(0), _flagsPending(0)
 {
 	_lastUpdated = TimeUtil::now();
 	setBlock(NONBLOCK);
@@ -822,7 +822,7 @@ TCPSocket::TCPSocket(const InetAddress &host, tpport_t port)
 
 // the copier
 TCPSocket::TCPSocket(const TCPSocket &source)
-: Socket(source), _bBlockEnable(source._bBlockEnable), _timeout(source._timeout), _lastUpdated(source._lastUpdated), _flagsPending(source._flagsPending) 
+: Socket(source), _bBlockedIO(source._bBlockedIO), _timeout(source._timeout), _lastUpdated(source._lastUpdated), _flagsPending(source._flagsPending) 
 {
 	memcpy(&_peer, &source._peer, sizeof(_peer));
 	updateConnDesc();
@@ -830,11 +830,12 @@ TCPSocket::TCPSocket(const TCPSocket &source)
 }
 
 TCPSocket::TCPSocket( int so )
-:Socket(so),_bBlockEnable(true),_timeout(0),_flagsPending(0) {
+:Socket(so),_bBlockedIO(true),_timeout(0),_flagsPending(0)
+{
 }
 
 TCPSocket::TCPSocket(const Socket &source)
-: Socket(source), _bBlockEnable(true), _timeout(0), _flagsPending(0)
+: Socket(source), _bBlockedIO(true), _timeout(0), _flagsPending(0)
 {
 	_lastUpdated = TimeUtil::now();
 	updateConnDesc();
@@ -1093,47 +1094,6 @@ int TCPSocket::peek(void *buf, size_t len)
 	return ::recv(_so, (char *)buf, (int)len, MSG_PEEK);
 }
 
-#ifdef ZQ_OS_MSWIN
-bool TCPSocket::privateSetBlock(bool enable)
-{
-	int iMode = 0;
-	int ret = 0;
-
-	if (enable)
-	{
-		ret = ioctlsocket(_so, FIONBIO, (u_long FAR*) &iMode);
-		if (0 == ret)
-			return true;
-	}
-	else
-	{
-		iMode = 1;
-		ret = ioctlsocket(_so, FIONBIO, (u_long FAR*) &iMode);
-		if (0 == ret)
-			return false;
-	}
-
-	return false;
-}
-#endif
-
-bool TCPSocket::setBlock(RECVMODEL model)
-{
-//	int iMode = 0;
-//	int ret = 0;
-
-	//already the specified recv type
-	if (_bBlockEnable == (model == BLOCK))
-		return true;
-
-#ifdef ZQ_OS_MSWIN
-	return privateSetBlock(_bBlockEnable);
-#else
-	setCompletion(_bBlockEnable);
-	return true;
-#endif
-}
-
 bool TCPSocket::disconnect()
 {
 	Socket::_state = stBound;
@@ -1169,17 +1129,12 @@ const char* TCPSocket::connDescription()
 bool TCPClient::connect(int32 sTimeOut)
 {
 	createSocket();
-	if( Socket::_state != stAvailable ) {
+	if( Socket::_state != stAvailable )
 		return false;
-	}
 
 	//set the default time out
 	Socket::_state = stConnecting;
-	if (sTimeOut < 0) {
-		setCompletion(true);
-	} else {
-		setCompletion(false);
-	}
+	setCompletion(sTimeOut < 0);
 
 	int rc;
 
@@ -1214,13 +1169,14 @@ bool TCPClient::connect(int32 sTimeOut)
 			// if it is busy at connecting, let the watchdog wake up later thru entry OnConnect()
 			if (_gWatchDog)
 				_gWatchDog->watch(*this);
+
 			return true;
 		}
 	}
 
 	Socket::setKeepAlive(true);
 
-	setBlock(_bBlockEnable ? BLOCK : NONBLOCK); // restore the old BLOCK setting
+	setCompletion(_bBlockedIO); // restore the old BLOCK setting
 	Socket::_state = stConnected;
 	updateConnDesc();
 
