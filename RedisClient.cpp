@@ -319,6 +319,7 @@ RedisCommand::Ptr RedisClient::sendCommand(RedisCommand::Ptr pCmd)
 	}
 
 	std::string cmddesc = pCmd->desc();
+    _log(Log::L_INFO, CLOGFMT(RedisClient, "sendCommand() cmd size is %d"), cmddesc.length());
 	RedisSink::Error lastErrCode = RedisSink::rdeSendError;
 	std::string lastErr;
 
@@ -431,6 +432,7 @@ int RedisClient::encode(std::string& output, const void* source, size_t len)
 	if (len <0)
 		len = strlen((const char*) source);
 
+#if 0
 	// if (_bCompress)
 	{
 		char page[REDIS_RECV_BUF_SIZE];
@@ -453,6 +455,7 @@ int RedisClient::encode(std::string& output, const void* source, size_t len)
 			BZ2_bzCompressEnd(&bzstrm);
 		}
 	}
+#endif
 
 	output += Base64::encode((const uint8*)source, len);
 	return output.size();
@@ -467,6 +470,7 @@ int RedisClient::decode(const char* source, void* target, size_t maxlen)
 
 	size_t tlen = maxlen;
 
+#if 0
 	if (0 == strncmp(source, "bz2:", 4))
 	{
 		char page[REDIS_RECV_BUF_SIZE];
@@ -489,6 +493,7 @@ int RedisClient::decode(const char* source, void* target, size_t maxlen)
 
 		BZ2_bzCompressEnd(&bzstrm);
 	}
+#endif
 
 	if (Base64::decode(source, targ, tlen))
 		return tlen;
@@ -536,7 +541,7 @@ int RedisClient::_sendLine(const std::string& cmdline)
 		{
 			int errnum = SYS::getLastErr(SYS::SOCK);
 			std::string errMsg = SYS::getErrorMessage(SYS::SOCK);
-			_log(Log::L_ERROR, CLOGFMT(RedisClient, "_sendLine() %s caught socket-err(%d)%s"), cmdline.c_str(), errnum, errMsg.c_str());
+			_log(Log::L_ERROR, CLOGFMT(RedisClient, "_sendLine() caught socket-err(%d)%s: %s"), errnum, errMsg.c_str(), cmdline.c_str());
 
 #ifdef ZQ_OS_MSWIN
 			if (errnum == WSAEWOULDBLOCK)// retry send until reach 5
@@ -555,12 +560,12 @@ int RedisClient::_sendLine(const std::string& cmdline)
 
 				if (retRetry >=0)
 				{
-					_log(Log::L_DEBUG, CLOGFMT(RedisClient, "_sendLine() %s succeeded after %d retrie(s) per EWOULDBLOCK"),
-						cmdline.c_str(), retryTimes);
+                    _log(Log::L_DEBUG, CLOGFMT(RedisClient, "_sendLine() succeeded after %d retrie(s) per EWOULDBLOCK: %s"),
+                        retryTimes, cmdline.c_str());
 					return 1;
 				}
 
-				_log(Log::L_ERROR, CLOGFMT(RedisClient, "_sendLine() %s retry failed"), cmdline.c_str());
+				_log(Log::L_ERROR, CLOGFMT(RedisClient, "_sendLine() retry failed: %s"), cmdline.c_str());
 			}
 		}
 
@@ -570,9 +575,16 @@ int RedisClient::_sendLine(const std::string& cmdline)
 		if(v > MAX_SEND_ERROR_COUNT)
 			OnError();
 
-		_log(Log::L_ERROR, CLOGFMT(RedisClient, "sendCommand() %s failed at socket send()"), cmdline.c_str());
+		_log(Log::L_ERROR, CLOGFMT(RedisClient, "sendCommand() failed to send: %s"), cmdline.c_str());
 		return -3;
 	}
+
+    if (ret < cmdToSend.length())
+    {
+        _log(Log::L_WARNING, CLOGFMT(RedisClient, "_sendLine() ret(%d) failed to send full command len(%d): %s"), ret, cmdToSend.length(), cmdline.c_str());
+        TCPClient::send(REDIS_NEWLINE REDIS_NEWLINE, strlen(REDIS_NEWLINE REDIS_NEWLINE));
+        return -4;
+    }
 
 	char sockdesc[100];
 	snprintf(sockdesc, sizeof(sockdesc)-2, CLOGFMT(RedisClient, "_sendLine() conn[%08x]"), (uint) TCPSocket::get());

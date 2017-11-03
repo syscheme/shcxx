@@ -111,6 +111,7 @@ Evictor::Item::Ptr Evictor::pin(const Ident& ident, Item::Ptr item)
 		switch(loadFromStore(identToStr(ident), strmedObj))
 		{
 		case eeNotFound:
+            bRetry = false;
 			break;
 
 		case eeOK:
