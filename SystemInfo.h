@@ -404,7 +404,7 @@ private:
 
 public:
 	Disks _disks;
-	NICs _NICs;
+	NICs  _NICs;
 	Mutex _lkInfo;
 
 private:
