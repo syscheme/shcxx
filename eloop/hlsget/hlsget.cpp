@@ -162,7 +162,7 @@ int main(int argc,char* argv[])
 		while(!ThreadList.empty())
 		{
 			ZQ::eloop::DownloadThread* download = new ZQ::eloop::DownloadThread(*pLog,ThreadList.front(),bitrate,SessionInterval,LoopCount,limit,obj);
-			download->setCpuAffinity(1);
+			download->setAffinityOfThread(1);
 			download->start();
 			ThreadList.pop_front();
 			ThreadVec.push_back(download);
