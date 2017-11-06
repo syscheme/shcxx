@@ -1468,7 +1468,7 @@ void DeviceInfo::gatherNetAdapterInfo()
 		 {
 			 NicInfo theCard;
 			 theCard.netCardName = buf[interfaceNum].ifr_name;
-			 if (0 != ioctl(0 != fd, SIOCGIFHWADDR, (char *)(&buf[interfaceNum])))
+			 if (0 != ioctl(fd, SIOCGIFHWADDR, (char *)(&buf[interfaceNum])))
 			 {
 				 MOLOG(Log::L_WARNING, CLOGFMT(DeviceInfo,"gatherNetAdapterInfo() get the mac of NIC failed"));
 				 continue;
