@@ -193,7 +193,7 @@ class RedisClient : public TCPClient, virtual public SharedObject
 public:
 	typedef Pointer < RedisClient > Ptr;
 
-	RedisClient(Log& log, NativeThreadPool& thrdpool, const std::string& server="localhost", tpport_t serverPort=REDIS_DEFAULT_PORT, const InetHostAddress& bindAddress=InetHostAddress(), Log::loglevel_t verbosityLevel =Log::L_WARNING, tpport_t bindPort=0);
+	RedisClient(Log& log, NativeThreadPool& thrdpool, const std::string& server="localhost", tpport_t serverPort=REDIS_DEFAULT_PORT, const InetHostAddress& bindAddress=InetHostAddress(), Log::loglevel_t verbosityLevel =Log::L_DEBUG, tpport_t bindPort=0);
 	virtual ~RedisClient();
 
 	static void setVerboseFlags(uint16 flags =0) { _verboseFlags =flags; }

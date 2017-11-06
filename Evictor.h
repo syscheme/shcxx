@@ -120,7 +120,8 @@ public:
 		{
             Pointer<SharedObject> servant;  // DONOT move this field
 			State     status;
-			int64     stampCreated, stampLastSave;
+			int64     stampCreated;
+            int64     stampLastSave;
 			bool      completed; // indicate whether the object has been filled completed. Upon to the configuration
 			                     // (FLG_SAVE_COMPLETED_ONLY& Evictor::_flags), some Evictor may be required to save
 			                     // only completed objects in the data-storage

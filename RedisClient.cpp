@@ -1117,14 +1117,7 @@ RedisSink::Error RedisClient::SMEMBERS(const std::string& key, StringList& membe
 	SYNC_WAIT_ASSET_RET();
 
 	members.clear();
-	uint8 buf[2048];
-	int vlen;
-	for (size_t i=0; i< pCmd->_replyCtx.data.bulks.size(); i++)
-	{
-		vlen = sizeof(buf)-2;
-		vlen = decode(pCmd->_replyCtx.data.bulks[i].c_str(), buf, vlen);
-		members.push_back(std::string((char*)buf, vlen));
-	}
+    members.assign(pCmd->_replyCtx.data.bulks.begin(), pCmd->_replyCtx.data.bulks.end());
 	return RedisSink::rdeOK;
 }
 
@@ -1134,15 +1127,7 @@ RedisSink::Error RedisClient::KEYS(const std::string& pattern, StringList& keys)
 	SYNC_WAIT_ASSET_RET();
 
 	keys.clear();
-	uint8 buf[2048];
-	int vlen;
-	for (size_t i=0; i< pCmd->_replyCtx.data.bulks.size(); i++)
-	{
-		vlen = sizeof(buf)-2;
-		vlen = decode(pCmd->_replyCtx.data.bulks[i].c_str(), buf, vlen);
-		keys.push_back(std::string((char*)buf, vlen));
-	}
-
+    keys.assign(pCmd->_replyCtx.data.bulks.begin(), pCmd->_replyCtx.data.bulks.end());
 	return RedisSink::rdeOK;
 }
 
