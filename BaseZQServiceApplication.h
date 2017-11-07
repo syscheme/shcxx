@@ -91,6 +91,11 @@ extern "C" void app_service_control(int SCode);
 namespace ZQ{
 namespace common{
 
+class ZQ_COMMON_API BaseZQServiceApplication;
+
+// -----------------------------
+// class ServiceMIB
+// -----------------------------
 class ServiceMIB : public ZQ::SNMP::ModuleMIB, public SharedObject
 {
 public:
@@ -121,14 +126,19 @@ private:
 	SVCMIB->addObject(new ZQ::SNMP::SNMPObjectByAPI<CLASS, BASET>(VARNAME, OBJ, ZQ::SNMP::##ASNTYPE, METHOD_GET, METHOD_SET), SUBOID)
 
 //extern ZQ::common::Log* pProglog = &ZQ::common::NullLogger;
-class ZQ_COMMON_API BaseZQServiceApplication;
+
+// -----------------------------
+// class BaseZQServiceApplication
+// -----------------------------
 class BaseZQServiceApplication
 {	
 	friend void ::app_main (int argc, char *argv[]);
 	friend void ::app_service_control(int SCode);
+
 public:
 	BaseZQServiceApplication();	
 	virtual ~BaseZQServiceApplication(void);
+
 //virtual function implement by inheritance
 protected:
 	//////////////////////////////////////////////////////////////////////////
@@ -229,14 +239,14 @@ protected:
     /// the set-request.
     //////////////////////////////////////////////////////////////////////////
     virtual void OnSnmpSet(const char *varName);
+
 public:
 	bool isServiceStarted(void){return m_bServiceStarted;}
 	bool getShutdownFlag(void){return m_bShutdownFlag;}
 
 	void logEvent(TCHAR * msg, int loglevel);
 	void logEvent(int logLevel, TCHAR* fmt, ...) PRINTFLIKE(3, 4);
-	//////////////////////////////////////////////////////////////////////////
-	/// 
+
 	/// getConfigValue 
 	/// retrieve configuration values from register 
 	/// \\LOCALMACHINE\\SOFTWARE\\ZQ\\<ProductName>\\CurrentVersion\\Services\\
@@ -247,12 +257,8 @@ public:
     /// bMan		[in]flag whether configuration can be display in ManUtil
 	/// return value if failed read value from the register return S_FALSE and set default
 	/// value as value,otherwise return S_OK
-	/// 
-	//////////////////////////////////////////////////////////////////////////
-	
 	HRESULT getConfigValue(TCHAR *cfg_name,DWORD* value,DWORD defaultVal,bool bReport,bool bMan = false, bool bReadOnly = false);
-	//////////////////////////////////////////////////////////////////////////
-	/// 
+
 	/// getConfigValue 
 	/// retrieve configuration values from register 
 	/// \\LOCALMACHINE\\SOFTWARE\\ZQ\\<ProductName>\\CurrentVersion\\Services\\
@@ -264,11 +270,8 @@ public:
 	/// bMan		[in]flag whether configuration can be display in ManUtil
 	/// return value if failed read value from the register return S_FALSE and set default
 	/// value as value,otherwise return S_OK
-	//////////////////////////////////////////////////////////////////////////
-
 	HRESULT getConfigValue(TCHAR *cfg_name,TCHAR * value,TCHAR * defaultVal,DWORD* dwSize,bool bReport,bool bMan = false, bool bReadOnly = false);
-	//////////////////////////////////////////////////////////////////////////
-	/// 
+
 	/// getConfigValue 
 	/// retrieve configuration values from register 
 	/// \\LOCALMACHINE\\SOFTWARE\\ZQ\\<ProductName>\\CurrentVersion\\Services\\
@@ -279,23 +282,17 @@ public:
 	/// bMan		[in]flag whether configuration can be display in ManUtil
 	/// return value if failed read value from the register return S_FALSE and set default
 	/// value as value,otherwise return S_OK
-	/// 	
-	//////////////////////////////////////////////////////////////////////////
 	HRESULT getConfigValue(TCHAR *cfg_name,bool* value,bool defaultVal,bool bReport,bool bMan = false, bool bReadOnly = false);
 
 	HRESULT setConfigValue(TCHAR *cfg_name,TCHAR *value,DWORD size,DWORD type ,bool bReport);
 
 
-	//////////////////////////////////////////////////////////////////////////
-	/// 
 	/// hasSubKey 
 	/// Check whether there is specified sub key under 
 	/// \\LOCALMACHINE\\SOFTWARE\\ZQ\\<ProductName>\\CurrentVersion\\Services\\
 	/// keyName   	[in]subkey name
 	/// return      S_FALSE - No such sub key
 	///             S_OK    - Has such sub key
-	/// 	
-	//////////////////////////////////////////////////////////////////////////
 	HRESULT hasSubKey(TCHAR * keyName, bool createIfNotExist = false);
 
 	void stopService(void);
@@ -314,6 +311,7 @@ protected:
     // argument
     int m_argc;
     char **m_argv;
+
 public:
 	HRESULT init(int argc,char *argv[]);
 	HRESULT unInit(void);	
@@ -322,11 +320,11 @@ public:
 	void exitProcess(void);
 
 private:
-	static LONG WINAPI UnhandledExceptionFilter(_EXCEPTION_POINTERS* pExceptionInfo);
-    //added by xiaohui.chai
-    static void SnmpCallback(const char *varName);
 
-	
+	static LONG WINAPI UnhandledExceptionFilter(_EXCEPTION_POINTERS* pExceptionInfo);
+
+	//added by xiaohui.chai
+    static void SnmpCallback(const char *varName);
 
 //------------------------member variables defines-----------------------------------
 protected:
@@ -343,13 +341,12 @@ protected:
 
 protected:
 	HANDLE m_StopEvent;// stop event waited in start()
-protected:	
-	// Service configuration
 
+protected:	// Service configuration
 	// Note:
 	// if you want to reset the default values you must set the configuration values in your 
 	// construction function. And if serive app shell can not read the configuations in register
-	// service class will use the default values.
+		// service class will use the default values.
 	/*static*/ DWORD m_dwKeepAliveInterval_ms;// wait time out option in start()
 	/*static*/ DWORD m_dwShutdownWaitTime; //shutdownWaitTime
 		
@@ -360,22 +357,21 @@ protected:
 	/*static*/ DWORD m_dwLogLevel;// log level
 	/*static*/ DWORD m_dwLogWriteTimeOut;// log write time out
 	/*static*/ DWORD m_dwLogFileCount;// max log file count
-    //////////////////////////////////////////////////////////////////////////
-    //added by xiaohui.chai
-               DWORD m_dwSnmpLoggingMask;//for snmp
-    //////////////////////////////////////////////////////////////////////////
+
+	//added by xiaohui.chai
+	DWORD m_dwSnmpLoggingMask;//for snmp
+
 	//add variable to record configuration folder
 	/*static*/ TCHAR m_wsConfigFolder[MaxPath];	
-	
+
 	//Note: you can assign this value as default value in the construct function of your sub class 
 	/*static*/ TYPEINST* m_typeinst;//our typeinst:unique identifier to your service
 
 	/*static*/ TCHAR m_wsTypeStr[32];
 	/*static*/ TCHAR m_logLevelStr[32];
-    TCHAR m_sVersion[128];
+	TCHAR m_sVersion[128];
 
 	std::string _strVersion;
-
 	uint32	m_instanceId;
 
 public:
@@ -383,13 +379,12 @@ public:
 	void   setLogLevel_Main(const uint32& newLevel);
 };
 
-#define SvcMIB_ExportReadOnlyVar(VARNAME, VARADDR, SUBOID)\
+#define SvcMIB_ExportReadOnlyVar(VARNAME, VARADDR, SUBOID) \
 	ServiceMIB_ExportVarEx(_pServiceMib, VARNAME, VARADDR, SUBOID, true)
 
 #define SvcMIB_ExportByAPI(VARNAME, BASET, ASNTYPE, METHOD_GET, METHOD_SET, SUBOID)\
 	ServiceMIB_ExportByAPI(_pServiceMib, VARNAME, BaseZQServiceApplication, *this, BASET, ASNTYPE, METHOD_GET, METHOD_SET, SUBOID)
 
-	}//common
-}//ZQ
+}} // namespaces
 
 #endif//

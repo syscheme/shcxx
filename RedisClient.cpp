@@ -1594,7 +1594,7 @@ protected:
 
 	// about the common variable of the client
 	std::string      _userAgent;
-	std::string		 _baseURL;
+	std::string		 _url;
 	std::string      _serverType;
 
 	uint32			 _cTcpStreams;
