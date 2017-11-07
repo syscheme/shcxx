@@ -124,21 +124,21 @@ bool URLStr::encode(const void* source, char* target, int outlen, int len/*=-1*/
 			ret += (char) sptr[i];
 			continue;
 		}
-		
+
 		// The space character ' ' is converted into a plus	sign '+'
 		if (sptr[i]==' ')
 		{
 			ret += "%20"; // ret += '+';
 			continue;
 		}
-		
+
 		//All other characters are converted into the 3-character string "%xy",
 		// where xy is the two-digit hexadecimal representation of the lower
 		// 8-bits of the character
 		unsigned int hi, lo;
 		hi= ((unsigned int)sptr[i] & 0xf0) / 0x10;
 		lo= (unsigned int) sptr[i] % 0x10;
-		
+
 		hi+=(hi<10)? '0' : ('a' -10);
 		lo+=(lo<10)? '0' : ('a' -10);
 
@@ -146,15 +146,14 @@ bool URLStr::encode(const void* source, char* target, int outlen, int len/*=-1*/
 		ret += (char) (hi &0xff);
 		ret += (char) (lo &0xff);
 	}
+
 	if((int)ret.size() < outlen)
-    {
-        strncpy(target, ret.c_str(), outlen);
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+	{
+		strncpy(target, ret.c_str(), outlen);
+		return true;
+	}
+
+	return false;
 }
 
 bool URLStr::decode(const char* source, void* target, int maxlen)
@@ -164,7 +163,7 @@ bool URLStr::decode(const char* source, void* target, int maxlen)
 
 	if (targ ==NULL)
 		return false;
-	
+
 	int s, t;
 	for(s=0, t=0; s<slen && (t<maxlen || maxlen<0); s++, t++)
 	{
@@ -174,44 +173,43 @@ bool URLStr::decode(const char* source, void* target, int maxlen)
 			targ[t]=' ';
 			continue;
 		}
-		
+
 		// the 3-character string "%xy", where xy is the
 		// two-digit hexadecimal representation should be char
-		
+
 		if (source[s]=='%')
 		{
 			unsigned int hi, lo;
-			
+
 			hi=(unsigned int) source[++s];
 			lo=(unsigned int) source[++s];
-
 
 			hi -= ( isxdigit(hi)  ? ( isalpha(hi) ? (isupper(hi)?('A' -10):('a'-10)) : '0' ) : '0' );
 			lo -= ( isxdigit(lo)  ? ( isalpha(lo) ? (isupper(lo)?('A' -10):('a'-10)) : '0' ) : '0' );
 
-//			hi -=(isxdigit(hi) ? ('a' -10) : '0' ) ;
-//			lo -=(isxdigit(lo) ? ('a' -10) : '0' ) ;
+			//			hi -=(isxdigit(hi) ? ('a' -10) : '0' ) ;
+			//			lo -=(isxdigit(lo) ? ('a' -10) : '0' ) ;
 
 			if ((hi & 0xf0)|| (lo &0xf0))
 				return false;
-			
+
 			targ[t]=(hi*0x10 +lo) &0xff;
 			continue;
 		}
-		
+
 		// The ASCII characters 'a' through 'z', 'A' through
 		// 'Z', '0' through '9', and ".", "-", "*", "_" remain the same
 		targ[t]= source[s];
 	}
-	
+
 	if (t<maxlen || maxlen<0)
 		targ[t]=0x00;
-	
+
 	return true;
 }
 
 URLStr::URLStr(const char* urlstr, bool casesensitive)
-	   : bCase(casesensitive), mPort(0)
+: bCase(casesensitive), mPort(0)
 {
 	parse(urlstr);
 }
@@ -223,6 +221,40 @@ URLStr::~URLStr()
 
 #define TOLOWER(_S) \
 	std::transform(_S.begin(), _S.end(), _S.begin(), (int(*)(int)) tolower)
+
+// https://en.wikipedia.org/wiki/List_of_TCP_and_UDP_port_numbers
+static struct {
+	const char* prot; int port;
+} 
+KNOWN_PORTS[] = {
+	{"http",        80 },
+	{"ftp",         21 },
+	{"rtsp",        554 },
+	{"ssh",         22 },
+	{"telnet",      23 },
+	{"smtp",        25 },
+	{"dns",         53 },
+	{"gopher",      34},
+	{"tftp",        69},
+	{"rtelnet",     107},
+	{"oncrpc",      111},
+	{"sftp",        115},
+	{"ntp",         123},
+	{"snmp",        161},
+	{"snmptrap",    162},
+	{"ldap",        389},
+	{"https",       443 },
+	{"samba",       445 }, // also for active directory
+	{"kerberos",    464 },
+	{"modbus",      502 },
+	{"syslog",      514 },
+	{"uucp",        540 },
+	{"ftps",        990 }, // the control connection, data will be on 989
+	{"docker",      2375 }, // docker REST API
+	{"dockers",     2376 }, // docker REST API(SSL)
+	{"redis",       6379 },
+	{NULL, 0}
+};
 
 bool URLStr::parse(const char* urlstr)
 {
@@ -236,8 +268,8 @@ bool URLStr::parse(const char* urlstr)
 	int qpos=wkurl.find('?');
 	int cpos=wkurl.find(':');
 	int spos=wkurl.find('/');
-//	int epos=wkurl.find('=');
-    int upos=wkurl.find('@');
+	//	int epos=wkurl.find('=');
+	int upos=wkurl.find('@');
 	std::string surl, searchurl;
 	if (cpos>0 && cpos <spos)
 	{
@@ -247,39 +279,36 @@ bool URLStr::parse(const char* urlstr)
 	}
 	else searchurl = wkurl;
 
-    //for path and param, such as /path/file?key1=val1&key2=val2#fragment
-    int startPathPos = wkurl.find_first_of('/', cpos + 3);
-    if (startPathPos != wkurl.npos)
-    {
-        mPathAndParam = wkurl.substr(startPathPos);
-    }
+	//for path and param, such as /path/file?key1=val1&key2=val2#fragment
+	int startPathPos = wkurl.find_first_of('/', cpos + 3);
+	if (startPathPos != wkurl.npos)
+		mPathAndParam = wkurl.substr(startPathPos);
 
 	if (qpos>=0)
 		searchurl = wkurl.substr(qpos+1);
 
-    if (upos > 0 && !surl.empty())
+	if (upos > 0 && !surl.empty())
 	{
-         int pos = surl.find_first_of(":");
+		int pos = surl.find_first_of(":");
 
-	     upos = surl.find_first_of("@");
+		upos = surl.find_first_of("@");
 
-		 if(pos > 0)
-		 {
-			 mUserName = surl.substr(2,pos - 2);
+		if(pos > 0)
+		{
+			mUserName = surl.substr(2,pos - 2);
 
-			 if(pos +1 < upos)
-			 {
-				 mPwd = surl.substr(pos +1, upos - pos -1);
-			 }
-			 else
-				 mPwd = "";
-		 }
-		 else
-		 {
-			  mUserName = surl.substr(2,upos - 2);
-			  mPwd = "";
-		 }
-		 surl = surl.substr(upos +1);
+			if(pos +1 < upos)
+				mPwd = surl.substr(pos +1, upos - pos -1);
+			else
+				mPwd = "";
+		}
+		else
+		{
+			mUserName = surl.substr(2,upos - 2);
+			mPwd = "";
+		}
+
+		surl = surl.substr(upos +1);
 	}
 
 	if (!surl.empty())
@@ -295,7 +324,7 @@ bool URLStr::parse(const char* urlstr)
 		else
 		{
 			surl = (pos>=0) ? surl.substr(pos): surl;
-			
+
 			pos = surl.find_first_of("/");
 			if (pos>0)
 			{
@@ -320,8 +349,8 @@ bool URLStr::parse(const char* urlstr)
 	mContent=searchurl;
 	searchurl +="&";
 	for (int pos = searchurl.find("&");
-		 pos>=0 && (size_t) pos <searchurl.length();
-		 searchurl = searchurl.substr(pos+1), pos = searchurl.find("&"))
+		pos>=0 && (size_t) pos <searchurl.length();
+		searchurl = searchurl.substr(pos+1), pos = searchurl.find("&"))
 	{
 		std::string wkexpress = searchurl.substr(0, pos);
 		if (wkexpress.empty())
@@ -340,14 +369,14 @@ bool URLStr::parse(const char* urlstr)
 		decode(val.c_str(), buf);
 		val = buf;
 
-//		ZeroMemory(buf, wkexpress.length()+2);
+		//		ZeroMemory(buf, wkexpress.length()+2);
 		memset(buf, 0,wkexpress.length()+2);
 		delete [] buf;
 		buf = NULL;
 
 		if (!bCase)
 			TOLOWER(var);
-		
+
 		mVars.insert(urlvar_t::value_type(var, val));
 	}
 
@@ -356,12 +385,14 @@ bool URLStr::parse(const char* urlstr)
 		std::string tmpProt = mProtocol;
 		TOLOWER(tmpProt);
 
-		if      (tmpProt == "rtsp")
-			mPort=554;
-		else if (tmpProt == "http")
-			mPort=80;
-		else if (tmpProt == "ftp")
-			mPort=21;
+		for (int i=0; KNOWN_PORTS[i].prot; i++)
+		{
+			if (tmpProt != KNOWN_PORTS[i].prot)
+				continue;
+
+			mPort =KNOWN_PORTS[i].port;
+			break;
+		}
 	}
 
 	return true;
@@ -388,7 +419,7 @@ const char* URLStr::getVar(const char* var)
 
 	if (mVars.find(var) == mVars.end())
 		return "";
-	
+
 	return mVars[var].c_str();
 }
 
@@ -462,21 +493,21 @@ const char* URLStr::generate()
 	char varBuff[VAR_BUF_SIZE];
 	for (urlvar_t::iterator i = mVars.begin(); i!= mVars.end(); i++)
 	{
-        //added by xiaohui.chai >>
-        if(i != mVars.begin())
-            output_str += "&";
-        //added by xiaohui.chai ||
+		//added by xiaohui.chai >>
+		if(i != mVars.begin())
+			output_str += "&";
+		//added by xiaohui.chai ||
 		memset(varBuff,0,VAR_BUF_SIZE);
 		if(!encode((void*)i->first.c_str(), varBuff, VAR_BUF_SIZE))
-            return NULL;
+			return NULL;
 
 		output_str += varBuff;
 
 		output_str += "=";
-		
+
 		memset(varBuff,0,VAR_BUF_SIZE);
 		if(!encode((void*)i->second.c_str(), varBuff, VAR_BUF_SIZE))
-            return NULL;
+			return NULL;
 
 		output_str += varBuff;
 	}
@@ -507,7 +538,7 @@ const char* URLStr::getPath()
 
 const char* URLStr::getPathAndParam()
 {
-    return mPathAndParam.c_str();
+	return mPathAndParam.c_str();
 }
 
 int URLStr::getPort()
@@ -524,5 +555,5 @@ const char* URLStr::getPwd()
 {
 	return mPwd.c_str();
 }
-} // namespace common
-} // namespace ZQ
+
+}} // namespaces
