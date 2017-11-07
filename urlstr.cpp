@@ -211,9 +211,8 @@ bool URLStr::decode(const char* source, void* target, int maxlen)
 }
 
 URLStr::URLStr(const char* urlstr, bool casesensitive)
-	   : bCase(casesensitive)
+	   : bCase(casesensitive), mPort(0)
 {
-	mPort=0;
 	parse(urlstr);
 }
 
@@ -309,50 +308,15 @@ bool URLStr::parse(const char* urlstr)
 				mPath = "";
 			}
 		}
-		
+
 		pos = mHost.find_last_of(":");
 		if (pos>0)
 		{
 			mPort = atoi(mHost.substr(pos+1).c_str());
 			mHost = mHost.substr(0, pos);
 		}
-		else
-		{//set it to a default port if no port was specified
-#ifdef WIN32
-			if(stricmp(mProtocol.c_str(),"rtsp") == 0)
-			{
-				mPort=554;
-			}
-			else if(stricmp(mProtocol.c_str(),"http") == 0)
-			{
-				mPort=80;
-			}
-			else if(stricmp(mProtocol.c_str(),"ftp") == 0)
-			{
-				mPort=21;
-			}
-#else
-			if(strcasecmp(mProtocol.c_str(),"rtsp") == 0)
-			{
-				mPort=554;
-			}
-			else if(strcasecmp(mProtocol.c_str(),"http") == 0)
-			{
-				mPort=80;
-			}
-			else if(strcasecmp(mProtocol.c_str(),"ftp") == 0)
-			{
-				mPort=21;
-			}
-#endif
-		}
 	}
 
-	if (!bCase)
-	{
-		TOLOWER(mHost);
-		TOLOWER(mProtocol);
-	}
 	mContent=searchurl;
 	searchurl +="&";
 	for (int pos = searchurl.find("&");
@@ -386,8 +350,20 @@ bool URLStr::parse(const char* urlstr)
 		
 		mVars.insert(urlvar_t::value_type(var, val));
 	}
-		 
-		 
+
+	if (mPort <=0) // fill the default port number of known protocols
+	{
+		std::string tmpProt = mProtocol;
+		TOLOWER(tmpProt);
+
+		if      (tmpProt == "rtsp")
+			mPort=554;
+		else if (tmpProt == "http")
+			mPort=80;
+		else if (tmpProt == "ftp")
+			mPort=21;
+	}
+
 	return true;
 }
 
