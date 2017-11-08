@@ -658,6 +658,51 @@ int Evictor::_evictBySize()
 	return c;
 }
 
+// save a batch of streamed object to the target object store
+int Evictor::saveBatchToStore(StreamedList& batch)
+{
+	int cUpdated =0, cDeleted =0;
+	for (StreamedList::iterator it = batch.begin(); it!=batch.end(); it++)
+	{
+		switch(it->status)
+		{
+		case Item::created:   // the item is created in the cache, and has not present in the ObjectStore
+		case Item::modified:  // the item is modified but not yet flushed to the ObjectStore
+			_dict[it->key] = it->data;
+			cUpdated++;
+			break;
+
+		case Item::destroyed:  // the item is required to destroy but not yet deleted from ObjectStore
+			_dict.erase(it->key);
+			cDeleted++;
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	_log(Log::L_DEBUG, CLOGFMT(IceEvictor, "saveBatchToStore() %d updated and %d destroyed, store size %d"), cUpdated, cDeleted, _dict.size());
+
+	return cUpdated+cDeleted;
+}
+
+
+// load a specified object from the object store
+//@ return IOError, NotFound, OK
+Evictor::Error Evictor::loadFromStore(const std::string& key, StreamedObject& data)
+{
+	Dict::iterator it = _dict.find(key);
+	if (_dict.end() == it)
+		return eeNotFound;
+
+	data.data = it->second;
+	data.stampAsOf = ZQ::common::now();
+
+	_log(Log::L_INFO, CLOGFMT(IceEvictor, "loadFromStore() %s loaded: %s"), key.c_str(), data.data.c_str());
+	return eeOK;
+}
+
 //bool Evictor::marshal(const std::string& category, const Item::Data& data, ByteStream& streamedData)
 //{
 //#pragma message ( __MSGLOC__ "TODO: marshal the data for saving")

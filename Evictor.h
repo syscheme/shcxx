@@ -65,6 +65,7 @@ protected:
 // -----------------------------
 // class Evictor
 // -----------------------------
+// the base Evictor is implmented as a simply in-memory dictionary
 class Evictor // : public Mutex
 {
 public:
@@ -250,17 +251,21 @@ protected:
 protected: // the child class inherited from this evictor should implement the folloing method
 
 	// save a batch of streamed object to the target object store
-	virtual int saveBatchToStore(StreamedList& batch) { return 0; }
+	virtual int saveBatchToStore(StreamedList& batch);
 
 	// load a specified object from the object store
 	//@ return IOError, NotFound, OK
-	virtual Error loadFromStore(const std::string& key, StreamedObject& data) { return eeNotFound; }
+	virtual Error loadFromStore(const std::string& key, StreamedObject& data);
 
 	// marshal a servant object into a byte stream for saving to the object store
 	virtual bool marshal(const std::string& category, const Item::Data& data, ByteStream& streamedData) { return false; }
 
 	// unmarshal a servant object from the byte stream read from the object store
 	virtual bool unmarshal(const std::string& category, Item::Data& data, const ByteStream& streamedData)  { return false; }
+
+private:
+	typedef std::map <std::string, ByteStream > Dict;
+	Dict _dict;
 };
 
 }} // namespace
