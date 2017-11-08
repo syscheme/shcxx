@@ -196,7 +196,9 @@ public:
 	RedisClient(Log& log, NativeThreadPool& thrdpool, const std::string& server="localhost", tpport_t serverPort=REDIS_DEFAULT_PORT, const InetHostAddress& bindAddress=InetHostAddress(), Log::loglevel_t verbosityLevel =Log::L_DEBUG, tpport_t bindPort=0);
 	virtual ~RedisClient();
 
-	static void setVerboseFlags(uint16 flags =0) { _verboseFlags =flags; }
+	uint16	getVerbosity() { return (ZQ::common::Log::loglevel_t)_log.getVerbosity() | (_verboseFlags<<8); }
+	void setVerbosity(uint16 verbose =0) { _log.setVerbosity(verbose & 0x0f); _verboseFlags =verbose>>8; }
+
 	void setClientTimeout(int32 connectTimeout =DEFAULT_CONNECT_TIMEOUT, int32 messageTimeout =DEFAULT_CLIENT_TIMEOUT);
 	void disconnect();
 
@@ -290,7 +292,7 @@ protected:
 
 private:
 	void   _cancelCommands(); // private use, no mutex protection
-	static uint16 _verboseFlags;
+	uint16 _verboseFlags;
 };
 
 // -----------------------------

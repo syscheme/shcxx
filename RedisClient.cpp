@@ -263,7 +263,7 @@ Evictor::Error RedisEvictor::loadFromStore(const std::string& key, StreamedObjec
 // -----------------------------
 // represent a tcp connection to the RTSP server, may be shared by multiple RTSPSessions
 RedisClient::RedisClient(Log& log, NativeThreadPool& thrdpool, const std::string& server, tpport_t serverPort, const InetHostAddress& bindAddress, Log::loglevel_t verbosityLevel, tpport_t bindPort)
-: TCPClient(bindAddress, bindPort), _serverPort(serverPort), _thrdpool(thrdpool), _log(log, verbosityLevel),
+: TCPClient(bindAddress, bindPort), _serverPort(serverPort), _thrdpool(thrdpool), _log(log, verbosityLevel), _verboseFlags(0),
 _inCommingByteSeen(0) 
 {
 	setClientTimeout(DEFAULT_CONNECT_TIMEOUT, DEFAULT_CLIENT_TIMEOUT);
@@ -283,8 +283,6 @@ _inCommingByteSeen(0)
 RedisClient::~RedisClient()
 {
 }
-
-uint16 RedisClient::_verboseFlags =0;
 
 void RedisClient::setClientTimeout(int32 connectTimeout, int32 messageTimeout)
 {

@@ -159,6 +159,9 @@ public:
 	Evictor(Log& log, const std::string& name, const Properties& props);
 	virtual ~Evictor();
 
+	uint16	getVerbosity() { return (ZQ::common::Log::loglevel_t)_log.getVerbosity() | (_verboseFlags<<8); }
+	void setVerbosity(uint16 verbose =0) { _log.setVerbosity(verbose & 0x0f); _verboseFlags =verbose>>8; }
+
 	/// to limit the in-memory evictor size
 	///@param size     the size of evictor, the less-used object may be evicted if the container has more than this size
 	virtual void setSize(int size) { _evictorSize = size>0 ? size: EVICTOR_DEFAULT_SIZE; }
@@ -224,7 +227,7 @@ private:
 
 protected:
 
-	Log&        _log;
+	LogWrapper	_log;
 	std::string _name;
 
 	// configurations
@@ -241,6 +244,8 @@ protected:
 	// tempoary await data
 	Map       _modifiedMap;
 	IdentList _modifiedQueue;
+
+	uint16 _verboseFlags;
 
 	// ping an item in the mapped ObjectStore
 	//@param element if non-NULL element is given, means when the object is not exists in the ObjectStore,
@@ -263,7 +268,7 @@ protected: // the child class inherited from this evictor should implement the f
 	// unmarshal a servant object from the byte stream read from the object store
 	virtual bool unmarshal(const std::string& category, Item::Data& data, const ByteStream& streamedData)  { return false; }
 
-private:
+private: // this is a dummy example to store the data, hild class inherited from this should have its true object store
 	typedef std::map <std::string, ByteStream > Dict;
 	Dict _dict;
 };
@@ -284,112 +289,10 @@ public:
 	int64 _data;
 };
 
-
-class MyEvictor : public ZQ::common::Evictor
-{
-public:
-	MyEvictor(Log& log, const Properties& props = Properties())
-		: Evictor(log, std::string("MyEvictor"), props)
-	{}
-
-	virtual ~MyEvictor() {}
-
-	typedef std::map <std::string, ByteStream > Dict;
-	Dict _dict;
-
-protected: // the child class inherited from this evictor should implement the folloing method
-
-	// save a batch of streamed object to the target object store
-	virtual int saveBatchToStore(StreamedList& batch)
-	{
-		int cUpdated =0, cDeleted =0;
-		for (StreamedList::iterator it = batch.begin(); it!=batch.end(); it++)
-		{
-			switch(it->status)
-			{
-			case Item::created:   // the item is created in the cache, and has not present in the ObjectStore
-			case Item::modified:  // the item is modified but not yet flushed to the ObjectStore
-#pragma message ( __MSGLOC__ "TODO: call API to save SET(key, data)")
-				_dict[it->key] = it->data;
-				cUpdated++;
-				break;
-
-			case Item::destroyed:  // the item is required to destroy but not yet deleted from ObjectStore
-#pragma message ( __MSGLOC__ "TODO: call RedisClient to DEL(key)")
-				_dict.erase(it->key);
-				cDeleted++;
-				break;
-
-			default:
-				break;
-			}
-		}
-
-		_log(Log::L_DEBUG, CLOGFMT(Evictor, "saveBatchToStore() %d updated and %d destroyed"), cUpdated, cDeleted);
-
-		return cUpdated+cDeleted;
-	}
-
-	// load a specified object from the object store
-	//@ return IOError, NotFound, OK
-	virtual Error loadFromStore(const std::string& key, StreamedObject& data)
-	{
-		Dict::iterator it = _dict.find(key);
-		if (_dict.end() == it)
-			return eeNotFound;
-
-		data.data = it->second;
-		data.stampAsOf = ZQ::common::now();
-
-		_log(Log::L_INFO, CLOGFMT(MyEvictor, "loadFromStore() %s loaded"), key.c_str());
-		return eeOK;
-	}
-
-	// marshal a servant object into a byte stream for saving to the object store
-	virtual bool marshal(const std::string& category, const Evictor::Item::Data& data, Evictor::ByteStream& streamedData)
-	{
-#pragma message ( __MSGLOC__ "TODO: marshal the data for saving")
-		//char
-		//size_t len = &data.servant - &data;
-
-		//typedef struct _Data {
-		//	State     status;
-		//	int64     creationTime, lastSaveTime, avgSaveTime; // _creationTime =0, _lastSaveTime = 0, _avgSaveTime = 0;
-		//	_Data() : status(clean) {  creationTime = lastSaveTime = avgSaveTime = 0; }
-		//} Data;
-		TestData* td = dynamic_cast<TestData*> (data.servant.get());
-		if (!td)
-			return false;
-
-		char buf[100];
-		snprintf(buf, sizeof(buf)-2, "s%d,c%lld,v%lld,d%lld", data.status, data.stampCreated, data.stampLastSave, td->_data);
-		_log(Log::L_INFO, CLOGFMT(MyEvictor, "marshal() %s"), buf);
-		streamedData.assign(buf, buf+strlen(buf));
-
-		return true;
-	}
-
-	// unmarshal a servant object from the byte stream read from the object store
-	virtual bool unmarshal(const std::string& category, Item::Data& data, const ByteStream& streamedData)
-	{
-#pragma message ( __MSGLOC__ "TODO: unmarshal the data after loading per category as servant type")
-
-		// dummy impl for test
-		int64 d=0;
-		sscanf(streamedData.c_str(), "s%d,c%lld,v%lld,d%lld", &data.status, &data.stampCreated, &data.stampLastSave, &d);
-
-		// data.status = Item::clean;
-		// data.stampCreated = data.stampLastSave = now() - 3600*1000;
-		data.servant = new TestData(d);
-
-		return true;
-	}
-};
-
 void main()
 {
 	ZQ::common::FileLog flog("e:\\temp\\EvictorTest.log", Log::L_DEBUG);
-	MyEvictor evictor(flog);
+	ZQ::common::Evictor evictor(flog);
 
 	size_t i;
 	char buf[20];
