@@ -26,7 +26,6 @@
 // Revision History: 
 // ===========================================================================
 
-
 #include "DumpState.h"
 #include <algorithm>
 
@@ -61,13 +60,9 @@ bool DumpState::clearDumpState()
 bool DumpState::setDumpState(bool bDumpping)
 {
 	if (bDumpping)
-	{
 		return createDumpState();
-	}
-	else
-	{
-		return clearDumpState();
-	}
+
+	return clearDumpState();
 }
 
 bool DumpState::isDumpState()
@@ -102,15 +97,11 @@ bool DumpState::isDumping(const char* serviceName)
 
         HANDLE hEvent = OpenEventA(EVENT_MODIFY_STATE, NULL, strEventName.c_str());
         if (hEvent == INVALID_HANDLE_VALUE || !hEvent)
-        {
             return false;
-        }
-        CloseHandle(hEvent);
 
+		CloseHandle(hEvent);
         return true;
     }
-    else
-    {
-        return false;
-    }
+
+	return false;
 }
