@@ -534,17 +534,24 @@ int LIPCClient::shutdown()
 
 void LIPCClient::OnTimer()
 {
-	for (AwaitRequestMap::iterator itW = _awaits.begin(); itW != _awaits.end();)
-	{
-		if (itW->second.expiration < ZQ::common::now())
-		{
-			OnRequestDone(itW->first, LIPCMessage::LIPC_REQUEST_TIMEOUT);
-			_awaits.erase(itW++);
-			continue;
-		}
+	std::vector<uint> expiredList;
 
-		itW++;
-	}
+	{
+		ZQ::common::MutexGuard g(_lkAwaits);
+		for (AwaitRequestMap::iterator itW = _awaits.begin(); itW != _awaits.end();)
+		{
+			if (itW->second.expiration < ZQ::common::now())
+			{
+				expiredList.push_back(itW->first);
+				_awaits.erase(itW++);
+				continue;
+			}
+			itW++;
+		}
+	} // end of _lkAwaits
+
+	for (size_t i =0; i < expiredList.size(); i++)
+		OnRequestDone(expiredList[i], LIPCMessage::LIPC_REQUEST_TIMEOUT);
 }
 
 int LIPCClient::read_start()
@@ -563,7 +570,7 @@ int LIPCClient::read_stop()
 	return _conn->read_stop();
 }
 
-int LIPCClient::sendRequest(const std::string& methodName, LIPCRequest::Ptr req,int64 timeout,bool expectResp)
+int LIPCClient::sendRequest(const std::string& methodName, LIPCRequest::Ptr req,int64 timeout, bool expectResp)
 {
 	if (_conn == NULL || !req || methodName.empty())
 		return -1;
@@ -578,6 +585,8 @@ int LIPCClient::sendRequest(const std::string& methodName, LIPCRequest::Ptr req,
 		ar.method = methodName;
 		_timeout = (timeout > 0)?timeout:_timeout;
 		ar.expiration = ZQ::common::now() + _timeout;
+
+		ZQ::common::MutexGuard g(_lkAwaits);
 		_awaits.insert(AwaitRequestMap::value_type(req->_cSeq, ar));
 	}
 
@@ -614,6 +623,7 @@ void LIPCClient::OnIndividualMessage(Json::Value& msg)
 #endif
 	}
 
+	ZQ::common::MutexGuard g(_lkAwaits);
 	AwaitRequestMap::iterator itW = _awaits.find(cseq);
 	if (_awaits.end() == itW) // unknown request or it has been previously expired
 	{
@@ -633,7 +643,7 @@ void LIPCClient::OnMessage(std::string& msg)
 
 	// parsing
 	bool parsing = Json::Reader().parse(msg, root);
-	if(!parsing)
+	if (!parsing)
 	{
 		LIPCResponse::Ptr resp = new LIPCResponse(0, *_conn);
 		resp->postException(LIPCMessage::LIPC_PARSING_ERROR);

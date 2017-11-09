@@ -279,6 +279,8 @@ private:
 
 	typedef std::map<uint, AwaitRequest> AwaitRequestMap;
 	AwaitRequestMap _awaits;
+	ZQ::common::Mutex _lkAwaits; // because sendRequest() is open for other threads out of eloop to call
+	typedef std::vector<AwaitRequest> AwaitRequestList;
 };
 
 }}//ZQ::eloop
