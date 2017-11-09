@@ -383,7 +383,7 @@ private:
 class LogWrapper : public Log
 {
 public:
-	LogWrapper(Log& to, loglevel_t level) : Log(level), _to(to) {};
+	LogWrapper(Log& to, loglevel_t level =Log::L_ERROR) : Log(level), _to(to) {};
 	virtual ~LogWrapper() {}
 
 protected:
