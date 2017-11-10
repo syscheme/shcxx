@@ -178,11 +178,12 @@ Evictor::Item::Ptr Evictor::add(const Evictor::Item::ObjectPtr& obj, const Ident
 		case Evictor::Item::created:
 		case Evictor::Item::modified:
 			alreadyThere = true;
-			break;
+			//break;
 
 		case Evictor::Item::destroyed:
 			item->_data.status = Item::modified;
 			item->_data.servant = obj;
+            item->_data.stampLastSave = now();
 			bNeedRequeue = true;
 			// No need to push it on the modified queue, as a destroyed object
 			// is either already on the queue or about to be saved. When saved,
@@ -216,7 +217,8 @@ Evictor::Item::Ptr Evictor::add(const Evictor::Item::ObjectPtr& obj, const Ident
 	}
 
 	if (alreadyThere)
-		throw EvictorException(409, "add() existing object");
+		_log(Log::L_DEBUG, CLOGFMT(Evictor, "update exist object[%s](%s)"), ident_cstr(ident), Item::stateToString(item->_data.status));
+        //throw EvictorException(409, "add() existing object");
 
 	if (TRACE)
 		_log(Log::L_DEBUG, CLOGFMT(Evictor, "added object[%s](%s)"), ident_cstr(ident), Item::stateToString(item->_data.status));
