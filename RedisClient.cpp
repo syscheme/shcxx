@@ -245,11 +245,22 @@ Evictor::Error RedisEvictor::loadFromStore(const std::string& key, StreamedObjec
 		return eeNoMemory;
 
 	 RedisSink::Error rcerr = _client->GET(key, _recvBuf, vlen);
-	if (RedisSink::rdeOK != rcerr)
-	{
-		Evictor::_log(Log::L_ERROR, CLOGFMT(RedisEvictor, "loadFromStore() load[%s] err(%d)"), key.c_str(), rcerr);
-		return eeConnectErr;
-	}
+     switch (rcerr)
+     {
+     case RedisSink::rdeOK:
+         break;
+     case RedisSink::rdeNil:
+         return eeNotFound;
+     case RedisSink::rdeConnectError:
+     case RedisSink::rdeSendError:
+     case RedisSink::rdeClientError:
+     case RedisSink::rdeServerReturnedError:
+     case RedisSink::rdeProtocolMissed:
+     case RedisSink::rdeClientCanceled:
+         return eeConnectErr;
+     case RedisSink::rdeRequestTimeout:
+         return eeTimeout;
+     }
 
 	data.data.assign(_recvBuf, _recvBuf + vlen);
 	data.stampAsOf = ZQ::common::now();
