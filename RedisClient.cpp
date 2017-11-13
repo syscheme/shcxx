@@ -211,7 +211,7 @@ int RedisEvictor::saveBatchToStore(StreamedList& batch)
 		{
         case Item::created:   // the item is created in the cache, and has not present in the ObjectStore
 		case Item::modified:  // the item is modified but not yet flushed to the ObjectStore
-			rcerr = _client->SET(it->key, (uint8*)(&(it->data)), it->data.size());
+			rcerr = _client->SET(it->key, (uint8*)(&(it->data[0])), it->data.size());
 			if (RedisSink::rdeOK != rcerr)
 				Evictor::_log(Log::L_ERROR, CLOGFMT(RedisEvictor, "saveBatchToStore() save[%s] err(%d)"), it->key.c_str(), rcerr);
 			else cUpdated++;
