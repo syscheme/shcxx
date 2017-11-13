@@ -699,7 +699,8 @@ Evictor::Error Evictor::loadFromStore(const std::string& key, StreamedObject& da
 	data.data = it->second;
 	data.stampAsOf = ZQ::common::now();
 
-	_log(Log::L_INFO, CLOGFMT(IceEvictor, "loadFromStore() %s loaded: %s"), key.c_str(), data.data.c_str());
+	_log(Log::L_INFO, CLOGFMT(IceEvictor, "loadFromStore() %s loaded: %s"), key.c_str());
+//	_log(Log::L_INFO, CLOGFMT(IceEvictor, "loadFromStore() %s loaded: %s"), key.c_str(), data.data.c_str());
 	return eeOK;
 }
 

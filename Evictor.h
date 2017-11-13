@@ -74,8 +74,8 @@ public:
 		eeOK =200, eeNotFound=404, eeTimeout=402, eeConnectErr=503, eeNoMemory =507,
 	} Error;
 
-	// typedef std::vector<uint8> ByteStream;
-	typedef std::string ByteStream;
+	typedef std::vector<uint8> ByteStream;
+	//typedef std::string ByteStream;
 
 	typedef struct _Ident
 	{
@@ -227,7 +227,8 @@ private:
 
 protected:
 
-	LogWrapper	_log;
+//	LogWrapper	_log;
+	ZQ::common::Log& _log;
 	std::string _name;
 
 	// configurations

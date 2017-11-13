@@ -211,7 +211,7 @@ int RedisEvictor::saveBatchToStore(StreamedList& batch)
 		{
         case Item::created:   // the item is created in the cache, and has not present in the ObjectStore
 		case Item::modified:  // the item is modified but not yet flushed to the ObjectStore
-			rcerr = _client->SET(it->key, (uint8*)(it->data.c_str()), it->data.size());
+			rcerr = _client->SET(it->key, (uint8*)(&(it->data)), it->data.size());
 			if (RedisSink::rdeOK != rcerr)
 				Evictor::_log(Log::L_ERROR, CLOGFMT(RedisEvictor, "saveBatchToStore() save[%s] err(%d)"), it->key.c_str(), rcerr);
 			else cUpdated++;
@@ -251,10 +251,11 @@ Evictor::Error RedisEvictor::loadFromStore(const std::string& key, StreamedObjec
 		return eeConnectErr;
 	}
 
-	data.data.assign((char*)_recvBuf, vlen);
+	data.data.assign(_recvBuf, _recvBuf + vlen);
 	data.stampAsOf = ZQ::common::now();
 
-	Evictor::_log(Log::L_DEBUG, CLOGFMT(RedisEvictor, "loadFromStore() loaded[%s]: %s"), key.c_str(), data.data.c_str());
+	Evictor::_log(Log::L_DEBUG, CLOGFMT(RedisEvictor, "loadFromStore() loaded[%s]"), key.c_str());
+//	Evictor::_log(Log::L_DEBUG, CLOGFMT(RedisEvictor, "loadFromStore() loaded[%s]: %s"), key.c_str(), data.data.c_str());
 	return eeOK;
 }
 
