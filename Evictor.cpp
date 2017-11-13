@@ -216,7 +216,7 @@ Evictor::Item::Ptr Evictor::add(const Evictor::Item::ObjectPtr& obj, const Ident
 	}
 
 	if (alreadyThere)
-		throw EvictorException(409, "add() existing object");
+        //throw EvictorException(409, "add() existing object");
 
 	if (TRACE)
 		_log(Log::L_DEBUG, CLOGFMT(Evictor, "added object[%s](%s)"), ident_cstr(ident), Item::stateToString(item->_data.status));
