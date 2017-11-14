@@ -58,7 +58,7 @@ std::string Evictor::identToStr(const Ident& ident)
 }
 
 Evictor::Evictor(Log& log, const std::string& name, const Evictor::Properties& props)
-: _log(log), _name(name), 
+: _log(log), _name(name), _lastErr(eeOK),
   _flags(1), _evictorSize(EVICTOR_DEFAULT_SIZE), _saveSizeTrigger(2), _batchSize(20)
 {
 	Evictor::Properties tmpprops = props;
@@ -93,12 +93,16 @@ Evictor::Item::Ptr Evictor::pin(const Ident& ident, Item::Ptr item)
 	{
 		if (i>0)
 		{
-			#ifdef ZQ_OS_LINUX
-				usleep(500*1000*i);
-			#else
-				Sleep(500*i);
-			#endif
+			int yield = 300*i*i;
+			if (TRACE)
+				_log(Log::L_DEBUG, CLOGFMT(Evictor, "pin[%s] %d-th retry, yield %dmsec"), ident.name.c_str(), i, yield);
+#ifdef ZQ_OS_LINUX
+			usleep(yield*1000);
+#else
+			Sleep(yield);
+#endif
 		}
+
 		{
 			MutexGuard g(_lkEvictor);
 			Map::iterator itCache = _cache.find(ident);
@@ -108,19 +112,35 @@ Evictor::Item::Ptr Evictor::pin(const Ident& ident, Item::Ptr item)
 
 		bRetry = false;
 		StreamedObject strmedObj;
-		switch(loadFromStore(identToStr(ident), strmedObj))
+
+		try {
+			_lastErr = loadFromStore(identToStr(ident), strmedObj);
+		}
+		catch(...)
+		{
+			_lastErr = eeClientError;
+		}
+
+		switch(_lastErr)
 		{
 		case eeNotFound:
-            bRetry = false;
+			bRetry = false;
 			break;
 
 		case eeOK:
 			if (!item)
 				item = new Item(*this, ident);
-			if (unmarshal(ident.category, item->_data, strmedObj.data))
+
+			try {
+				if (unmarshal(ident.category, item->_data, strmedObj.data))
+				{
+					item->_data.status = Item::clean;
+					break;
+				}
+			}
+			catch(...)
 			{
-				item->_data.status = Item::clean;
-				break;
+				_lastErr = eeMashalError;
 			}
 
 			// _log error
@@ -404,7 +424,7 @@ bool Evictor::poll(bool flushAll)
 
 			servant = item->_data.servant;
 			// stream the item per its state by calling mashal() 
-			bStreamed = _stream(item, streamedObj, stampStart);
+			bStreamed = (eeOK == _stream(item, streamedObj, stampStart));
 			if (!bStreamed)
 				_log(Log::L_ERROR, CLOGFMT(Evictor, "failed to stream item[%s](%s)"), ident_cstr(item->_ident), Evictor::Item::stateToString(item->_data.status));
 			
@@ -413,7 +433,7 @@ bool Evictor::poll(bool flushAll)
 
 		case Evictor::Item::destroyed:
 			deadObjects.push_back(item);
-			bStreamed = _stream(item, streamedObj, stampStart);
+			bStreamed = (eeOK == _stream(item, streamedObj, stampStart));
 			if (!bStreamed)
 				_log(Log::L_ERROR, CLOGFMT(Evictor, "failed to stream item[%s](%s)"), ident_cstr(item->_ident), Evictor::Item::stateToString(item->_data.status));
 
@@ -475,10 +495,17 @@ bool Evictor::poll(bool flushAll)
 		size = _streamedList.size();
 	}
 
-	int c = saveBatchToStore(batch);
+	int c =0;
+	try {
+		c = saveBatchToStore(batch);
 
-	if (TRACE)
-		_log(Log::L_DEBUG, CLOGFMT(Evictor, "flushed a batch: %d of %d streamed objects, %d pending, took %dmsec"), c, batch.size(), size, (int) (now() - stampStart));
+		if (TRACE)
+			_log(Log::L_DEBUG, CLOGFMT(Evictor, "flushed a batch: %d of %d streamed objects, %d pending, took %dmsec"), c, batch.size(), size, (int) (now() - stampStart));
+	}
+	catch(...)
+	{
+		_log(Log::L_ERROR, CLOGFMT(Evictor, "flush a batch: %d of %d streamed objects caught exception"), c, batch.size());
+	}
 
 	// do flushing and evicting
 	int cEvictedPerDead =0, cEvictedBySize =0, cFlushed =0;
@@ -570,14 +597,14 @@ size_t Evictor::_popModified(Queue& modifiedBatch, size_t max) // thread unsafe
 	return c;
 }
 
-bool Evictor::_stream(const Item::Ptr& item, StreamedObject& streamedObj, int64 stampAsOf)
+Evictor::Error Evictor::_stream(const Item::Ptr& item, StreamedObject& streamedObj, int64 stampAsOf)
 {
 	streamedObj.status = item->_data.status;
 	streamedObj.key = ident_cstr(item->_ident);
 	streamedObj.stampAsOf = (stampAsOf >0) ? stampAsOf: now();
 
 	if (streamedObj.status == Item::destroyed)
-		return true; // no need to mashal further data
+		return eeOK; // no need to mashal further data
 
 	if (item->_data.stampCreated <=0)
 		item->_data.stampCreated = streamedObj.stampAsOf;
@@ -594,7 +621,16 @@ bool Evictor::_stream(const Item::Ptr& item, StreamedObject& streamedObj, int64 
 		// item->_data.avgSaveTime = (int64)(item->_data.avgSaveTime * 0.95 + diff * 0.05);
 	}
 
-	return marshal(item->_ident.category, item->_data, streamedObj.data);
+	try {
+		if (marshal(item->_ident.category, item->_data, streamedObj.data))
+			return eeOK;
+	}
+	catch(...)
+	{
+		_log(Log::L_ERROR, CLOGFMT(Evictor, "_stream() item[%s] mashal caught exception"), ident_cstr(item->_ident));
+	}
+
+	return eeMashalError;
 }
 
 void Evictor::_requeue(Evictor::Item::Ptr& item) // thread unsafe, only be called from Evictor
@@ -699,8 +735,7 @@ Evictor::Error Evictor::loadFromStore(const std::string& key, StreamedObject& da
 	data.data = it->second;
 	data.stampAsOf = ZQ::common::now();
 
-	_log(Log::L_INFO, CLOGFMT(IceEvictor, "loadFromStore() %s loaded: %s"), key.c_str());
-//	_log(Log::L_INFO, CLOGFMT(IceEvictor, "loadFromStore() %s loaded: %s"), key.c_str(), data.data.c_str());
+	_log(Log::L_INFO, CLOGFMT(IceEvictor, "loadFromStore() %s loaded obj[%s] datasize[%d]"), key.c_str(), data.data.size());
 	return eeOK;
 }
 

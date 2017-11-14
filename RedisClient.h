@@ -120,6 +120,8 @@ public:
 
 	} Error;
 
+	static const char* err2str(Error err);
+
 	// typedef std::vector< uint8 > Bulk;
 	typedef std::string Bulk;
 	typedef std::vector< Bulk > Multibulk;
@@ -134,9 +136,6 @@ public:
 protected:
 	virtual void OnRequestError(RedisClient& client, RedisCommand& cmd, Error errCode, const char* errDesc=NULL) =0;
 	virtual void OnReply(RedisClient& client, RedisCommand& cmd, Data& data) =0;
-
-//	RedisCommand& _req;
-//	Data _data;
 };
 
 // -----------------------------
@@ -202,6 +201,8 @@ public:
 	void setClientTimeout(int32 connectTimeout =DEFAULT_CONNECT_TIMEOUT, int32 messageTimeout =DEFAULT_CLIENT_TIMEOUT);
 	void disconnect();
 
+	RedisSink::Error lastSyncCallError() const { return _lastErr; }
+
 	static int encode(std::string& output, const void* source, size_t len=-1);
 	static int decode(const char* source, void* target, size_t maxlen);
 
@@ -260,7 +261,7 @@ protected:
 	NativeThreadPool&  _thrdpool;
 	LogWrapper		  _log;
 
-	std::string       _lastErr;
+	RedisSink::Error  _lastErr;
 
 	// about the connection
 	InetHostAddress  _serverAddress;

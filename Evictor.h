@@ -71,7 +71,9 @@ class Evictor // : public Mutex
 public:
 
 	typedef enum _Error {
-		eeOK =200, eeNotFound=404, eeTimeout=402, eeConnectErr=503, eeNoMemory =507,
+		eeOK =200, 
+		eeClientError =400, eeMashalError, eeNotFound=404, eeTimeout=402, 
+		eeConnectErr=503, eeNoMemory =507,
 	} Error;
 
 	typedef std::vector<uint8> ByteStream;
@@ -219,7 +221,7 @@ private:
 
 	// thread unsafe, only be called from Evictor
 	void _requeue(Item::Ptr& item);
-	bool _stream(const Item::Ptr& element, StreamedObject& streamedObj, int64 stampAsOf);
+	Error _stream(const Item::Ptr& element, StreamedObject& streamedObj, int64 stampAsOf);
 	void _evict(Item::Ptr item); 
 	int  _evictBySize();
 	void _queueModified(const Item::Ptr& element); 
@@ -237,14 +239,15 @@ protected:
 	uint32    _evictorSize;
 	uint32    _batchSize;
 
-	Map            _cache;
-	IdentList        _evictorList;
-	Event            _event;
+	Map       _cache;
+	IdentList _evictorList;
+	Event     _event;
 	Mutex     _lkEvictor;
 
 	// tempoary await data
 	Map       _modifiedMap;
 	IdentList _modifiedQueue;
+	Error     _lastErr;
 
 	uint16 _verboseFlags;
 

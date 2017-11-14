@@ -69,8 +69,28 @@
 #define REDIS_LEADINGCH_MULTIBULK  '*'
 #define REDIS_LEADINGCH_INT        ':'
 
-namespace ZQ{
-namespace common{
+namespace ZQ {
+namespace common {
+
+const char* RedisSink::err2str(Error err)
+{
+#define CASE_ERR(_ERR)	case rde##_ERR: return #_ERR
+	switch(err)
+	{
+		CASE_ERR(OK);
+		CASE_ERR(ClientError);
+		CASE_ERR(Nil);
+		CASE_ERR(ConnectError);
+		CASE_ERR(SendError);
+		CASE_ERR(RequestTimeout);
+		CASE_ERR(ClientCanceled);
+		CASE_ERR(ServerReturnedError);
+		CASE_ERR(ProtocolMissed);
+	}
+#undef CASE_ERR
+	return "Unknown";
+}
+
 // -----------------------------
 // class RedisCommand
 // -----------------------------
@@ -211,16 +231,16 @@ int RedisEvictor::saveBatchToStore(StreamedList& batch)
 		{
         case Item::created:   // the item is created in the cache, and has not present in the ObjectStore
 		case Item::modified:  // the item is modified but not yet flushed to the ObjectStore
-			rcerr = _client->SET(it->key, (uint8*)(&(it->data[0])), it->data.size());
+			rcerr = _client->SET(it->key, (uint8*)(&it->data[0]), it->data.size());
 			if (RedisSink::rdeOK != rcerr)
-				Evictor::_log(Log::L_ERROR, CLOGFMT(RedisEvictor, "saveBatchToStore() save[%s] err(%d)"), it->key.c_str(), rcerr);
+				Evictor::_log(Log::L_ERROR, CLOGFMT(RedisEvictor, "saveBatchToStore() save[%s] err: %s(%d)"), it->key.c_str(), RedisSink::err2str(rcerr), rcerr);
 			else cUpdated++;
 			break;
 
         case Item::destroyed:  // the item is required to destroy but not yet deleted from ObjectStore
             rcerr = _client->DEL(it->key);
 			if (RedisSink::rdeOK != rcerr)
-				Evictor::_log(Log::L_ERROR, CLOGFMT(RedisEvictor, "saveBatchToStore() del[%s] err(%d)"), it->key.c_str(), rcerr);
+				Evictor::_log(Log::L_ERROR, CLOGFMT(RedisEvictor, "saveBatchToStore() del[%s] err: %s(%d)"), it->key.c_str(), RedisSink::err2str(rcerr), rcerr);
 			else cDeleted++;
             break;
 
@@ -249,8 +269,10 @@ Evictor::Error RedisEvictor::loadFromStore(const std::string& key, StreamedObjec
      {
      case RedisSink::rdeOK:
          break;
+
      case RedisSink::rdeNil:
          return eeNotFound;
+
      case RedisSink::rdeConnectError:
      case RedisSink::rdeSendError:
      case RedisSink::rdeClientError:
@@ -258,6 +280,7 @@ Evictor::Error RedisEvictor::loadFromStore(const std::string& key, StreamedObjec
      case RedisSink::rdeProtocolMissed:
      case RedisSink::rdeClientCanceled:
          return eeConnectErr;
+
      case RedisSink::rdeRequestTimeout:
          return eeTimeout;
      }
@@ -265,8 +288,7 @@ Evictor::Error RedisEvictor::loadFromStore(const std::string& key, StreamedObjec
 	data.data.assign(_recvBuf, _recvBuf + vlen);
 	data.stampAsOf = ZQ::common::now();
 
-	Evictor::_log(Log::L_DEBUG, CLOGFMT(RedisEvictor, "loadFromStore() loaded[%s]"), key.c_str());
-//	Evictor::_log(Log::L_DEBUG, CLOGFMT(RedisEvictor, "loadFromStore() loaded[%s]: %s"), key.c_str(), data.data.c_str());
+	Evictor::_log(Log::L_DEBUG, CLOGFMT(RedisEvictor, "loadFromStore() loaded obj[%s] datasize[%d]"), key.c_str(), vlen);
 	return eeOK;
 }
 
@@ -275,7 +297,7 @@ Evictor::Error RedisEvictor::loadFromStore(const std::string& key, StreamedObjec
 // -----------------------------
 // represent a tcp connection to the RTSP server, may be shared by multiple RTSPSessions
 RedisClient::RedisClient(Log& log, NativeThreadPool& thrdpool, const std::string& server, tpport_t serverPort, const InetHostAddress& bindAddress, Log::loglevel_t verbosityLevel, tpport_t bindPort)
-: TCPClient(bindAddress, bindPort), _serverPort(serverPort), _thrdpool(thrdpool), _log(log, verbosityLevel), _verboseFlags(0),
+: TCPClient(bindAddress, bindPort), _serverPort(serverPort), _thrdpool(thrdpool), _log(log, verbosityLevel), _verboseFlags(0), _lastErr(RedisSink::rdeOK),
 _inCommingByteSeen(0) 
 {
 	setClientTimeout(DEFAULT_CONNECT_TIMEOUT, DEFAULT_CLIENT_TIMEOUT);
@@ -330,8 +352,8 @@ RedisCommand::Ptr RedisClient::sendCommand(RedisCommand::Ptr pCmd)
 
 	std::string cmddesc = pCmd->desc();
     _log(Log::L_INFO, CLOGFMT(RedisClient, "sendCommand() cmd size is %d"), cmddesc.length());
-	RedisSink::Error lastErrCode = RedisSink::rdeSendError;
-	std::string lastErr;
+	_lastErr = RedisSink::rdeSendError;
+	// std::string lastErr;
 
 	do // only one round of this loop, program can quit by either "break" or "continue"
 	{
@@ -349,9 +371,8 @@ RedisCommand::Ptr RedisClient::sendCommand(RedisCommand::Ptr pCmd)
 				// need to open a connection
 				if (!TCPClient::connect(_connectTimeout))
 				{
-					lastErrCode = RedisSink::rdeConnectError;
-					lastErr = "error occured at connect()";
-					_log(Log::L_ERROR, CLOGFMT(RedisClient, "sendCommand() cmd[%s] %s"), cmddesc.c_str(), lastErr.c_str());
+					_lastErr = RedisSink::rdeConnectError;
+					_log(Log::L_ERROR, CLOGFMT(RedisClient, "sendCommand() cmd[%s] error occured at connect()"), cmddesc.c_str());
 					break; // an error occurred
 				}
 
@@ -394,29 +415,29 @@ RedisCommand::Ptr RedisClient::sendCommand(RedisCommand::Ptr pCmd)
 		if (_messageTimeout >0 && (stampNow - pCmd->_stampCreated) > _messageTimeout)
 		{
 			_log(Log::L_ERROR, CLOGFMT(RedisClient, "sendCommand() %s timeout prior to sending"), cmddesc.c_str());
-			lastErrCode = RedisSink::rdeRequestTimeout;
+			_lastErr = RedisSink::rdeRequestTimeout;
 			break;
 		}
-		else
+
+		MutexGuard g(_lockCommandQueue);
+		int ret = _sendLine(pCmd->_command);
+		if (ret < 0)
 		{
-			MutexGuard g(_lockCommandQueue);
-			int ret = _sendLine(pCmd->_command);
-			if (ret < 0)
-			{
-				lastErr = "failed at _sendLine()";
-				_log(Log::L_ERROR, CLOGFMT(RedisClient, "_sendLine() %s %s, ret=%d"), cmddesc.c_str(), lastErr.c_str(), ret);
-				break;
-			}
-
-			pCmd->_stampSent = stampNow = TimeUtil::now();
-			long sendLatency = (long) (stampNow - pCmd->_stampCreated);
-
-			if (_messageTimeout >20 && sendLatency > _messageTimeout/4)
-				_log(Log::L_WARNING, CLOGFMT(RedisClient, "sendCommand() %s took %dmsec, too long until sent"), cmddesc.c_str(), sendLatency);
-
-			_commandQueueToReceive.push(pCmd);
-			awaitsize = _commandQueueToReceive.size();
+			_lastErr = RedisSink::rdeSendError;
+			_log(Log::L_ERROR, CLOGFMT(RedisClient, "failed at _sendLine() %s, ret=%d"), cmddesc.c_str(),  ret);
+			break;
 		}
+
+		pCmd->_stampSent = stampNow = TimeUtil::now();
+		long sendLatency = (long) (stampNow - pCmd->_stampCreated);
+
+		if (_messageTimeout >20 && sendLatency > _messageTimeout/4)
+			_log(Log::L_WARNING, CLOGFMT(RedisClient, "sendCommand() %s took %dmsec, too long until sent"), cmddesc.c_str(), sendLatency);
+
+		_commandQueueToReceive.push(pCmd);
+		awaitsize = _commandQueueToReceive.size();
+		
+		_lastErr = RedisSink::rdeOK; // now up to OnReply() to update the _lastErr
 
 		//TODO: protection if the _commandQueueToReceive is too long
 
@@ -425,7 +446,7 @@ RedisCommand::Ptr RedisClient::sendCommand(RedisCommand::Ptr pCmd)
 	} while(0);
 
 	// An error occurred, so call the response handler immediately (indicating the error)
-	(new RequestErrCmd(*this, pCmd, lastErrCode))->start();
+	(new RequestErrCmd(*this, pCmd, _lastErr))->start();
 	return NULL;
 }
 
@@ -589,7 +610,7 @@ int RedisClient::_sendLine(const std::string& cmdline)
 		return -3;
 	}
 
-    if (ret < cmdToSend.length())
+    if (ret < (int)cmdToSend.length())
     {
         _log(Log::L_WARNING, CLOGFMT(RedisClient, "_sendLine() ret(%d) failed to send full command len(%d): %s"), ret, cmdToSend.length(), cmdline.c_str());
         TCPClient::send(REDIS_NEWLINE REDIS_NEWLINE, strlen(REDIS_NEWLINE REDIS_NEWLINE));
@@ -1072,21 +1093,21 @@ RedisCommand::Ptr RedisClient::sendMultikeyBulkCmd(const char *cmd, std::vector<
 
 // sync Redis executions
 // -----------------------------
-#define SYNC_WAIT_ASSET_RET() 	if (!pCmd) return RedisSink::rdeClientError; \
-	if (!pCmd->wait(_messageTimeout)) return RedisSink::rdeRequestTimeout; \
-	if (REDIS_LEADINGCH_ERROR == pCmd->_replyCtx.data.type)	return RedisSink::rdeServerReturnedError;
+#define SYNC_WAIT_ASSERT_RET() 	if (!pCmd) return (_lastErr = RedisSink::rdeClientError); \
+	if (!pCmd->wait(_messageTimeout)) return (_lastErr = RedisSink::rdeRequestTimeout); \
+	if (REDIS_LEADINGCH_ERROR == pCmd->_replyCtx.data.type)	return (_lastErr = RedisSink::rdeServerReturnedError); else _lastErr = RedisSink::rdeOK;
 
 RedisSink::Error RedisClient::SET(const std::string& key, const uint8* value, int vlen)
 {
 	RedisCommand::Ptr pCmd = sendSET(key.c_str(), value, vlen, NULL);
-	SYNC_WAIT_ASSET_RET();
+	SYNC_WAIT_ASSERT_RET();
 	return RedisSink::rdeOK;
 }
 
 RedisSink::Error RedisClient::GET(const std::string& key, uint8* value, uint& vlen)
 {
 	RedisCommand::Ptr pCmd = sendGET(key.c_str(), NULL);
-	SYNC_WAIT_ASSET_RET();
+	SYNC_WAIT_ASSERT_RET();
 
 	if (pCmd->_replyCtx.data.bulks.size() <=0)
 	{
@@ -1101,14 +1122,14 @@ RedisSink::Error RedisClient::GET(const std::string& key, uint8* value, uint& vl
 RedisSink::Error RedisClient::DEL(const std::string& key)
 {
 	RedisCommand::Ptr pCmd = sendDEL(key.c_str(), NULL);
-	SYNC_WAIT_ASSET_RET();
+	SYNC_WAIT_ASSERT_RET();
 	return RedisSink::rdeOK;
 }
 
 RedisSink::Error RedisClient::SADD(const std::string& key, const std::string& member)
 {
 	RedisCommand::Ptr pCmd = sendSADD(key.c_str(), member.c_str(), member.length());
-	SYNC_WAIT_ASSET_RET();
+	SYNC_WAIT_ASSERT_RET();
 
 	return RedisSink::rdeOK;
 }
@@ -1116,7 +1137,7 @@ RedisSink::Error RedisClient::SADD(const std::string& key, const std::string& me
 RedisSink::Error RedisClient::SREM(const std::string& key, const std::string& member)
 {
 	RedisCommand::Ptr pCmd = sendSREM(key.c_str(), member.c_str(), member.length());
-	SYNC_WAIT_ASSET_RET();
+	SYNC_WAIT_ASSERT_RET();
 
 	return RedisSink::rdeOK;
 }
@@ -1124,7 +1145,7 @@ RedisSink::Error RedisClient::SREM(const std::string& key, const std::string& me
 RedisSink::Error RedisClient::SMEMBERS(const std::string& key, StringList& members)
 {
 	RedisCommand::Ptr pCmd = sendSMEMBERS(key.c_str());
-	SYNC_WAIT_ASSET_RET();
+	SYNC_WAIT_ASSERT_RET();
 
 	members.clear();
     members.assign(pCmd->_replyCtx.data.bulks.begin(), pCmd->_replyCtx.data.bulks.end());
@@ -1134,7 +1155,7 @@ RedisSink::Error RedisClient::SMEMBERS(const std::string& key, StringList& membe
 RedisSink::Error RedisClient::KEYS(const std::string& pattern, StringList& keys)
 {
 	RedisCommand::Ptr pCmd = sendKEYS(pattern.c_str());
-	SYNC_WAIT_ASSET_RET();
+	SYNC_WAIT_ASSERT_RET();
 
 	keys.clear();
     keys.assign(pCmd->_replyCtx.data.bulks.begin(), pCmd->_replyCtx.data.bulks.end());
