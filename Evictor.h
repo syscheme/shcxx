@@ -227,8 +227,8 @@ private:
 
 protected:
 
-//	LogWrapper	_log;
-	ZQ::common::Log& _log;
+	LogWrapper	_log;
+//	ZQ::common::Log& _log;
 	std::string _name;
 
 	// configurations
