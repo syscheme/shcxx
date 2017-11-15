@@ -463,7 +463,7 @@ int RedisClient::encode(std::string& output, const void* source, size_t len)
 	if (len <0)
 		len = strlen((const char*) source);
 
-#if 0
+#if 1
 	// if (_bCompress)
 	{
 		char page[REDIS_RECV_BUF_SIZE];
@@ -476,7 +476,8 @@ int RedisClient::encode(std::string& output, const void* source, size_t len)
 			bzstrm.next_out =(char*) page;
 			bzstrm.avail_out=sizeof(page);
 
-			if (BZ_OK == BZ2_bzCompress(&bzstrm, BZ_FINISH))
+            int nRet = BZ2_bzCompress(&bzstrm, BZ_FINISH);
+			if (BZ_STREAM_END == nRet)
 			{
 				output = "bz2:";
 				source = page;
@@ -501,35 +502,38 @@ int RedisClient::decode(const char* source, void* target, size_t maxlen)
 
 	size_t tlen = maxlen;
 
-#if 0
+#if 1
 	if (0 == strncmp(source, "bz2:", 4))
 	{
+        source += 4;
+        if (!Base64::decode(source, targ, tlen))
+            return 0;
+
 		char page[REDIS_RECV_BUF_SIZE];
 		bz_stream bzstrm;
 		memset(&bzstrm, 0x00, sizeof(bzstrm));
-		if (BZ_OK != BZ2_bzDecompressInit(&bzstrm, 4, 250))
+        int nRet = BZ2_bzDecompressInit(&bzstrm, 4, 0);
+		if (BZ_OK != nRet)
 			return 0;
 
-		bzstrm.next_in  = (char*)source +4;
-		bzstrm.avail_in = strlen(source) -4;
+		bzstrm.next_in  = (char*)targ;
+		bzstrm.avail_in = tlen;
 		bzstrm.next_out = page;
 		bzstrm.avail_out=sizeof(page);
 
-		if (BZ_OK == BZ2_bzDecompress(&bzstrm))
+        nRet = BZ2_bzDecompress(&bzstrm);
+		if (BZ_STREAM_END == nRet)
 		{
-			int len = sizeof(page) - bzstrm.avail_out;
-			page[len] ='\0';
-			source = page;
+			tlen = sizeof(page) - bzstrm.avail_out;
+			//page[tlen] ='\0';
+            memcpy(target, (void*)page, tlen);
 		}
 
-		BZ2_bzCompressEnd(&bzstrm);
+		BZ2_bzDecompressEnd(&bzstrm);
 	}
 #endif
-
-	if (Base64::decode(source, targ, tlen))
-		return tlen;
 	
-	return 0;
+	return tlen;
 }
 
 char* RedisClient::_nextLine(char* startOfLine, int maxByte, int minLen)
@@ -1022,7 +1026,8 @@ RedisCommand::Ptr RedisClient::sendSLAVEOF(const char *host, int port, RedisSink
 RedisCommand::Ptr RedisClient::sendSET(const char *key, const uint8* val, int vlen, RedisSink::Ptr reply)
 {
 	std::string cmdstr;
-	encode(cmdstr, val, vlen);
+	int nLen = encode(cmdstr, val, vlen);
+    printf("nLen is %d\n", nLen);
 	cmdstr = std::string("SET ") + key + " " + cmdstr;
 
 	return sendCommand(cmdstr.c_str(), REDIS_LEADINGCH_INLINE, reply);
