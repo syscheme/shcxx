@@ -73,7 +73,7 @@ class ZQ_COMMON_API URLStr;
 class URLStr
 {
   public:
-		  URLStr(const char* urlstr=NULL, bool casesensitive=false);
+		  URLStr(const char* urlstr=NULL, bool caseSensitiveVars=true);
 		  ~URLStr();
 	  
 		  bool parse(const char* urlstr);
@@ -115,7 +115,7 @@ class URLStr
 
 	  std::string mProtocol, mHost, mPath, mPathAndParam, mContent,mUserName,mPwd;
 		  int	mPort;
-		  bool bCase;
+		  bool _bCaseSensitiveVars;
 		  std::string output_str;
 }; 
 

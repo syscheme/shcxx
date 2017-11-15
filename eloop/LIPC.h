@@ -186,19 +186,24 @@ public:
 	typedef std::list< PassiveConn* > PipeClientList;
 
 public:
+	LIPCService(ZQ::common::Log& log) : _log(log) {}
 
-	LIPCService(ZQ::common::Log& log) : _lipcLog(log){}
+	uint32	getVerbosity() { return (ZQ::common::Log::loglevel_t)_log.getVerbosity() | (_verboseFlags<<8); }
+	void    setVerbosity(uint32 verbose = (0 | ZQ::common::Log::L_ERROR)) { _log.setVerbosity(verbose & 0x0f); _verboseFlags =verbose>>8; }
+
 	int init(ZQ::eloop::Loop &loop, int ipc=1);
 	PipeClientList& getPipeClientList() { return _clients; }
 
 protected:
-	ZQ::common::Log& _lipcLog;
+	ZQ::common::LogWrapper _log;
+	static uint32 _verboseFlags;
+
 	void addConn(PassiveConn* conn);
 	void delConn(PassiveConn* conn);
 	virtual void doAccept(ZQ::eloop::Handle::ElpeError status);
 	virtual void onError( int error, const char* errorDescription)
 	{	
-		_lipcLog(ZQ::common::Log::L_ERROR, CLOGFMT(LIPCService, "errCode = %d, errDesc:%s"), error, errorDescription);
+		_log(ZQ::common::Log::L_ERROR, CLOGFMT(LIPCService, "errCode = %d, errDesc:%s"), error, errorDescription);
 	}
 
 	//@note the child impl is expected to call resp->post() to send the response out
@@ -219,7 +224,10 @@ class LIPCClient
 	friend class ClientTimer;
 
 public:
-	LIPCClient(Loop &loop, ZQ::common::Log& log,int64 timeout = 500,int ipc=1); 
+	LIPCClient(Loop &loop, ZQ::common::Log& log, int64 timeout =500, int ipc=1); 
+
+	uint32	getVerbosity() { return (ZQ::common::Log::loglevel_t)_log.getVerbosity() | (_verboseFlags<<8); }
+	void    setVerbosity(uint32 verbose = (0 | ZQ::common::Log::L_ERROR)) { _log.setVerbosity(verbose & 0x0f); _verboseFlags =verbose>>8; }
 
 	typedef void (*Callback_t)(LIPCMessage& msg, void* data);
 
@@ -251,9 +259,11 @@ protected: // redirect from UnixSocket
 	virtual void OnMessage(std::string& msg);
 
 protected: // impl of ZQ::eloop::Timer
-	virtual void OnTimer();
 
-	ZQ::common::Log& _lipcLog;
+	ZQ::common::LogWrapper _log;
+	static uint32 _verboseFlags;
+
+	virtual void OnTimer();
 
 private:
 	void OnCloseConn();

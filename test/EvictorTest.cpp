@@ -1,6 +1,7 @@
 #include "../Evictor.h"
 #include "../FileLog.h"
 #include "../TimeUtil.h"
+#include "../urlstr.h"
 
 using namespace ZQ::common;
 
@@ -68,7 +69,7 @@ protected: // the child class inherited from this evictor should implement the f
 		data.data = it->second;
 		data.stampAsOf = ZQ::common::now();
 
-		_log(Log::L_INFO, CLOGFMT(MyEvictor, "loadFromStore() %s loaded: %s"), key.c_str(), data.data.c_str());
+		_log(Log::L_INFO, CLOGFMT(MyEvictor, "loadFromStore() obj[%s] loaded, datasize[%d]"), key.c_str(), data.data.size());
 		return eeOK;
 	}
 
@@ -103,7 +104,7 @@ protected: // the child class inherited from this evictor should implement the f
 
 		// dummy impl for test
 		int64 d=0;
-		sscanf(streamedData.c_str(), "s%d,c%lld,v%lld,d%lld", &data.status, &data.stampCreated, &data.stampLastSave, &d);
+		sscanf((const char*)&streamedData[0], "s%d,c%lld,v%lld,d%lld", &data.status, &data.stampCreated, &data.stampLastSave, &d);
 
 		// data.status = Item::clean;
 		// data.stampCreated = data.stampLastSave = now() - 3600*1000;
@@ -113,8 +114,24 @@ protected: // the child class inherited from this evictor should implement the f
 	}
 };
 
+
+
 void main()
 {
+	uint32 nStart = 3, nMax=10, dm=1;
+	uint32 seq[10];
+	uint32 seq[0] = nStart;
+	uint32 minStep = (nMax - nStart)*2 / 8 +1;
+	for (int i=1; i < 9; i++)
+	{
+		float d = (float)nMax - seq[i-1];
+		d = (d+0.5) /2;
+		d = MIN(minStep, d);
+		seq[i] = seq[i-1] +d;
+	}
+	seq[9] = nMax;
+
+
 	ZQ::common::FileLog flog("e:\\temp\\EvictorTest.log", Log::L_DEBUG);
 	MyEvictor evictor(flog);
 

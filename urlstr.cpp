@@ -208,8 +208,8 @@ bool URLStr::decode(const char* source, void* target, int maxlen)
 	return true;
 }
 
-URLStr::URLStr(const char* urlstr, bool casesensitive)
-: bCase(casesensitive), mPort(0)
+URLStr::URLStr(const char* urlstr, bool caseSensitiveVars)
+: _bCaseSensitiveVars(caseSensitiveVars), mPort(0)
 {
 	parse(urlstr);
 }
@@ -346,6 +346,8 @@ bool URLStr::parse(const char* urlstr)
 		}
 	}
 
+	TOLOWER(mHost);
+
 	mContent=searchurl;
 	searchurl +="&";
 	for (int pos = searchurl.find("&");
@@ -374,7 +376,7 @@ bool URLStr::parse(const char* urlstr)
 		delete [] buf;
 		buf = NULL;
 
-		if (!bCase)
+		if (!_bCaseSensitiveVars)
 			TOLOWER(var);
 
 		mVars.insert(urlvar_t::value_type(var, val));
