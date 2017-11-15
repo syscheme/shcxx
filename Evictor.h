@@ -162,7 +162,7 @@ public:
 	virtual ~Evictor();
 
 	uint16	getVerbosity() { return (ZQ::common::Log::loglevel_t)_log.getVerbosity() | (_verboseFlags<<8); }
-	void setVerbosity(uint16 verbose =0) { _log.setVerbosity(verbose & 0x0f); _verboseFlags =verbose>>8; }
+	void    setVerbosity(uint16 verbose = (0 | ZQ::common::Log::L_ERROR)) { _log.setVerbosity(verbose & 0x0f); _verboseFlags =verbose>>8; }
 
 	/// to limit the in-memory evictor size
 	///@param size     the size of evictor, the less-used object may be evicted if the container has more than this size

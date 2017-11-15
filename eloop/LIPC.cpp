@@ -22,6 +22,8 @@
 namespace ZQ {
 namespace eloop {
 
+#define TRACE_LEVEL_FLAG  FLAG(0)
+
 // ------------------------------------------------
 // class LIPCMessage
 // ------------------------------------------------
@@ -214,7 +216,7 @@ class PassiveConn : public UnixSocket
 {
 public:
 	PassiveConn(LIPCService& service)
-		:_service(service), UnixSocket(service._lipcLog)
+		:_service(service), UnixSocket(service._log)
 	{}
 
 	void start()
@@ -222,7 +224,8 @@ public:
 		read_start();
 		_service.addConn(this);
 //		printf("new pipe Passive Conn\n");
-		_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(PassiveConn, "new passive conn"));
+		if (TRACE_LEVEL_FLAG & _service._verboseFlags)
+			_service._log(ZQ::common::Log::L_DEBUG, CLOGFMT(PassiveConn, "new passive conn"));
 	}
 
 	virtual void OnMessage(std::string& msg)
@@ -313,6 +316,8 @@ private:
 // -------------------------------------------------
 // class LIPCService
 // -------------------------------------------------
+uint32 LIPCService::_verboseFlags =0;
+
 int LIPCService::init(ZQ::eloop::Loop &loop, int ipc)
 {
 	_ipc = ipc;
@@ -398,8 +403,10 @@ private:
 // ------------------------------------------------
 // class LIPCClient
 // ------------------------------------------------
+uint32 LIPCClient::_verboseFlags =0;
+
 LIPCClient::LIPCClient(Loop &loop, ZQ::common::Log& log, int64 timeout,int ipc)
-		:_loop(loop), _ipc(ipc), _lipcLog(log), _conn(NULL), _reconnect(false),_timeout(timeout),_timer(NULL)
+		:_loop(loop), _ipc(ipc), _log(log), _conn(NULL), _reconnect(false),_timeout(timeout),_timer(NULL)
 {
 	_lastCSeq.set(1);
 }
@@ -448,7 +455,7 @@ int LIPCClient::connect(const char *name)
 	_peerPipeName = name;
 	if (_conn == NULL)
 	{
-		_conn = new ClientConn(_lipcLog, *this);
+		_conn = new ClientConn(_log, *this);
 		int ret = _conn->init(_loop, _ipc);
 		if (ret < 0)
 			return ret;
@@ -492,7 +499,7 @@ void LIPCClient::OnCloseConn()
 		return;
 	}
 
-	_conn = new ClientConn(_lipcLog, *this);
+	_conn = new ClientConn(_log, *this);
 	int ret = _conn->init(_loop, _ipc);
 	if (ret < 0)
 	{
@@ -627,12 +634,16 @@ void LIPCClient::OnIndividualMessage(Json::Value& msg)
 	AwaitRequestMap::iterator itW = _awaits.find(cseq);
 	if (_awaits.end() == itW) // unknown request or it has been previously expired
 	{
-		_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCClient, "unknown request or it has been previously expired. cseq(%d)"),cseq);
+		if (TRACE_LEVEL_FLAG & _verboseFlags)
+			_log(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCClient, "unknown request or it has been previously expired. cseq(%d)"),cseq);
+
 		return;
 	}
 
 	OnResponse(itW->second.method, resp);
-	_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCClient, "OnResponse() %s(%d) triggered, cleaning from await list"), itW->second.method.c_str(), cseq);
+	if (TRACE_LEVEL_FLAG & _verboseFlags)
+		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCClient, "OnResponse() %s(%d) triggered, cleaning from await list"), itW->second.method.c_str(), cseq);
+
 	OnRequestDone(cseq, LIPCMessage::LIPC_OK);
 	_awaits.erase(cseq);
 }
@@ -692,7 +703,7 @@ void LIPCClient::OnClose()
 
 void LIPCClient::onError( int error, const char* errorDescription )
 {	
-	_lipcLog(ZQ::common::Log::L_ERROR, CLOGFMT(LIPCClient, "errCode = %d, errDesc:%s"), error, errorDescription);
+	_log(ZQ::common::Log::L_ERROR, CLOGFMT(LIPCClient, "errCode = %d, errDesc:%s"), error, errorDescription);
 	close();
 }
 
