@@ -165,9 +165,9 @@ template < class FragmentT >
 class Holder : public FragmentT
 {
 public:
-	typedef int32 FragmentT::* PMem_Int32; ///< type of pointer to int32 member
-	typedef char FragmentT::* PMem_Char; ///< type of pointer to char member
-	typedef PMem_Char PMem_CharArray; ///< type of pointer to char[] member
+	typedef int32 FragmentT::*       PMem_Int32;     ///< type of pointer to int32 member
+	typedef char FragmentT::*        PMem_Char;      ///< type of pointer to char member
+	typedef PMem_Char                PMem_CharArray; ///< type of pointer to char[] member
 	typedef std::string FragmentT::* PMem_StdString; ///< type of pointer to std::string member
 
 	/// member function type of reading the content of other config fragment
@@ -243,6 +243,22 @@ public:
 		__m_details.push_back(attrDetail);
 	}
 
+	/// Add a millisecond attribute to the Holder object.
+	/// @param[in]  path the relative path of the target node.
+	/// @param[in]  name the attribute of this config item.
+	/// @param[in]  address the address of the config's storage for int32 type.
+	/// @param[in]  defaultValue the default value of this config item. NULL for required config.
+	/// @param[in]  snmpOpt snmp register option.
+	/// @param[in]  snmpName a short name of this item for the snmp variable management.
+	void addMilliSecond(const std::string &path, const std::string &name, PMem_Int32 address, const char *defaultValue = NULL, SnmpOption snmpOpt = optNone, const std::string &snmpName = "")
+	{
+		__Detail attrDetail(__m_rootPath, path, name, snmpOpt, snmpName);
+		attrDetail.setAddressMillisecond(address);
+		if(defaultValue)
+			attrDetail.setDefault(*this, defaultValue);
+		__m_details.push_back(attrDetail);
+	}
+
 	/// Add config's detail info to the Holder object.
 	/// @param[in]  path the relative path of the target node.
 	/// @param[in]  readFunc the member function that read the content of other config fragment.
@@ -275,6 +291,7 @@ public:
 					break;
 				}
 			}
+
 			if(keyAttrValue.empty())
 				throwf<CfgException>(EXFMT(CfgException, "Holder::snmpRegister() bad value of key attribute [%s]. root=%s"), __m_keyAttr.c_str(), __m_rootPath.c_str());
 
@@ -284,9 +301,11 @@ public:
 				tagName = stdpath.back();
 				stdpath.pop_back();
 			}
+
 			// generate a unique tag name with the key attribute value
 			stdpath.push_back(tagName + "[" + keyAttrValue + "]");
 		}
+
 		// generate the full path to this node
 		{
 			for (StandardPath::iterator it = stdpath.begin(); it != stdpath.end(); ++it)
@@ -371,6 +390,7 @@ private:
 				throwf<CfgException>(EXFMT(CfgException, "Holder::__readOthers() bad xml definition, found %u nodes of path [%s], violate the range[%u, %u]. root=%s"),
 					(unsigned int)target.size(), it_other->path.c_str(), (unsigned int)it_other->nodeCount.first, (unsigned int)it_other->nodeCount.second, __m_rootPath.c_str());
 			}
+
 			for(XMLUtil::XmlNodes::iterator it_node = target.begin(); it_node != target.end(); ++it_node)
 			{
 				(this->*(it_other->readFunc))(*it_node, hPP); // read other nodes
@@ -398,6 +418,7 @@ private:
 					break;
 				data++;
 			}
+
 			return data;
 		}
 
@@ -482,9 +503,8 @@ private:
 			}
 
 			long factor = 1;
-			for(size_t i = 0 ; i < shiftCount; i++ ) {
+			for(size_t i = 0 ; i < shiftCount; i++ )
 				factor = factor * (f1024Mode ? 1024 : 1000);
-			}
 
 			*pDigitEnd = '\0';
 			if(dotCount>0) {
@@ -503,27 +523,87 @@ private:
 			return (long)ret;
 		}
 
-		std::string get(FragmentT &obj)
-		{
-			switch(_type)
+		long str2msec(const char* str)
+		{	
+			// supports format of: [Ndays][Mmin][Xsec], such as 1.5days, 4.0hours, 1.5secs 4.1minutes 1hr50sec123, 1234, 1.234
+			if (str== NULL || str[0] == '\0')
+				return 0;
+
+			std::string valstr = str;
+
+			size_t pos = valstr.find_first_not_of(" \t\r\n");
+			if (std::string::npos != pos)
+				valstr.erase(0, pos);
+
+			pos = valstr.find_last_not_of(" \t\r\n");
+			if (std::string::npos != pos)
+				valstr.erase(pos+1, valstr.length());
+
+			if (std::string::npos == (pos = valstr.find_first_not_of("0123456789")))
+				return str2long(valstr.c_str());
+
+			std::transform(valstr.begin(), valstr.end(), valstr.begin(), tolower);
+
+			std::string field;
+			double val =0.0f;
+			if (std::string::npos != (pos= valstr.find('d'))) // day
 			{
-			case dtInt32:
-				{
-					int32 val = (obj.*(PMem_Int32)_address);
-					char buf[22] = {0};
-					return itoa(val, buf, 10);
-				}
+				field = valstr.substr(0, pos);
+				val += atof(field.c_str());
+				valstr = valstr.substr(pos+1);
 
-			case dtStdString:
-				return (obj.*(PMem_StdString)_address);
-
-			case dtCharArray:
-				return (&(obj.*(PMem_CharArray)_address));
-
-			default:
-				throwf<CfgException>(EXFMT(CfgException, "Detail::get() bad data type, type[%d]"), (int)_type);
-				return "";
+				if (std::string::npos != (pos = valstr.find_first_of("0123456789")))
+					valstr = valstr.substr(pos);
 			}
+			val*=24;
+			
+			if (std::string::npos != (pos= valstr.find('h'))) // hour
+			{
+				field = valstr.substr(0, pos);
+				val += atof(field.c_str());
+				valstr = valstr.substr(pos+1);
+
+				if (std::string::npos != (pos = valstr.find_first_of("0123456789")))
+					valstr = valstr.substr(pos);
+			}
+			val*=60;
+
+			if (std::string::npos != (pos= valstr.find('m'))) // minute
+			{
+				field = valstr.substr(0, pos);
+				val += atof(field.c_str());
+				valstr = valstr.substr(pos+1);
+
+				if (std::string::npos != (pos = valstr.find_first_of("0123456789")))
+					valstr = valstr.substr(pos);
+			}
+			val*=60;
+
+			field ="";
+			if (std::string::npos != (pos= valstr.find('s')))
+			{
+				field = valstr.substr(0, pos);
+				valstr = valstr.substr(pos+1);
+			}
+			else if (std::string::npos != (pos= valstr.find('.')))
+			{
+				pos= valstr.find_first_not_of("0123456789", pos+1);
+				field = valstr.substr(0, pos);
+				valstr = (std::string::npos != pos) ? valstr.substr(pos+1) :"";
+			}
+
+			if (std::string::npos != (pos = valstr.find_first_of("0123456789")))
+				valstr = valstr.substr(pos);
+
+			if (!field.empty()) // second
+				val += atof(field.c_str());
+
+			val*=1000;
+
+			// the millisecond
+			val += atol(valstr.c_str());
+
+			return (long) val;
 		}
 
 		void set(FragmentT& obj, const char* value)
@@ -546,6 +626,18 @@ private:
 						&& (ERANGE == errno))
 					{
 						throwf<CfgException>(EXFMT(CfgException, "Detail::set() integer attribute range error, path[%s], name[%s], value[%s]. root=%s"), 
+							path.c_str(), name.c_str(), value, root.c_str());
+					}
+					(obj.*(PMem_Int32)_address) = lval;
+				}
+				break;
+
+			case dtMillisecond:
+				{
+					long lval = str2msec(value);
+					if( (LONG_MAX == lval ||LONG_MIN == lval) && (ERANGE == errno))
+					{
+						throwf<CfgException>(EXFMT(CfgException, "Detail::set() millisecond attribute range error: path[%s] name[%s] value[%s] root=%s"), 
 							path.c_str(), name.c_str(), value, root.c_str());
 					}
 					(obj.*(PMem_Int32)_address) = lval;
@@ -578,6 +670,12 @@ private:
 		void setAddress(PMem_Int32 address)
 		{
 			_type = dtInt32;
+			_address = (PMem_Void)address;
+		}
+
+		void setAddressMillisecond(PMem_Int32 address)
+		{
+			_type = dtMillisecond;
 			_address = (PMem_Void)address;
 		}
 
@@ -635,6 +733,7 @@ private:
 			switch(_type)
 			{
 			case dtInt32:
+			case dtMillisecond:
 				varType = ZQSNMP_VARTYPE_INT32;
 				varAddress = &(obj.*(PMem_Int32)_address);
 				break;
@@ -684,8 +783,10 @@ private:
 			dtVoid,
 			dtInt32,
 			dtCharArray,
-			dtStdString
+			dtStdString,
+			dtMillisecond
 		} _type;
+
 		typedef void* FragmentT::* PMem_Void;
 		PMem_Void _address;
 
