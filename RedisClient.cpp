@@ -217,6 +217,41 @@ protected:
 // -----------------------------
 // class RedisEvictor
 // -----------------------------
+//class EvictorPoller : public ThreadRequest
+//{
+//public:
+//	EvictorPoller(RedisEvictor& evictor, NativeThreadPool& pool)
+//		: ThreadRequest(pool), _evictor(evictor)
+//	{
+//	}
+//
+//	RedisEvictor& _evictor;
+//
+//	virtual int run()
+//	{
+//		_evictor.poll();
+//		_evictor.poll();
+//
+//		return 0;
+//	}
+//
+//	void final(int retcode =0, bool bCancelled =false) { delete this; }
+//};
+
+RedisEvictor::RedisEvictor(Log& log, RedisClient::Ptr client, const std::string& name, const Properties& props)
+: _client(client), Evictor(log, name, props), _maxValueLen(REDIS_RECV_BUF_SIZE), _recvBuf(NULL)
+{ 
+	_recvBuf = new uint8[_maxValueLen];
+}
+
+RedisEvictor::~RedisEvictor()
+{
+	if (_recvBuf)
+		delete[] _recvBuf;
+
+	_recvBuf = NULL;
+}
+
 // save a batch of streamed object to the target object store
 int RedisEvictor::saveBatchToStore(StreamedList& batch)
 {

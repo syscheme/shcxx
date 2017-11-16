@@ -302,21 +302,10 @@ private:
 class RedisEvictor : public Evictor
 {
 public:
-	RedisEvictor(Log& log, RedisClient::Ptr& client, const std::string& name, const Properties& props = Properties())
-		: _client(client), Evictor(log, name, props), _maxValueLen(REDIS_RECV_BUF_SIZE), _recvBuf(NULL)
-	{ 
-		_recvBuf = new uint8[_maxValueLen];
-	}
+	RedisEvictor(Log& log, RedisClient::Ptr client, const std::string& name, const Properties& props = Properties());
+	virtual ~RedisEvictor();
 
-	virtual ~RedisEvictor()
-	{
-		if (_recvBuf)
-			delete[] _recvBuf;
-
-		_recvBuf = NULL;
-	}
-
-	RedisClient::Ptr& getClient() { return _client; }
+	RedisClient::Ptr getClient() { return _client; }
 
 protected: // overwrite of Evictor
 
@@ -336,9 +325,9 @@ protected: // the child class inherited from this evictor should implement the f
 	virtual bool unmarshal(const std::string& category, Item::Data& data, const ByteStream& streamedData) { return false; }
 
 protected:
-	RedisClient::Ptr   _client;
-	size_t             _maxValueLen;
-	uint8*             _recvBuf;
+	RedisClient::Ptr  _client;
+	size_t            _maxValueLen;
+	uint8*            _recvBuf;
 };
 
 }}//endof namespace
