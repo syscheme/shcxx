@@ -1497,8 +1497,11 @@ void DeviceInfo::gatherNetAdapterInfo()
 			std::string strIp = std::string(ip);
 			theCard.IPs.push_back(strIp);
 
+			//TODO refer to sar.c to copy the logic how to collect throughtput status
+			// https://github.com/sysstat/sysstat/blob/master/sar.c
+
 			_NICs.push_back(theCard);
-			MOLOG(Log::L_INFO, CLOGFMT(DeviceInfo, "gatherNetAdapterInfo() get the NICInfo successful decription[%s] mac[%s] name[%s] "), theCard.cardDescription.c_str(), theCard.macAddress.c_str(), theCard.netCardName.c_str());
+			MOLOG(Log::L_DEBUG, CLOGFMT(DeviceInfo, "gatherNetAdapterInfo() got NIC(%d)[%s] info: mac[%s] ip[%s] %s"), _NICs.size(), theCard.netCardName.c_str(), theCard.macAddress.c_str(), strIp.c_str(), theCard.cardDescription.c_str());
 		}//while
 	}
 
