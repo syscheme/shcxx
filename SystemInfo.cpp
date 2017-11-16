@@ -1452,58 +1452,60 @@ void DeviceInfo::gatherNetAdapterInfo()
 
 	if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)  
 	{  
-		MOLOG(Log::L_WARNING, CLOGFMT(DeviceInfo,"gatherNetAdapterInfo() create socket failed"));
+		MOLOG(Log::L_WARNING, CLOGFMT(DeviceInfo, "gatherNetAdapterInfo() create socket failed"));
 		close(fd);
-		return ;
+		return;
 	}
-	 ifc.ifc_len = sizeof(buf);
-	 ifc.ifc_buf = (caddr_t)buf;
-	 if (0 != ioctl(fd, SIOCGIFCONF, (char *)&ifc))
+
+	ifc.ifc_len = sizeof(buf);
+	ifc.ifc_buf = (caddr_t)buf;
+	if (0 != ioctl(fd, SIOCGIFCONF, (char *)&ifc))
 		MOLOG(Log::L_WARNING, CLOGFMT(DeviceInfo,"gatherNetAdapterInfo() list NICs failed"));
-	 else
-	 {	
-		 MutexGuard g(_lkInfo);
-		 interfaceNum = ifc.ifc_len / sizeof(struct ifreq);
-		 while (interfaceNum-- > 0)
-		 {
-			 NicInfo theCard;
-			 theCard.netCardName = buf[interfaceNum].ifr_name;
-			 if (0 != ioctl(fd, SIOCGIFHWADDR, (char *)(&buf[interfaceNum])))
-			 {
-				 MOLOG(Log::L_WARNING, CLOGFMT(DeviceInfo,"gatherNetAdapterInfo() get the mac of NIC failed"));
-				 continue;
-			 }
+	else
+	{	
+		MutexGuard g(_lkInfo);
+		interfaceNum = ifc.ifc_len / sizeof(struct ifreq);
+		while (interfaceNum-- > 0)
+		{
+			NicInfo theCard;
+			theCard.netCardName = buf[interfaceNum].ifr_name;
+			if (0 != ioctl(fd, SIOCGIFHWADDR, (char *)(&buf[interfaceNum])))
+			{
+				MOLOG(Log::L_WARNING, CLOGFMT(DeviceInfo,"gatherNetAdapterInfo() get the mac of NIC failed"));
+				continue;
+			}
 
-			 memset(mac, '\0', sizeof(mac));
-			 snprintf(mac, sizeof(mac), "%02x-%02x-%02x-%02x-%02x-%02x",  
-				 (unsigned char)buf[interfaceNum].ifr_hwaddr.sa_data[0],  
-				 (unsigned char)buf[interfaceNum].ifr_hwaddr.sa_data[1],  
-				 (unsigned char)buf[interfaceNum].ifr_hwaddr.sa_data[2],  
-				 (unsigned char)buf[interfaceNum].ifr_hwaddr.sa_data[3],  
-				 (unsigned char)buf[interfaceNum].ifr_hwaddr.sa_data[4],  
-				 (unsigned char)buf[interfaceNum].ifr_hwaddr.sa_data[5]);
-			 theCard.macAddress = mac;
+			memset(mac, '\0', sizeof(mac));
+			snprintf(mac, sizeof(mac), "%02x-%02x-%02x-%02x-%02x-%02x",  
+				(unsigned char)buf[interfaceNum].ifr_hwaddr.sa_data[0],  
+				(unsigned char)buf[interfaceNum].ifr_hwaddr.sa_data[1],  
+				(unsigned char)buf[interfaceNum].ifr_hwaddr.sa_data[2],  
+				(unsigned char)buf[interfaceNum].ifr_hwaddr.sa_data[3],  
+				(unsigned char)buf[interfaceNum].ifr_hwaddr.sa_data[4],  
+				(unsigned char)buf[interfaceNum].ifr_hwaddr.sa_data[5]);
+			theCard.macAddress = mac;
 
-			 //get the IP of this interface  
-			 if (0 != ioctl(fd, SIOCGIFADDR, (char *)&buf[interfaceNum]))  
-			 {  
-				 MOLOG(Log::L_WARNING, CLOGFMT(DeviceInfo,"gatherNetAdapterInfo() get the ip NIC failed"));
-				 continue;		  
-			 }
+			//get the IP of this interface  
+			if (0 != ioctl(fd, SIOCGIFADDR, (char *)&buf[interfaceNum]))  
+			{  
+				MOLOG(Log::L_WARNING, CLOGFMT(DeviceInfo,"gatherNetAdapterInfo() get the ip NIC failed"));
+				continue;		  
+			}
 
-			 memset(ip,'\0',32);
-			 snprintf(ip, sizeof(ip), "%s", (char *)inet_ntoa(((struct sockaddr_in *)&(buf[interfaceNum].ifr_addr))->sin_addr));  
-			 std::string strIp = std::string(ip);
-			 theCard.IPs.push_back(strIp);
+			memset(ip,'\0',32);
+			snprintf(ip, sizeof(ip), "%s", (char *)inet_ntoa(((struct sockaddr_in *)&(buf[interfaceNum].ifr_addr))->sin_addr));  
+			std::string strIp = std::string(ip);
+			theCard.IPs.push_back(strIp);
 
-			 _NICs.push_back(theCard);
-			 MOLOG(Log::L_INFO, CLOGFMT(DeviceInfo,"gatherNetAdapterInfo() get the NICInfo successful decription[%s] mac[%s] name[%s] "),theCard.cardDescription.c_str(), theCard.macAddress.c_str(), theCard.netCardName.c_str());
-		 }//while
-	 }
+			_NICs.push_back(theCard);
+			MOLOG(Log::L_INFO, CLOGFMT(DeviceInfo, "gatherNetAdapterInfo() get the NICInfo successful decription[%s] mac[%s] name[%s] "), theCard.cardDescription.c_str(), theCard.macAddress.c_str(), theCard.netCardName.c_str());
+		}//while
+	}
 
-	 close(fd); 
-	 return;
+	close(fd); 
+	return;
 }
+
 bool DeviceInfo::getdiskInfo(const std::string& path)
 {
 	DiskInfo currentDisk;
@@ -1582,5 +1584,5 @@ void DeviceInfo::gatherDiskInfo()
 }
 
 #endif
-	}//common
+}//common
 }//ZQ
