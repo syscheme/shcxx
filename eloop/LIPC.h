@@ -121,6 +121,7 @@ protected:
 	int64			_stampCreated;
 };
 
+#define LIPC_SET_JSON_PARAM3(JVAR,PARAM)									JVAR[#PARAM] = PARAM
 #define LIPC_SET_JSON_PARAM(JVAR, CVAR, PARAM)                              JVAR[#PARAM] = CVAR.PARAM
 #define LIPC_SET_JSON_PARAM2(JVAR, CVAR, PARAM, CTYPE)                      JVAR[#PARAM] = (CTYPE)CVAR.PARAM
 #define LIPC_SET_JSON_PARAM_I64(JVAR, CVAR, PARAM)				            JVAR[#PARAM] = ZQ::eloop::LIPCMessage::hexstr(CVAR.PARAM)
