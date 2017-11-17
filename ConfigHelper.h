@@ -606,6 +606,29 @@ private:
 			return (long) val;
 		}
 
+		std::string get(FragmentT &obj)
+		{
+			switch(_type)
+			{
+			case dtInt32:
+				{
+					int32 val = (obj.*(PMem_Int32)_address);
+					char buf[22] = {0};
+					return itoa(val, buf, 10);
+				}
+
+			case dtStdString:
+				return (obj.*(PMem_StdString)_address);
+
+			case dtCharArray:
+				return (&(obj.*(PMem_CharArray)_address));
+
+			default:
+				throwf<CfgException>(EXFMT(CfgException, "Detail::get() bad data type, type[%d]"), (int)_type);
+				return "";
+			}
+		}
+
 		void set(FragmentT& obj, const char* value)
 		{
 			if(NULL == value)
