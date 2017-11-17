@@ -463,7 +463,7 @@ std::string get(FragmentT &obj)
 			case dtInt32:
 				{
 					//long lval = strtol(value, NULL, 0);
-					long lval = str2long(value);
+					long lval = ZQ::common::stringHelper::str2long(value);
 					if( (LONG_MAX == lval ||LONG_MIN == lval)
 						&& (ERANGE == errno))
 					{

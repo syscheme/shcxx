@@ -219,110 +219,118 @@ std::vector<std::string> ZQ_COMMON_API rsplit(const std::string& src, char sep, 
 }
 
 long ZQ_COMMON_API str2long(const char* str)
-		{	
-			if(str== NULL || str[0] == '\0')
-				return 0;
+{	
+	if(str== NULL || str[0] == '\0')
+		return 0;
 
-			char* data =NULL;
-			{
-				std::string tmp = str;
-				TrimExtra(tmp);
-				data = strdup(tmp.c_str());
-			}
-			// data = skipWhiteSpace(data);
-			if(NULL == data || *data == '\0')
-			{
-				free(data);
-				return 0;
-			}
+	return atol(str);
+}
 
-			char* pDigitBegin = data;
-			size_t dotCount = 0;
-			while(*data != '\0')
-			{
-				if(isdigit(*data) || *data == '.') {
-					if(*data == '.') {
-						dotCount++;
-					}
-					data++;						
-					continue;
-				}
-				break;
-			}
-
-			char* pDigitEnd = data;
-
-			if(dotCount > 1)
-			{
-				free(data);
-				errno = ERANGE; //this is the only error we can returned
-				return LONG_MAX;
-			}
-
-			char tmp = *pDigitEnd;
-			*pDigitEnd = '\0';
-			double ret = atof(pDigitBegin);
-			*pDigitEnd = tmp;
-			data = skipWhiteSpace(data);
-			if(*data == '\0')
-			{
-				/*			if(dotCount > 0) {
-				free(pDigitBegin);
-				errno = ERANGE;
-				return LONG_MAX;
-				}		
-				*pDigitEnd = '\0';
-				*/
-				long ret = atol(pDigitBegin);		
-				free(pDigitBegin);
-				return ret;
-			}
-
-			char nextCh = *(data+1);
-			bool f1024Mode = nextCh == 'i' || nextCh == 'I';
-			size_t shiftCount = 0;
-			switch(*data)
-			{
-			case 'k':
-			case 'K':
-				shiftCount = 1;
-				break;
-
-			case 'm':
-			case 'M':
-				shiftCount = 2;
-				break;
-
-			case 'g':
-			case 'G':
-				shiftCount = 3;
-				break;
-
-			default:
-				shiftCount = 0;
-				break;
-			}
-
-			long factor = 1;
-			for(size_t i = 0 ; i < shiftCount; i++ )
-				factor = factor * (f1024Mode ? 1024 : 1000);
-
-			*pDigitEnd = '\0';
-			if(dotCount>0) {
-				//float
-				double dblData = atof(pDigitBegin);
-				dblData = dblData * factor;
-				ret = (long)dblData;
-			} 
-			else {
-				//long		
-				ret = atol(pDigitBegin);
-				ret = ret * factor;		
-			}
-
-			free(pDigitBegin);
-			return (long)ret;
-		}
+//long ZQ_COMMON_API str2long(const char* str)
+//		{	
+//			if(str== NULL || str[0] == '\0')
+//				return 0;
+//
+//			char* data =NULL;
+//			{
+//				std::string tmp = str;
+//				TrimExtra(tmp);
+//				data = strdup(tmp.c_str());
+//			}
+//			// data = skipWhiteSpace(data);
+//			if(NULL == data || *data == '\0')
+//			{
+//				free(data);
+//				return 0;
+//			}
+//
+//			char* pDigitBegin = data;
+//			size_t dotCount = 0;
+//			while(*data != '\0')
+//			{
+//				if(isdigit(*data) || *data == '.') {
+//					if(*data == '.') {
+//						dotCount++;
+//					}
+//					data++;						
+//					continue;
+//				}
+//				break;
+//			}
+//
+//			char* pDigitEnd = data;
+//
+//			if(dotCount > 1)
+//			{
+//				free(data);
+//				errno = ERANGE; //this is the only error we can returned
+//				return LONG_MAX;
+//			}
+//
+//			char tmp = *pDigitEnd;
+//			*pDigitEnd = '\0';
+//			double ret = atof(pDigitBegin);
+//			*pDigitEnd = tmp;
+//			data = skipWhiteSpace(data);
+//			if(*data == '\0')
+//			{
+//				/*			if(dotCount > 0) {
+//				free(pDigitBegin);
+//				errno = ERANGE;
+//				return LONG_MAX;
+//				}		
+//				*pDigitEnd = '\0';
+//				*/
+//				long ret = atol(pDigitBegin);		
+//				free(pDigitBegin);
+//				return ret;
+//			}
+//
+//			char nextCh = *(data+1);
+//			bool f1024Mode = nextCh == 'i' || nextCh == 'I';
+//			size_t shiftCount = 0;
+//			switch(*data)
+//			{
+//			case 'k':
+//			case 'K':
+//				shiftCount = 1;
+//				break;
+//
+//			case 'm':
+//			case 'M':
+//				shiftCount = 2;
+//				break;
+//
+//			case 'g':
+//			case 'G':
+//				shiftCount = 3;
+//				break;
+//
+//			default:
+//				shiftCount = 0;
+//				break;
+//			}
+//
+//			long factor = 1;
+//			for(size_t i = 0 ; i < shiftCount; i++ )
+//				factor = factor * (f1024Mode ? 1024 : 1000);
+//
+//			*pDigitEnd = '\0';
+//			if(dotCount>0) {
+//				//float
+//				double dblData = atof(pDigitBegin);
+//				dblData = dblData * factor;
+//				ret = (long)dblData;
+//			} 
+//			else {
+//				//long		
+//				ret = atol(pDigitBegin);
+//				ret = ret * factor;		
+//			}
+//
+//			free(pDigitBegin);
+//			return (long)ret;
+//		}
 
 
 long ZQ_COMMON_API  str2msec(const char* str)

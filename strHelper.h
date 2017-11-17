@@ -53,10 +53,10 @@ std::vector<std::string> ZQ_COMMON_API split(const std::string& src, char sep=' 
 std::vector<std::string> ZQ_COMMON_API rsplit(const std::string& src, char sep=' ', size_t counts=0); 
 
 long ZQ_COMMON_API  str2msec(const char* str);
-// long ZQ_COMMON_API str2long(const char* str);
+long ZQ_COMMON_API str2long(const char* str);
 
-long ZQ_COMMON_API  str2msec(const std::string& str) { return str2msec(str.c_str()); }
-//long ZQ_COMMON_API str2long(const std::string& str) { return str2long(str.c_str()); }
+// long ZQ_COMMON_API  str2msec(const std::string& str) { return str2msec(str.c_str()); }
+// long ZQ_COMMON_API str2long(const std::string& str) { return str2long(str.c_str()); }
 
 }//stringHelper
 }//namespace common
