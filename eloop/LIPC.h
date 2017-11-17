@@ -213,6 +213,9 @@ protected:
 	virtual void execOrDispatch(const std::string& methodName, const LIPCRequest::Ptr& req, LIPCResponse::Ptr& resp)
 	{ resp->postException(LIPCMessage::LIPC_METHOD_NOT_FOUND); }
 
+	virtual void OnUnInit();
+	virtual void OnClose();
+
 
 private:
 	PipeClientList _clients;
