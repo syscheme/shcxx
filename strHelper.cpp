@@ -1,7 +1,11 @@
-
 //#pragma warning(disable:4786)
 #include "strHelper.h"
 #include <stack>
+extern "C" {
+#include <errno.h>
+}
+
+#include <algorithm>
 
 
 namespace ZQ
@@ -213,6 +217,197 @@ std::vector<std::string> ZQ_COMMON_API rsplit(const std::string& src, char sep, 
 
 	return result;
 }
+
+long ZQ_COMMON_API str2long(const char* str)
+		{	
+			if(str== NULL || str[0] == '\0')
+				return 0;
+
+			char* data =NULL;
+			{
+				std::string tmp = str;
+				TrimExtra(tmp);
+				data = strdup(tmp.c_str());
+			}
+			// data = skipWhiteSpace(data);
+			if(NULL == data || *data == '\0')
+			{
+				free(data);
+				return 0;
+			}
+
+			char* pDigitBegin = data;
+			size_t dotCount = 0;
+			while(*data != '\0')
+			{
+				if(isdigit(*data) || *data == '.') {
+					if(*data == '.') {
+						dotCount++;
+					}
+					data++;						
+					continue;
+				}
+				break;
+			}
+
+			char* pDigitEnd = data;
+
+			if(dotCount > 1)
+			{
+				free(data);
+				errno = ERANGE; //this is the only error we can returned
+				return LONG_MAX;
+			}
+
+			char tmp = *pDigitEnd;
+			*pDigitEnd = '\0';
+			double ret = atof(pDigitBegin);
+			*pDigitEnd = tmp;
+			data = skipWhiteSpace(data);
+			if(*data == '\0')
+			{
+				/*			if(dotCount > 0) {
+				free(pDigitBegin);
+				errno = ERANGE;
+				return LONG_MAX;
+				}		
+				*pDigitEnd = '\0';
+				*/
+				long ret = atol(pDigitBegin);		
+				free(pDigitBegin);
+				return ret;
+			}
+
+			char nextCh = *(data+1);
+			bool f1024Mode = nextCh == 'i' || nextCh == 'I';
+			size_t shiftCount = 0;
+			switch(*data)
+			{
+			case 'k':
+			case 'K':
+				shiftCount = 1;
+				break;
+
+			case 'm':
+			case 'M':
+				shiftCount = 2;
+				break;
+
+			case 'g':
+			case 'G':
+				shiftCount = 3;
+				break;
+
+			default:
+				shiftCount = 0;
+				break;
+			}
+
+			long factor = 1;
+			for(size_t i = 0 ; i < shiftCount; i++ )
+				factor = factor * (f1024Mode ? 1024 : 1000);
+
+			*pDigitEnd = '\0';
+			if(dotCount>0) {
+				//float
+				double dblData = atof(pDigitBegin);
+				dblData = dblData * factor;
+				ret = (long)dblData;
+			} 
+			else {
+				//long		
+				ret = atol(pDigitBegin);
+				ret = ret * factor;		
+			}
+
+			free(pDigitBegin);
+			return (long)ret;
+		}
+
+
+long ZQ_COMMON_API  str2msec(const char* str)
+{	
+	// supports format of: [Ndays][Mmin][Xsec], such as 1.5days, 4.0hours, 1.5secs 4.1minutes 1hr50sec123, 1234, 1.234
+	if (str== NULL || str[0] == '\0')
+		return 0;
+
+	std::string valstr = str;
+
+	size_t pos = valstr.find_first_not_of(" \t\r\n");
+	if (std::string::npos != pos)
+		valstr.erase(0, pos);
+
+	pos = valstr.find_last_not_of(" \t\r\n");
+	if (std::string::npos != pos)
+		valstr.erase(pos+1, valstr.length());
+
+	if (std::string::npos == (pos = valstr.find_first_not_of("0123456789")))
+		return str2long(valstr.c_str());
+
+	std::transform(valstr.begin(), valstr.end(), valstr.begin(), tolower);
+
+	std::string field;
+	double val =0.0f;
+	if (std::string::npos != (pos= valstr.find('d'))) // day
+	{
+		field = valstr.substr(0, pos);
+		val += atof(field.c_str());
+		valstr = valstr.substr(pos+1);
+
+		if (std::string::npos != (pos = valstr.find_first_of("0123456789")))
+			valstr = valstr.substr(pos);
+	}
+	val*=24;
+
+	if (std::string::npos != (pos= valstr.find('h'))) // hour
+	{
+		field = valstr.substr(0, pos);
+		val += atof(field.c_str());
+		valstr = valstr.substr(pos+1);
+
+		if (std::string::npos != (pos = valstr.find_first_of("0123456789")))
+			valstr = valstr.substr(pos);
+	}
+	val*=60;
+
+	if (std::string::npos != (pos= valstr.find('m'))) // minute
+	{
+		field = valstr.substr(0, pos);
+		val += atof(field.c_str());
+		valstr = valstr.substr(pos+1);
+
+		if (std::string::npos != (pos = valstr.find_first_of("0123456789")))
+			valstr = valstr.substr(pos);
+	}
+	val*=60;
+
+	field ="";
+	if (std::string::npos != (pos= valstr.find('s')))
+	{
+		field = valstr.substr(0, pos);
+		valstr = valstr.substr(pos+1);
+	}
+	else if (std::string::npos != (pos= valstr.find('.')))
+	{
+		pos= valstr.find_first_not_of("0123456789", pos+1);
+		field = valstr.substr(0, pos);
+		valstr = (std::string::npos != pos) ? valstr.substr(pos+1) :"";
+	}
+
+	if (std::string::npos != (pos = valstr.find_first_of("0123456789")))
+		valstr = valstr.substr(pos);
+
+	if (!field.empty()) // second
+		val += atof(field.c_str());
+
+	val*=1000;
+
+	// the millisecond
+	val += atol(valstr.c_str());
+
+	return (long) val;
+}
+
 
 }//namespace stringHelper
 }//namespace common
