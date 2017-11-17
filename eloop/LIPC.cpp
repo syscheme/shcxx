@@ -316,7 +316,7 @@ private:
 // -------------------------------------------------
 // class LIPCService
 // -------------------------------------------------
-uint32 LIPCService::_verboseFlags =0;
+uint32 LIPCService::_verboseFlags =0xffffffff;
 
 int LIPCService::init(ZQ::eloop::Loop &loop, int ipc)
 {
@@ -403,7 +403,7 @@ private:
 // ------------------------------------------------
 // class LIPCClient
 // ------------------------------------------------
-uint32 LIPCClient::_verboseFlags =0;
+uint32 LIPCClient::_verboseFlags =0xffffffff;
 
 LIPCClient::LIPCClient(Loop &loop, ZQ::common::Log& log, int64 timeout,int ipc)
 		:_loop(loop), _ipc(ipc), _log(log), _conn(NULL), _reconnect(false),_timeout(timeout),_timer(NULL)
