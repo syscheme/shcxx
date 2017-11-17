@@ -806,7 +806,7 @@ protected:
 // -----------------------------
 // class RTSPClient
 // -----------------------------
-uint16 RTSPClient::_verboseFlags =0;
+uint16 RTSPClient::_verboseFlags = 0xffffffff;
 void RTSPClient::setVerboseFlags(uint16 flags)
 {
 	_verboseFlags = flags; 

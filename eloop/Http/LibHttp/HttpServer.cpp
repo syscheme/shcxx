@@ -271,7 +271,7 @@ void HttpServer::stop()
 		delete _engine;
 		_engine = NULL;
 	}
-	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(HttpServer, "HttpServer quit!"));
+	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(HttpServer, "HttpServer quit"));
 }
 /*
 int HttpServer::run()
@@ -302,7 +302,7 @@ int HttpServer::run()
 			
 		}
 	}
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServer, "quit Monitor thread!"));
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServer, "quit Monitor thread"));
 	return 0;
 }*/
 
