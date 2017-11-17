@@ -324,6 +324,25 @@ int LIPCService::init(ZQ::eloop::Loop &loop, int ipc)
 	return ZQ::eloop::Pipe::init(loop, ipc);
 }
 
+void LIPCService::UnInit()
+{
+	close();
+	for(PipeClientList::iterator it=_clients.begin(); it!= _clients.end(); it++)
+		(*it)->close();
+}
+
+void LIPCService::OnClose()
+{ 
+	_isOnClose = true;
+	if (_clients.empty())
+		OnUnInit();
+}
+
+void LIPCService::OnUnInit()
+{
+	_log(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCService, "OnUnInit()"));
+}
+
 void LIPCService::addConn(PassiveConn* conn)
 {
 	_clients.push_back(conn);
@@ -339,6 +358,8 @@ void LIPCService::delConn(PassiveConn* conn)
 		else
 			iter++;
 	}
+	if (_isOnClose)
+		OnUnInit();
 }
 
 void LIPCService::doAccept(ZQ::eloop::Handle::ElpeError status)

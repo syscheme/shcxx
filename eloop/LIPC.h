@@ -187,13 +187,15 @@ public:
 	typedef std::list< PassiveConn* > PipeClientList;
 
 public:
-	LIPCService(ZQ::common::Log& log) : _log(log) {}
+	LIPCService(ZQ::common::Log& log) : _log(log),_isOnClose(false) {}
 
 	uint32	getVerbosity() { return (ZQ::common::Log::loglevel_t)_log.getVerbosity() | (_verboseFlags<<8); }
 	void    setVerbosity(uint32 verbose = (0 | ZQ::common::Log::L_ERROR)) { _log.setVerbosity(verbose & 0x0f); _verboseFlags =verbose>>8; }
 
 	int init(ZQ::eloop::Loop &loop, int ipc=1);
 	PipeClientList& getPipeClientList() { return _clients; }
+
+	void UnInit();
 
 protected:
 	ZQ::common::LogWrapper _log;
@@ -211,9 +213,11 @@ protected:
 	virtual void execOrDispatch(const std::string& methodName, const LIPCRequest::Ptr& req, LIPCResponse::Ptr& resp)
 	{ resp->postException(LIPCMessage::LIPC_METHOD_NOT_FOUND); }
 
+
 private:
 	PipeClientList _clients;
 	int			   _ipc;
+	bool		   _isOnClose;
 };
 
 // ------------------------------------------------
