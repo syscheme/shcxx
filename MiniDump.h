@@ -81,11 +81,18 @@ void main()
 #define __MINIDUMP_H__
 
 #include "ZQ_common_conf.h"
-#include "locks.h"
+#include "Locks.h"
 extern "C"
 {
-#include <dbghelp.h>
+#ifdef ZQ_OS_MSWIN	
+	#include <dbghelp.h>
+#else
+	#include <cerrno>
+	#include <fcntl.h>
+	#include <semaphore.h>
+#endif 
 }
+
 
 #define MINIDUMP_SYMBOL_PATH		512
 #define MINIDUMP_SYMBOL_SIZE		512
@@ -101,6 +108,11 @@ class ZQ_COMMON_API MiniDump;
 class MiniDump
 {
 public:
+
+		bool setDumpPath(TCHAR* DumpPath);
+
+#ifdef ZQ_OS_MSWIN
+
 	typedef BOOL (WINAPI *MINIDUMPWRITEDUMP)(HANDLE hProcess, DWORD dwPid, HANDLE hFile, MINIDUMP_TYPE DumpType,
 									CONST PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
 									CONST PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
@@ -111,7 +123,7 @@ public:
 
 	void setServiceName(const TCHAR* szServiceName);
 	
-	BOOL setDumpPath(TCHAR* DumpPath);
+
 	void enableFullMemoryDump(BOOL bEnable){ _bEnableFullMemoryDump = bEnable;}
 
 	// because MiniDump set the the unhandled exception filter at the constructor, 
@@ -151,6 +163,16 @@ protected:
                                     unsigned int line, 
                                     uintptr_t pReserved);
     static void _OnPureCall();
+
+#else
+
+	/*void terminate(int signal, siginfo_t* info, void* data);
+
+	void coredump(int signal, siginfo_t* info, void* data);*/
+
+	bool initSignals(bool shellmode);
+
+#endif
 };
 
 } // namespace common
