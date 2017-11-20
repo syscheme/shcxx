@@ -172,6 +172,7 @@ public:
 	int bind6(const char *ipv6, int port, unsigned int flags = Reuseaddr);
 
 	int getsockname(struct sockaddr *name, int *namelen);
+	void getlocaleIpPort(char* ip,int& port);
 	int set_membership(const char *multicast_addr, const char *interface_addr, membership_t membership);
 	int set_multicast_loop(int on);
 	int set_multicast_ttl(int ttl);

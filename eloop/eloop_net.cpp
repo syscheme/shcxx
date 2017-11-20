@@ -364,6 +364,16 @@ namespace ZQ {
 			return uv_udp_getsockname(udp, name, namelen);
 		}
 
+		void UDP::getlocaleIpPort(char* ip,int& port)
+		{
+			struct sockaddr localename;
+			int namelen = sizeof localename;
+			getsockname(&localename, &namelen);
+			struct sockaddr_in* addr2 = (struct sockaddr_in*)&localename;
+			uv_ip4_name(addr2, ip, 17);
+			port = ntohs(addr2->sin_port);
+		}
+
 		int UDP::set_membership(const char *multicast_addr, const char *interface_addr, membership_t membership) {
 			uv_udp_t* udp = (uv_udp_t *)context_ptr();
 			return uv_udp_set_membership(udp, multicast_addr, interface_addr, membership);
