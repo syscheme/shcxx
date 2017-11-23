@@ -77,7 +77,7 @@ protected:
 	// called after buffer has been read from the stream
 	virtual void OnRead(ssize_t nread, const char *buf) {} // TODO: uv_buf_t is unacceptable to appear here, must take a new manner known in this C++ wrapper level
 
-	virtual void doAllocate(eloop_buf_t* buf,size_t suggested_size)	
+	virtual void doAllocate(eloop_buf_t* buf, size_t suggested_size)	
 	{ 
 		size_t len = suggested_size;
 		if ((len <= 0) || (len >= 65535))
@@ -90,6 +90,7 @@ protected:
 			memset(buf->base,0,buf->len);
 		}
 	}
+
 	virtual void doFree(eloop_buf_t* buf)
 	{
 		if (buf->base)
