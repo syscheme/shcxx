@@ -79,10 +79,14 @@ protected:
 
 	virtual void doAllocate(eloop_buf_t* buf,size_t suggested_size)	
 	{ 
-		buf->base = (char*)malloc(suggested_size);
+		size_t len = suggested_size;
+		if ((len <= 0) || (len >= 65535))
+			len = 65535;
+
+		buf->base = (char*)malloc(len);
 		if (buf->base)
 		{
-			buf->len = (unsigned long) suggested_size;
+			buf->len =  len;
 			memset(buf->base,0,buf->len);
 		}
 	}
