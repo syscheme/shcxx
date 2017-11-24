@@ -170,7 +170,11 @@ namespace ZQ {
 				_buf.base = (char*)malloc(_buf.len);
 			}
 			
-			buf = &_buf;
+			if (_buf.base)
+			{
+				buf->base = _buf.base;
+				buf->len = _buf.len;
+			}
 		}
 
 		void Stream::doFree(eloop_buf_t* buf)
