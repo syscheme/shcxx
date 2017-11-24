@@ -49,6 +49,7 @@ class Stream : public Handle
 	friend class Process;
 protected:
 	Stream();
+	~Stream();
 
 public:
 	int shutdown();
@@ -77,8 +78,12 @@ protected:
 	// called after buffer has been read from the stream
 	virtual void OnRead(ssize_t nread, const char *buf) {} // TODO: uv_buf_t is unacceptable to appear here, must take a new manner known in this C++ wrapper level
 
+	virtual void doAllocate(eloop_buf_t* buf, size_t suggested_size);
+
+	virtual void doFree(eloop_buf_t* buf);
+/*
 	virtual void doAllocate(eloop_buf_t* buf, size_t suggested_size)	
-	{ 
+	{
 		size_t len = suggested_size;
 		if ((len <= 0) || (len >= 65535))
 			len = 65535;
@@ -100,7 +105,7 @@ protected:
 			buf->len = 0;
 		} 
 	}
-
+*/
 	int write(const eloop_buf_t bufs[],unsigned int nbufs,uv_stream_t *send_handle);
 
 private:
@@ -110,6 +115,8 @@ private:
 	static void _cbRead(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf);
 	static void _cbWrote(uv_write_t *req, int status);
 //	static void _cbWrote2(uv_write_t *req, int status);
+
+	eloop_buf_t	_buf;
 };
 
 // -----------------------------

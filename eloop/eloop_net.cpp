@@ -7,6 +7,18 @@ namespace ZQ {
 		// -----------------------------
 
 		Stream::Stream(){
+			_buf.base = NULL;
+			_buf.len = 0;
+		}
+
+		Stream::~Stream()
+		{
+			if(_buf.base)
+			{
+				free(_buf.base);
+				_buf.base = NULL;
+				_buf.len = 0;
+			}
 		}
 
 		int Stream::shutdown() {
@@ -149,6 +161,23 @@ namespace ZQ {
 			}
 			delete req;
 		}
+
+		void Stream::doAllocate(eloop_buf_t* buf, size_t suggested_size)
+		{
+			if (_buf.base == NULL)
+			{
+				_buf.len = 64 * 1024;
+				_buf.base = (char*)malloc(_buf.len);
+			}
+			
+			buf = &_buf;
+		}
+
+		void Stream::doFree(eloop_buf_t* buf)
+		{
+			memset(_buf.base,0,_buf.len);
+		}
+
 /*
 		void Stream::_cbWrote2(uv_write_t *req, int status) {
 
