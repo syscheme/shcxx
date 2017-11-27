@@ -30,7 +30,7 @@ namespace eloop {
 
 		//virtual void	onHttpDataSent(bool keepAlive){}
 
-		virtual void	onHttpDataSent();
+		virtual void	onHttpDataSent(size_t size);
 		virtual void	onHttpDataReceived( size_t size ){}
 		virtual void    onError(int error,const char* errorDescription){}
 		/*用来设置主页所在路径，相关的js和控制代码的路径，一般设置好后不会修改，除非主页及js控制代码的位置发生变更
@@ -73,7 +73,7 @@ namespace eloop {
 		virtual void onParseError( int error,const char* errorDescription ){}
 
 
-		virtual void	onHttpDataSent(){}
+		virtual void	onHttpDataSent(size_t size){}
 
 		virtual void	onHttpDataReceived( size_t size ){}
 		virtual void    onError(int error,const char* errorDescription){}

@@ -268,7 +268,7 @@ bool LoadFile::onHeadersEnd( const HttpMessage::Ptr msg)
 	return true;
 }
 
-void LoadFile::onHttpDataSent()
+void LoadFile::onHttpDataSent(size_t size)
 {
 	memset(_buf,'\0',MAXLENGTH);
 	if(_curfile == NULL)
