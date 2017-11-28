@@ -286,7 +286,7 @@ int32 IDataCommunicatorSSL::onDataAsyncResult(int32 size, LPOVERLAPPED overlap)
 		}
 		catch(...)
 		{
-			MLOG(ZQ::common::Log::L_ERROR,COMMFMT(onDataAsyncResult,"unknown exception when call dialog's onRead()"));
+			MLOG(ZQ::common::Log::L_ERROR,COMMFMT(onDataAsyncResult,"exception when call dialog's onRead()"));
 			//should I return directly here ?
 		}
 
@@ -324,7 +324,7 @@ int32 IDataCommunicatorSSL::onDataAsyncResult(int32 size, LPOVERLAPPED overlap)
 				}
 				catch(...)
 				{
-					MLOG(ZQ::common::Log::L_ERROR,COMMFMT(onDataAsyncResult,"unknown exception when call dialog's onRead()"));			
+					MLOG(ZQ::common::Log::L_ERROR,COMMFMT(onDataAsyncResult,"exception when call dialog's onRead()"));			
 				}
 			}
 			else
@@ -352,7 +352,7 @@ int32 IDataCommunicatorSSL::onDataAsyncResult(int32 size, LPOVERLAPPED overlap)
 		}
 		catch(...)
 		{
-			MLOG(ZQ::common::Log::L_ERROR,COMMFMT(onDataAsyncResult,"unknown exception when invoke dialog's onWritten"));
+			MLOG(ZQ::common::Log::L_ERROR,COMMFMT(onDataAsyncResult,"exception when invoke dialog's onWritten"));
 			return ERROR_CODE_OPERATION_FAIL;
 		}
 		return ERROR_CODE_OPERATION_OK;
