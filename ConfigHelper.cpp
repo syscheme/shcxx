@@ -120,39 +120,45 @@ bool Preprocessor::define(const Macros& macros)
 
 bool Preprocessor::fixup(std::string &str) const
 {
-    size_t nResolved = 0;
-    std::string::size_type pos_macro_begin = std::string::npos;
-    while((pos_macro_begin = str.find("${")) != std::string::npos)
-    {
-        // get macro string
-        std::string::size_type pos_macro_end = str.find_first_of('}', pos_macro_begin);
-        if(std::string::npos == pos_macro_end) // not a valid macro reference
-        {
-            PPLOG(ZQ::common::Log::L_WARNING, CLOGFMT(Preprocessor, "unpaired brackets in macro[%s]"), str.c_str());
-            return false;
-        }
+	size_t nResolved =0, nResolvedOfRound =0;
 
-        std::string macro = str.substr(pos_macro_begin, pos_macro_end + 1 - pos_macro_begin); // include the end '}'
-        
-        // try to fixup the macro
-        std::map< std::string, std::string >::const_iterator cit_macro = _variables.find(macro);
-        if(cit_macro == _variables.end())
-        {
-            PPLOG(ZQ::common::Log::L_WARNING, CLOGFMT(Preprocessor, "unassociated macro[%s] referenced"), macro.c_str());
-            return false;
-        }
+	do {
+		nResolved += nResolvedOfRound;
+		nResolvedOfRound =0;
+		if((nResolved) > 256)
+		{
+			PPLOG(ZQ::common::Log::L_ERROR, CLOGFMT(Preprocessor, "macro[%s] nested too much"), str.c_str());
+			throwf<PreprocessException>(EXFMT(PreprocessException, "macro[%s] nested too much"), str.c_str());
+			return false;
+		}
 
-		str.replace(pos_macro_begin, macro.size(), cit_macro->second);
+		std::string::size_type pos_macro_begin =0, pos_macro_end =0;
+		for (pos_macro_begin =0; std::string::npos !=(pos_macro_begin = str.find("${", pos_macro_begin)); pos_macro_begin = pos_macro_end + 1)
+		{
+			// get macro string
+			if(std::string::npos == (pos_macro_end = str.find_first_of('}', pos_macro_begin))) // not a valid macro reference
+			{
+				PPLOG(ZQ::common::Log::L_WARNING, CLOGFMT(Preprocessor, "unpaired brackets in macro[%s]"), str.c_str());
+				break;
+			}
 
-        if((++nResolved) > 256)
-        {
-            PPLOG(ZQ::common::Log::L_ERROR, CLOGFMT(Preprocessor, "macro[%s] nested too much"), str.c_str());
-            throwf<PreprocessException>(EXFMT(PreprocessException, "macro[%s] nested too much"), str.c_str());
-            return false;
-        }
-    }
+			std::string macro = str.substr(pos_macro_begin, pos_macro_end + 1 - pos_macro_begin); // include the end '}'
 
-    return true;
+			// try to fixup the macro
+			std::map< std::string, std::string >::const_iterator cit_macro = _variables.find(macro);
+			if(_variables.end() == cit_macro)
+			{
+				PPLOG(ZQ::common::Log::L_WARNING, CLOGFMT(Preprocessor, "unassociated macro[%s] referenced"), macro.c_str());
+				continue;
+			}
+
+			str.replace(pos_macro_begin, macro.size(), cit_macro->second);
+			nResolvedOfRound++;
+		}
+
+	} while(nResolvedOfRound >0);
+
+	return true;
 }
 
 namespace Config{
