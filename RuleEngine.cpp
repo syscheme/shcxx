@@ -1018,7 +1018,7 @@ void RuleEngine::OnEvent(const std::string& category, const std::string& eventNa
 	}
 	catch(...)
 	{
-		_log(ZQ::common::Log::L_ERROR, CLOGFMT(RuleEngine, "OnEvent() caught unknown exception when add RuleExecCmd"));
+		_log(ZQ::common::Log::L_ERROR, CLOGFMT(RuleEngine, "OnEvent() caught exception when add RuleExecCmd"));
 	}
 }
 

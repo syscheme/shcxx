@@ -83,7 +83,7 @@ void XmlRpcUnserializer::unserialize() throw (ZQ::common::UnserializeException)
 	}
 	catch (...)
 	{
-		throw ZQ::common::UnserializeException("unserialize caught unknown exception");
+		throw ZQ::common::UnserializeException("unserialize caught exception");
 	}
 }
 

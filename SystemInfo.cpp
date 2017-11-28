@@ -1441,15 +1441,6 @@ void DeviceInfo::gatherNetAdapterInfo()
 	struct ifconf ifc;  
 	//struct ifreq ifrcopy;  
 
-	char mac[64];
-	memset(mac,'\0',64);
-	char ip[32];
-	memset(ip,'\0',32);
-	char broadAddr[32];
-	memset(broadAddr,'\0',32);
-	char subnetMask[32];
-	memset(subnetMask,'\0',32); 
-
 	if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)  
 	{  
 		MOLOG(Log::L_WARNING, CLOGFMT(DeviceInfo, "gatherNetAdapterInfo() create socket failed"));
@@ -1463,6 +1454,7 @@ void DeviceInfo::gatherNetAdapterInfo()
 		MOLOG(Log::L_WARNING, CLOGFMT(DeviceInfo,"gatherNetAdapterInfo() list NICs failed"));
 	else
 	{	
+		std::string nicsDesc;
 		MutexGuard g(_lkInfo);
 		interfaceNum = ifc.ifc_len / sizeof(struct ifreq);
 		while (interfaceNum-- > 0)
@@ -1471,19 +1463,19 @@ void DeviceInfo::gatherNetAdapterInfo()
 			theCard.netCardName = buf[interfaceNum].ifr_name;
 			if (0 != ioctl(fd, SIOCGIFHWADDR, (char *)(&buf[interfaceNum])))
 			{
-				MOLOG(Log::L_WARNING, CLOGFMT(DeviceInfo,"gatherNetAdapterInfo() get the mac of NIC failed"));
+				MOLOG(Log::L_WARNING, CLOGFMT(DeviceInfo, "gatherNetAdapterInfo() get the mac of NIC failed"));
 				continue;
 			}
 
-			memset(mac, '\0', sizeof(mac));
-			snprintf(mac, sizeof(mac), "%02x-%02x-%02x-%02x-%02x-%02x",  
+			char tmpstr[100] = "\0";
+			snprintf(tmpstr, sizeof(tmpstr)-2, "%02x-%02x-%02x-%02x-%02x-%02x",  
 				(unsigned char)buf[interfaceNum].ifr_hwaddr.sa_data[0],  
 				(unsigned char)buf[interfaceNum].ifr_hwaddr.sa_data[1],  
 				(unsigned char)buf[interfaceNum].ifr_hwaddr.sa_data[2],  
 				(unsigned char)buf[interfaceNum].ifr_hwaddr.sa_data[3],  
 				(unsigned char)buf[interfaceNum].ifr_hwaddr.sa_data[4],  
 				(unsigned char)buf[interfaceNum].ifr_hwaddr.sa_data[5]);
-			theCard.macAddress = mac;
+			theCard.macAddress = tmpstr;
 
 			//get the IP of this interface  
 			if (0 != ioctl(fd, SIOCGIFADDR, (char *)&buf[interfaceNum]))  
@@ -1492,17 +1484,17 @@ void DeviceInfo::gatherNetAdapterInfo()
 				continue;		  
 			}
 
-			memset(ip,'\0',32);
-			snprintf(ip, sizeof(ip), "%s", (char *)inet_ntoa(((struct sockaddr_in *)&(buf[interfaceNum].ifr_addr))->sin_addr));  
-			std::string strIp = std::string(ip);
+			snprintf(tmpstr, sizeof(tmpstr)-2, "%s", (char *)inet_ntoa(((struct sockaddr_in *)&(buf[interfaceNum].ifr_addr))->sin_addr)); 
+			std::string strIp = tmpstr;
 			theCard.IPs.push_back(strIp);
 
 			//TODO refer to sar.c to copy the logic how to collect throughtput status
 			// https://github.com/sysstat/sysstat/blob/master/sar.c
 
 			_NICs.push_back(theCard);
-			MOLOG(Log::L_DEBUG, CLOGFMT(DeviceInfo, "gatherNetAdapterInfo() got NIC(%d)[%s] info: mac[%s] ip[%s] %s"), _NICs.size(), theCard.netCardName.c_str(), theCard.macAddress.c_str(), strIp.c_str(), theCard.cardDescription.c_str());
+			nicsDesc += theCard.netCardName + "["+ strIp + "/" + theCard.macAddress +"],";
 		}//while
+		// MOLOG(Log::L_DEBUG, CLOGFMT(DeviceInfo, "gatherNetAdapterInfo() listed NICs: %s"), nicsDesc.c_str());
 	}
 
 	close(fd); 
