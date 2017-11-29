@@ -223,7 +223,87 @@ long ZQ_COMMON_API str2long(const char* str)
 {	
 	if(str== NULL || str[0] == '\0')
 		return 0;
+	
+	std::string valstr = str;
 
+	size_t pos = valstr.find_first_not_of(" \t\r\n");
+	if (std::string::npos != pos)
+		valstr.erase(0, pos);
+
+	pos = valstr.find_last_not_of(" \t\r\n");
+	if (std::string::npos != pos)
+		valstr.erase(pos+1, valstr.length());
+
+	std::transform(valstr.begin(), valstr.end(), valstr.begin(), tolower);
+
+	std::string field;
+	double val =0.0f;
+	//type 1.Hex transform,if str contain illegal word ,return 0
+	if (!strncmp(&valstr[0],"0x",2))//Hex,supports format of 0x[NUM],such as: 0xFFF,0X123
+	{	
+		pos= valstr.find("0x");
+		//step 1. remove "0x" in str
+		valstr = valstr.substr(pos+2);
+		//step 2. start transform
+		return strtol(valstr.c_str(), NULL ,16);
+	}
+	//type 2.Dec transform,inlclude 1000 or 1024
+	if (std::string::npos != (pos= valstr.find_first_of("kmg")))//Dec,supports format of [NUM]g[NUM]m[NUM]k,such as: 1.2g2m5k, 3kB
+	{	
+		//step 1. confirm 1000 or 1024
+		int level = 1000;
+		if (!strncmp(&valstr[valstr.size()-1],"b",1))
+		{
+			valstr.erase(valstr.size()-1, 1);
+			level = 1024;
+		}
+		//step 2. start transform
+		if (std::string::npos != (pos= valstr.find('g')))
+		{
+			//get the str before the unit
+			field = valstr.substr(0, pos);
+			//transform
+			val += atof(field.c_str());
+			valstr = valstr.substr(pos+1);
+
+			if (std::string::npos != (pos = valstr.find_first_of("0123456789")))
+				valstr = valstr.substr(pos);
+		}
+		val*=level;
+		if (std::string::npos != (pos= valstr.find('m')))
+		{
+			//get the str before the unit
+			field = valstr.substr(0, pos);
+			//transform
+			val += atof(field.c_str());
+			valstr = valstr.substr(pos+1);
+
+			if (std::string::npos != (pos = valstr.find_first_of("0123456789")))
+				valstr = valstr.substr(pos);
+		}
+		val*=level;
+		if (std::string::npos != (pos= valstr.find('k')))
+		{
+			//get the str before the unit
+			field = valstr.substr(0, pos);
+			//transform
+			val += atof(field.c_str());
+			valstr = valstr.substr(pos+1);
+
+			if (std::string::npos != (pos = valstr.find_first_of("0123456789")))
+				valstr = valstr.substr(pos);
+		}
+		val*=level;
+		//after transfer g,m,k,use the standard strtolong
+		if(!valstr.empty())
+		{
+			if (std::string::npos != (pos = valstr.find_first_of("0123456789")))
+				valstr = valstr.substr(pos);
+			val+=atof(valstr.c_str());
+		}
+		return (long)val;
+	}
+	//type 3.standard strtolong
 	return atol(str);
 }
 
