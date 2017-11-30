@@ -521,18 +521,22 @@ protected:
 			}
 
 			// force to include the dummy connection in the select list
+			SOCKET fdDummyClient =-1, fdDummyConn =-1;
 			if (_dummyClient && _dummyClient->isConnected())
 			{				
 				char buf[32];
-				snprintf(buf, sizeof(buf)-2, "%d,", _dummyClient->get());
-				FD_SET(_dummyClient->get(), &fdread);
+				fdDummyClient = _dummyClient->get();
+				snprintf(buf, sizeof(buf)-2, "%d,", fdDummyClient);
+				FD_SET(fdDummyClient, &fdread);
 				strfdr += buf;
-				maxFd = std::max(maxFd, _dummyClient->get()+1);
-				if (_pDummyConn) {
-					snprintf(buf, sizeof(buf)-2, "%d,", _pDummyConn->get());
-					FD_SET(_pDummyConn->get(), &fdread);
+				maxFd = std::max(maxFd, fdDummyClient +1);
+				if (_pDummyConn) 
+				{
+					fdDummyConn = _pDummyConn->get();
+					snprintf(buf, sizeof(buf)-2, "%d,", fdDummyConn);
+					FD_SET(fdDummyConn, &fdread);
 					strfdr += buf;
-					maxFd = std::max(maxFd, _pDummyConn->get()+1);
+					maxFd = std::max(maxFd, fdDummyConn+1);
 				}				
 			}
 			else timeout.tv_sec =1;
@@ -561,8 +565,8 @@ protected:
 						if(_pDummyConn) {
 							dummyLastError = _pDummyConn->lastError();
 						}
-						glog(Log::L_ERROR, CLOGFMT(TcpSocketWatchDog, "max[%d]/FD_SETSIZE[%d] select() %dms error[%d]: fdread[%s], fdwrite[%s], fderr[%s], dummyConnet lastError[%d]"), 
-							maxFd, FD_SETSIZE, nextSleep, errcode, strfdr.c_str(), strfdw.c_str(), strfde.c_str(), dummyLastError);
+						glog(Log::L_ERROR, CLOGFMT(TcpSocketWatchDog, "max[%d]/FD_SETSIZE[%d] select() %dms error[%d]: fdread[%s], fdwrite[%s], fderr[%s], dummyConn[%d->%d] lastError[%d]"), 
+							maxFd, FD_SETSIZE, nextSleep, errcode, strfdr.c_str(), strfdw.c_str(), strfde.c_str(), (int)fdDummyClient, (int)fdDummyConn, dummyLastError);
 					}
 				}
 				catch(...) {}
@@ -892,6 +896,7 @@ TCPSocket::~TCPSocket()
 {
 	if (NULL != _gWatchDog)
 		_gWatchDog->unwatch(*this);
+
 	endSocket();
 	unrefWatchDog();
 }

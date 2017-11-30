@@ -345,6 +345,7 @@ _inCommingByteSeen(0)
 			_serverPort = REDIS_DEFAULT_PORT;
 
 		setPeer(_serverAddress, _serverPort);
+		sendPING();
 
 	} while(0);
 }
@@ -386,7 +387,7 @@ RedisCommand::Ptr RedisClient::sendCommand(RedisCommand::Ptr pCmd)
 	}
 
 	std::string cmddesc = pCmd->desc();
-    _log(Log::L_INFO, CLOGFMT(RedisClient, "sendCommand() cmd size is %d"), cmddesc.length());
+	_log(Log::L_DEBUG, CLOGFMT(RedisClient, "sendCommand() so[%d] cmd len[%d]"), (int) TCPSocket::get(), cmddesc.length());
 	_lastErr = RedisSink::rdeSendError;
 	// std::string lastErr;
 
