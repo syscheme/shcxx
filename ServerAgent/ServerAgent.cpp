@@ -250,7 +250,7 @@ bool LoadFile::onHeadersEnd( const HttpMessage::Ptr msg)
 	{
 		code = 400;
 		body += "unkown message type: " + std::string(getway);
-		_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(ServerAgent, "unkown message type:"),body.c_str());
+		_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(ServerAgent, "unkown message type:[%s]"),body.c_str());
 	}
 	outmsg->code(code);
 	outmsg->status(HttpMessage::code2status(code));
