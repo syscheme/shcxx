@@ -129,7 +129,7 @@ bool DataPostDak::addnewCommunicator( IDataCommunicatorExPtr comm ,bool bChange)
 		return false;
 
 	if(!bChange)
-		MLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(DataPostDak,"add communicator [%lld] with key[%x], socket[%d]"),
+		MLOG(ZQ::common::Log::L_DEBUG, CLOGFMT(DataPostDak,"add communicator [%lld] with key[%p], socket[%d]"),
 					comm->getCommunicatorId(),key,fd );	
 	
 	struct ::epoll_event ev;
@@ -177,7 +177,7 @@ bool DataPostDak::removeOutEpoll(int64& comID,int& fd, void *key)
 		ZQ::common::MutexGuard gd(_mutex);
 		_availKeys.erase(key);
 		MLOG(ZQ::common::Log::L_DEBUG,CLOGFMT(DataPostDak,"COMM[%lld] removeOutEpoll() current key count [%u]"),
-				comID, _availKeys.size());
+				comID, (uint)_availKeys.size());
 	}
 	struct ::epoll_event event;
 	int rc = epoll_ctl(_epollfd,EPOLL_CTL_DEL,fd,&event);

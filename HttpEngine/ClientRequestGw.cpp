@@ -787,7 +787,7 @@ CRHandlerFactory::~CRHandlerFactory()
         ++n;
         if(0 == (n % 100))
         {
-            _log(ZQ::common::Log::L_INFO, CLOGFMT(CRHandlerFactory, "~CRHandlerFactory() %d requests still running after %u msec"), _nReq.get(), (SYS::getTickCount() - t));
+            _log(ZQ::common::Log::L_INFO, CLOGFMT(CRHandlerFactory, "~CRHandlerFactory() %d requests still running after %u msec"), (int)_nReq.get(), (uint)(SYS::getTickCount() - t));
         }
         SYS::sleep(1);
     }
