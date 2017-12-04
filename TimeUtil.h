@@ -138,9 +138,6 @@ public:
 	/// convert SYSTEMTIME format time to UTC string format
 	static bool Time2Iso(SYSTEMTIME& st_utc, char* UTC_datetime, int length, bool localZone=false);
 
-	static const char* msec2hms(int64 msec, char* str, int maxlen);
-	static const char* msec2secstr(int64 msec, char* str, int maxlen);
-
 //	/// convert SYSTEMTIME format time to UTC string format with msec
 //	static bool Time2IsoEx(SYSTEMTIME& st_utc, char* UTC_datetime, int length);
 
@@ -214,6 +211,9 @@ public:
     static int64 ISO8601ToTime(const char* ISO8601Str);
 
 	static int64 now();
+
+	static const char* msec2hms(int64 msec, char* str, int maxlen);
+	static const char* msec2secstr(int64 msec, char* str, int maxlen);
 
 #ifdef ZQ_OS_MSWIN
 	/// convert UTC string format to time64_t format
