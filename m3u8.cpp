@@ -128,7 +128,7 @@ int M3U8Stream::exportM3U8(std::string& playlistM3u8)
 		}
 		else if (currentSegment.byteStop > 0)
 		{
-			snprintf(cLine, sizeof(cLine)-2, "\r\n#EXT-X-BYTERANGE:%d@%d\r\n",(currentSegment.byteStop-currentSegment.byteStart),currentSegment.byteStart);
+			snprintf(cLine, sizeof(cLine)-2, "\r\n#EXT-X-BYTERANGE:%lld@%lld\r\n",(currentSegment.byteStop-currentSegment.byteStart),currentSegment.byteStart);
 			strLine.append(cLine);
 			playlistM3u8 += strLine;
 			strLine.clear();

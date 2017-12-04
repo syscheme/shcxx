@@ -114,7 +114,7 @@ int main(int argc,char* argv[])
 	}
 
 	(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"urlFile = %s,"),urlFile.c_str());
-	(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"urlFile = %s,objServer=%s,limit = %d,threadCount = %d,bitrate = %s,LoopCount=%d,SessionInterval=%d"),urlFile.c_str(),objServer.c_str(),limit,threadCount,bitrate.c_str(),LoopCount,SessionInterval);
+	(*pLog)(ZQ::common::Log::L_DEBUG, CLOGFMT(main,"urlFile = %s,objServer=%s,limit = %lld,threadCount = %d,bitrate = %s,LoopCount=%d,SessionInterval=%d"),urlFile.c_str(),objServer.c_str(),limit,threadCount,bitrate.c_str(),LoopCount,SessionInterval);
 	
 	while (!fm3u8.eof())
 	{
