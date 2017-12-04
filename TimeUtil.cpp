@@ -212,36 +212,6 @@ bool TimeUtil::Time2SystemTime(time_t t, SYSTEMTIME& st_utc)
 	return true;
 }
 
-const char* TimeUtil::msec2hms(int64 msec, char* str, int maxlen)
-{
-	if (NULL==str)
-		return "";
-
-	if (msec <0 )
-		msec =0;
-
-	int ms  = (int)(msec %1000); msec /= 1000;
-	int sec = (int)(msec %60);   msec /= 60;
-	int min = (int)(msec %60);   msec /= 60;
-	int hr  = (int)(msec %60);   msec /= 60;
-
-	snprintf(str, maxlen, "%d:%02d:02d.%03d", hr, min, sec, ms);
-	return str;
-}
-
-const char* TimeUtil::msec2secstr(int64 msec, char* str, int maxlen)
-{
-	if (NULL==str)
-		return "";
-
-	if (msec <0)
-		msec =0;
-
-	int ms  = (int)(msec %1000); msec /= 1000;
-	snprintf(str, maxlen, "%d.%03d", (int)msec, ms);
-	return str;
-}
-
 bool TimeUtil::Iso2Time(const char* UTC_datetime, SYSTEMTIME& st_utc)
 {
 	int nYear,nMon,nDay, nHour, nMin, nSec;
@@ -1074,6 +1044,36 @@ bool TimeUtil::HMSStr2Time(const char* unitTime, int& msTime)
 int64  now()
 {
 	return TimeUtil::now();
+}
+
+const char* TimeUtil::msec2hms(int64 msec, char* str, int maxlen)
+{
+	if (NULL==str)
+		return "";
+
+	if (msec <0 )
+		msec =0;
+
+	int ms  = (int)(msec %1000); msec /= 1000;
+	int sec = (int)(msec %60);   msec /= 60;
+	int min = (int)(msec %60);   msec /= 60;
+	int hr  = (int)(msec %60);   msec /= 60;
+
+	snprintf(str, maxlen, "%d:%02d:02d.%03d", hr, min, sec, ms);
+	return str;
+}
+
+const char* TimeUtil::msec2secstr(int64 msec, char* str, int maxlen)
+{
+	if (NULL==str)
+		return "";
+
+	if (msec <0)
+		msec =0;
+
+	int ms  = (int)(msec %1000); msec /= 1000;
+	snprintf(str, maxlen, "%d.%03d", (int)msec, ms);
+	return str;
 }
 
 #ifdef ZQ_OS_MSWIN
