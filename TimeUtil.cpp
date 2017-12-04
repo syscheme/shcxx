@@ -1059,7 +1059,7 @@ const char* TimeUtil::msec2hms(int64 msec, char* str, int maxlen)
 	int min = (int)(msec %60);   msec /= 60;
 	int hr  = (int)(msec %60);   msec /= 60;
 
-	snprintf(str, maxlen, "%d:%02d:02d.%03d", hr, min, sec, ms);
+	snprintf(str, maxlen, "%d:%02d:%02d.%03d", hr, min, sec, ms);
 	return str;
 }
 
