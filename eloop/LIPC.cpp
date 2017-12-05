@@ -483,6 +483,7 @@ int LIPCClient::connect(const char *name)
 
 		_conn->connect(name);
 		_reconnect = true;
+		_isConn = false;
 		return 0;
 	}
 
@@ -493,6 +494,7 @@ int LIPCClient::connect(const char *name)
 	}
 
 	_reconnect = true;
+	_isConn = false;
 	_conn->connect(name);
 	return 0;
 }
@@ -512,6 +514,7 @@ void LIPCClient::OnCloseConn()
 	if (_conn != NULL)
 		delete _conn;
 	_conn = NULL;
+	_isConn = false;
 
 	if (!_reconnect)
 	{
@@ -548,6 +551,7 @@ void LIPCClient::close()
 		return;
 
 	_reconnect = false;
+	_isConn = false;
 	_conn->close();
 	_timer->close();
 }
@@ -703,6 +707,7 @@ void LIPCClient::OnConnected(ZQ::eloop::Handle::ElpeError status)
 		return;
 	}
 	read_start();
+	_isConn = true;
 }
 
 void LIPCClient::OnShutdown(ZQ::eloop::Handle::ElpeError status)

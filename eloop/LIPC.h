@@ -248,6 +248,7 @@ public:
 	int sendRequest(const std::string& methodName, LIPCRequest::Ptr req, int64 timeout = 500, bool expectResp = true);		//default timeout = 500ms
 	int shutdown();
 	void close();
+	bool isConnect(){ return _isConn;}
 
 protected:
 	virtual void OnRequestPrepared(LIPCRequest::Ptr req) {}
@@ -286,6 +287,7 @@ private:
 	Loop&           _loop;
 	bool		    _reconnect;
 	int64			_timeout;
+	bool			_isConn;
 
 	ZQ::common::AtomicInt _lastCSeq;
 	typedef struct
