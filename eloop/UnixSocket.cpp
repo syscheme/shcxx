@@ -71,8 +71,9 @@ void UnixSocket::processMessage(ssize_t nread, const char *buf)
 		if(index == std::string::npos)
 		{
 			char errDesc[10240];
-			snprintf(errDesc,sizeof(errDesc),"parse error:not found ':',nread[%d],buf[%s]",nread,_buf);
+			snprintf(errDesc,sizeof(errDesc),"parse error:not found ':',nread[%d],buf[%s]",nread,_buf.c_str());
 			onError(lipcParseError,errDesc);
+			_buf.clear();
 			return;
 		}
 
@@ -83,8 +84,9 @@ void UnixSocket::processMessage(ssize_t nread, const char *buf)
 			if(!isdigit(data[i]))
 			{
 				char errDesc[10240];
-				snprintf(errDesc,sizeof(errDesc),"parse error:The index is not digital,nread[%d],buf[%s]",nread,_buf);
+				snprintf(errDesc,sizeof(errDesc),"parse error:The index is not digital,nread[%d],buf[%s]",nread,_buf.c_str());
 				onError(lipcParseError,errDesc);
+				_buf.clear();
 				return;
 				//parse error
 			}
