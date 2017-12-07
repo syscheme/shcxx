@@ -212,7 +212,7 @@ public:
 
 	static int64 now();
 
-	static const char* msec2hms(int64 msec, char* str, int maxlen);
+	static const char* msec2hms(int64 msec, char* str, int maxlen, bool hasDay=false);
 	static const char* msec2secstr(int64 msec, char* str, int maxlen);
 
 #ifdef ZQ_OS_MSWIN
