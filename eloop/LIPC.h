@@ -48,6 +48,7 @@ class ZQ_ELOOP_API LIPCMessage;
 class PassiveConn;
 class ClientConn;
 class ClientTimer;
+class ClientAsync;
 // ------------------------------------------------
 // class LIPCMessage
 // ------------------------------------------------
