@@ -422,12 +422,28 @@ private:
 };
 
 // ------------------------------------------------
+// class ClientAsync
+// ------------------------------------------------
+class ClientAsync : public ZQ::eloop::Async
+{
+public:
+	ClientAsync(LIPCClient& client):_client(client){}
+
+protected:
+	virtual void OnAsync() {_client.OnAsyncSend();}
+	virtual void OnClose(){_client.OnCloseAsync();}
+
+private:
+	LIPCClient& _client;
+};
+
+// ------------------------------------------------
 // class LIPCClient
 // ------------------------------------------------
 uint32 LIPCClient::_verboseFlags =0xffffffff;
 
 LIPCClient::LIPCClient(Loop &loop, ZQ::common::Log& log, int64 timeout,int ipc)
-		:_loop(loop), _ipc(ipc), _log(log), _conn(NULL), _reconnect(false),_timeout(timeout),_timer(NULL)
+		:_loop(loop), _ipc(ipc), _log(log), _conn(NULL), _reconnect(false),_timeout(timeout),_timer(NULL),_async(NULL)
 {
 	_lastCSeq.set(1);
 }
@@ -473,6 +489,14 @@ int LIPCClient::connect(const char *name)
 		_timer->start(0, 200); // set scan interval as 5Hz
 	}
 
+	if (_async == NULL)
+	{
+		_async = new ClientAsync(*this);
+		_async->init(_loop);
+	}
+
+
+
 	_peerPipeName = name;
 	if (_conn == NULL)
 	{
@@ -505,7 +529,17 @@ void LIPCClient::OnCloseTimer()
 		delete _timer;
 	_timer = NULL;
 
-	if (_conn == NULL)
+	if (_conn == NULL && _async==NULL)
+		OnClose();
+}
+
+void LIPCClient::OnCloseAsync()
+{
+	if (_async != NULL)
+		delete _async;
+	_async = NULL;
+
+	if (_conn == NULL && _timer == NULL)
 		OnClose();
 }
 
@@ -518,7 +552,7 @@ void LIPCClient::OnCloseConn()
 
 	if (!_reconnect)
 	{
-		if (_timer == NULL)
+		if (_timer == NULL && _async == NULL)
 			OnClose();
 		return;
 	}
@@ -632,6 +666,57 @@ int LIPCClient::sendRequest(const std::string& methodName, LIPCRequest::Ptr req,
 	}
 	
 	return req->_cSeq;
+}
+
+int LIPCClient::AsyncSendRequest(const std::string& methodName, LIPCRequest::Ptr req, int64 timeout, bool expectResp)
+{
+	if (_conn == NULL || !req || methodName.empty())
+		return -1;
+
+	req->_msg[JSON_RPC_METHOD] = methodName;
+
+	if (expectResp)
+	{
+		req->_cSeq = lastCSeq();
+		AwaitRequest ar;
+		ar.req = req;
+		ar.method = methodName;
+		_timeout = (timeout > 0)?timeout:_timeout;
+		ar.expiration = ZQ::common::now() + _timeout;
+
+		ZQ::common::MutexGuard g(_lkAwaits);
+		_awaits.insert(AwaitRequestMap::value_type(req->_cSeq, ar));
+	}
+
+	OnRequestPrepared(req);
+
+	{
+		ZQ::common::MutexGuard gd(_lkReqList);
+		_ReqList.push_back(req);
+	}
+
+	_async->send();
+
+	return req->_cSeq;
+}
+
+void LIPCClient::OnAsyncSend()
+{
+	int i = 10;
+	while (!_ReqList.empty() && i>0)
+	{
+		LIPCRequest::Ptr req;
+		{
+			ZQ::common::MutexGuard gd(_lkReqList);
+			req = _ReqList.front();
+			_ReqList.pop_front();
+		}
+
+		if (_conn->send(req->toString(), req->getFd()) < 0)
+			OnRequestDone(req->_cSeq, LIPCMessage::LIPC_CLIENT_ERROR);
+
+		i--;
+	}
 }
 
 void LIPCClient::OnIndividualMessage(Json::Value& msg)

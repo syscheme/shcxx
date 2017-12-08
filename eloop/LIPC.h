@@ -198,6 +198,7 @@ public:
 	void UnInit();
 
 protected:
+//	ZQ::common::Log& _log;
 	ZQ::common::LogWrapper _log;
 	static uint32 _verboseFlags;
 
@@ -230,6 +231,7 @@ class LIPCClient
 {
 	friend class ClientConn;
 	friend class ClientTimer;
+	friend class ClientAsync;
 
 public:
 	LIPCClient(Loop &loop, ZQ::common::Log& log, int64 timeout =500, int ipc=1); 
@@ -250,6 +252,9 @@ public:
 	void close();
 	bool isConnect(){ return _isConn;}
 
+	int AsyncSendRequest(const std::string& methodName, LIPCRequest::Ptr req, int64 timeout = 500, bool expectResp = true);		//default timeout = 500ms
+
+
 protected:
 	virtual void OnRequestPrepared(LIPCRequest::Ptr req) {}
 	virtual void OnResponse(const std::string& method, LIPCResponse::Ptr resp) {}
@@ -269,6 +274,7 @@ protected: // redirect from UnixSocket
 
 protected: // impl of ZQ::eloop::Timer
 
+//	ZQ::common::Log& _log;
 	ZQ::common::LogWrapper _log;
 	static uint32 _verboseFlags;
 
@@ -277,13 +283,19 @@ protected: // impl of ZQ::eloop::Timer
 private:
 	void OnCloseConn();
 	void OnCloseTimer();
+	void OnCloseAsync();
+	void OnAsyncSend();
 	uint lastCSeq();
+
+	ZQ::common::Mutex _lkReqList;
+	std::list<LIPCRequest::Ptr> _ReqList;
 
 	std::string		_localPipeName;
 	std::string		_peerPipeName;
 	int			    _ipc;
 	ClientConn*	    _conn; // for reconnect
 	ClientTimer*	_timer;
+	ClientAsync*	_async;
 	Loop&           _loop;
 	bool		    _reconnect;
 	int64			_timeout;
