@@ -48,7 +48,6 @@ class ZQ_ELOOP_API LIPCMessage;
 class PassiveConn;
 class ClientConn;
 class ClientTimer;
-class ClientAsync;
 // ------------------------------------------------
 // class LIPCMessage
 // ------------------------------------------------
@@ -169,9 +168,9 @@ public:
 	void setResult(const Json::Value& result);
 	Json::Value getResult();
 
-	void post();
-	void postResult(const Json::Value& result) { setResult(result); post(); } 
-	void postException(int code,std::string errMsg = "");
+	void post(bool bAsync = true);
+	void postResult(const Json::Value& result,bool bAsync = true) { setResult(result); post(bAsync); } 
+	void postException(int code,std::string errMsg = "",bool bAsync = true);
 
 private:
 	UnixSocket&	_conn;
@@ -248,13 +247,10 @@ public:
 
 	int read_start();
 	int read_stop();
-	int sendRequest(const std::string& methodName, LIPCRequest::Ptr req, int64 timeout = 500, bool expectResp = true);		//default timeout = 500ms
+	int sendRequest(const std::string& methodName, LIPCRequest::Ptr req, int64 timeout = 500, bool bAsync = true, bool expectResp = true);		//default timeout = 500ms
 	int shutdown();
 	void close();
 	bool isConnect(){ return _isConn;}
-
-	int AsyncSendRequest(const std::string& methodName, LIPCRequest::Ptr req, int64 timeout = 500, bool expectResp = true);		//default timeout = 500ms
-
 
 protected:
 	virtual void OnRequestPrepared(LIPCRequest::Ptr req) {}
@@ -288,15 +284,11 @@ private:
 	void OnAsyncSend();
 	uint lastCSeq();
 
-	ZQ::common::Mutex _lkReqList;
-	std::list<LIPCRequest::Ptr> _ReqList;
-
 	std::string		_localPipeName;
 	std::string		_peerPipeName;
 	int			    _ipc;
 	ClientConn*	    _conn; // for reconnect
 	ClientTimer*	_timer;
-	ClientAsync*	_async;
 	Loop&           _loop;
 	bool		    _reconnect;
 	int64			_timeout;

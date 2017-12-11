@@ -3,10 +3,42 @@
 
 namespace ZQ {
 namespace eloop {
+
+
+// ------------------------------------------------
+// class AsyncSender
+// ------------------------------------------------
+class AsyncSender : public ZQ::eloop::Async
+{
+public:
+	AsyncSender(UnixSocket& socket):_socket(socket){}
+
+protected:
+	virtual void OnAsync() {_socket.OnAsyncSend();}
+	virtual void OnClose(){_socket.OnCloseAsync();}
+
+private:
+	UnixSocket& _socket;
+};
 		
 // -----------------------------------------
 // class UnixSocket
 // -----------------------------------------
+int UnixSocket::init(Loop &loop, int ipc)
+{
+	if (_async == NULL)
+	{
+		_async = new AsyncSender(*this);
+		_async->init(loop);
+	}
+	return ZQ::eloop::Pipe::init(loop,ipc);
+}
+
+void UnixSocket::close()
+{
+	_async->close();
+}
+
 void UnixSocket::OnRead(ssize_t nread, const char *buf)
 {
 	if (nread <= 0)
@@ -23,6 +55,48 @@ void UnixSocket::OnRead(ssize_t nread, const char *buf)
 	_lipcLog(ZQ::common::Log::L_DEBUG,CLOGFMT(UnixSocket, "OnRead() received %dB: %s"), temp.length(), temp.c_str());
 	processMessage(nread,buf);
 }
+
+int UnixSocket::AsyncSend(const std::string& msg, int fd)
+{
+	AsyncMessage asyncMsg;
+	asyncMsg.msg = msg;
+	asyncMsg.fd = fd;
+
+	{
+		ZQ::common::MutexGuard gd(_lkMsgList);
+		_msgList.push_back(asyncMsg);
+	}
+
+	return _async->send();
+}
+
+void UnixSocket::OnAsyncSend()
+{
+	int i = 10;
+	while (!_msgList.empty() && i>0)
+	{
+		AsyncMessage asyncMsg;
+		{
+			ZQ::common::MutexGuard gd(_lkMsgList);
+			asyncMsg = _msgList.front();
+			_msgList.pop_front();
+		}
+
+		send(asyncMsg.msg, asyncMsg.fd);
+		i--;
+	}
+}
+
+void UnixSocket::OnCloseAsync()
+{
+	if (_async != NULL)
+	{
+		delete _async;
+		_async = NULL;
+	}
+	ZQ::eloop::Pipe::close();
+}
+
 
 int UnixSocket::send(const std::string& msg, int fd)
 {
