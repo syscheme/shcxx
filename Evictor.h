@@ -69,7 +69,7 @@ protected:
 class Evictor // : public Mutex
 {
 public:
-
+    
 	typedef enum _Error {
 		eeOK =200, 
 		eeClientError =400, eeMashalError, eeNotFound=404, eeTimeout=402, 
@@ -98,7 +98,6 @@ public:
 	class Item : virtual public SharedObject, public Mutex
 	{
 		friend class Evictor;
-
 	public:
 
 		typedef ZQ::common::Pointer<Item> Ptr;
@@ -141,6 +140,7 @@ public:
 		virtual ~Item() {}
 
 	private:
+    public:
 
 		Item(Evictor& owner, const Ident& ident) // should only be instantized by Evictor
 			: _owner(owner), _ident(ident), _orphan(true)
@@ -212,18 +212,19 @@ protected:
 	} StreamedObject;
 
 	typedef std::list < StreamedObject > StreamedList;
+    typedef std::deque<Item::Ptr> Queue;
+    typedef std::map <Ident, Item::Ptr> Map;
 
 private:
 	StreamedList _streamedList;
 
-	typedef std::deque<Item::Ptr> Queue;
-	typedef std::map <Ident, Item::Ptr> Map;
-
-	// thread unsafe, only be called from Evictor
-	void _requeue(Item::Ptr& item);
 	Error _stream(const Item::Ptr& element, StreamedObject& streamedObj, int64 stampAsOf);
 	void _evict(Item::Ptr item); 
 	int  _evictBySize();
+
+protected:
+    // thread unsafe, only be called from Evictor
+    void _requeue(Item::Ptr& item);
 	void _queueModified(const Item::Ptr& element); 
 	size_t _popModified(Queue& modifiedBatch, size_t max); // to pop a batch of modified items
 

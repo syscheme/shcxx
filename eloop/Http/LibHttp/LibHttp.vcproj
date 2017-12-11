@@ -168,6 +168,10 @@
 				RelativePath=".\HttpServer.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\RedisClient.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -192,6 +196,10 @@
 			</File>
 			<File
 				RelativePath=".\HttpServer.h"
+				>
+			</File>
+			<File
+				RelativePath=".\RedisClient.h"
 				>
 			</File>
 		</Filter>
