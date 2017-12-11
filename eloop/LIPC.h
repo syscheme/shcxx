@@ -193,7 +193,7 @@ public:
 	void    setVerbosity(uint32 verbose = (0 | ZQ::common::Log::L_ERROR)) { _log.setVerbosity(verbose & 0x0f); _verboseFlags =verbose>>8; }
 
 	int init(ZQ::eloop::Loop &loop, int ipc=1);
-	PipeClientList& getPipeClientList() { return _clients; }
+//	PipeClientList& getPipeClientList() { return _clients; }
 
 	void UnInit();
 
