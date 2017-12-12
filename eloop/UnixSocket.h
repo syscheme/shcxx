@@ -48,7 +48,11 @@ public:
 	virtual int send(const std::string& msg, int fd = -1);
 	
 	void encode(const std::string& src,std::string& dest);
+
 	void processMessage(ssize_t nread, const char *buf);
+
+// 	void parseMessage(ssize_t nread, const char *buf);
+// 	void AsyncProcessMessage();
 
 	int AsyncSend(const std::string& msg, int fd = -1);
 
@@ -68,10 +72,14 @@ private:
 		}
 	} AsyncMessage;
 
-	ZQ::common::Mutex _lkMsgList;
-	std::list<AsyncMessage> _msgList;
-
+	ZQ::common::Mutex _lkSendMsgList;
+	std::list<AsyncMessage> _SendMsgList;
 	AsyncSender* _async;
+
+
+//	ZQ::common::Mutex _lkRecvMsgList;
+//	std::list<std::string> _RecvMsgList;
+
 
 	void OnAsyncSend();
 	void OnCloseAsync();
