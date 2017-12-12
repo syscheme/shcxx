@@ -56,7 +56,7 @@ public:
 
 	int AsyncSend(const std::string& msg, int fd = -1);
 
-protected:
+//protected:
 	ZQ::common::Log& _lipcLog;
 
 private:

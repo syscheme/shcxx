@@ -35,6 +35,9 @@
 #include "ZQ_common_conf.h"
 
 extern "C"{
+#ifdef ZQ_OS_LINUX
+	#include <sys/time.h>
+#endif
 #include "libuv_1.9.1/include/uv.h"
 };
 
@@ -53,6 +56,19 @@ extern "C"{
 
 namespace ZQ {
 namespace eloop {
+
+
+	static int64 usStampNow()
+	{
+		#ifdef ZQ_OS_LINUX
+
+				struct timeval tv;
+				gettimeofday(&tv, NULL);
+				return tv.tv_sec*1000*1000 + tv.tv_usec;
+		#else
+				return 0;
+		#endif
+	}
 
 class ZQ_ELOOP_API Loop;
 class ZQ_ELOOP_API Handle;
@@ -222,6 +238,7 @@ public:
 	static const char* errName(int errNum)    { return uv_err_name(errNum); }
 
 	static int exepath(char* buf,size_t* size){return uv_exepath(buf,size);}
+
 
 protected:
 	Handle();

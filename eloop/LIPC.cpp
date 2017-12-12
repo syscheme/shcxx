@@ -193,10 +193,27 @@ void LIPCResponse::post(bool bAsync)
 {
 	if (_cSeq <= 0)
 		return;
+
+// 	if (bAsync)
+// 		_conn.AsyncSend(toString(),getFd());
+// 	else
+// 		_conn.send(toString(), getFd());
+
+	int64 step1 = ZQ::eloop::usStampNow();
+	std::string temp = toString();
+	int64 step2 = ZQ::eloop::usStampNow();
+
 	if (bAsync)
-		_conn.AsyncSend(toString(),getFd());
+		_conn.AsyncSend(temp,getFd());
 	else
-		_conn.send(toString(), getFd());
+		_conn.send(temp, getFd());
+	int64 step3 = ZQ::eloop::usStampNow();
+
+	int64 took1 = step2 - step1;
+	int64 took2 = step3 - step2;
+
+	_conn._lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCResponse, "post() JsonToString took[%lld] AsyncSend took[%lld]us"),took1,took2);
+
 }
 
 void LIPCResponse::postException(int code, std::string errMsg,bool bAsync)
