@@ -11,11 +11,13 @@ namespace ZQ {
 namespace eloop {
 
 class ZQ_ELOOP_API UnixSocket;
+class AsyncSender;
 // -----------------------------
 // class UnixSocket
 // -----------------------------
 class UnixSocket : public ZQ::eloop::Pipe
 {
+	friend class AsyncSender;
 public:
 	typedef enum
 	{
@@ -24,13 +26,16 @@ public:
 
 public:
 
-	UnixSocket(ZQ::common::Log& log):_lipcLog(log)
+	UnixSocket(ZQ::common::Log& log):_lipcLog(log),_async(NULL)
 	{
 		#ifdef ZQ_OS_LINUX
 				//Ignore SIGPIPE signal
 				signal(SIGPIPE, SIG_IGN);
 		#endif
 	}
+
+	int  init(Loop &loop, int ipc=1);
+	void close();
 
 	virtual void OnRead(ssize_t nread, const char *buf);
 
@@ -43,13 +48,41 @@ public:
 	virtual int send(const std::string& msg, int fd = -1);
 	
 	void encode(const std::string& src,std::string& dest);
+
 	void processMessage(ssize_t nread, const char *buf);
 
-protected:
+// 	void parseMessage(ssize_t nread, const char *buf);
+// 	void AsyncProcessMessage();
+
+	int AsyncSend(const std::string& msg, int fd = -1);
+
+//protected:
 	ZQ::common::Log& _lipcLog;
 
 private:
 	std::string		_buf;
+
+	typedef struct _AsyncMessage{
+
+		std::string msg;
+		int fd;
+
+		_AsyncMessage(){
+			fd = -1;
+		}
+	} AsyncMessage;
+
+	ZQ::common::Mutex _lkSendMsgList;
+	std::list<AsyncMessage> _SendMsgList;
+	AsyncSender* _async;
+
+
+//	ZQ::common::Mutex _lkRecvMsgList;
+//	std::list<std::string> _RecvMsgList;
+
+
+	void OnAsyncSend();
+	void OnCloseAsync();
 };
 
 }} // namespaces

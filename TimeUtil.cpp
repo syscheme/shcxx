@@ -1046,7 +1046,7 @@ int64  now()
 	return TimeUtil::now();
 }
 
-const char* TimeUtil::msec2hms(int64 msec, char* str, int maxlen)
+const char* TimeUtil::msec2hms(int64 msec, char* str, int maxlen, bool hasDay)
 {
 	if (NULL==str)
 		return "";
@@ -1057,9 +1057,14 @@ const char* TimeUtil::msec2hms(int64 msec, char* str, int maxlen)
 	int ms  = (int)(msec %1000); msec /= 1000;
 	int sec = (int)(msec %60);   msec /= 60;
 	int min = (int)(msec %60);   msec /= 60;
-	int hr  = (int)(msec %60);   msec /= 60;
+	if (!hasDay||msec <24)
+	{
+		snprintf(str, maxlen, "%d:%02d:%02d.%03d", msec, min, sec, ms);
+		return str;
+	}
 
-	snprintf(str, maxlen, "%d:%02d:%02d.%03d", hr, min, sec, ms);
+	int hr  = (int)(msec %24);   msec /= 60;
+	snprintf(str, maxlen, "%dd%02d:%02d:%02d.%03d", msec, hr, min, sec, ms);
 	return str;
 }
 

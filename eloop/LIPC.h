@@ -32,6 +32,7 @@
 #define __ZQ_COMMON_ELOOP_LIPC_H__
 
 #include "UnixSocket.h"
+#include "TimeUtil.h"
 
 #include <vector>
 #include <list>
@@ -161,19 +162,24 @@ public:
 
 	LIPCResponse(int cseq, UnixSocket& conn)
 		: _conn(conn), LIPCMessage(cseq)
-	{}
+	{
+		_stampCreated = ZQ::common::now();
+	}
 
 	virtual ~LIPCResponse();
+	int     getElapsed() const { return (int) (ZQ::common::now() - _stampCreated); }
 
 	void setResult(const Json::Value& result);
 	Json::Value getResult();
 
-	void post();
-	void postResult(const Json::Value& result) { setResult(result); post(); } 
-	void postException(int code,std::string errMsg = "");
+	void post(bool bAsync = true);
+	void postResult(const Json::Value& result,bool bAsync = true) { setResult(result); post(bAsync); } 
+	void postException(int code,std::string errMsg = "",bool bAsync = true);
 
 private:
+
 	UnixSocket&	_conn;
+	int64       _stampCreated;
 };
 
 // ------------------------------------------------
@@ -193,12 +199,13 @@ public:
 	void    setVerbosity(uint32 verbose = (0 | ZQ::common::Log::L_ERROR)) { _log.setVerbosity(verbose & 0x0f); _verboseFlags =verbose>>8; }
 
 	int init(ZQ::eloop::Loop &loop, int ipc=1);
-	PipeClientList& getPipeClientList() { return _clients; }
+//	PipeClientList& getPipeClientList() { return _clients; }
 
 	void UnInit();
 
 protected:
-	ZQ::common::LogWrapper _log;
+	ZQ::common::Log& _log;
+//	ZQ::common::LogWrapper _log;
 	static uint32 _verboseFlags;
 
 	void addConn(PassiveConn* conn);
@@ -230,6 +237,7 @@ class LIPCClient
 {
 	friend class ClientConn;
 	friend class ClientTimer;
+	friend class ClientAsync;
 
 public:
 	LIPCClient(Loop &loop, ZQ::common::Log& log, int64 timeout =500, int ipc=1); 
@@ -245,7 +253,7 @@ public:
 
 	int read_start();
 	int read_stop();
-	int sendRequest(const std::string& methodName, LIPCRequest::Ptr req, int64 timeout = 500, bool expectResp = true);		//default timeout = 500ms
+	int sendRequest(const std::string& methodName, LIPCRequest::Ptr req, int64 timeout = 500, bool bAsync = true, bool expectResp = true);		//default timeout = 500ms
 	int shutdown();
 	void close();
 	bool isConnect(){ return _isConn;}
@@ -269,7 +277,8 @@ protected: // redirect from UnixSocket
 
 protected: // impl of ZQ::eloop::Timer
 
-	ZQ::common::LogWrapper _log;
+	ZQ::common::Log& _log;
+//	ZQ::common::LogWrapper _log;
 	static uint32 _verboseFlags;
 
 	virtual void OnTimer();
@@ -277,6 +286,8 @@ protected: // impl of ZQ::eloop::Timer
 private:
 	void OnCloseConn();
 	void OnCloseTimer();
+	void OnCloseAsync();
+	void OnAsyncSend();
 	uint lastCSeq();
 
 	std::string		_localPipeName;

@@ -189,16 +189,37 @@ void LIPCResponse::setResult(const Json::Value& result)
 	_msg[JSON_RPC_RESULT] = result;
 }
 
-void LIPCResponse::post()
+void LIPCResponse::post(bool bAsync)
 {
-	if (_cSeq > 0)
-		_conn.send(toString(), getFd());
+	if (_cSeq <= 0)
+		return;
+
+// 	if (bAsync)
+// 		_conn.AsyncSend(toString(),getFd());
+// 	else
+// 		_conn.send(toString(), getFd());
+
+	int64 step1 = ZQ::eloop::usStampNow();
+	std::string temp = toString();
+	int64 step2 = ZQ::eloop::usStampNow();
+
+	if (bAsync)
+		_conn.AsyncSend(temp,getFd());
+	else
+		_conn.send(temp, getFd());
+	int64 step3 = ZQ::eloop::usStampNow();
+
+	int64 took1 = step2 - step1;
+	int64 took2 = step3 - step2;
+
+	_conn._lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCResponse, "post() JsonToString took[%lld] AsyncSend took[%lld]us"),took1,took2);
+
 }
 
-void LIPCResponse::postException(int code, std::string errMsg)
+void LIPCResponse::postException(int code, std::string errMsg,bool bAsync)
 {
 	setErrorCode(code,errMsg);
-	post();
+	post(bAsync);
 }
 
 Json::Value LIPCResponse::getResult()
@@ -509,6 +530,7 @@ void LIPCClient::OnCloseTimer()
 		OnClose();
 }
 
+
 void LIPCClient::OnCloseConn()
 {
 	if (_conn != NULL)
@@ -547,13 +569,15 @@ void LIPCClient::OnCloseConn()
 
 void LIPCClient::close()
 {
-	if (_conn == NULL)
-		return;
+	if (_conn != NULL)
+	{
+		_reconnect = false;
+		_isConn = false;
+		_conn->close();
+	}
 
-	_reconnect = false;
-	_isConn = false;
-	_conn->close();
-	_timer->close();
+	if (_timer != NULL)
+		_timer->close();
 }
 
 int LIPCClient::shutdown()
@@ -602,7 +626,7 @@ int LIPCClient::read_stop()
 	return _conn->read_stop();
 }
 
-int LIPCClient::sendRequest(const std::string& methodName, LIPCRequest::Ptr req,int64 timeout, bool expectResp)
+int LIPCClient::sendRequest(const std::string& methodName, LIPCRequest::Ptr req,int64 timeout, bool bAsync, bool expectResp)
 {
 	if (_conn == NULL || !req || methodName.empty())
 		return -1;
@@ -623,8 +647,12 @@ int LIPCClient::sendRequest(const std::string& methodName, LIPCRequest::Ptr req,
 	}
 
 	OnRequestPrepared(req);
-		
-	int ret = _conn->send(req->toString(), req->getFd());
+	
+	int ret = 0;
+	if (bAsync)
+		ret = _conn->AsyncSend(req->toString(), req->getFd());
+	else
+		ret = _conn->send(req->toString(), req->getFd());
 	if (ret < 0)
 	{
 		OnRequestDone(req->_cSeq, LIPCMessage::LIPC_CLIENT_ERROR);
@@ -665,9 +693,14 @@ void LIPCClient::OnIndividualMessage(Json::Value& msg)
 		return;
 	}
 
-	OnResponse(itW->second.method, resp);
 	if (TRACE_LEVEL_FLAG & _verboseFlags)
-		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCClient, "OnResponse() %s(%d) triggered, cleaning from await list"), itW->second.method.c_str(), cseq);
+		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCClient, "OnResponse() %s(%d) start process the response "), itW->second.method.c_str(), cseq);
+
+	int64 stampNow = ZQ::common::now();
+	OnResponse(itW->second.method, resp);
+	int64 RespTook = ZQ::common::now() - stampNow;
+	if (TRACE_LEVEL_FLAG & _verboseFlags)
+		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCClient, "OnResponse() %s(%d) RespTook[%lld] triggered, cleaning from await list"), itW->second.method.c_str(), cseq, RespTook);
 
 	OnRequestDone(cseq, LIPCMessage::LIPC_OK);
 	_awaits.erase(cseq);
