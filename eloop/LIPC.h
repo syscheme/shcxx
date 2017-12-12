@@ -32,6 +32,7 @@
 #define __ZQ_COMMON_ELOOP_LIPC_H__
 
 #include "UnixSocket.h"
+#include "TimeUtil.h"
 
 #include <vector>
 #include <list>
@@ -161,9 +162,12 @@ public:
 
 	LIPCResponse(int cseq, UnixSocket& conn)
 		: _conn(conn), LIPCMessage(cseq)
-	{}
+	{
+		_stampCreated = ZQ::common::now();
+	}
 
 	virtual ~LIPCResponse();
+	int     getElapsed() const { return (int) (ZQ::common::now() - _stampCreated); }
 
 	void setResult(const Json::Value& result);
 	Json::Value getResult();
@@ -173,7 +177,9 @@ public:
 	void postException(int code,std::string errMsg = "",bool bAsync = true);
 
 private:
+
 	UnixSocket&	_conn;
+	int64       _stampCreated;
 };
 
 // ------------------------------------------------
