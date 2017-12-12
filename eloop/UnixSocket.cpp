@@ -172,11 +172,13 @@ void UnixSocket::processMessage(ssize_t nread, const char *buf)
 		{
 			temp = _buf.substr(index+1,len);
 			_buf = _buf.substr(index+len+2);
+			_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "multi packet, temp[%s] _buf[%s]"), temp.c_str(), _buf.c_str());
 			OnMessage(temp);
 		}
 		else if(len = _buf.size()-index-2)
 		{
 			temp = _buf.substr(index+1,len);
+			_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "single packet, temp[%s]"), temp.c_str());
 			OnMessage(temp);
 			_buf.clear();
 		}
