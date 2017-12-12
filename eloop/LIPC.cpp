@@ -698,11 +698,15 @@ void LIPCClient::OnIndividualMessage(Json::Value& msg)
 
 	int64 stampNow = ZQ::common::now();
 	OnResponse(itW->second.method, resp);
-	int64 RespTook = ZQ::common::now() - stampNow;
-	if (TRACE_LEVEL_FLAG & _verboseFlags)
-		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCClient, "OnResponse() %s(%d) RespTook[%lld] triggered, cleaning from await list"), itW->second.method.c_str(), cseq, RespTook);
+	int elapsed = (int) (ZQ::common::now() - stampNow);
+	int err = LIPCMessage::LIPC_OK;
+	if (resp)
+		err = resp->getErrorCode();
 
-	OnRequestDone(cseq, LIPCMessage::LIPC_OK);
+	if (TRACE_LEVEL_FLAG & _verboseFlags)
+		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCClient, "OnResponse() %s(%d) ret(%d) took %dmsec triggered, cleaning from await list"), itW->second.method.c_str(), cseq, err, elapsed);
+
+	OnRequestDone(cseq, err);
 	_awaits.erase(cseq);
 }
 
