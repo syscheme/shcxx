@@ -194,25 +194,25 @@ void LIPCResponse::post(bool bAsync)
 	if (_cSeq <= 0)
 		return;
 
+ 	if (bAsync)
+ 		_conn.AsyncSend(toString(),getFd());
+ 	else
+ 		_conn.send(toString(), getFd());
+
+//	int64 step1 = ZQ::eloop::usStampNow();
+// 	std::string temp = toString();
+// 	int64 step2 = ZQ::eloop::usStampNow();
+// 
 // 	if (bAsync)
-// 		_conn.AsyncSend(toString(),getFd());
+// 		_conn.AsyncSend(temp,getFd());
 // 	else
-// 		_conn.send(toString(), getFd());
-
-	int64 step1 = ZQ::eloop::usStampNow();
-	std::string temp = toString();
-	int64 step2 = ZQ::eloop::usStampNow();
-
-	if (bAsync)
-		_conn.AsyncSend(temp,getFd());
-	else
-		_conn.send(temp, getFd());
-	int64 step3 = ZQ::eloop::usStampNow();
-
-	int64 took1 = step2 - step1;
-	int64 took2 = step3 - step2;
-
-	_conn._lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCResponse, "post() JsonToString took[%lld] AsyncSend took[%lld]us"),took1,took2);
+// 		_conn.send(temp, getFd());
+// 	int64 step3 = ZQ::eloop::usStampNow();
+// 
+// 	int64 took1 = step2 - step1;
+// 	int64 took2 = step3 - step2;
+// 
+// 	_conn._lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCResponse, "post() JsonToString took[%lld] AsyncSend took[%lld]us"),took1,took2);
 
 }
 
@@ -536,6 +536,7 @@ void LIPCClient::OnCloseConn()
 	if (_conn != NULL)
 		delete _conn;
 	_conn = NULL;
+	_awaits.clear();
 	_isConn = false;
 
 	if (!_reconnect)
@@ -698,11 +699,15 @@ void LIPCClient::OnIndividualMessage(Json::Value& msg)
 
 	int64 stampNow = ZQ::common::now();
 	OnResponse(itW->second.method, resp);
-	int64 RespTook = ZQ::common::now() - stampNow;
-	if (TRACE_LEVEL_FLAG & _verboseFlags)
-		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCClient, "OnResponse() %s(%d) RespTook[%lld] triggered, cleaning from await list"), itW->second.method.c_str(), cseq, RespTook);
+	int elapsed = (int) (ZQ::common::now() - stampNow);
+	int err = LIPCMessage::LIPC_OK;
+	if (resp)
+		err = resp->getErrorCode();
 
-	OnRequestDone(cseq, LIPCMessage::LIPC_OK);
+	if (TRACE_LEVEL_FLAG & _verboseFlags)
+		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCClient, "OnResponse() %s(%d) ret(%d) took %dmsec triggered, cleaning from await list"), itW->second.method.c_str(), cseq, err, elapsed);
+
+	OnRequestDone(cseq, err);
 	_awaits.erase(cseq);
 }
 
