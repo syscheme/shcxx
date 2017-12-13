@@ -536,6 +536,7 @@ void LIPCClient::OnCloseConn()
 	if (_conn != NULL)
 		delete _conn;
 	_conn = NULL;
+	_awaits.clear();
 	_isConn = false;
 
 	if (!_reconnect)
