@@ -22,8 +22,10 @@
 namespace ZQ {
 namespace eloop {
 
-#define TRACE_LEVEL_FLAG  FLAG(0)
+//#define TRACE_LEVEL_FLAG  FLAG(0)
 
+#define TRACE_LEVEL_FLAG (_verboseFlags & FLG_TRACE)
+#define INFO_LEVEL_FLAG (_verboseFlags & FLG_INFO)
 // ------------------------------------------------
 // class LIPCMessage
 // ------------------------------------------------
@@ -245,7 +247,7 @@ public:
 		read_start();
 		_service.addConn(this);
 //		printf("new pipe Passive Conn\n");
-		if (TRACE_LEVEL_FLAG & _service._verboseFlags)
+		//if (TRACE_LEVEL_FLAG)
 			_service._log(ZQ::common::Log::L_DEBUG, CLOGFMT(PassiveConn, "new passive conn"));
 	}
 
@@ -361,6 +363,7 @@ void LIPCService::OnClose()
 
 void LIPCService::OnUnInit()
 {
+	if(TRACE_LEVEL_FLAG)
 	_log(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCService, "OnUnInit()"));
 }
 
@@ -688,13 +691,13 @@ void LIPCClient::OnIndividualMessage(Json::Value& msg)
 	AwaitRequestMap::iterator itW = _awaits.find(cseq);
 	if (_awaits.end() == itW) // unknown request or it has been previously expired
 	{
-		if (TRACE_LEVEL_FLAG & _verboseFlags)
+		if (TRACE_LEVEL_FLAG)
 			_log(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCClient, "unknown request or it has been previously expired. cseq(%d)"),cseq);
 
 		return;
 	}
 
-	if (TRACE_LEVEL_FLAG & _verboseFlags)
+	if (TRACE_LEVEL_FLAG)
 		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCClient, "OnResponse() %s(%d) start process the response "), itW->second.method.c_str(), cseq);
 
 	int64 stampNow = ZQ::common::now();
@@ -704,7 +707,7 @@ void LIPCClient::OnIndividualMessage(Json::Value& msg)
 	if (resp)
 		err = resp->getErrorCode();
 
-	if (TRACE_LEVEL_FLAG & _verboseFlags)
+	if (TRACE_LEVEL_FLAG)
 		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCClient, "OnResponse() %s(%d) ret(%d) took %dmsec triggered, cleaning from await list"), itW->second.method.c_str(), cseq, err, elapsed);
 
 	OnRequestDone(cseq, err);

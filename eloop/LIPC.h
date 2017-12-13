@@ -48,6 +48,10 @@ class ZQ_ELOOP_API LIPCMessage;
 class PassiveConn;
 class ClientConn;
 class ClientTimer;
+
+
+#define FLG_TRACE               FLAG(0)
+#define FLG_INFO                FLAG(1)
 // ------------------------------------------------
 // class LIPCMessage
 // ------------------------------------------------
