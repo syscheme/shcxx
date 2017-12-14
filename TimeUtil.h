@@ -214,6 +214,7 @@ public:
 
 	static const char* msec2hms(int64 msec, char* str, int maxlen, bool hasDay=false);
 	static const char* msec2secstr(int64 msec, char* str, int maxlen);
+	static const char* hmsOfTime(int64 time, char* str, int maxlen, bool withmsec=false);
 
 #ifdef ZQ_OS_MSWIN
 	/// convert UTC string format to time64_t format
