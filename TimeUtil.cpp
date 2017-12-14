@@ -1046,6 +1046,23 @@ int64  now()
 	return TimeUtil::now();
 }
 
+const char* TimeUtil::hmsOfTime(int64 time, char* str, int maxlen, bool withmsec)
+{
+	char *p=NULL, *q=NULL;
+
+	if (NULL !=(p=(char*)ZQ::common::TimeUtil::TimeToUTC(time, str, maxlen-1, true)) 
+		&& NULL !=(p =strchr(p, 'T')))
+	{
+		p++;
+		if (NULL !=(q = strrchr(p, '+'))) *q='\0';
+		if (NULL !=(q = strrchr(p, '-'))) *q='\0';
+		if (!withmsec && NULL !=(q = strrchr(p, '.'))) *q='\0';
+		return p;
+	}
+
+	return "";
+}
+
 const char* TimeUtil::msec2hms(int64 msec, char* str, int maxlen, bool hasDay)
 {
 	if (NULL==str)
