@@ -730,7 +730,6 @@ void RedisClient::OnRead(ssize_t nread, const char *buf)
 				// put it into the completed list
 				if (pCmd)
                 {
-                    _log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnRead() %s put a cmd to completed"), pCmd->desc().c_str());
 					completedCmds.push(pCmd);
                 }
 
@@ -808,7 +807,6 @@ void RedisClient::OnRead(ssize_t nread, const char *buf)
 
 		if (pCmd && 0 != pCmd->_replyCtx.data.type && pCmd->_replyCtx.nBulksLeft <= 0)
         {
-            _log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnRead() %s put a cmd to completed"), pCmd->desc().c_str());
 			completedCmds.push(pCmd);
             _commandQueueToReceive.pop();
         }
@@ -834,7 +832,6 @@ void RedisClient::OnRead(ssize_t nread, const char *buf)
 		if (!pCmd)
 			continue;
 
-        _log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnRead() %s cmd completed"), pCmd->desc().c_str());
 		try {
 			pCmd->_stampReceived = stampNow;
 			(new ReplyDispatcher(*this, pCmd))->start();
@@ -1054,34 +1051,62 @@ Evictor::Item::Ptr RedisEvictor::pin( const Evictor::Ident& ident, Evictor::Item
 
     StreamedObject strmedObj;
 
-    LocateReply lcReply;
-    try {
-        if (item == NULL)
-        {
-            item = new Evictor::Item(*this, ident);
-        }
-        lcReply._pItem = item;
-        lcReply._ident = ident;
-        lcReply._pEvent = new Event();
-        {
-            ZQ::common::MutexGuard g(_lockLocateQueue);
-            _lcQueue.push(lcReply);
-        }
-        
+    try {        
         _lastErr = loadFromStore(identToStr(ident), strmedObj);
-        lcReply._pEvent->wait(DEFAULT_CLIENT_TIMEOUT/2);
     }
     catch(...)
     {
         _lastErr = eeClientError;
     }
-    return lcReply._pItem;
+
+    switch(_lastErr)
+    {
+    case eeNotFound:
+        break;
+
+    case eeOK:
+        if (!item)
+            item = new Item(*this, ident);
+
+        try {
+            if (unmarshal(ident.category, item->_data, strmedObj.data))
+            {
+                item->_data.status = Item::clean;
+                break;
+            }
+        }
+        catch(...)
+        {
+            _lastErr = eeMashalError;
+        }
+
+        // _log error
+        // TODO: clean this object from the DB
+        item->_data.status = Evictor::Item::dead;
+        break;
+
+    case eeTimeout:
+    default:
+        // _log error and retry
+        break;
+    }
+
+    MutexGuard g(_lkEvictor);
+    Map::iterator itCache = _cache.find(ident);
+    if (_cache.end() != itCache)
+        return itCache->second; // already in the cache
+
+    if (NULL == item)
+        return NULL;
+
+    item->_ident = ident;
+    _cache.insert(Map::value_type(ident, item));
+    _evictorList.push_front(ident);
+    item->_pos = _evictorList.begin();
+    item->_orphan = false;
+    return item;
 }
 
-void RedisEvictor::OnRequestError( RedisClient& client, RedisCommand& cmd, RedisSink::Error errCode, const char* errDesc/*=NULL*/ )
-{
-    Evictor::_log(Log::L_ERROR, CLOGFMT(RedisEvictor, "OnRequestError() cmd[%s] errCode[%d] errDesc[%s]"), cmd.desc().c_str(), errCode, errDesc);
-}
 
 // save a batch of streamed object to the target object store
 int RedisEvictor::saveBatchToStore(StreamedList& batch)
@@ -1098,14 +1123,14 @@ int RedisEvictor::saveBatchToStore(StreamedList& batch)
         {
         case Item::created:   // the item is created in the cache, and has not present in the ObjectStore
         case Item::modified:  // the item is modified but not yet flushed to the ObjectStore
-            cmdPtr = _client->sendSET(it->key.c_str(), (uint8*)(&it->data[0]), it->data.size(), this);
+            cmdPtr = _client->sendSET(it->key.c_str(), (uint8*)(&it->data[0]), it->data.size());
             if (!cmdPtr) 
                 Evictor::_log(Log::L_ERROR, CLOGFMT(RedisEvictor, "saveBatchToStore() save[%s] err: %s(%d)"), it->key.c_str(), RedisSink::err2str(RedisSink::rdeClientError), RedisSink::rdeClientError);
             else cUpdated++;
             break;
 
         case Item::destroyed:  // the item is required to destroy but not yet deleted from ObjectStore
-            cmdPtr = _client->sendDEL(it->key.c_str(), this);
+            cmdPtr = _client->sendDEL(it->key.c_str());
             if (!cmdPtr)
                 Evictor::_log(Log::L_ERROR, CLOGFMT(RedisEvictor, "saveBatchToStore() del[%s] err: %s(%d)"), it->key.c_str(), RedisSink::err2str(RedisSink::rdeClientError), RedisSink::rdeClientError);
             else cDeleted++;
@@ -1116,7 +1141,7 @@ int RedisEvictor::saveBatchToStore(StreamedList& batch)
         }
     }
 
-    Evictor::_log(Log::L_DEBUG, CLOGFMT(indexEvictor, "saveBatchToStore() %d updated and %d destroyed"), cUpdated, cDeleted);
+    Evictor::_log(Log::L_DEBUG, CLOGFMT(RedisEvictor, "saveBatchToStore() %d updated and %d destroyed"), cUpdated, cDeleted);
     return cUpdated+cDeleted;
 }
 
@@ -1127,13 +1152,52 @@ Evictor::Error RedisEvictor::loadFromStore(const std::string& key, StreamedObjec
     if (!_client)
         return Evictor::eeConnectErr;
 
-    RedisCommand::Ptr cmdPtr = _client->sendGET(key.c_str(), this);
-    if (!cmdPtr)
+    RedisCommand::Ptr pCmd;
+    bool bSend = false;
     {
-        Evictor::_log(Log::L_ERROR, CLOGFMT(RedisEvictor, "loadFromStore() get[%s] err: %s(%d)"), key.c_str(), RedisSink::err2str(RedisSink::rdeClientError), RedisSink::rdeClientError);
-        return Evictor::eeConnectErr; 
+        ZQ::common::MutexGuard g(_lockLocateQueue);
+        std::map<std::string, RedisCommand::Ptr>::iterator iter = _lcQueue.find(key);
+        if (iter != _lcQueue.end() && iter->second != NULL)
+        {
+            pCmd = iter->second;
+        }
+        else
+        {
+            pCmd = _client->sendGET(key.c_str());
+            _lcQueue.insert(std::make_pair<std::string, RedisCommand::Ptr>(key, pCmd));
+        }
     }
-    Evictor::_log(Log::L_DEBUG, CLOGFMT(RedisEvictor, "loadFromStore() loaded obj[%s]"), key.c_str());
+    if (!pCmd) 
+        return (_lastErr = Evictor::eeConnectErr);
+    if (!pCmd->wait(DEFAULT_CLIENT_TIMEOUT)) 
+        return (_lastErr = Evictor::eeTimeout);
+    if (REDIS_LEADINGCH_ERROR == pCmd->_replyCtx.data.type)	
+        return (_lastErr = Evictor::eeConnectErr); 
+    else 
+        _lastErr = Evictor::eeOK;
+    
+    {
+        ZQ::common::MutexGuard g(_lockLocateQueue);
+        std::map<std::string, RedisCommand::Ptr>::iterator iter = _lcQueue.find(key);
+        if (iter != _lcQueue.end())
+        {
+            _lcQueue.erase(iter);
+        }
+    }
+
+    uint vlen = 0;
+    if (pCmd->_replyCtx.data.bulks.size() <=0)
+    {
+        return Evictor::eeNotFound;
+    }
+    vlen = strlen(pCmd->_replyCtx.data.bulks[0].c_str());
+    {
+        ZQ::common::MutexGuard g(_lockBuf);
+        vlen = RedisClient::decode(pCmd->_replyCtx.data.bulks[0].c_str(), _recvBuf, vlen);
+        data.data.assign(_recvBuf, _recvBuf + vlen);
+    }
+    data.stampAsOf = ZQ::common::now();
+
     return Evictor::eeOK;
 }
 
@@ -1161,137 +1225,5 @@ ZQ::common::Evictor::Item::Ptr RedisEvictor::add( const ZQ::common::Evictor::Ite
     _log(Log::L_DEBUG, CLOGFMT(Evictor, "added object[%s](%s)"), ident_cstr(ident), Evictor::Item::stateToString(item->_data.status));
 
     return item;
-}
-
-ZQ::common::Evictor::Item::ObjectPtr RedisEvictor::locate( const ZQ::common::Evictor::Ident& ident )
-{
-    Evictor::Item::Ptr item = pin(ident);
-
-    if (_lastErr != Evictor::eeOK || NULL == item || NULL == item->_data.servant)
-    {
-        _log(Log::L_DEBUG, CLOGFMT(Evictor, "locate() object[%s] not found, err[%d]"), ident_cstr(ident), _lastErr);
-
-        return NULL;
-    }
-
-    MutexGuard sync(*item);
-    if(item->_data.status == Item::destroyed || item->_data.status == Item::dead)
-    {
-        _log(Log::L_DEBUG, CLOGFMT(Evictor, "locate() object[%s(%s)] invalid state of art"), ident_cstr(ident), Item::stateToString(item->_data.status));
-
-        return NULL;
-    }
-
-    {
-        MutexGuard g(_lkEvictor);
-        _requeue(item); // this is only be called while item is locked
-    }
-    // It's a good one!
-    _log(Log::L_DEBUG, CLOGFMT(Evictor, "locate() object[%s(%s)] found in cache/DB"), ident_cstr(ident), Item::stateToString(item->_data.status));
-
-    return item->_data.servant;
-}
-
-void RedisEvictor::OnReply( RedisClient& client, RedisCommand& cmd, Data& data )
-{
-    LocateReply lcReply;
-    bool bBulk = false;
-    uint vlen = 0;
-    switch(cmd._replyCtx.data.type)
-    {
-    case REDIS_LEADINGCH_ERROR:     //redis-server reply error
-        Evictor::_log(Log::L_ERROR, CLOGFMT(RedisEvictor, "OnReply() cmd[%s] errCode[%d] errDesc[%s]"), cmd.desc().c_str(), rdeServerReturnedError, cmd._replyCtx.data.bulks[0].c_str());
-        _lastErr = Evictor::eeConnectErr;
-        break;
-
-    case REDIS_LEADINGCH_INLINE:    //redis-server reply status
-        break;
-
-    case REDIS_LEADINGCH_INT:
-        break;
-
-    case REDIS_LEADINGCH_BULK:
-        {
-            {
-                ZQ::common::MutexGuard g(_lockLocateQueue);
-                lcReply = _lcQueue.front();
-            }
-
-            if (cmd._replyCtx.data.bulks.size() <=0)
-            {
-                _lastErr = Evictor::eeNotFound;
-                lcReply._pEvent->signal();
-                {
-                    ZQ::common::MutexGuard g(_lockLocateQueue);
-                    _lcQueue.pop();
-                }
-                return ;
-            }
-
-            if (cmd._replyCtx.data.bulks.size() <=0)
-            {
-                _lastErr = Evictor::eeNotFound;
-            }
-            else
-            {
-                const char *pData = cmd._replyCtx.data.bulks[0].c_str();
-                vlen = strlen(pData);
-                vlen = RedisClient::decode(pData, _recvBuf, vlen);
-                _lastErr = Evictor::eeOK;
-                Evictor::_log(Log::L_DEBUG, CLOGFMT(RedisEvictor, "OnReply() cmd[%s] decode over"), cmd.desc().c_str());
-            }
-
-            bBulk = true;
-        }
-
-        break;
-
-    case REDIS_LEADINGCH_MULTIBULK:
-        break;
-
-    default:
-        _lastErr = Evictor::eeClientError;
-        return ;
-    }
-
-    if (!bBulk)
-        return ;
-
-    if (_lastErr != Evictor::eeOK)
-    {
-        lcReply._pEvent->signal();
-        {
-            ZQ::common::MutexGuard g(_lockLocateQueue);
-            _lcQueue.pop();
-        }
-        return;
-    }
-    Evictor::_log(Log::L_DEBUG, CLOGFMT(RedisEvictor, "OnReply() cmd[%s] success, lenth[%u]"), cmd.desc().c_str(), vlen);
-
-    Evictor::StreamedObject streamData;
-    streamData.data.assign(_recvBuf, _recvBuf + vlen);
-    streamData.stampAsOf = ZQ::common::now();
-
-    try {
-        if (unmarshal(lcReply._ident.category, lcReply._pItem->_data, streamData.data))
-            lcReply._pItem->_data.status = Evictor::Item::clean;
-        else
-            lcReply._pItem->_data.status = Evictor::Item::dead;
-    }
-    catch(...)
-    {
-        _lastErr = eeMashalError;
-    }
-
-    _cache.insert(Map::value_type(lcReply._ident, lcReply._pItem));
-    _evictorList.push_front(lcReply._ident);
-    lcReply._pItem->_pos = _evictorList.begin();
-    lcReply._pItem->_orphan = false;
-
-    lcReply._pEvent->signal();
-    {
-        ZQ::common::MutexGuard g(_lockLocateQueue);
-        _lcQueue.pop();
-    }
 }
 }} // namespaces

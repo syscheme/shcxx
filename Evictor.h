@@ -209,6 +209,8 @@ protected:
 		ByteStream data;
 		int64 stampAsOf;
 		// ObjectStore* store;
+        _StreamedObject();
+        _StreamedObject(const _StreamedObject& other);
 	} StreamedObject;
 
 	typedef std::list < StreamedObject > StreamedList;

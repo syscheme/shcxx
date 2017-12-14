@@ -331,18 +331,9 @@ private:
 // -----------------------------
 // class RedisEvictor
 // -----------------------------
-class RedisEvictor : public ZQ::common::Evictor, public RedisSink
+class RedisEvictor : public ZQ::common::Evictor
 {
 public:
-    struct LocateReply
-    {
-        ZQ::common::Event::Ptr             _pEvent;
-        ZQ::common::Evictor::Item::Ptr     _pItem;
-        ZQ::common::Evictor::Ident         _ident;
-
-        LocateReply(){}
-    };
-
     RedisEvictor(ZQ::common::Log& log, RedisClient::Ptr client, const std::string& name, const ZQ::common::Evictor::Properties& props = Properties());
 	virtual ~RedisEvictor();
 
@@ -360,27 +351,15 @@ protected: // overwrite of Evictor
 public: // the child class inherited from this evictor should implement the folloing method
     //don't check exist. now StreamEngine only use add.
     virtual ZQ::common::Evictor::Item::Ptr add(const ZQ::common::Evictor::Item::ObjectPtr& obj, const ZQ::common::Evictor::Ident& ident);
-    
-    virtual ZQ::common::Evictor::Item::ObjectPtr locate(const ZQ::common::Evictor::Ident& ident);
-
 protected:
     virtual ZQ::common::Evictor::Item::Ptr pin(const ZQ::common::Evictor::Ident& ident, ZQ::common::Evictor::Item::Ptr item = NULL);
-
-	// marshal a servant object into a byte stream for saving to the object store
-	virtual bool marshal(const std::string& category, const ZQ::common::Evictor::Item::Data& data, ZQ::common::Evictor::ByteStream& streamedData) { return false; }
-
-	// unmarshal a servant object from the byte stream read from the object store
-	virtual bool unmarshal(const std::string& category, ZQ::common::Evictor::Item::Data& data, const ZQ::common::Evictor::ByteStream& streamedData) { return false; }
-
-protected:
-    virtual void OnRequestError(RedisClient& client, RedisCommand& cmd, RedisSink::Error errCode, const char* errDesc=NULL);
-    virtual void OnReply(RedisClient& client, RedisCommand& cmd, Data& data);
 protected:
 	RedisClient::Ptr                _client;
 	size_t                          _maxValueLen;
     uint8*                          _recvBuf;       //$ only single string;
+    ZQ::common::Mutex               _lockBuf;
 
-    std::queue<LocateReply>         _lcQueue;
+    std::map<std::string, RedisCommand::Ptr>         _lcQueue;
     ZQ::common::Mutex               _lockLocateQueue;
 };
 
