@@ -417,7 +417,7 @@ void LIPCService::doAccept(ZQ::eloop::Handle::ElpeError status)
 class ClientConn : public UnixSocket
 {
 public:
-	ClientConn(ZQ::common::Log& log, LIPCClient& client):UnixSocket(log), _client(client){}
+	ClientConn(ZQ::common::LogWrapper& log, LIPCClient& client):UnixSocket(log), _client(client){}
 
 	virtual void OnConnected(ElpeError status) { _client.OnConnected(status);	}
 	virtual void OnWrote(int status)  {	_client.OnWrote(status);	}

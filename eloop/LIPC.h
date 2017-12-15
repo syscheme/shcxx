@@ -202,8 +202,8 @@ public:
 	void UnInit();
 
 protected:
-	ZQ::common::Log& _log;
-//	ZQ::common::LogWrapper _log;
+//	ZQ::common::Log& _log;
+	ZQ::common::LogWrapper _log;
 	static uint32 _verboseFlags;
 
 	void addConn(PassiveConn* conn);
@@ -276,8 +276,8 @@ protected: // redirect from UnixSocket
 
 protected: // impl of ZQ::eloop::Timer
 
-	ZQ::common::Log& _log;
-//	ZQ::common::LogWrapper _log;
+//	ZQ::common::Log& _log;
+	ZQ::common::LogWrapper _log;
 	static uint32 _verboseFlags;
 
 	virtual void OnTimer();
