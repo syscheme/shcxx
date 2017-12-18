@@ -38,7 +38,7 @@ public:
 	///@param Pool : thread pool size
 	///@param strBindAddr : local address bind with this service, default is 0.0.0.0 which mean any valid address
 	///@param sBindPort : local port bind with this service, default is 1230
-	NTPServer(ZQ::common::Log* log, const InetAddress &bind, tpport_t sport =123);
+	NTPServer(ZQ::common::Log& log, const InetAddress &bind, tpport_t sport =123);
 	virtual ~NTPServer();
 
 	// NTP timestamps are represented as a 64-bit fixed-point number, in seconds relative to 0000 UT
@@ -83,8 +83,9 @@ protected:
 	/// accept ntp request and send ntp reply
 	///@return the return value will also be passed as the thread exit code
 	virtual int run();
+
+	ZQ::common::Log& _log;
 public:
-	ZQ::common::Log *_log;
 	bool _bQuit;
 
 };
@@ -100,7 +101,7 @@ public:
 	/// to it. On failure to bind, an exception is thrown.
 	/// @param bind address to bind this socket to.
 	/// @param port number to bind this socket to.
-	NTPClient(ZQ::common::Log* log, const InetAddress &bind, tpport_t bindport=DEFAULT_PORT_NTP,int32 timeout=5000,int version=3);
+	NTPClient(ZQ::common::Log& log, const InetAddress &bind, tpport_t bindport=DEFAULT_PORT_NTP,int32 timeout=5000,int version=3);
 
 	/// destructor
 	virtual ~NTPClient();
@@ -131,6 +132,10 @@ public:
 
 protected: // member variables
 
+	ZQ::common::Log& _log;
+	InetAddress  _serveAddress;
+	int  _serverPort;
+
 	int   _version;
 	int32 _timeout;
 
@@ -156,10 +161,7 @@ public: // public utility funcs of Txn computing
 	//int64 readReturnTime(){return _T4;}
       //set the time of local machine
 	//void adjustClientClock(int64 nOffset);
-private:
-	ZQ::common::Log *_log;
-	InetAddress  _serveAddress;
-      int  _serverPort;
+
 };
 /* sample use
 NTPClient client(logger, localIP);

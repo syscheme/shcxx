@@ -1,18 +1,17 @@
-
 #include "NTP.h"
 namespace ZQ {
 	namespace common {
 // -----------------------------
 // class NTPServer
 // -----------------------------
-NTPServer::NTPServer(ZQ::common::Log* log, const InetAddress &bind, tpport_t sport /* =123 */)
+NTPServer::NTPServer(ZQ::common::Log& log, const InetAddress &bind, tpport_t sport /* =123 */)
 	:_log(log),_bQuit(false),UDPReceive(bind,sport)
 {
-	(*_log)(ZQ::common::Log::L_INFO,CLOGFMT(NTPServer, "NTPServer() start NTP Server..."));
+	_log(ZQ::common::Log::L_INFO,CLOGFMT(NTPServer, "NTPServer() start NTP Server..."));
 }
 NTPServer::~NTPServer()
 {
-	(*_log)(ZQ::common::Log::L_INFO,CLOGFMT(NTPServer, "~NTPServer() Quiting NTP Server..."));
+	_log(ZQ::common::Log::L_INFO,CLOGFMT(NTPServer, "~NTPServer() Quiting NTP Server..."));
 }
 void NTPServer::stop()
 {
@@ -22,7 +21,7 @@ int NTPServer::run()
 {
   if(INVALID_SOCKET == get())
   {
-	(*_log)(ZQ::common::Log::L_INFO,CLOGFMT(NTPServer, "NTPServer() Fail to start NTP Server..."));
+	_log(ZQ::common::Log::L_INFO,CLOGFMT(NTPServer, "NTPServer() Fail to start NTP Server..."));
 	_bQuit=true;
   }
   while(!_bQuit)
@@ -41,12 +40,12 @@ int NTPServer::run()
 #ifdef ZQ_OS_MSWIN
 		if (SOCKET_ERROR == nReceive )
 		{
-			(*_log)(ZQ::common::Log::L_ERROR,CLOGFMT(NTPServer,"run() receiveFrom client error"));
+			_log(ZQ::common::Log::L_ERROR,CLOGFMT(NTPServer,"run() receiveFrom client error"));
 		}
 #else
 		if (nReceive < 0)
 		{
-			(*_log)(ZQ::common::Log::L_ERROR,CLOGFMT(NTPServer,"run() receiveFrom client error"));
+			_log(ZQ::common::Log::L_ERROR,CLOGFMT(NTPServer,"run() receiveFrom client error"));
 		}
 #endif
 		continue;
@@ -73,17 +72,17 @@ int NTPServer::run()
 		{
 			break;
 		}
-		(*_log)(Log::L_ERROR, CLOGFMT(NTPServer, "run() Fail to send ntp reply to address [%s] at port [%d]"),cAddress.getLocalAddress(),cPort);
+		_log(Log::L_ERROR, CLOGFMT(NTPServer, "run() Fail to send ntp reply to address [%s] at port [%d]"),cAddress.getLocalAddress(),cPort);
 		continue;
 	}
-	(*_log)(Log::L_INFO, CLOGFMT(NTPServer, "run() Success to send ntp reply to address [%s] at port [%d]"),cAddress.getHostAddress(),cPort);
+	_log(Log::L_INFO, CLOGFMT(NTPServer, "run() Success to send ntp reply to address [%s] at port [%d]"),cAddress.getHostAddress(),cPort);
   }
   return 0;
 }
 // -----------------------------
 // class NTPClient
 // -----------------------------
-NTPClient::NTPClient(ZQ::common::Log* log, const InetAddress &bind, tpport_t bindport/* =DEFAULT_PORT_NTP */,int32 timeout/*=5000*/,int version/*=3*/)
+NTPClient::NTPClient(ZQ::common::Log& log, const InetAddress &bind, tpport_t bindport/* =DEFAULT_PORT_NTP */,int32 timeout/*=5000*/,int version/*=3*/)
 :_log(log),_serveAddress(bind),_serverPort(bindport),_timeout(timeout),_version(version)
 {
 }
@@ -105,18 +104,18 @@ int64 NTPClient::getServerTime(Txn& txn, const InetAddress server, int port/*=DE
 	int nSend = send(&_ntpClientPacket,sizeof(_ntpClientPacket));
 	if (nSend != sizeof(_ntpClientPacket))
 	{
-		(*_log)(ZQ::common::Log::L_ERROR,CLOGFMT(NTPClient, "getServerTime() send the data error"));
+		_log(ZQ::common::Log::L_ERROR,CLOGFMT(NTPClient, "getServerTime() send the data error"));
 		return -1;
 	}
 	int nReceive = receiveTimeout(&_ntpClientPacket,sizeof(_ntpClientPacket),_timeout);
 	if (nReceive != sizeof(_ntpClientPacket))
 	{
-		(*_log)(ZQ::common::Log::L_ERROR,CLOGFMT(NTPClient, "getServerTime() receive the data error [%d]"),nReceive);
+		_log(ZQ::common::Log::L_ERROR,CLOGFMT(NTPClient, "getServerTime() receive the data error [%d]"),nReceive);
 		return -1;
 	}
 	if (checkPacketError(_ntpClientPacket))
 	{
-		(*_log)(ZQ::common::Log::L_ERROR,CLOGFMT(NTPClient, "getServerTime() receive the data error"));
+		_log(ZQ::common::Log::L_ERROR,CLOGFMT(NTPClient, "getServerTime() receive the data error"));
 		//_T1=_T2=_T3=_T4=0;
 		return -1;
 	}
