@@ -530,7 +530,17 @@ void LIPCClient::OnCloseTimer()
 	_timer = NULL;
 
 	if (_conn == NULL)
+	{
+		{
+			ZQ::common::MutexGuard g(_lkAwaits);
+			for (AwaitRequestMap::iterator itW = _awaits.begin(); itW != _awaits.end();)
+			{
+				OnRequestDone(itW->first, LIPCMessage::LIPC_CLIENT_CLOSED);
+				_awaits.erase(itW++);
+			}
+		} // end of _lkAwaits
 		OnClose();
+	}
 }
 
 
@@ -539,13 +549,22 @@ void LIPCClient::OnCloseConn()
 	if (_conn != NULL)
 		delete _conn;
 	_conn = NULL;
-	_awaits.clear();
 	_isConn = false;
 
 	if (!_reconnect)
 	{
 		if (_timer == NULL)
+		{
+			{
+				ZQ::common::MutexGuard g(_lkAwaits);
+				for (AwaitRequestMap::iterator itW = _awaits.begin(); itW != _awaits.end();)
+				{
+					OnRequestDone(itW->first, LIPCMessage::LIPC_CLIENT_CLOSED);
+					_awaits.erase(itW++);
+				}
+			} // end of _lkAwaits
 			OnClose();
+		}
 		return;
 	}
 
