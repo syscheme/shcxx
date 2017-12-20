@@ -1447,6 +1447,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\NTP.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\Pointer.cpp"
 				>
 			</File>
@@ -2701,6 +2705,10 @@
 			</File>
 			<File
 				RelativePath="..\NativeThreadPool.h"
+				>
+			</File>
+			<File
+				RelativePath="..\NTP.h"
 				>
 			</File>
 			<File
