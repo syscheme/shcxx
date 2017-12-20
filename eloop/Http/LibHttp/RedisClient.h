@@ -165,7 +165,6 @@ protected:
 // -----------------------------
 class RedisCommand : public RedisSink
 {
-    friend class RedisEvictor;
 public:
 	typedef ZQ::common::Pointer < RedisCommand > Ptr;
 	virtual ~RedisCommand() {}
@@ -177,6 +176,7 @@ protected:
 	friend class RedisClient;
 	friend class RequestErrCmd;
 	friend class ReplyDispatcher;
+    friend class RedisEvictor;
 
 	RedisCommand(RedisClient& client, const std::string& cmdstr, char replyType, RedisSink::Ptr cbRedirect=NULL);
 
@@ -331,7 +331,7 @@ private:
 // -----------------------------
 // class RedisEvictor
 // -----------------------------
-class RedisEvictor : public ZQ::common::Evictor
+class RedisEvictor : public ZQ::common::Evictor, public ZQ::eloop::Async
 {
 public:
     RedisEvictor(ZQ::common::Log& log, RedisClient::Ptr client, const std::string& name, const ZQ::common::Evictor::Properties& props = Properties());
@@ -348,6 +348,7 @@ protected: // overwrite of Evictor
 	//@ return IOError, NotFound, OK
 	Evictor::Error loadFromStore(const std::string& key, ZQ::common::Evictor::StreamedObject& data);
 
+    virtual void OnAsync();
 public: // the child class inherited from this evictor should implement the folloing method
     //don't check exist. now StreamEngine only use add.
     virtual ZQ::common::Evictor::Item::Ptr add(const ZQ::common::Evictor::Item::ObjectPtr& obj, const ZQ::common::Evictor::Ident& ident);
@@ -359,7 +360,7 @@ protected:
     uint8*                          _recvBuf;       //$ only single string;
     ZQ::common::Mutex               _lockBuf;
 
-    std::map<std::string, RedisCommand::Ptr>         _lcQueue;
+    std::queue<RedisCommand::Ptr>   _cmdQueue;
     ZQ::common::Mutex               _lockLocateQueue;
 };
 

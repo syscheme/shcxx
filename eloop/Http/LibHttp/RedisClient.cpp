@@ -1152,21 +1152,13 @@ Evictor::Error RedisEvictor::loadFromStore(const std::string& key, StreamedObjec
     if (!_client)
         return Evictor::eeConnectErr;
 
-    RedisCommand::Ptr pCmd;
-    bool bSend = false;
+    std::string cmdstr = std::string("GET ") + key;
+    ZQ::eloop::RedisCommand::Ptr pCmd = new ZQ::eloop::RedisCommand(*_client, cmdstr, REDIS_LEADINGCH_BULK);
     {
         ZQ::common::MutexGuard g(_lockLocateQueue);
-        std::map<std::string, RedisCommand::Ptr>::iterator iter = _lcQueue.find(key);
-        if (iter != _lcQueue.end() && iter->second != NULL)
-        {
-            pCmd = iter->second;
-        }
-        else
-        {
-            pCmd = _client->sendGET(key.c_str());
-            _lcQueue.insert(std::make_pair<std::string, RedisCommand::Ptr>(key, pCmd));
-        }
+        _cmdQueue.push(pCmd);
     }
+    send();
     if (!pCmd) 
         return (_lastErr = Evictor::eeConnectErr);
     if (!pCmd->wait(DEFAULT_CLIENT_TIMEOUT)) 
@@ -1175,15 +1167,6 @@ Evictor::Error RedisEvictor::loadFromStore(const std::string& key, StreamedObjec
         return (_lastErr = Evictor::eeConnectErr); 
     else 
         _lastErr = Evictor::eeOK;
-    
-    {
-        ZQ::common::MutexGuard g(_lockLocateQueue);
-        std::map<std::string, RedisCommand::Ptr>::iterator iter = _lcQueue.find(key);
-        if (iter != _lcQueue.end())
-        {
-            _lcQueue.erase(iter);
-        }
-    }
 
     uint vlen = 0;
     if (pCmd->_replyCtx.data.bulks.size() <=0)
@@ -1199,6 +1182,14 @@ Evictor::Error RedisEvictor::loadFromStore(const std::string& key, StreamedObjec
     data.stampAsOf = ZQ::common::now();
 
     return Evictor::eeOK;
+}
+
+void RedisEvictor::OnAsync()
+{
+    ZQ::common::MutexGuard g(_lockLocateQueue);
+    RedisCommand::Ptr pCmd = _cmdQueue.front();
+    _client->sendCommand(pCmd);
+    _cmdQueue.pop();
 }
 
 ZQ::common::Evictor::Item::Ptr RedisEvictor::add( const ZQ::common::Evictor::Item::ObjectPtr& obj, const ZQ::common::Evictor::Ident& ident )
