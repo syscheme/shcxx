@@ -17,62 +17,76 @@ namespace eloop {
 class HttpServer;
 class HttpPassiveConn;
 class ServantThread;
+
 // ---------------------------------------
 // interface HttpHandler
 // ---------------------------------------
 class HttpHandler: public IHttpParseSink, public virtual ZQ::common::SharedObject
 {
 	friend class HttpPassiveConn;
+	friend class IBaseApplication;
+
 public:
 	typedef std::map<std::string, std::string> Properties;
 	typedef ZQ::common::Pointer<HttpHandler> Ptr;
-	virtual ~HttpHandler() { }
+	virtual ~HttpHandler() {}
+
+	// ---------------------------------------
+	// interface IBaseApplication
+	// ---------------------------------------
+	// present an HTTP application that respond a URI mount
+	// the major funcation of the application is to instantiaze a HttpHandler
+	class IBaseApplication : public ZQ::common::SharedObject
+	{
+	public:
+		IBaseApplication(ZQ::common::Log& logger, const HttpHandler::Properties& appProps = HttpHandler::Properties())
+			: _log(logger), _appProps(appProps)
+		{}
+
+		virtual ~IBaseApplication() {}
+
+		HttpHandler::Properties getProps() const { return _appProps; }
+		ZQ::common::Log& log() { return _log; }
+
+		// NOTE: this method may be accessed by multi threads concurrently
+		virtual HttpHandler::Ptr create(HttpPassiveConn& conn) =0;
+
+	protected:
+		HttpHandler::Properties _appProps;
+		ZQ::common::Log&        _log;
+	};
+
+	typedef ZQ::common::Pointer<IBaseApplication> AppPtr;
+
 
 protected: // hatched by HttpApplication
-	HttpHandler(HttpPassiveConn& conn,ZQ::common::Log& logger, const Properties& dirProps, const Properties& appProps)
-		: _conn(conn),_Logger(logger),_dirProps(dirProps), _appProps(appProps) {}
-	virtual void	onHttpDataSent(size_t size){}
+	HttpHandler(IBaseApplication& app, HttpPassiveConn& conn)
+		: _conn(conn), _app(app)
+	{}
 
+	virtual void	onHttpDataSent(size_t size){}
 	virtual void	onHttpDataReceived( size_t size ){}
 
 	HttpPassiveConn& _conn;
-	Properties _dirProps, _appProps;
-	ZQ::common::Log&			_Logger;
-};
-
-// ---------------------------------------
-// class HttpBaseApplication
-// ---------------------------------------
-// present an HTTP application that respond a URI mount
-// the major funcation of the application is to instantiaze a HttpHandler
-class HttpBaseApplication : public ZQ::common::SharedObject
-{
-public:
-	typedef ZQ::common::Pointer<HttpBaseApplication> Ptr;
-public:
-	HttpBaseApplication(const HttpHandler::Properties& appProps = HttpHandler::Properties()): _appProps(appProps) {}
-	virtual ~HttpBaseApplication() {}
-	// NOTE: this method may be accessed by multi threads concurrently
-	virtual HttpHandler::Ptr create( HttpPassiveConn& conn,ZQ::common::Log& logger,const HttpHandler::Properties& dirProps) { return NULL; }		
-protected:
-	HttpHandler::Properties _appProps;
+	IBaseApplication& _app;
 };
 
 template <class Handler>
-class HttpApplication: public HttpBaseApplication
+class HttpApplication: public HttpHandler::IBaseApplication
 {
 public:
 	typedef ZQ::common::Pointer<HttpApplication> Ptr;
 	typedef Handler HandlerT;
 
 public:
-	HttpApplication(const HttpHandler::Properties& appProps = HttpHandler::Properties()): _appProps(appProps) {}
+	HttpApplication(ZQ::common::Log& logger, const HttpHandler::Properties& appProps = HttpHandler::Properties())
+		: IBaseApplication(logger, appProps) {}
 	virtual ~HttpApplication() {}
 
-	virtual HttpHandler::Ptr create( HttpPassiveConn& conn,ZQ::common::Log& logger, const HttpHandler::Properties& dirProps) { return new HandlerT(conn,logger,dirProps, _appProps);}
-
-protected:
-	HttpHandler::Properties _appProps;
+	virtual HttpHandler::Ptr create(HttpPassiveConn& conn)
+	{ 
+		return new HandlerT(*this, conn);
+	}
 };
 
 
@@ -82,9 +96,9 @@ protected:
 class HttpMonitorTimer:public Timer
 {
 public:
-//	~HttpMonitorTimer(){printf("~HttpMonitorTimer\n");}
+	//	~HttpMonitorTimer(){printf("~HttpMonitorTimer\n");}
 	virtual void OnTimer();
-//	virtual void OnClose(){printf("HttpMonitorTimer onclose!\n");}
+	//	virtual void OnClose(){printf("HttpMonitorTimer onclose!\n");}
 };
 
 
@@ -190,7 +204,7 @@ public:
 	// register an application to uri
 	//@param uriEx - the regular expression of uri
 
-	bool mount(const std::string& uriEx, HttpBaseApplication::Ptr app, const HttpHandler::Properties& props=HttpHandler::Properties(), const char* virtualSite =DEFAULT_SITE);
+	bool mount(const std::string& uriEx, HttpHandler::AppPtr app, const HttpHandler::Properties& props=HttpHandler::Properties(), const char* virtualSite =DEFAULT_SITE);
 
 	HttpHandler::Ptr createHandler( const std::string& uri, HttpPassiveConn& conn, const std::string& virtualSite = std::string(DEFAULT_SITE));
 
@@ -212,7 +226,7 @@ private:
 	{
 		std::string					uriEx;
 		boost::regex				re;
-		HttpBaseApplication::Ptr	app;
+		HttpHandler::AppPtr	app;
 		HttpHandler::Properties     props;
 	} MountDir;
 
