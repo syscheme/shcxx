@@ -49,7 +49,7 @@ public:
 		ZQ::common::Log& log() { return _log; }
 
 		// NOTE: this method may be accessed by multi threads concurrently
-		virtual HttpHandler::Ptr create(HttpPassiveConn& conn) =0;
+		virtual HttpHandler::Ptr create(HttpPassiveConn& conn, const HttpHandler::Properties& dirProps) =0;
 
 	protected:
 		HttpHandler::Properties _appProps;
@@ -60,8 +60,8 @@ public:
 
 
 protected: // hatched by HttpApplication
-	HttpHandler(IBaseApplication& app, HttpPassiveConn& conn)
-		: _conn(conn), _app(app)
+	HttpHandler(IBaseApplication& app, HttpPassiveConn& conn, const HttpHandler::Properties& dirProps = HttpHandler::Properties())
+		: _conn(conn), _app(app), _dirProps(dirProps)
 	{}
 
 	virtual void	onHttpDataSent(size_t size){}
@@ -69,6 +69,7 @@ protected: // hatched by HttpApplication
 
 	HttpPassiveConn& _conn;
 	IBaseApplication& _app;
+	HttpHandler::Properties _dirProps;
 };
 
 template <class Handler>
@@ -83,9 +84,9 @@ public:
 		: IBaseApplication(logger, appProps) {}
 	virtual ~HttpApplication() {}
 
-	virtual HttpHandler::Ptr create(HttpPassiveConn& conn)
+	virtual HttpHandler::Ptr create(HttpPassiveConn& conn, const HttpHandler::Properties& dirProps)
 	{ 
-		return new HandlerT(*this, conn);
+		return new HandlerT(*this, conn, dirProps);
 	}
 };
 
