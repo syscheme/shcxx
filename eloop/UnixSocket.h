@@ -26,7 +26,7 @@ public:
 
 public:
 
-	UnixSocket(ZQ::common::Log& log):_lipcLog(log),_async(NULL)
+	UnixSocket(ZQ::common::LogWrapper& log):_lipcLog(log),_async(NULL)
 	{
 		#ifdef ZQ_OS_LINUX
 				//Ignore SIGPIPE signal
@@ -40,7 +40,7 @@ public:
 	virtual void OnRead(ssize_t nread, const char *buf);
 
 	// called after buffer has been written into the stream
-	virtual void OnWrote(int status) {}
+	virtual void OnWrote(int status);
 
 	virtual void onError( int error,const char* errorDescription ){}
 	
@@ -57,7 +57,8 @@ public:
 	int AsyncSend(const std::string& msg, int fd = -1);
 
 //protected:
-	ZQ::common::Log& _lipcLog;
+//	ZQ::common::Log& _lipcLog;
+	ZQ::common::LogWrapper& _lipcLog;
 
 private:
 	std::string		_buf;

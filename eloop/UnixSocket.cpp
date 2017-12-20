@@ -57,35 +57,52 @@ void UnixSocket::OnRead(ssize_t nread, const char *buf)
 	processMessage(nread,buf);
 }
 
+void UnixSocket::OnWrote(int status)
+{
+	ZQ::common::MutexGuard gd(_lkSendMsgList);
+	if(!_SendMsgList.empty())
+	{
+		AsyncMessage asyncMsg;
+		asyncMsg = _SendMsgList.front();
+		_SendMsgList.pop_front();
+
+		send(asyncMsg.msg, asyncMsg.fd);
+	}
+}
+
 int UnixSocket::AsyncSend(const std::string& msg, int fd)
 {
 	AsyncMessage asyncMsg;
 	asyncMsg.msg = msg;
 	asyncMsg.fd = fd;
 
+	bool bsend = true;
+
 	{
 		ZQ::common::MutexGuard gd(_lkSendMsgList);
+		if (_SendMsgList.empty())
+			bsend = false;
 		_SendMsgList.push_back(asyncMsg);
 	}
 
-	return _async->send();
+	int ret = 0;
+	if (!bsend)
+		ret = _async->send();
+	return ret;
 }
 
 void UnixSocket::OnAsyncSend()
 {
-// 	int i = 10;
-// 	while (!_SendMsgList.empty() && i>0)
-	while (!_SendMsgList.empty())
+ 	int i = 3;
+	ZQ::common::MutexGuard gd(_lkSendMsgList);
+ 	while (!_SendMsgList.empty() && i>0)
 	{
 		AsyncMessage asyncMsg;
-		{
-			ZQ::common::MutexGuard gd(_lkSendMsgList);
-			asyncMsg = _SendMsgList.front();
-			_SendMsgList.pop_front();
-		}
+		asyncMsg = _SendMsgList.front();
+		_SendMsgList.pop_front();
 
 		send(asyncMsg.msg, asyncMsg.fd);
-//		i--;
+		i--;
 	}
 }
 

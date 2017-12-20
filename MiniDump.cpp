@@ -91,6 +91,7 @@
 #include <sys/resource.h>
 #endif
 
+#ifdef ZQ_OS_LINUX
 static void  terminate(int signal, siginfo_t* info, void* data) 
 {
 	//sem_post(stopEvent);
@@ -118,6 +119,7 @@ static void  coredump(int signal, siginfo_t* info, void* data) {
 	sigaction(signal, &act, 0);
 	raise(signal);
 }
+#endif
 
 
 namespace ZQ {

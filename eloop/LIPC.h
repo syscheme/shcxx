@@ -66,6 +66,7 @@ public:
 
 		LIPC_CLIENT_ERROR     = 400, 
 		LIPC_NOT_FOUND        = 404, 
+		LIPC_CLIENT_CLOSED	  = 405,
 		LIPC_REQUEST_TIMEOUT  = 408, 
 		LIPC_REQUEST_CONFLICT = 409, 
 		LIPC_SERVER_ERROR     = 500, 
@@ -202,8 +203,8 @@ public:
 	void UnInit();
 
 protected:
-	ZQ::common::Log& _log;
-//	ZQ::common::LogWrapper _log;
+//	ZQ::common::Log& _log;
+	ZQ::common::LogWrapper _log;
 	static uint32 _verboseFlags;
 
 	void addConn(PassiveConn* conn);
@@ -276,8 +277,8 @@ protected: // redirect from UnixSocket
 
 protected: // impl of ZQ::eloop::Timer
 
-	ZQ::common::Log& _log;
-//	ZQ::common::LogWrapper _log;
+//	ZQ::common::Log& _log;
+	ZQ::common::LogWrapper _log;
 	static uint32 _verboseFlags;
 
 	virtual void OnTimer();
