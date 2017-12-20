@@ -360,7 +360,7 @@ HttpHandler::Ptr HttpServer::createHandler(const std::string& uri, HttpPassiveCo
 		if(boost::regex_match(uriWithnoParams, it->re))
 		{
 			if (it->app)
-				handler = it->app->create(conn,_Logger,it->props);
+				handler = it->app->create(conn, it->props);
 			break;
 		}
 	}
