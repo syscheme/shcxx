@@ -82,16 +82,18 @@ public:
 // --------------------------------------------------
 // class ServerAgent
 // --------------------------------------------------
-ServerAgent::ServerAgent(HttpPassiveConn& conn,ZQ::common::Log& logger,const Properties& dirProps, const Properties& appProps)
-:HttpHandler(conn,logger,dirProps, appProps)
+ServerAgent::ServerAgent(IBaseApplication& app, HttpPassiveConn& conn, const HttpHandler::Properties& dirProps)
+:HttpHandler(app, conn, dirProps)
 {
-	_ag = ZQSnmpSingleton::getInstance(logger); 
+	_ag = ZQSnmpSingleton::getInstance(_app.log()); 
 }
 
 ServerAgent::~ServerAgent()
 {	
 
 }
+
+#define _Logger (_app.log())
 
 bool ServerAgent::onHeadersEnd( const HttpMessage::Ptr msg)
 {
@@ -108,7 +110,7 @@ bool ServerAgent::onHeadersEnd( const HttpMessage::Ptr msg)
 	if (sscanf(msg->url().c_str(), "/%[^/]/%[^/]/%d/%[^?]?%s", svar, svcType, &instId, varname,params) >=4)
 	{
 
-		if (_ag->getJSON_async(new SvarQueryCB(*_ag, _conn,_Logger),svcType, varname, instId) <=0)
+		if (_ag->getJSON_async(new SvarQueryCB(*_ag, _conn, _Logger),svcType, varname, instId) <=0)
 		{	
 			_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(ServerAgent, "onHeadersEnd get Json failed [%s]"),body.c_str());
 			int code = 200;
@@ -136,9 +138,10 @@ bool ServerAgent::onHeadersEnd( const HttpMessage::Ptr msg)
 // --------------------------------------------------
 // class LoadFile
 // --------------------------------------------------
-LoadFile::LoadFile(HttpPassiveConn& conn,ZQ::common::Log& logger,const Properties& dirProps, const Properties& appProps)
-:HttpHandler(conn,logger,dirProps, appProps),_curfile(NULL)
+LoadFile::LoadFile(IBaseApplication& app, HttpPassiveConn& conn, const HttpHandler::Properties& dirProps)
+: HttpHandler(app, conn, dirProps),_curfile(NULL)
 {
+	Properties appProps = _app.getProps();
 	Properties::const_iterator it = appProps.find("homedir");
 	if( it != appProps.end()){
 		_homedir = it->second;
@@ -273,8 +276,8 @@ void LoadFile::onHttpDataSent(size_t size)
 	memset(_buf,'\0',MAXLENGTH);
 	if(_curfile == NULL)
 		return;
-	int ret = fread(_buf,1,MAXLENGTH,_curfile);
-	if(ret > 0){
+	size_t ret = fread(_buf,1,MAXLENGTH,_curfile);
+	if (ret > 0){
 		_conn.write(_buf,ret);
 		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(ServerAgent, "send data [%d][%s]"),ret,_buf);
 	}
