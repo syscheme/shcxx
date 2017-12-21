@@ -1025,8 +1025,8 @@ RedisSink::Error RedisClient::KEYS(const std::string& pattern, StringList& keys)
 }
 
 #define ident_cstr(IDENT) Evictor::identToStr(IDENT).c_str()
-RedisEvictor::RedisEvictor(Log& log, RedisClient::Ptr client, const std::string& name, const Properties& props)
-: _client(client), Evictor(log, name, props), _maxValueLen(REDIS_RECV_BUF_SIZE)
+RedisEvictor::RedisEvictor(Sink* cbPtr, Log& log, RedisClient::Ptr client, const std::string& name, const Properties& props)
+: _cbPtr(cbPtr), _client(client), Evictor(log, name, props), _maxValueLen(REDIS_RECV_BUF_SIZE)
 { 
     _recvBuf = new uint8[_maxValueLen];
 }
@@ -1190,6 +1190,14 @@ void RedisEvictor::OnAsync()
     RedisCommand::Ptr pCmd = _cmdQueue.front();
     _client->sendCommand(pCmd);
     _cmdQueue.pop();
+}
+
+void RedisEvictor::OnClose()
+{
+    if (_cbPtr)
+    {
+        _cbPtr->OnClose();
+    }
 }
 
 ZQ::common::Evictor::Item::Ptr RedisEvictor::add( const ZQ::common::Evictor::Item::ObjectPtr& obj, const ZQ::common::Evictor::Ident& ident )

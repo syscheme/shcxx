@@ -334,11 +334,16 @@ private:
 class RedisEvictor : public ZQ::common::Evictor, public ZQ::eloop::Async
 {
 public:
-    RedisEvictor(ZQ::common::Log& log, RedisClient::Ptr client, const std::string& name, const ZQ::common::Evictor::Properties& props = Properties());
+    class ZQ_COMMON_API Sink
+    {
+    public:
+        virtual void OnClose() = 0;
+    };
+
+    RedisEvictor(Sink* cbPtr, ZQ::common::Log& log, RedisClient::Ptr client, const std::string& name, const ZQ::common::Evictor::Properties& props = Properties());
 	virtual ~RedisEvictor();
 
-	RedisClient::Ptr getClient() { return _client; }
-
+	RedisClient::Ptr getClient() { return _client; }    
 protected: // overwrite of Evictor
 
 	// save a batch of streamed object to the target object store
@@ -349,6 +354,7 @@ protected: // overwrite of Evictor
 	Evictor::Error loadFromStore(const std::string& key, ZQ::common::Evictor::StreamedObject& data);
 
     virtual void OnAsync();
+    virtual void OnClose();
 public: // the child class inherited from this evictor should implement the folloing method
     //don't check exist. now StreamEngine only use add.
     virtual ZQ::common::Evictor::Item::Ptr add(const ZQ::common::Evictor::Item::ObjectPtr& obj, const ZQ::common::Evictor::Ident& ident);
@@ -362,6 +368,8 @@ protected:
 
     std::queue<RedisCommand::Ptr>   _cmdQueue;
     ZQ::common::Mutex               _lockLocateQueue;
+
+    Sink*                           _cbPtr;
 };
 
 }}//endof namespace
