@@ -438,7 +438,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\jsoncpp.cpp"
+				RelativePath=".\json\jsoncpp.cpp"
 				>
 			</File>
 			<File
