@@ -6,6 +6,8 @@ SOLIB	:= eloop
 
 OBJS	:= eloop.os eloop_net.os eloop_lock.os eloop_file.os eloop_threadpool.os LIPC.os UnixSocket.os jsoncpp.os
 
+VPATH += ./json
+
 INCDIR += . .. $(_uv_dir)/include
 
 LINKDIR += $(_uv_dir)/lib64
