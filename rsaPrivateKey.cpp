@@ -1,5 +1,6 @@
 #include "FingerPrint.h"
-std::string ZQ::common::LicenseGenerater::_privateKeyXOR = "-----BEGIN RSA PRIVATE KEY-----\n\
+std::string ZQ::common::LicenseGenerater::_privateKeyXOR =
+"-----BEGIN RSA PRIVATE KEY-----\n\
 Proc-Type: 4,ENCRYPTED\n\
 DEK-Info: DES-CFB,B34DDFF025209143\n\
 \n\

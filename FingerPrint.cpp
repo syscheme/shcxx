@@ -32,12 +32,10 @@ std::string MachineFingerPrint::_publicKeyXOR = publicKey;
 MachineFingerPrint::MachineFingerPrint(ZQ::common::Log& log)
 	:_log(log)
 {
-
 }
 
 MachineFingerPrint::~MachineFingerPrint()
 {
-
 }
 
 std::string MachineFingerPrint::getFingerPrint()
@@ -105,7 +103,7 @@ std::string MachineFingerPrint::loadLicense(const std::string& license)
 			return "";
 		}
 	}
-	//
+
 	if (systemValue.isMember("OS"))
 	{
 		Json::Value osValue = systemValue["OS"];
@@ -116,6 +114,7 @@ std::string MachineFingerPrint::loadLicense(const std::string& license)
 			return "";
 		}
 	}
+
 	//the cpu info
 	if (systemValue.isMember("CPU"))
 	{
@@ -133,6 +132,7 @@ std::string MachineFingerPrint::loadLicense(const std::string& license)
 			}
 		}
 	}
+
 	//the nic inof
 	if (systemValue.isMember("NIC"))
 	{
@@ -149,6 +149,7 @@ std::string MachineFingerPrint::loadLicense(const std::string& license)
 			}
 		}
 	}
+
 	//the disk info
 	if (systemValue.isMember("DISK"))
 	{
@@ -269,6 +270,7 @@ std::string MachineFingerPrint::encrypt(const std::string& machineData, const st
 		pos += nLen;
 		int ret = RSA_public_encrypt(nLen,(const unsigned char*)buffer,  
 			(unsigned char *)pEncode,rsaK,RSA_PKCS1_PADDING);
+
 		if(ret != nRsaSize)
 		{
 			delete[] pEncode;
@@ -278,6 +280,7 @@ std::string MachineFingerPrint::encrypt(const std::string& machineData, const st
 			MOLOG(Log::L_ERROR,CLOGFMT(MachineFingerPrint,"encrypt() encrypt the data[%s] failed."), machineData.c_str());
 			return "";
 		}
+
 		std::string result;
 		result.assign(pEncode,ret);
 		encryptedData.append(result);
@@ -294,6 +297,7 @@ std::string MachineFingerPrint::encrypt(const std::string& machineData, const st
 	MOLOG(Log::L_INFO,CLOGFMT(MachineFingerPrint,"encrypt() encrypt the data successful"));
 	return encryptedData;
 }
+
 std::string MachineFingerPrint::decrypt(const std::string& licenseData, const std::string& publicKey)
 {
 	std::string decryptedData;
@@ -415,7 +419,8 @@ std::string LicenseGenerater::issue(const std::string& licenseeFingerPrint, cons
 
 		for (int i = 0; i < cpuSchemaValue.size(); i++)
 		{
-			try{
+			try
+			{
 				int cPos = cpuSchemaValue[i].asInt();
 				if(cPos < cpuValue.size())
 				{
@@ -444,9 +449,10 @@ std::string LicenseGenerater::issue(const std::string& licenseeFingerPrint, cons
 		Json::Value nicValue;
 		if (machineValue.isMember("NIC"))
 			nicValue = machineValue["NIC"];
+
 		for (int i = 0; i< nicSchemaValue.size(); i++)
 		{
-			try{
+			try {
 				int nPos = nicSchemaValue[i].asInt();
 				if (nPos < nicValue.size())
 				{
@@ -750,7 +756,7 @@ bool LicenseGenerater::generateKey()
 {
 	RSA*  rsa = RSA_generate_key(1024, RSA_F4, NULL, NULL);
 	char buffer[2048];
-	memset(buffer,'\0',2048);
+	memset(buffer,'\0', 2048);
 	BIO *bp = BIO_new( BIO_s_mem());  
 	PEM_write_bio_RSAPublicKey(bp, rsa); 
 	//BIO_get_mem_ptr(bp,buffer);

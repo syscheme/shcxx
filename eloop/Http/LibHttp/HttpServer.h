@@ -94,14 +94,13 @@ public:
 //---------------------------------------
 //class HttpMonitorTimer
 //----------------------------------------
-class HttpMonitorTimer:public Timer
+class HttpMonitorTimer : public Timer
 {
 public:
 	//	~HttpMonitorTimer(){printf("~HttpMonitorTimer\n");}
 	virtual void OnTimer();
 	//	virtual void OnClose(){printf("HttpMonitorTimer onclose!\n");}
 };
-
 
 // ---------------------------------------
 // class HttpPassiveConn
@@ -163,14 +162,17 @@ class IHttpEngine;
 class HttpServer
 {
 public:
-	enum ServerMode{
+	enum ServerMode
+	{
 		SINGLE_LOOP_MODE,
 		MULTIPE_LOOP_MODE,
 		DEFAULT_MODE = MULTIPE_LOOP_MODE
 	};
+
 	struct HttpServerConfig
 	{
-		HttpServerConfig() {
+		HttpServerConfig()
+		{
 			serverName		= "Eloop Http Server";
 			host			= "127.0.0.1";
 			port			= 8888;
@@ -204,11 +206,9 @@ public:
 
 	// register an application to uri
 	//@param uriEx - the regular expression of uri
-
 	bool mount(const std::string& uriEx, HttpHandler::AppPtr app, const HttpHandler::Properties& props=HttpHandler::Properties(), const char* virtualSite =DEFAULT_SITE);
 
 	HttpHandler::Ptr createHandler( const std::string& uri, HttpPassiveConn& conn, const std::string& virtualSite = std::string(DEFAULT_SITE));
-
 
 	void	addConn( HttpPassiveConn* servant );
 	void	delConn( HttpPassiveConn* servant );
@@ -243,7 +243,6 @@ private:
 	bool					_isStart;
 };
 
-
 //------------------------------------------
 //IHttpEngine
 //------------------------------------------
@@ -255,9 +254,8 @@ public:
 		_port(port),
 		_Logger(logger),
 		_server(server)
-	{
+	{}
 
-	}
 	virtual ~IHttpEngine(){}
 
 public:
@@ -416,7 +414,6 @@ private:
 };
 
 extern HttpStatistics& getHttpStatistics();
-
 
 } }//namespace ZQ::eloop
 
