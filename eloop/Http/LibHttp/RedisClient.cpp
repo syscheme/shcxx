@@ -1154,13 +1154,13 @@ Evictor::Error RedisEvictor::loadFromStore(const std::string& key, StreamedObjec
 
     std::string cmdstr = std::string("GET ") + key;
     ZQ::eloop::RedisCommand::Ptr pCmd = new ZQ::eloop::RedisCommand(*_client, cmdstr, REDIS_LEADINGCH_BULK);
+    if (!pCmd) 
+        return (_lastErr = Evictor::eeConnectErr);
     {
         ZQ::common::MutexGuard g(_lockLocateQueue);
         _cmdQueue.push(pCmd);
+        send();
     }
-    send();
-    if (!pCmd) 
-        return (_lastErr = Evictor::eeConnectErr);
     if (!pCmd->wait(DEFAULT_CLIENT_TIMEOUT)) 
         return (_lastErr = Evictor::eeTimeout);
     if (REDIS_LEADINGCH_ERROR == pCmd->_replyCtx.data.type)	
@@ -1187,12 +1187,11 @@ Evictor::Error RedisEvictor::loadFromStore(const std::string& key, StreamedObjec
 void RedisEvictor::OnAsync()
 {
     ZQ::common::MutexGuard g(_lockLocateQueue);
-    RedisCommand::Ptr pCmd = _cmdQueue.front();
-    while (pCmd)
+    while (!_cmdQueue.empty())
     {
+        RedisCommand::Ptr pCmd = _cmdQueue.front();
         _client->sendCommand(pCmd);
         _cmdQueue.pop();
-        pCmd = _cmdQueue.front();
     }
 }
 
