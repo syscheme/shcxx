@@ -1188,8 +1188,12 @@ void RedisEvictor::OnAsync()
 {
     ZQ::common::MutexGuard g(_lockLocateQueue);
     RedisCommand::Ptr pCmd = _cmdQueue.front();
-    _client->sendCommand(pCmd);
-    _cmdQueue.pop();
+    while (pCmd)
+    {
+        _client->sendCommand(pCmd);
+        _cmdQueue.pop();
+        pCmd = _cmdQueue.front();
+    }
 }
 
 void RedisEvictor::OnClose()
