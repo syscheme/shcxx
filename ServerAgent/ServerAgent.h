@@ -17,7 +17,7 @@ namespace eloop {
 	public:
 		typedef HttpApplication<LoadFile> App;
 
-		LoadFile(HttpPassiveConn& conn,ZQ::common::Log& logger,const Properties& dirProps, const Properties& appProps);
+		LoadFile(IBaseApplication& app, HttpPassiveConn& conn, const HttpHandler::Properties& dirProps = HttpHandler::Properties());
 		~LoadFile();
 
 		void Response(){}
@@ -61,7 +61,7 @@ namespace eloop {
 	public:
 		typedef HttpApplication<ServerAgent> App;
 
-		ServerAgent(HttpPassiveConn& conn,ZQ::common::Log& logger,const Properties& dirProps, const Properties& appProps);
+		ServerAgent(IBaseApplication& app, HttpPassiveConn& conn, const HttpHandler::Properties& dirProps = HttpHandler::Properties());
 		~ServerAgent();
 
 		void Response(){}

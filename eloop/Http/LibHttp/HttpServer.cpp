@@ -307,7 +307,7 @@ int HttpServer::run()
 }*/
 
 
-bool HttpServer::mount(const std::string& ruleStr, HttpBaseApplication::Ptr app, const HttpHandler::Properties& props, const char* virtualSite)
+bool HttpServer::mount(const std::string& ruleStr, HttpHandler::AppPtr app, const HttpHandler::Properties& props, const char* virtualSite)
 {
 	std::string vsite = (virtualSite && *virtualSite) ? virtualSite :DEFAULT_SITE;
 
@@ -339,7 +339,7 @@ bool HttpServer::mount(const std::string& ruleStr, HttpBaseApplication::Ptr app,
 
 HttpHandler::Ptr HttpServer::createHandler(const std::string& uri, HttpPassiveConn& conn, const std::string& virtualSite)
 {
-	HttpBaseApplication::Ptr app = NULL;
+	HttpHandler::AppPtr app = NULL;
 
 	// cut off the paramesters
 	std::string uriWithnoParams = uri;
@@ -360,7 +360,7 @@ HttpHandler::Ptr HttpServer::createHandler(const std::string& uri, HttpPassiveCo
 		if(boost::regex_match(uriWithnoParams, it->re))
 		{
 			if (it->app)
-				handler = it->app->create(conn,_Logger,it->props);
+				handler = it->app->create(conn, it->props);
 			break;
 		}
 	}

@@ -1,6 +1,8 @@
 #include "NTP.h"
+
 namespace ZQ {
-	namespace common {
+namespace common {
+
 // -----------------------------
 // class NTPServer
 // -----------------------------

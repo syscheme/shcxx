@@ -52,7 +52,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				InlineFunctionExpansion="1"
-				AdditionalIncludeDirectories="..;libuv_1.9.1/include;&quot;$(RegExppKit)&quot;;&quot;$(ZQProjsPath)\Generic\CdmiFuse\jsoncpp-src-0.5.0\include&quot;"
+				AdditionalIncludeDirectories="..;libuv_1.9.1/include;&quot;$(RegExppKit)&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;ELOOP_EXPORTS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_WIN32_WINNT=0x0600;_GNU_SOURCE"
 				StringPooling="true"
 				RuntimeLibrary="2"
@@ -78,7 +78,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="advapi32.lib iphlpapi.lib psapi.lib shell32.lib user32.lib userenv.lib ws2_32.lib json_vc71_libmt.lib"
+				AdditionalDependencies="advapi32.lib iphlpapi.lib psapi.lib shell32.lib user32.lib userenv.lib ws2_32.lib"
 				OutputFile="$(ZQProjsPath)\TianShan\bin\eloop.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
@@ -438,6 +438,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\json\jsoncpp.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\LIPC.cpp"
 				>
 			</File>
@@ -468,6 +472,14 @@
 			</File>
 			<File
 				RelativePath=".\eloop_threadpool.h"
+				>
+			</File>
+			<File
+				RelativePath=".\json\json-forwards.h"
+				>
+			</File>
+			<File
+				RelativePath=".\json\json.h"
 				>
 			</File>
 			<File

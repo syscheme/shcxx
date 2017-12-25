@@ -42,8 +42,9 @@ OBJS := Exception.os       \
 		Pointer.os         \
 		DiskIOPerf.os      \
 		BufferPool.os      \
-		HttpClient.os				\
-		CryptoAlgm.os				\
+		HttpClient.os		\
+		CryptoAlgm.os		\
+		NTP.os				\
 		SystemInfo.os
 
 CXXFLAGS += -DZQ_FILELOG_V2

@@ -63,6 +63,7 @@ namespace common {
 class MachineFingerPrint
 {
 	friend class LicenseGenerater;
+
 public:
 	MachineFingerPrint(ZQ::common::Log& log);
 	virtual ~MachineFingerPrint();
@@ -87,14 +88,16 @@ protected:
 	/// }
 	/// be aware each direct child's value type is array
 	virtual bool collectSystemInfo(void);
+	
 	//use RSA to encrypt the local machineData .
 	// @param machineData the machine data of SystemInfo
 	// @param publicKey the publicKey of RSA
 	std::string encrypt(const std::string& machineData, const std::string& publicKey);
+	
 	//use RSA to decrypt the Data return from license generater.
 	// @param licenseData the license generate data
 	// @param publicKey the publicKey of RSA
-	std::string decrypt(const std::string&licenseData, const std::string& publicKey);
+	std::string decrypt(const std::string& licenseData, const std::string& publicKey);
 
 	static std::string _publicKeyXOR; // the public key of XOR-Media built into the software
 };

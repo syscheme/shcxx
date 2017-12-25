@@ -67,23 +67,21 @@ int main(int argc,char* argv[])
 	int port = atoi((host.substr(host.find(":")+1)).c_str());
 
 
-	ZQ::eloop::HttpHandler::Properties dirProps;
-	dirProps.insert(make_pair("homedir",homedir));
-	if(sourcedir.empty()){
+	ZQ::eloop::HttpHandler::Properties appProps;
+	appProps.insert(make_pair("homedir",homedir));
+	if(sourcedir.empty())
 		sourcedir = homedir;
-	}
-	dirProps.insert(make_pair("sourcedir",sourcedir));
 
-	ZQ::eloop::HttpBaseApplication::Ptr getVar = new ZQ::eloop::ServerAgent::App();
-	ZQ::eloop::HttpBaseApplication::Ptr loadfile = new ZQ::eloop::LoadFile::App(dirProps);
+	appProps.insert(make_pair("sourcedir",sourcedir));
+
+	ZQ::eloop::HttpHandler::AppPtr getVar = new ZQ::eloop::ServerAgent::App(*pLog);
+	ZQ::eloop::HttpHandler::AppPtr loadfile = new ZQ::eloop::LoadFile::App(*pLog, appProps);
 	
 	ZQ::eloop::HttpServer::HttpServerConfig conf;
 	conf.host = ip;
 	conf.port = port;
 
 	ZQ::eloop::HttpServer* server = new ZQ::eloop::HttpServer(conf,*pLog);;
-
-
 
 	server->mount("/svar/.*",getVar);
 	server->mount("/fvar/.*",loadfile);
