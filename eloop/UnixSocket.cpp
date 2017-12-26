@@ -60,6 +60,7 @@ void UnixSocket::OnRead(ssize_t nread, const char *buf)
 void UnixSocket::OnWrote(int status)
 {
 	ZQ::common::MutexGuard gd(_lkSendMsgList);
+    _lipcLog(ZQ::common::Log::L_DEBUG,CLOGFMT(UnixSocket, "OnWrote _SendMsgLists.size()"), _SendMsgList.size());
 	if(!_SendMsgList.empty())
 	{
 		AsyncMessage asyncMsg;
@@ -93,7 +94,7 @@ int UnixSocket::AsyncSend(const std::string& msg, int fd)
 
 void UnixSocket::OnAsyncSend()
 {
- 	int i = 10;
+ 	int i = 1000;
 	ZQ::common::MutexGuard gd(_lkSendMsgList);
  	while (!_SendMsgList.empty() && i>0)
 	{
