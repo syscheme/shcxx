@@ -221,7 +221,6 @@ protected:
 	virtual void OnReceived(ssize_t nread, const char *buf, const struct sockaddr *addr, unsigned flags) {}
 
 private:
-	uv_udp_send_t _req;
 	eloop_buf_t   _buf;
 	int bind(const struct sockaddr *addr, unsigned int flags);
 	int try_send(const char *buf, size_t length, const struct sockaddr *addr);
