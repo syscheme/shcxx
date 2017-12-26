@@ -407,7 +407,7 @@ public:
 
 private:
 	RespCode	errCodeToRespCode( int32 errCode );
-	Method		httpMethodToMethod(HttpMessage::HttpMethod mtd);
+	CountersOfMethod& _getCounter(HttpMessage::HttpMethod mtd);
 
 	// RPSTATUSMAP _rpStatus;
 	ZQ::common::Mutex _locker;

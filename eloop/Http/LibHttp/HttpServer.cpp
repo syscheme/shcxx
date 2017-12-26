@@ -16,10 +16,9 @@ void HttpMonitorTimer::OnTimer()
 {
 	HttpPassiveConn* conn = (HttpPassiveConn*)data;
 	if (conn != NULL)
-	{
 		conn->stop();
-	}
 }
+
 // ---------------------------------------
 // class HttpPassiveConn
 // ---------------------------------------
@@ -33,12 +32,10 @@ HttpPassiveConn::HttpPassiveConn(HttpServer& server,ZQ::common::Log& logger)
 		_keepAlive(false),
 		_Logger(logger)
 {
-
 }
 
 HttpPassiveConn::~HttpPassiveConn()
 {
-
 }
 
 bool HttpPassiveConn::start( )
@@ -47,11 +44,13 @@ bool HttpPassiveConn::start( )
 	initHint();
 	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(httpServer,"new connection from [%s]"),_Hint.c_str());
 	_server.addConn(this);
+
 	if (_keepAlive_Timeout > 0)
 	{
 		_timer.init(this->get_loop());
 		_timer.data = this;
 	}
+
 	return true;
 }
 
@@ -62,10 +61,12 @@ void HttpPassiveConn::stop()
 		_timer.stop();
 		_timer.close();
 	}
+
 	shutdown();
 }
 
-void HttpPassiveConn::initHint() {
+void HttpPassiveConn::initHint()
+{
 	char ip[17] = {0};
 	int port = 0;
 	getpeerIpPort(ip,port);
@@ -74,12 +75,13 @@ void HttpPassiveConn::initHint() {
 	_Hint = oss.str();
 }
 
-void HttpPassiveConn::errorResponse( int code ) {
+void HttpPassiveConn::errorResponse( int code ) 
+{
 	_Logger(ZQ::common::Log::L_DEBUG,CLOGFMT(HttpPassiveConn,"errorResponse, code %d"), code);
 	HttpMessage::Ptr msg = _server.makeSimpleResponse(code);
 //	_bError = true;
 	std::string response = msg->toRaw();
-	write(response.c_str(),response.length());
+	write(response.c_str(), response.length());
 	_keepAlive = false;
 	stop();
 }
@@ -119,98 +121,111 @@ void HttpPassiveConn::OnClose()
 	delete this;
 }
 
-void HttpPassiveConn::onHttpDataSent(size_t size) {
+void HttpPassiveConn::onHttpDataSent(size_t size) 
+{
 
-/*	char locip[17] = { 0 };
-	int  locport = 0;
-	getlocaleIpPort(locip,locport);
+//  char locip[17] = { 0 };
+//	int  locport = 0;
+//	getlocaleIpPort(locip,locport);
+//
+//	char peerip[17] = { 0 };
+//	int  peerport = 0;
+//	getpeerIpPort(peerip,peerport);
+//	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpPassiveConn, "onHttpDataSent [%p] [%s:%d==>%s:%d]."), this, locip, locport, peerip, peerport);
 
-	char peerip[17] = { 0 };
-	int  peerport = 0;
-	getpeerIpPort(peerip,peerport);
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpPassiveConn, "onHttpDataSent [%p] [%s:%d==>%s:%d]."), this, locip, locport, peerip, peerport);*/
+	if(NULL == _Handler)
+		return;
 
-	if(_Handler != NULL) {			
-		_Handler->onHttpDataSent(size);
-	}
+	_Handler->onHttpDataSent(size);
 }
 
 void HttpPassiveConn::onRespComplete()
 {
 	HttpConnection::onRespComplete();
-	if (_keepAlive && _keepAlive_Timeout > 0)
-	{
-		if (_startTime <= 0)
-			_startTime = ZQ::common::now();
-		int took = (int) (ZQ::common::now() - _startTime);
-		_timer.start(_keepAlive_Timeout+took,0);
-	}
-	else
+	if (!_keepAlive || _keepAlive_Timeout <= 0)
 	{
 		_listpipe.clear();
 		stop();
+		return;
 	}
+
+	if (_startTime <= 0)
+		_startTime = ZQ::common::now();
+
+	int took = (int) (ZQ::common::now() - _startTime);
+	_timer.start(_keepAlive_Timeout+took,0);
 }
 
 
-void HttpPassiveConn::onHttpDataReceived( size_t size ) {
+void HttpPassiveConn::onHttpDataReceived( size_t size )
+{
 	// NOTE something here
-	if(_Handler) {
+	if(_Handler)
 		_Handler->onHttpDataReceived(size);
-	}
+
 	//start();//this may fail because a receiving call has been fired		
 }
 
-bool HttpPassiveConn::onHeadersEnd( const HttpMessage::Ptr msg) {
-		
-	if( msg->versionMajor() != 1 && msg->versionMinor() != 1 ) {
+bool HttpPassiveConn::onHeadersEnd( const HttpMessage::Ptr msg)
+{
+	if( msg->versionMajor() != 1 && msg->versionMinor() != 1 )
+	{
 		_Logger(ZQ::common::Log::L_WARNING, CLOGFMT( HttpPassiveConn,"onHeadersEnd, unsupport http version[%u/%u], reject"),
 			msg->versionMajor(), msg->versionMinor());
+	
 		errorResponse(505);
 		return false;
 	}
+
 //	printf("create handle url=%s\n",msg->url().c_str());
 	_Handler = _server.createHandler( msg->url(), *this);
 
-	if(!_Handler) {
+	if(!_Handler)
+	{
 		//should make a 404 response
-		_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"onHeadersEnd failed to find a suitable handle to process url: %s"),
-			msg->url().c_str() );
+		_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"onHeadersEnd failed to find a suitable handle to process url: %s"), msg->url().c_str() );
 		errorResponse(404);
 		return false;
-	} else {
-		_keepAlive = msg->keepAlive();
-		if(!_Handler->onHeadersEnd(msg) ) {
-			_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"onHeadersEnd, user code return false in onHeadersEnd, may user code want to abort the procedure, url:%s"), msg->url().c_str());
-			_Handler = NULL;
-			return false;
-		}
-		return true;
-	}		
+	}
+
+	_keepAlive = msg->keepAlive();
+	if(!_Handler->onHeadersEnd(msg) )
+	{
+		_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"onHeadersEnd, user code return false in onHeadersEnd, may user code want to abort the procedure, url:%s"), msg->url().c_str());
+		_Handler = NULL;
+		return false;
+	}
+
+	return true;
 }
 
-bool HttpPassiveConn::onBodyData( const char* data, size_t size) {
-
-	if(!_Handler) {
+bool HttpPassiveConn::onBodyData( const char* data, size_t size)
+{
+	if(!_Handler)
+	{
 		_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"http body received, but no handler is ready"));
 		errorResponse(500);
 		return false;
 	}
-	if(!_Handler->onBodyData(data, size) ) {
+
+	if(!_Handler->onBodyData(data, size) )
+	{
 		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpPassiveConn,"handler refuse to continue after onBodyData"));
 		errorResponse(500);
 		_Handler = NULL;
 		return false;
 	}
+
 	return true;
 }
 
-void HttpPassiveConn::onMessageCompleted() {
+void HttpPassiveConn::onMessageCompleted()
+{
 	if(!_Handler)
 		return;
+
 	_Handler->onMessageCompleted();
 }
-
 
 // ---------------------------------------
 // class HttpServer
@@ -228,7 +243,6 @@ HttpServer::HttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger)
 
 HttpServer::~HttpServer()
 {
-
 }
 
 bool HttpServer::startAt()
@@ -237,14 +251,12 @@ bool HttpServer::startAt()
 		return true;
 	
 	if (_Config.mode == MULTIPE_LOOP_MODE)
-	{
 		_engine = new MultipleLoopHttpEngine(_Config.host, _Config.port, _Logger, *this);
-	}
 	else
 		_engine = new SingleLoopHttpEngine(_Config.host,_Config.port,_Logger,*this);
 
 	_isStart = true;
-	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(HttpServer, "------------HttpServer Start!-------------------"));
+	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(HttpServer, "------------HttpServer Start-------------------"));
 	return _engine->startAt();
 }
 
@@ -252,6 +264,7 @@ void HttpServer::stop()
 {
 	if (!_isStart)
 		return;
+
 	_isStart = false;
 	if (_PassiveConn.empty())
 	{
@@ -261,10 +274,9 @@ void HttpServer::stop()
 	{
 		std::set<HttpPassiveConn*>::iterator itconn;
 		for(itconn = _PassiveConn.begin();itconn != _PassiveConn.end();itconn++)
-		{
 			(*itconn)->shutdown();
-		}
 	}
+
 	_sysWakeUp.wait(-1);
 	if (_engine != NULL)
 	{
@@ -273,6 +285,7 @@ void HttpServer::stop()
 	}
 	_Logger(ZQ::common::Log::L_INFO, CLOGFMT(HttpServer, "HttpServer quit"));
 }
+
 /*
 int HttpServer::run()
 {
@@ -305,7 +318,6 @@ int HttpServer::run()
 	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServer, "quit Monitor thread"));
 	return 0;
 }*/
-
 
 bool HttpServer::mount(const std::string& ruleStr, HttpHandler::AppPtr app, const HttpHandler::Properties& props, const char* virtualSite)
 {
@@ -357,15 +369,15 @@ HttpHandler::Ptr HttpServer::createHandler(const std::string& uri, HttpPassiveCo
 
 	for( ; it != itSite->second.end(); it++)
 	{
-		if(boost::regex_match(uriWithnoParams, it->re))
+		if (boost::regex_match(uriWithnoParams, it->re))
 		{
 			if (it->app)
 				handler = it->app->create(conn, it->props);
 			break;
 		}
 	}
-	return handler;
 
+	return handler;
 }
 
 void HttpServer::addConn( HttpPassiveConn* servant )
@@ -383,7 +395,8 @@ void HttpServer::delConn( HttpPassiveConn* servant )
 }
 
 
-HttpMessage::Ptr HttpServer::makeSimpleResponse( int code ) const {
+HttpMessage::Ptr HttpServer::makeSimpleResponse( int code ) const
+{
 	HttpMessage::Ptr msg = new HttpMessage(HttpMessage::MSG_RESPONSE);
 	msg->code(code);
 	msg->status(HttpMessage::code2status(code));
@@ -415,6 +428,7 @@ void AsyncQuit::OnClose()
 	SingleLoopHttpEngine* eng = (SingleLoopHttpEngine*)data;
 	eng->close();
 }
+
 // ---------------------------------------
 // class SingleLoopHttpEngine
 // ---------------------------------------
@@ -422,6 +436,7 @@ void AsyncQuit::OnClose()
 SingleLoopHttpEngine::SingleLoopHttpEngine(const std::string& ip,int port,ZQ::common::Log& logger,HttpServer& server)
 :IHttpEngine(ip,port,logger,server)
 {
+
 }
 SingleLoopHttpEngine::~SingleLoopHttpEngine()
 {
@@ -514,7 +529,7 @@ MultipleLoopHttpEngine::MultipleLoopHttpEngine(const std::string& ip,int port,ZQ
 
 	for (int i = 0;i < _threadCount;i++)
 	{
-		ServantThread *pthread = new ServantThread(_server,*this,_Logger);
+		ServantThread *pthread = new ServantThread(_server, *this,_Logger);
 
 		//printf("cpuId = %d,cpuCount = %d,mask = %d\n",i,_threadCount,1<<i);
 		//_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(MultipleLoopHttpEngine,"cpuId:%d,cpuCount:%d,mask:%d"),i,_threadCount,1<<i);
@@ -534,21 +549,18 @@ MultipleLoopHttpEngine::~MultipleLoopHttpEngine()
 		*it = NULL;
 		it = _vecThread.erase(it);
 	}
+
 	_vecThread.clear();
 	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(MultipleLoopHttpEngine,"MultipleLoopHttpEngine destructor!"));
 }
 
 bool MultipleLoopHttpEngine::startAt()
 {
-
 #ifdef ZQ_OS_MSWIN
 	WSADATA wsaData;
 	if(WSAStartup(MAKEWORD(2,2), &wsaData)!=0)
-	{
 		return 0;
-	}
 #endif
-
 
 	_socket = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
 
@@ -568,11 +580,13 @@ bool MultipleLoopHttpEngine::startAt()
 		_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(MultipleLoopHttpEngine,"socket bind error hint[%s:%d]"),_ip.c_str(),_port);
 		return false;
 	}
+
 	if (0 != listen(_socket,10000))
 	{
 		_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(MultipleLoopHttpEngine,"socket listen error hint[%s:%d]"),_ip.c_str(),_port);
 		return false;
 	}
+
 	_bRunning = true;
 	return ZQ::common::NativeThread::start();
 }
@@ -610,31 +624,32 @@ int MultipleLoopHttpEngine::run()
 {
 	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(MultipleLoopHttpEngine,"MultipleLoopHttpEngine start"));
 	struct sockaddr_storage addr;
-	while( _bRunning ) {
+	while( _bRunning )
+	{
 		socklen_t size= (socklen_t)sizeof( addr );
 		int sock = accept( _socket, (struct sockaddr*)&addr, &size);
-		if( sock < 0 )
+		if( sock < 0 || !_bRunning)
 			continue;
-/*
-		int flags = fcntl(sock, F_GETFL, 0);
-		if ( -1 == flags)
-		{
-			closesocket(sock);
-			continue;
-		}
-		if( -1 == fcntl(sock, F_SETFL, flags | O_NONBLOCK) )
-		{
-			closesocket(sock);
-			continue;
-		}*/
-		if (!_bRunning)
-			break;
-		
+
+		//int flags = fcntl(sock, F_GETFL, 0);
+		//if ( -1 == flags)
+		//{
+		//	closesocket(sock);
+		//	continue;
+		//}
+		//if( -1 == fcntl(sock, F_SETFL, flags | O_NONBLOCK) )
+		//{
+		//	closesocket(sock);
+		//	continue;
+		//}
+
 		ServantThread* pthread = _vecThread[_roundCount];
 		pthread->addSocket(sock);
 		pthread->send();
-		_roundCount = (_roundCount + 1) % _threadCount;
+
+		_roundCount = (++_roundCount) % _threadCount;
 	}
+
 	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(MultipleLoopHttpEngine,"MultipleLoopHttpEngine quit"));
 	return 0;
 }
@@ -643,10 +658,7 @@ int MultipleLoopHttpEngine::run()
 // class ServantThread
 // ------------------------------------------------
 ServantThread::ServantThread(HttpServer& server,MultipleLoopHttpEngine& engine,ZQ::common::Log& logger)
-		:_Logger(logger),
-		_engine(engine),
-		_quit(false),
-		_server(server)
+		:_Logger(logger), _engine(engine),	_quit(false), _server(server)
 {
 	_loop = new Loop(false);
 }
@@ -735,6 +747,7 @@ HttpStatistics::HttpStatistics()
 {
 	reset();
 }
+
 void HttpStatistics::reset()
 {
 	ZQ::common::MutexGuard gd(_locker);
@@ -744,31 +757,30 @@ void HttpStatistics::reset()
 
 void HttpStatistics::addCounter(HttpMessage::HttpMethod mtd, int32 errCode, int32 latencyHeader, int32 latencyBody )
 {
-	Method method = httpMethodToMethod(mtd);
-
 	ZQ::common::MutexGuard gd(_locker);
-	_counters[method].totalCount ++;
-	_counters[method].respCount[errCodeToRespCode(errCode)] ++;
+	CountersOfMethod& counter = _getCounter(mtd);
+	counter.totalCount ++;
+	counter.respCount[errCodeToRespCode(errCode)] ++;
 
-	if (_counters[method].maxLatencyInMs_Body < latencyBody)
-		_counters[method].maxLatencyInMs_Body = latencyBody;
-	if (_counters[method].maxLatencyInMs_Header < latencyHeader)
-		_counters[method].maxLatencyInMs_Header = latencyHeader;
+	if (counter.maxLatencyInMs_Body < latencyBody)
+		counter.maxLatencyInMs_Body = latencyBody;
+	if (counter.maxLatencyInMs_Header < latencyHeader)
+		counter.maxLatencyInMs_Header = latencyHeader;
 
-	_counters[method].subtotalLatencyInMs_Body += latencyBody;
-	_counters[method].subtotalLatencyInMs_Header += latencyHeader;
+	counter.subtotalLatencyInMs_Body += latencyBody;
+	counter.subtotalLatencyInMs_Header += latencyHeader;
 
-	_counters[method].avgLatencyInMs_Body = _counters[method].totalCount ? (int)(_counters[method].subtotalLatencyInMs_Body /_counters[method].totalCount) :0;
-	_counters[method].avgLatencyInMs_Header = _counters[method].totalCount ? (int)(_counters[method].subtotalLatencyInMs_Header /_counters[method].totalCount) :0;
+	counter.avgLatencyInMs_Body = counter.totalCount ? (int)(counter.subtotalLatencyInMs_Body /counter.totalCount) :0;
+	counter.avgLatencyInMs_Header = counter.totalCount ? (int)(counter.subtotalLatencyInMs_Header /counter.totalCount) :0;
 }
 
 const char* HttpStatistics::nameOfMethod(int mtd)
 {
 	switch(mtd)
 	{
-	case METHOD_GET: return "GET";
-	case METHOD_POST: return "POST";
-	case METHOD_PUT: return "PUT";
+	case METHOD_GET:    return "GET";
+	case METHOD_POST:   return "POST";
+	case METHOD_PUT:    return "PUT";
 	case METHOD_DELETE: return "DELETE";
 	}
 
@@ -778,9 +790,8 @@ const char* HttpStatistics::nameOfMethod(int mtd)
 HttpStatistics::RespCode HttpStatistics::errCodeToRespCode( int32 errCode )
 {
 	if( errCode/100 == 2)
-	{
 		return RESP_2XX;
-	}
+
 	switch( errCode )
 	{
 	case 400:	return RESP_400;
@@ -794,16 +805,17 @@ HttpStatistics::RespCode HttpStatistics::errCodeToRespCode( int32 errCode )
 	}
 }
 
-HttpStatistics::Method HttpStatistics::httpMethodToMethod(HttpMessage::HttpMethod mtd)
+HttpStatistics::CountersOfMethod& HttpStatistics::_getCounter(HttpMessage::HttpMethod mtd)
 {
 	switch(mtd)
 	{
-	case HttpMessage::GET: return METHOD_GET;
-	case HttpMessage::POST: return METHOD_POST;
-	case HttpMessage::PUT: return METHOD_PUT;
-	case HttpMessage::HTTPDELETE: return METHOD_DELETE;
+	case HttpMessage::GET:        return _counters[METHOD_GET];
+	case HttpMessage::POST:       return _counters[METHOD_POST];
+	case HttpMessage::PUT:        return _counters[METHOD_PUT];
+	case HttpMessage::HTTPDELETE: return _counters[METHOD_DELETE];
 	}
-	return METHOD_UNKNOWN;
+
+	return _counters[METHOD_UNKNOWN];
 }
 
 } }//namespace ZQ::eloop

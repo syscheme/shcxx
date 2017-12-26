@@ -10,10 +10,7 @@ namespace eloop {
 // ---------------------------------------
 HttpConnection::HttpConnection(bool clientSide,ZQ::common::Log& logger)
 		:_Type(clientSide?HttpMessage::MSG_RESPONSE:HttpMessage::MSG_REQUEST),
-		_Parser(NULL),
-		_Logger(logger),
-		_RespState(RESP_COMPLETE),
-		_ParserSettings(NULL)
+		_Parser(NULL), _Logger(logger), _RespState(RESP_COMPLETE), _ParserSettings(NULL)
 {
 	_Parser = (http_parser*)malloc(sizeof(http_parser));
 	_ParserSettings = (http_parser_settings*)malloc(sizeof(http_parser_settings));
@@ -27,6 +24,7 @@ HttpConnection::HttpConnection(bool clientSide,ZQ::common::Log& logger)
 	_ParserSettings->on_url					= HttpConnection::on_uri;
 	_ParserSettings->on_chunk_header		= HttpConnection::on_chunk_header;
 	_ParserSettings->on_chunk_complete		= HttpConnection::on_chunk_complete;
+
 	reset();
 }
 
@@ -45,16 +43,19 @@ void HttpConnection::reset(IHttpParseSink* p)
 	_Callback	= p;
 
 	http_parser_init(_Parser,(http_parser_type)_Type);
+
 	_Parser->data = reinterpret_cast<void*>(this);
 	_HeaderField.clear();
 	_HeaderValue = NULL;
 	_ParserState = STATE_INIT;
+
 	_CurrentParseMsg = new HttpMessage(_Type);
 }
 
 void HttpConnection::OnRead(ssize_t nread, const char *buf)
 {
-	if (nread < 0) {
+	if (nread < 0)
+	{
 		std::string desc = "Read error:";
 		desc.append(errDesc(nread));
 		onError(nread,desc.c_str());
@@ -97,13 +98,13 @@ void HttpConnection::OnClose()
 void HttpConnection::OnShutdown(ElpeError status)
 {
 	if (status != elpeSuccess)
-	{
 		_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpPassiveConn,"shutdown error code[%d] Description[%s]"),status,errDesc(status));
-	}
+
 	close();
 }
 
-void HttpConnection::parse( const char* data, size_t size) {
+void HttpConnection::parse( const char* data, size_t size)
+{
 
 	if (_RespState != RESP_COMPLETE)
 	{
@@ -111,6 +112,7 @@ void HttpConnection::parse( const char* data, size_t size) {
 		_listpipe.push_back(inflowPtr);
 		return;
 	}
+
 	if( _ParserState >= STATE_COMPLETE) {
 		reset();
 		//_Logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"reset,state = %d"),_ParserState);
@@ -121,22 +123,20 @@ void HttpConnection::parse( const char* data, size_t size) {
 
 //	_Logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"parsed = %d,size = %d"),nparsed,size);
 
-	if(nparsed != size){
+	if (nparsed == size)
+		return;
 
-		if (_ParserState >= STATE_COMPLETE)
-		{
-			const char* tempbuf = data + nparsed;
-			size_t templen = size - nparsed;
-			parse(tempbuf,templen);
-		}
-		else
-		{
-			std::string parsedesc = "parse error:";
-			parsedesc.append(http_errno_description((http_errno)_Parser->http_errno));
-			onError((int)_Parser->http_errno,parsedesc.c_str());
-			return;
-		}
+	if (_ParserState >= STATE_COMPLETE)
+	{
+		const char* tempbuf = data + nparsed;
+		size_t templen = size - nparsed;
+		parse(tempbuf, templen);
+		return;
 	}
+
+	std::string parsedesc = "parse error:";
+	parsedesc.append(http_errno_description((http_errno)_Parser->http_errno));
+	onError((int)_Parser->http_errno,parsedesc.c_str());
 }
 
 int HttpConnection::beginSend(HttpMessage::Ptr resp)
@@ -149,15 +149,20 @@ int HttpConnection::beginSend(HttpMessage::Ptr resp)
 	onRespHeader();
 	return ret;
 }
+
 int HttpConnection::SendBody(char *buf, size_t length)
 {
-	if(!_RespMsg->hasContentBody() ) {
+	if(!_RespMsg->hasContentBody() ) 
+	{
 		assert( false && "http message do not have a content body");
 		return -1;
 	}
 
 	int ret = 0;
-	if( _RespMsg->chunked() ) {
+	if(!_RespMsg->chunked() )
+		ret = write(buf,length);
+	else
+	{
 		eloop_buf_t chunkbuf[3];
 		char chhead[16];
 		sprintf(chhead, "%x\r\n",length);
@@ -170,13 +175,11 @@ int HttpConnection::SendBody(char *buf, size_t length)
 		chunkbuf[2].len = 2;
 		ret = write(chunkbuf,3);
 	}
-	else
-	{
-		ret = write(buf,length);
-	}
+
 	onRespBody();
 	return ret;
 }
+
 int HttpConnection::endSend()
 {
 	int ret = 0;
@@ -185,16 +188,19 @@ int HttpConnection::endSend()
 		char* chunkEnd = "0\r\n\r\n";
 		ret = write(chunkEnd,strlen(chunkEnd));
 	}
+
 	onRespComplete();
 	return ret;
 }
 
-int	HttpConnection::onMessageBegin( ){
+int	HttpConnection::onMessageBegin( )
+{
 	_ParserState = STATE_HEADERS;
 	return 0;
 }
 
-int	HttpConnection::onHeadersComplete(){
+int	HttpConnection::onHeadersComplete()
+{
 	assert(_Callback != NULL);
 	_CurrentParseMsg->contentLength((int64)_Parser->content_length);
 	_CurrentParseMsg->keepAlive((_Parser->flags & F_CONNECTION_KEEP_ALIVE) != 0);
@@ -209,17 +215,22 @@ int	HttpConnection::onHeadersComplete(){
 		_Callback->onError(r,_CurrentParseMsg->errorCode2Desc(r));
 		return -2;
 	}
+
 	_ParserState = STATE_BODY;
-	if(_Parser->http_errno == 0) {
+	if(_Parser->http_errno == 0)
+	{
 		assert(_Callback != NULL);
 		if(!_Callback->onHeadersEnd(_CurrentParseMsg))
 			return -1;//user cancel parsing procedure
+
 		return 0;
 	}
+
 	return -2;//failed to parse http raw message
 }
 
-int	HttpConnection::onMessageComplete(){
+int	HttpConnection::onMessageComplete()
+{
 	assert(_Callback != NULL);
 
 	int r = _CurrentParseMsg->onMessageComplete();
@@ -232,52 +243,60 @@ int	HttpConnection::onMessageComplete(){
 	_Callback->onMessageCompleted();
 	_ParserState = STATE_COMPLETE;
 	_CurrentParseMsg = NULL;
+
 	return -1;//cancel parsing procedure
 //	return 0;
 }
 
-int	HttpConnection::onUri(const char* at, size_t size){
+int	HttpConnection::onUri(const char* at, size_t size)
+{
 	_CurrentParseMsg->_Uri.append(at, size);
 	return 0;
 }
 
-int	HttpConnection::onStatus(const char* at, size_t size){
+int	HttpConnection::onStatus(const char* at, size_t size)
+{
 	_CurrentParseMsg->_Status.append(at, size);
 	return 0;
 }
 
-int	HttpConnection::onHeaderField(const char* at, size_t size){
+int	HttpConnection::onHeaderField(const char* at, size_t size)
+{
 	_HeaderValue = NULL;
 	_HeaderField.append(at,size);
 	return 0;
 }
 
-int	HttpConnection::onHeaderValue(const char* at, size_t size){
-	if(_HeaderValue == NULL ) {
-		std::pair<HttpMessage::HEADERS::iterator,bool> ret = _CurrentParseMsg->_Headers.insert(
-			HttpMessage::HEADERS::value_type(_HeaderField, std::string(at,size)));
-		if(!ret.second){
+int	HttpConnection::onHeaderValue(const char* at, size_t size)
+{
+	if(NULL != _HeaderValue) 
+		_HeaderValue->append(at, size);
+	else
+	{
+		std::pair<HttpMessage::HEADERS::iterator,bool> ret = _CurrentParseMsg->_Headers.insert(HttpMessage::HEADERS::value_type(_HeaderField, std::string(at,size)));
+		if(!ret.second)
+		{
 			_CurrentParseMsg->_Headers.erase(_HeaderField);
-			ret = _CurrentParseMsg->_Headers.insert(
-				HttpMessage::HEADERS::value_type(_HeaderField, std::string(at,size)));
+			ret = _CurrentParseMsg->_Headers.insert(HttpMessage::HEADERS::value_type(_HeaderField, std::string(at,size)));
 			assert(ret.second);
 		}
+
 		_HeaderValue = &ret.first->second;
 		_HeaderField.clear();
-	} else {
-		_HeaderValue->append(at, size);
-	}
+	} 
+
 	return 0;
 }
 
-int	HttpConnection::onBody(const char* at, size_t size){
-
+int	HttpConnection::onBody(const char* at, size_t size)
+{
 	if (0 == _CurrentParseMsg->onBody(at,size))
 		return 0;
 
 	assert(_Callback!=NULL);
 	if(!_Callback->onBodyData(at, size))
-		return -1;//user cancel parsing procedure
+		return -1; //user cancel parsing procedure
+
 	return 0;
 }
 
@@ -291,42 +310,50 @@ int	HttpConnection::onChunkComplete(http_parser* parser)
 	return 0;
 }
 
-int HttpConnection::on_message_begin(http_parser* parser){
+int HttpConnection::on_message_begin(http_parser* parser)
+{
 	HttpConnection* pThis = reinterpret_cast<HttpConnection*>(parser->data);
 	return pThis->onMessageBegin();
 }
 
-int HttpConnection::on_headers_complete(http_parser* parser){
+int HttpConnection::on_headers_complete(http_parser* parser)
+{
 	HttpConnection* pThis = reinterpret_cast<HttpConnection*>(parser->data);
 	return pThis->onHeadersComplete();
 }
 
-int HttpConnection::on_message_complete(http_parser* parser){
+int HttpConnection::on_message_complete(http_parser* parser)
+{
 	HttpConnection* pThis = reinterpret_cast<HttpConnection*>(parser->data);
 	return pThis->onMessageComplete();
 }
 
-int HttpConnection::on_uri(http_parser* parser,const char* at,size_t size){
+int HttpConnection::on_uri(http_parser* parser,const char* at,size_t size)
+{
 	HttpConnection* pThis = reinterpret_cast<HttpConnection*>(parser->data);
 	return pThis->onUri(at, size);
 }
 
-int HttpConnection::on_status(http_parser* parser, const char* at, size_t size){
+int HttpConnection::on_status(http_parser* parser, const char* at, size_t size)
+{
 	HttpConnection* pThis = reinterpret_cast<HttpConnection*>(parser->data);
 	return pThis->onStatus(at, size);
 }
 
-int HttpConnection::on_header_field(http_parser* parser, const char* at, size_t size){
+int HttpConnection::on_header_field(http_parser* parser, const char* at, size_t size)
+{
 	HttpConnection* pThis = reinterpret_cast<HttpConnection*>(parser->data);
 	return pThis->onHeaderField(at, size);
 }
 
-int HttpConnection::on_header_value(http_parser* parser, const char* at, size_t size){
+int HttpConnection::on_header_value(http_parser* parser, const char* at, size_t size)
+{
 	HttpConnection* pThis = reinterpret_cast<HttpConnection*>(parser->data);
 	return pThis->onHeaderValue(at, size);
 }
 
-int HttpConnection::on_body(http_parser* parser, const char* at, size_t size){
+int HttpConnection::on_body(http_parser* parser, const char* at, size_t size)
+{
 	HttpConnection* pThis = reinterpret_cast<HttpConnection*>(parser->data);
 	return pThis->onBody(at, size);
 }
@@ -343,4 +370,4 @@ int HttpConnection::on_chunk_complete(http_parser* parser)
 	return pThis->onChunkComplete(parser);
 }
 
-} }//namespace ZQ::eloop
+}} //namespace ZQ::eloop

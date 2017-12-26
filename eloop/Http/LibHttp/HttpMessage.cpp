@@ -4,174 +4,170 @@
 #include "HttpMessage.h"
 #include "urlstr.h"
 
-
 namespace ZQ {
 namespace eloop {
 
 #ifdef ZQ_OS_LINUX
-	#ifndef stricmp
-		#define	stricmp strcasecmp
-	#endif
-	#ifndef strnicmp
-		#define strnicmp strncasecmp
-	#endif
+#ifndef stricmp
+#define	stricmp strcasecmp
+#endif
+#ifndef strnicmp
+#define strnicmp strncasecmp
+#endif
 #endif
 
-	void split(std::vector<std::string>& v, const std::string& s, const std::string d = " ")
-	{
-		v.clear();
+void split(std::vector<std::string>& v, const std::string& s, const std::string d = " ")
+{
+	v.clear();
 
-		std::string::size_type pos_from = 0;
-		while((pos_from = s.find_first_not_of(d, pos_from)) != std::string::npos)
+	std::string::size_type pos_from = 0;
+	while((pos_from = s.find_first_not_of(d, pos_from)) != std::string::npos)
+	{
+		std::string::size_type pos_to = s.find_first_of(d, pos_from);
+		if(pos_to != std::string::npos)
 		{
-			std::string::size_type pos_to = s.find_first_of(d, pos_from);
-			if(pos_to != std::string::npos)
-			{
-				v.push_back(s.substr(pos_from, pos_to - pos_from));
-			}
-			else
-			{
-				v.push_back(s.substr(pos_from));
-				break;
-			}
-			pos_from = pos_to;
-		}
-	}
-
-	std::string trim(const std::string& s, const std::string& d = " ")
-	{
-		return boost::trim_copy_if(s, boost::is_any_of(d));
-	}
-
-
-	// implement the Knuth-Morris-Pratt algorithm
-	static void kmpPreprocess(const std::vector<char>& x, std::vector<int>& kmpNext)
-	{
-		size_t m = x.size();
-		kmpNext.clear();
-		kmpNext.resize(m + 1);
-
-		size_t i = 0;
-		int j = kmpNext[0] = -1;
-
-		while(i < m)
-		{
-			while(j > -1 && x[i] != x[j])
-				j = kmpNext[j];
-			++i;
-			++j;
-			if(i < m && x[i] == x[j])
-				kmpNext[i] = kmpNext[j];
-			else
-				kmpNext[i] = j;
-		}
-	}
-
-	void DataStreamHelper::setTarget(const std::string& target)
-	{
-		_nLocked = 0;
-		_target = target;
-		kmpPreprocess(std::vector<char>(_target.begin(), _target.end()), _kmpNext);
-	}
-	// reset the search state
-	void DataStreamHelper::reset()
-	{
-		_nLocked = 0;
-	}
-	// the search result won't include null pointer unless the input data is null.
-	// return true for reach the target
-	bool DataStreamHelper::search(const char* data, size_t len, SearchResult& result)
-	{
-		int m = _target.size();
-		int i = _nLocked;
-		size_t j = 0;
-		// kmp algorithm
-		while(j < len)
-		{
-			while(i > -1 && _target[i] != data[j])
-				i = _kmpNext[i];
-			++i;
-			++j;
-			if(i >= m)
-			{ // found
-				break;
-			}
-		}
-
-		// not found
-		int vPos = _nLocked + j - i;
-		if(vPos > (int)_nLocked)
-		{ // all locked part released
-			result.released.data = _target.data();
-			result.released.size = _nLocked;
-			result.prefix.data = data;
-			result.prefix.size = j - i;
+			v.push_back(s.substr(pos_from, pos_to - pos_from));
 		}
 		else
-		{ // only first bytes of the locked part released
-			result.released.data = _target.data();
-			result.released.size = vPos;
-			result.prefix.data = data;
-			result.prefix.size = 0;
+		{
+			v.push_back(s.substr(pos_from));
+			break;
 		}
-		result.suffix.data = data + j;
-		result.suffix.size = len - j;
 
-		result.locked.data = _target.data();
-		result.locked.size = i;
+		pos_from = pos_to;
+	}
+}
 
+std::string trim(const std::string& s, const std::string& d = " ")
+{
+	return boost::trim_copy_if(s, boost::is_any_of(d));
+}
+
+// implement the Knuth-Morris-Pratt algorithm
+static void kmpPreprocess(const std::vector<char>& x, std::vector<int>& kmpNext)
+{
+	size_t m = x.size();
+	kmpNext.clear();
+	kmpNext.resize(m + 1);
+
+	size_t i = 0;
+	int j = kmpNext[0] = -1;
+
+	while(i < m)
+	{
+		while(j > -1 && x[i] != x[j])
+			j = kmpNext[j];
+		++i;
+		++j;
+
+		if(i < m && x[i] == x[j])
+			kmpNext[i] = kmpNext[j];
+		else
+			kmpNext[i] = j;
+	}
+}
+
+void DataStreamHelper::setTarget(const std::string& target)
+{
+	_nLocked = 0;
+	_target = target;
+	kmpPreprocess(std::vector<char>(_target.begin(), _target.end()), _kmpNext);
+}
+
+// reset the search state
+void DataStreamHelper::reset()
+{
+	_nLocked = 0;
+}
+
+// the search result won't include null pointer unless the input data is null.
+// return true for reach the target
+bool DataStreamHelper::search(const char* data, size_t len, SearchResult& result)
+{
+	int m = _target.size();
+	int i = _nLocked;
+	size_t j = 0;
+	// kmp algorithm
+	while(j < len)
+	{
+		while(i > -1 && _target[i] != data[j])
+			i = _kmpNext[i];
+
+		++i;
+		++j;
 		if(i >= m)
 		{ // found
-			_nLocked = 0; // discard the locked part
-			return true;
-		}
-		else
-		{ // not found
-			_nLocked = i;
-			return false;
+			break;
 		}
 	}
 
-	LineCache::LineCache()
-		: _got(false)
-	{
-		_dsh.setTarget("\r\n");
+	// not found
+	int vPos = _nLocked + j - i;
+	if(vPos > (int)_nLocked)
+	{ // all locked part released
+		result.released.data = _target.data();
+		result.released.size = _nLocked;
+		result.prefix.data = data;
+		result.prefix.size = j - i;
 	}
-	const char* LineCache::getLine(const char* &data, size_t &len)
-	{
-		if(_got)
-		{
-			return _line.c_str();
-		}
+	else
+	{ // only first bytes of the locked part released
+		result.released.data = _target.data();
+		result.released.size = vPos;
+		result.prefix.data = data;
+		result.prefix.size = 0;
+	}
 
-		DataStreamHelper::SearchResult sr;
-		_got = _dsh.search(data, len, sr);
-		Append_Search_Result(_line, sr);
-		data = sr.suffix.data;
-		len = sr.suffix.size;
-		return _got ? _line.c_str() : NULL;
+	result.suffix.data = data + j;
+	result.suffix.size = len - j;
+
+	result.locked.data = _target.data();
+	result.locked.size = i;
+
+	if(i >= m)
+	{ // found
+		_nLocked = 0; // discard the locked part
+		return true;
 	}
-	void LineCache::clear()
-	{
-		_line.clear();
-		_got = false;
-		_dsh.reset();
+	else
+	{ // not found
+		_nLocked = i;
+		return false;
 	}
+}
+
+LineCache::LineCache()
+: _got(false)
+{
+	_dsh.setTarget("\r\n");
+}
+const char* LineCache::getLine(const char* &data, size_t &len)
+{
+	if(_got)
+		return _line.c_str();
+
+	DataStreamHelper::SearchResult sr;
+	_got = _dsh.search(data, len, sr);
+	Append_Search_Result(_line, sr);
+	data = sr.suffix.data;
+	len = sr.suffix.size;
+	return _got ? _line.c_str() : NULL;
+}
+
+void LineCache::clear()
+{
+	_line.clear();
+	_got = false;
+	_dsh.reset();
+}
 // -----------------------------------------------------
 // class HttpMessage
 // -----------------------------------------------------
 Code2StatusMapInitializer c2smapinitializer;
 HttpMessage::HttpMessage(MessgeType type)
-		:_Type((http_parser_type)type),
-		_Method(GET),
-		_Code(0),
-		_bChunked(false),
-		_bKeepAlive(false),
-		_VerMajor(0),
-		_VerMinor(0),
-		_BodyLength(0)
+:_Type((http_parser_type) type), _Method(GET), _Code(0), _bChunked(false),
+_bKeepAlive(false), _VerMajor(0), _VerMinor(0), _BodyLength(0)
 {
-
 }
 
 HttpMessage::~HttpMessage(){
@@ -253,7 +249,8 @@ const char* HttpMessage::errorCode2Desc(int err)
 	}
 }
 
-HttpMessage::HttpMethod HttpMessage::method() const{
+HttpMessage::HttpMethod HttpMessage::method() const
+{
 	return _Method;
 }
 
@@ -295,7 +292,7 @@ const std::string& HttpMessage::queryArgument(const std::string& k)
 
 void HttpMessage::queryArgument(const std::string& k, const std::string& v)
 {
-	 _argument[k] = v;
+	_argument[k] = v;
 }
 
 std::map<std::string, std::string> HttpMessage::queryArguments()
@@ -535,9 +532,9 @@ std::string HttpMessage::toRaw()
 		if(_BodyLength >= 0 ) {
 			std::ostringstream ossBL;ossBL<<_BodyLength;
 			_Headers["Content-Length"] = ossBL.str();
- 		} else {
- 			_Headers.erase("Content-Length");
- 		}
+		} else {
+			_Headers.erase("Content-Length");
+		}
 	}
 
 	if(_bKeepAlive) {
@@ -553,4 +550,5 @@ std::string HttpMessage::toRaw()
 	_RawMessage = oss.str();
 	return _RawMessage;	
 }
+
 } }//namespace ZQ::eloop
