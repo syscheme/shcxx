@@ -76,19 +76,12 @@ int UnixSocket::AsyncSend(const std::string& msg, int fd)
 	asyncMsg.msg = msg;
 	asyncMsg.fd = fd;
 
-	bool bsend = true;
-
 	{
 		ZQ::common::MutexGuard gd(_lkSendMsgList);
-		if (_SendMsgList.empty())
-			bsend = false;
 		_SendMsgList.push_back(asyncMsg);
 	}
 
-	int ret = 0;
-	if (!bsend)
-		ret = _async->send();
-	return ret;
+	return _async->send();
 }
 
 void UnixSocket::OnAsyncSend()

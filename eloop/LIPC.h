@@ -287,7 +287,6 @@ private:
 	void OnCloseConn();
 	void OnCloseTimer();
 	void OnCloseAsync();
-	void OnAsyncSend();
 	uint lastCSeq();
 
 	std::string		_localPipeName;
