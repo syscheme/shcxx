@@ -93,7 +93,7 @@ int UnixSocket::AsyncSend(const std::string& msg, int fd)
 
 void UnixSocket::OnAsyncSend()
 {
- 	int i = 3;
+ 	int i = 10;
 	ZQ::common::MutexGuard gd(_lkSendMsgList);
  	while (!_SendMsgList.empty() && i>0)
 	{
