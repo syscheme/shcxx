@@ -683,6 +683,7 @@ void RedisClient::OnRead(ssize_t nread, const char *buf)
 		{
 			// process a line
 			char* line = _nextLine(pProcessed, pEnd - pProcessed, minLen);
+            _log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnDataArrived() LINE[%s]"), line);
 			if (NULL == line)
 			{
 				// met an incompleted line, shift it to the beginning of buffer then wait for the next OnDataArrived()
@@ -1100,6 +1101,9 @@ Evictor::Item::Ptr RedisEvictor::pin( const Evictor::Ident& ident, Evictor::Item
         return NULL;
 
     item->_ident = ident;
+    if (ident.category == "indexHeader")
+        return item;
+
     _cache.insert(Map::value_type(ident, item));
     _evictorList.push_front(ident);
     item->_pos = _evictorList.begin();

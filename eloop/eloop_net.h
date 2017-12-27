@@ -117,7 +117,6 @@ private:
 //	static void _cbWrote2(uv_write_t *req, int status);
 
 	eloop_buf_t	_buf;
-	uv_write_t	_req;
 };
 
 // -----------------------------
