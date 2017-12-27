@@ -479,6 +479,8 @@ namespace ZQ {
 			if (r < 0)
 				return r;
 			uv_udp_send_t* req = new uv_udp_send_t;
+			if (req == NULL)
+				return -1;
 			uv_udp_t* udp = (uv_udp_t *)context_ptr();
 			return uv_udp_send(req, udp, bufs, nbufs, (const struct sockaddr *)&send_addr, _cbSent);
 		}

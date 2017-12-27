@@ -86,16 +86,16 @@ int UnixSocket::AsyncSend(const std::string& msg, int fd)
 
 void UnixSocket::OnAsyncSend()
 {
- 	int i = 3;
+// 	int i = 3;
 	ZQ::common::MutexGuard gd(_lkSendMsgList);
- 	while (!_SendMsgList.empty() && i>0)
+ 	while (!_SendMsgList.empty())// && i>0)
 	{
 		AsyncMessage asyncMsg;
 		asyncMsg = _SendMsgList.front();
 		_SendMsgList.pop_front();
 
 		send(asyncMsg.msg, asyncMsg.fd);
-		i--;
+//		i--;
 	}
 }
 
