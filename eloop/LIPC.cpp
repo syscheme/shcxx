@@ -420,7 +420,7 @@ public:
 	ClientConn(ZQ::common::LogWrapper& log, LIPCClient& client):UnixSocket(log), _client(client){}
 
 	virtual void OnConnected(ElpeError status) { _client.OnConnected(status);	}
-	virtual void OnWrote(int status)  {	_client.OnWrote(status);	}
+	virtual void OnWrote(int status)  {	OnAsyncSend(); _client.OnWrote(status);	}
 	virtual void OnShutdown(ElpeError status)	{ _client.OnShutdown(status);	}
 	virtual void OnClose()	{	_client.OnCloseConn(); }
 	virtual void OnMessage(std::string& msg) {	_client.OnMessage(msg); }
