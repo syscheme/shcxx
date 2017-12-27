@@ -95,7 +95,15 @@ void UnixSocket::OnAsyncSend()
 		asyncMsg = _SendMsgList.front();
 		_SendMsgList.pop_front();
 
-		send(asyncMsg.msg, asyncMsg.fd);
+		int ret = send(asyncMsg.msg, asyncMsg.fd);
+		if (ret < 0)
+		{
+			std::string desc = "send msg :";
+			desc.append(asyncMsg.msg);
+			desc.append(" errDesc:");
+			desc.append(errDesc(ret));
+			onError(ret,desc.c_str());
+		}
 		i--;
 	}
 }

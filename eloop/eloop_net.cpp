@@ -50,11 +50,11 @@ namespace ZQ {
 
 		int Stream::write(const eloop_buf_t bufs[],unsigned int nbufs,Handle *send_handle)
 		{
-			uv_write_t*	req = new uv_write_t;
+			//uv_write_t*	req = new uv_write_t;
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
 			if (send_handle != NULL)
-				return uv_write2(req, stream, bufs,nbufs,(uv_stream_t *)send_handle->context_ptr(), _cbWrote);
-			return uv_write(req, stream, bufs,nbufs, _cbWrote);
+				return uv_write2(&_req, stream, bufs,nbufs,(uv_stream_t *)send_handle->context_ptr(), _cbWrote);
+			return uv_write(&_req, stream, bufs,nbufs, _cbWrote);
 		}
 /*
 		int Stream::write(const char *buf, size_t length) {
@@ -67,22 +67,22 @@ namespace ZQ {
 */
 		int Stream::write(const eloop_buf_t bufs[],unsigned int nbufs,uv_stream_t *send_handle)
 		{  
-			uv_write_t*  req = new uv_write_t;
+			//uv_write_t*  req = new uv_write_t;
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
 			if (NULL == send_handle)
 				return elpuEPIPE;
 
-			return uv_write2(req, stream, bufs, nbufs, send_handle, _cbWrote);
+			return uv_write2(&_req, stream, bufs, nbufs, send_handle, _cbWrote);
 		}
 
 		int Stream::write(const char *buf, size_t length, Handle *send_handle) {
 
 			uv_buf_t wbuf = uv_buf_init((char *)buf, length);
-			uv_write_t *req = new uv_write_t;
+			//uv_write_t *req = new uv_write_t;
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
 			if (send_handle != NULL)
-				return uv_write2(req, stream, &wbuf, 1, (uv_stream_t *)send_handle->context_ptr(), _cbWrote);
-			return uv_write(req, stream, &wbuf, 1, _cbWrote);
+				return uv_write2(&_req, stream, &wbuf, 1, (uv_stream_t *)send_handle->context_ptr(), _cbWrote);
+			return uv_write(&_req, stream, &wbuf, 1, _cbWrote);
 		}
 
 		int Stream::try_write(const char *buf, size_t length) {
@@ -159,7 +159,7 @@ namespace ZQ {
 			if (self != NULL) {
 				self->OnWrote(status);
 			}
-			delete req;
+			//delete req;
 		}
 
 		void Stream::doAllocate(eloop_buf_t* buf, size_t suggested_size)
@@ -179,7 +179,7 @@ namespace ZQ {
 
 		void Stream::doFree(eloop_buf_t* buf)
 		{
-			memset(_buf.base,0,_buf.len);
+			memset(buf->base,0,buf->len);
 		}
 
 /*
@@ -350,6 +350,16 @@ namespace ZQ {
 		// -----------------------------
 		UDP::UDP()
 		{
+			_buf.base = NULL;
+			_buf.len = 0;
+		}
+
+		UDP::~UDP()
+		{
+			if (_buf.base != NULL)
+				free(_buf.base);
+			_buf.base = NULL;
+			_buf.len = 0;
 		}
 
 		int UDP::init(Loop &loop) {
@@ -469,6 +479,8 @@ namespace ZQ {
 			if (r < 0)
 				return r;
 			uv_udp_send_t* req = new uv_udp_send_t;
+			if (req == NULL)
+				return -1;
 			uv_udp_t* udp = (uv_udp_t *)context_ptr();
 			return uv_udp_send(req, udp, bufs, nbufs, (const struct sockaddr *)&send_addr, _cbSent);
 		}
@@ -544,14 +556,40 @@ namespace ZQ {
 				self->OnSent((ElpeError)status);
 			}
 			delete req;
+			req = NULL;
 		}
 
 		void UDP::_cbAlloc(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
 
-			buf->base = (char*)malloc(suggested_size);
-			buf->len = suggested_size;
-			memset(buf->base,0,buf->len);
+// 			buf->base = (char*)malloc(suggested_size);
+// 			buf->len = suggested_size;
+// 			memset(buf->base,0,buf->len);
 
+			buf->base = NULL;
+			buf->len = 0;
+			UDP* self = static_cast<UDP *>(handle->data);
+			if (self != NULL)
+				self->doAllocate(buf,suggested_size);
+
+		}
+
+		void UDP::doAllocate(eloop_buf_t* buf, size_t suggested_size)
+		{
+			if (_buf.len < suggested_size || _buf.base == NULL)
+			{
+				if (_buf.base != NULL)
+					free(_buf.base);
+				_buf.base = (char*)malloc(suggested_size);
+				_buf.len = suggested_size;
+			}
+
+			memset(_buf.base,0,_buf.len);
+			buf = &_buf;
+		}
+
+		void UDP::doFree(eloop_buf_t* buf)
+		{
+			memset(buf->base,0,buf->len);
 		}
 
 		void UDP::_cbRecv(uv_udp_t *handle, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags) {
@@ -565,7 +603,7 @@ namespace ZQ {
 					return;
 				}*/
 				self->OnReceived(nread, buf->base, addr, flags);
-				free(buf->base);
+				self->doFree(const_cast<eloop_buf_t*>(buf));
 			}
 		}
 

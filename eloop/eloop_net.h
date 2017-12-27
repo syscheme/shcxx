@@ -117,6 +117,7 @@ private:
 //	static void _cbWrote2(uv_write_t *req, int status);
 
 	eloop_buf_t	_buf;
+	uv_write_t	_req;
 };
 
 // -----------------------------
@@ -177,6 +178,7 @@ public:
 
 public:
 	UDP();
+	virtual ~UDP();
 	int init(Loop &loop);
 	int init_ex(Loop &loop, unsigned int flags);
 	int open(sock_t sock);
@@ -198,6 +200,7 @@ public:
 	int set_recv_buf_size(int* value);
 
 
+//	int connect4(const char *ipv4, int prot);
 	int send4(const eloop_buf_t bufs[],unsigned int nbufs, const char *ipv4,int port);
 	int send4(const char *buf, size_t length, const char *ipv4,int port);
 	int send6(const char *buf, size_t length, const char *ipv6,int port);
@@ -213,10 +216,12 @@ public:
 protected:
 	// 
 	virtual void OnSent(ElpeError status) {}
-//	virtual void OnAllocate(UDP *self, size_t suggested_size, uv_buf_t *buf) {}
+	virtual void doAllocate(eloop_buf_t* buf, size_t suggested_size);
+	virtual void doFree(eloop_buf_t* buf);
 	virtual void OnReceived(ssize_t nread, const char *buf, const struct sockaddr *addr, unsigned flags) {}
 
 private:
+	eloop_buf_t   _buf;
 	int bind(const struct sockaddr *addr, unsigned int flags);
 	int try_send(const char *buf, size_t length, const struct sockaddr *addr);
 

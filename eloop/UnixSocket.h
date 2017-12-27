@@ -56,6 +56,9 @@ public:
 
 	int AsyncSend(const std::string& msg, int fd = -1);
 
+	void OnAsyncSend();
+	void OnCloseAsync();
+
 //protected:
 //	ZQ::common::Log& _lipcLog;
 	ZQ::common::LogWrapper& _lipcLog;
@@ -81,9 +84,6 @@ private:
 //	ZQ::common::Mutex _lkRecvMsgList;
 //	std::list<std::string> _RecvMsgList;
 
-
-	void OnAsyncSend();
-	void OnCloseAsync();
 };
 
 }} // namespaces
