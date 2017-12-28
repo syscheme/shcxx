@@ -324,6 +324,8 @@ namespace ZQ {
 
 		int TCP::connect(const struct sockaddr *addr) {
 			uv_connect_t *req = new uv_connect_t;
+			if (req == NULL)
+				return -1;
 
 			uv_tcp_t* tcp = (uv_tcp_t *)context_ptr();
 
