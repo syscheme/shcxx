@@ -596,7 +596,7 @@ void RedisClient::OnTimeout()
 
 void RedisClient::OnRead(ssize_t nread, const char *buf)
 {
-    _log(Log::L_WARNING, CLOGFMT(RedisClient, "OnRead() conn[%s]"), _connDesc);
+    _log(Log::L_WARNING, CLOGFMT(RedisClient, "OnRead() conn[%s] read size[%d]"), _connDesc, nread);
 
 	CommandQueue completedCmds;
 	bool bCancelConnection = false;
@@ -630,196 +630,213 @@ void RedisClient::OnRead(ssize_t nread, const char *buf)
 
 			return;
 		}
-        memcpy((char*) &_inCommingBuffer[_inCommingByteSeen], buf, nread);
 
 		_sendErrorCount.set(0); //current connection is normal, reset _sendErrorCount
 
-		{
-			char sockdesc[100];
-			snprintf(sockdesc, sizeof(sockdesc)-2, CLOGFMT(RedisClient, "OnDataArrived() conn[%s]"), _connDesc);
+        while (nread > 0)
+        {
+            int nCopySize = 0;
+            if (nread > REDIS_RECV_BUF_SIZE)
+            {
+                memcpy((char*) &_inCommingBuffer[_inCommingByteSeen], buf, REDIS_RECV_BUF_SIZE);
+                nCopySize = REDIS_RECV_BUF_SIZE;
+            }
+            else
+            {
+                memcpy((char*) &_inCommingBuffer[_inCommingByteSeen], buf, nread);
+                nCopySize = nread;
+            }
 
-			if (REDIS_VERBOSEFLG_RECV_HEX & _verboseFlags)
-				_log.hexDump(Log::L_DEBUG, &_inCommingBuffer[_inCommingByteSeen], nread, sockdesc);
-			else
-				_log.hexDump(Log::L_INFO, &_inCommingBuffer[_inCommingByteSeen], nread, sockdesc, true);
-		}
+            nread -= REDIS_RECV_BUF_SIZE;
 
-		// quit if there is no awaiting commands
-		if (_commandQueueToReceive.empty())
-		{
-			_log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnDataArrived() conn[%s] ignore the receiving since there are no await commands"), _connDesc);
-			return;
-		}
+            // 		{
+            // 			char sockdesc[100];
+            // 			snprintf(sockdesc, sizeof(sockdesc)-2, CLOGFMT(RedisClient, "OnDataArrived() conn[%s]"), _connDesc);
+            // 
+            // 			if (REDIS_VERBOSEFLG_RECV_HEX & _verboseFlags)
+            // 				_log.hexDump(Log::L_DEBUG, &_inCommingBuffer[_inCommingByteSeen], nread, sockdesc);
+            // 			else
+            // 				_log.hexDump(Log::L_INFO, &_inCommingBuffer[_inCommingByteSeen], nread, sockdesc, true);
+            // 		}
 
-		if (REDIS_VERBOSEFLG_TCPTHREADPOOL & _verboseFlags)
-		{
-			int poolSize, activeCount, pendingSize=0;
-// 			if (TCPSocket::getThreadPoolStatus(poolSize, activeCount, pendingSize) && pendingSize>0)
-// 				_log(pendingSize>50*poolSize? Log::L_WARNING :Log::L_DEBUG, CLOGFMT(RedisClient, "OnDataArrived() TCP ThreadPool[%d/%d] pending [%d] requests"), activeCount, poolSize, pendingSize);
-		}
+            // quit if there is no awaiting commands
+            if (_commandQueueToReceive.empty())
+            {
+                _log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnDataArrived() conn[%s] ignore the receiving since there are no await commands"), _connDesc);
+                return;
+            }
 
-		if (REDIS_VERBOSEFLG_THREADPOOL & _verboseFlags)
-		{
-			int poolSize, activeCount, pendingSize=0;
-			poolSize    = _thrdpool.size();
-			pendingSize = _thrdpool.pendingRequestSize();
-			activeCount = _thrdpool.activeCount();
+            // 		if (REDIS_VERBOSEFLG_TCPTHREADPOOL & _verboseFlags)
+            // 		{
+            // 			int poolSize, activeCount, pendingSize=0;
+            //  			if (TCPSocket::getThreadPoolStatus(poolSize, activeCount, pendingSize) && pendingSize>0)
+            //  				_log(pendingSize>50*poolSize? Log::L_WARNING :Log::L_DEBUG, CLOGFMT(RedisClient, "OnDataArrived() TCP ThreadPool[%d/%d] pending [%d] requests"), activeCount, poolSize, pendingSize);
+            // 		}
 
-			if (pendingSize >0)
-				_log(pendingSize>100? Log::L_WARNING :Log::L_DEBUG, CLOGFMT(RedisClient, "OnDataArrived() client ThreadPool[%d/%d] pending [%d] requests"), activeCount, poolSize, pendingSize);
-		}
-		
-		if(_commandQueueToReceive.empty())
-			return;
-		
-		RedisCommand::Ptr pCmd = _commandQueueToReceive.front();
+            if (REDIS_VERBOSEFLG_THREADPOOL & _verboseFlags)
+            {
+                int poolSize, activeCount, pendingSize=0;
+                poolSize    = _thrdpool.size();
+                pendingSize = _thrdpool.pendingRequestSize();
+                activeCount = _thrdpool.activeCount();
 
-		char* pProcessed = _inCommingBuffer, *pEnd = _inCommingBuffer + _inCommingByteSeen + nread;
-		bool bFinishedThisDataChuck = false;
-		stampNow = TimeUtil::now();
-		int minLen =0;
+                if (pendingSize >0)
+                    _log(pendingSize>100? Log::L_WARNING :Log::L_DEBUG, CLOGFMT(RedisClient, "OnDataArrived() client ThreadPool[%d/%d] pending [%d] requests"), activeCount, poolSize, pendingSize);
+            }
 
-		while ((pProcessed < pEnd && !bCancelConnection) && pCmd) // (pCmd && _pCurrentMsg->contentLenToRead==0))
-		{
-			// process a line
-			char* line = _nextLine(pProcessed, pEnd - pProcessed, minLen);
-            _log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnDataArrived() LINE[%s]"), line);
-			if (NULL == line)
-			{
-				// met an incompleted line, shift it to the beginning of buffer then wait for the next OnDataArrived()
-#pragma message ( __MSGLOC__ "TODO: impl here if a single bulk is larger than REDIS_RECV_BUF_SIZE")
-				break;
-			}
+            if(_commandQueueToReceive.empty())
+                return;
 
-			int len = strlen(line);
-			pProcessed += len + sizeof(REDIS_NEWLINE)-1;
-			if (len <=0) // ignore empty line
-				continue;
+            RedisCommand::Ptr pCmd = _commandQueueToReceive.front();
 
-			// processing incomplete bulk(s) left from the previous buffer scan
-			if (0 != pCmd->_replyCtx.data.type && pCmd->_replyCtx.nBulksLeft > 0) // incomplete bulk(s)
-			{
-				if (!pCmd->_replyCtx.isBulkPayload)
-				{
-					if (*(line++) != REDIS_LEADINGCH_BULK)
-					{
-						pCmd->_replyCtx.errCode = RedisSink::rdeProtocolMissed;
-						break;
-					}
+            char* pProcessed = _inCommingBuffer, *pEnd = _inCommingBuffer + _inCommingByteSeen + nCopySize;
+            bool bFinishedThisDataChuck = false;
+            stampNow = TimeUtil::now();
+            int minLen =0;
 
-					if ((minLen =atoi(line)) <0)
-					{
-						pCmd->_replyCtx.data.bulks.push_back(""); // fill-in an empty line
-						pCmd->_replyCtx.nBulksLeft--;
-					}
-					else pCmd->_replyCtx.isBulkPayload = true;
-
-					continue;
-				}
-
-				// the line is a bulk payload
-				pCmd->_replyCtx.data.bulks.push_back(line); // fill-in the line
-				pCmd->_replyCtx.nBulksLeft--;
-				pCmd->_replyCtx.isBulkPayload = false;
-				minLen =0;
-				continue;
-			}
-
-			// a completed reply processed
-			if (0 != pCmd->_replyCtx.data.type)
-			{
-				// put it into the completed list
-				if (pCmd)
+            while ((pProcessed < pEnd && !bCancelConnection) && pCmd) // (pCmd && _pCurrentMsg->contentLenToRead==0))
+            {
+                // process a line
+                char* line = _nextLine(pProcessed, pEnd - pProcessed, minLen);
+                if (NULL == line)
                 {
-					completedCmds.push(pCmd);
+                    // met an incompleted line, shift it to the beginning of buffer then wait for the next OnDataArrived()
+#pragma message ( __MSGLOC__ "TODO: impl here if a single bulk is larger than REDIS_RECV_BUF_SIZE")
+                    break;
                 }
 
-				// move to next await command
-				_commandQueueToReceive.pop();
-				pCmd = NULL;
-				if(!_commandQueueToReceive.empty())
-					pCmd = _commandQueueToReceive.front();
+                int len = strlen(line);
+                pProcessed += len + sizeof(REDIS_NEWLINE)-1;
+                if (len <=0) // ignore empty line
+                    continue;
 
-				if (!pCmd)
-					break;
-			}
+                // processing incomplete bulk(s) left from the previous buffer scan
+                if (0 != pCmd->_replyCtx.data.type && pCmd->_replyCtx.nBulksLeft > 0) // incomplete bulk(s)
+                {
+                    if (!pCmd->_replyCtx.isBulkPayload)
+                    {
+                        if (*(line++) != REDIS_LEADINGCH_BULK)
+                        {
+                            pCmd->_replyCtx.errCode = RedisSink::rdeProtocolMissed;
+                            break;
+                        }
 
-			// beginning of a new reply
-			pCmd->_replyCtx.data.type = *(line++);
-			pCmd->_replyCtx.nBulksLeft = 0;
-			pCmd->_replyCtx.isBulkPayload = false;
-			minLen =0;
+                        if ((minLen =atoi(line)) <0)
+                        {
+                            pCmd->_replyCtx.data.bulks.push_back(""); // fill-in an empty line
+                            pCmd->_replyCtx.nBulksLeft--;
+                        }
+                        else pCmd->_replyCtx.isBulkPayload = true;
 
-			switch(pCmd->_replyCtx.data.type)
-			{
-			case REDIS_LEADINGCH_ERROR:
-				pCmd->_replyCtx.data.bulks.push_back(line);
-				pCmd->_replyCtx.errCode = RedisSink::rdeServerReturnedError;
-				break;
+                        continue;
+                    }
 
-			case REDIS_LEADINGCH_INLINE:
-				pCmd->_replyCtx.data.bulks.push_back(line);
-				pCmd->_replyCtx.errCode = 0;
-				break;
+                    // the line is a bulk payload
+                    pCmd->_replyCtx.data.bulks.push_back(line); // fill-in the line
+                    pCmd->_replyCtx.nBulksLeft--;
+                    pCmd->_replyCtx.isBulkPayload = false;
+                    minLen =0;
+                    continue;
+                }
 
-			case REDIS_LEADINGCH_INT:
-				pCmd->_replyCtx.data.integer = atol(line);
-				pCmd->_replyCtx.errCode = 0;
-				break;
+                // a completed reply processed
+                if (0 != pCmd->_replyCtx.data.type)
+                {
+                    // put it into the completed list
+                    if (pCmd)
+                    {
+                        completedCmds.push(pCmd);
+                    }
 
-			case REDIS_LEADINGCH_BULK:
-				if ((minLen = atoi(line)) <=0)
-				{
-					pCmd->_replyCtx.errCode = 0; // empty bulk
-					break;
-				}
+                    // move to next await command
+                    _commandQueueToReceive.pop();
+                    pCmd = NULL;
+                    if(!_commandQueueToReceive.empty())
+                        pCmd = _commandQueueToReceive.front();
 
-				// except a/the next line is bulk payload
-				pCmd->_replyCtx.isBulkPayload = true;
-				pCmd->_replyCtx.nBulksLeft = 1; 
-				break;
+                    if (!pCmd)
+                        break;
+                }
 
-			case REDIS_LEADINGCH_MULTIBULK:
-				pCmd->_replyCtx.isBulkPayload = false;
-				pCmd->_replyCtx.nBulksLeft = atol(line);
-				minLen = 0;
-				if (pCmd->_replyCtx.nBulksLeft <= 0)
-				{
-					// empty bulks
-					pCmd->_replyCtx.nBulksLeft = 0;
-					pCmd->_replyCtx.errCode = 0;
-				}
+                // beginning of a new reply
+                pCmd->_replyCtx.data.type = *(line++);
+                pCmd->_replyCtx.nBulksLeft = 0;
+                pCmd->_replyCtx.isBulkPayload = false;
+                minLen =0;
 
-				break;
+                switch(pCmd->_replyCtx.data.type)
+                {
+                case REDIS_LEADINGCH_ERROR:
+                    pCmd->_replyCtx.data.bulks.push_back(line);
+                    pCmd->_replyCtx.errCode = RedisSink::rdeServerReturnedError;
+                    break;
 
-			default:
-				_log(Log::L_WARNING, CLOGFMT(RedisClient, "OnDataArrived() unknown proto-leading type[%c] received, cancel the connection"), pCmd->_replyCtx.data.type);
-				pCmd->_replyCtx.errCode = RedisSink::rdeProtocolMissed;
-				break;
-			}   
+                case REDIS_LEADINGCH_INLINE:
+                    pCmd->_replyCtx.data.bulks.push_back(line);
+                    pCmd->_replyCtx.errCode = 0;
+                    break;
 
-			// determin if needs to give up the connection
-			if (RedisSink::rdeProtocolMissed == pCmd->_replyCtx.errCode)
-				bCancelConnection = true;
-			else if (REDIS_LEADINGCH_ERROR != pCmd->_replyCtx.data.type && pCmd->_replyType != pCmd->_replyCtx.data.type)
-				bCancelConnection = true;
+                case REDIS_LEADINGCH_INT:
+                    pCmd->_replyCtx.data.integer = atol(line);
+                    pCmd->_replyCtx.errCode = 0;
+                    break;
 
-		} // end of current buffer reading
+                case REDIS_LEADINGCH_BULK:
+                    if ((minLen = atoi(line)) <=0)
+                    {
+                        pCmd->_replyCtx.errCode = 0; // empty bulk
+                        break;
+                    }
 
-		if (pCmd && 0 != pCmd->_replyCtx.data.type && pCmd->_replyCtx.nBulksLeft <= 0)
-        {
-			completedCmds.push(pCmd);
-            _commandQueueToReceive.pop();
-        }
+                    // except a/the next line is bulk payload
+                    pCmd->_replyCtx.isBulkPayload = true;
+                    pCmd->_replyCtx.nBulksLeft = 1; 
+                    break;
 
-		// shift the unhandled buffer to the beginning, process with next OnData()
-		_log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnDataArrived() conn[%s] received %d bytes, appending to buf[%d], chopped out %d replies, %d incompleted bytes left"), _connDesc, nread, _inCommingByteSeen, completedCmds.size(), pEnd - pProcessed);
-		if (pEnd >= pProcessed)
-		{
-			_inCommingByteSeen = pEnd - pProcessed;
-			memcpy(_inCommingBuffer, pProcessed, _inCommingByteSeen);
-		}
-	} // end of processing of this ArrivedData
+                case REDIS_LEADINGCH_MULTIBULK:
+                    pCmd->_replyCtx.isBulkPayload = false;
+                    pCmd->_replyCtx.nBulksLeft = atol(line);
+                    minLen = 0;
+                    if (pCmd->_replyCtx.nBulksLeft <= 0)
+                    {
+                        // empty bulks
+                        pCmd->_replyCtx.nBulksLeft = 0;
+                        pCmd->_replyCtx.errCode = 0;
+                    }
+
+                    break;
+
+                default:
+                    _log(Log::L_WARNING, CLOGFMT(RedisClient, "OnDataArrived() unknown proto-leading type[%c] received, cancel the connection"), pCmd->_replyCtx.data.type);
+                    pCmd->_replyCtx.errCode = RedisSink::rdeProtocolMissed;
+                    break;
+                }   
+
+                // determin if needs to give up the connection
+                if (RedisSink::rdeProtocolMissed == pCmd->_replyCtx.errCode)
+                    bCancelConnection = true;
+                else if (REDIS_LEADINGCH_ERROR != pCmd->_replyCtx.data.type && pCmd->_replyType != pCmd->_replyCtx.data.type)
+                    bCancelConnection = true;
+
+            } // end of current buffer reading
+
+            if (pCmd && 0 != pCmd->_replyCtx.data.type && pCmd->_replyCtx.nBulksLeft <= 0)
+            {
+                completedCmds.push(pCmd);
+                _commandQueueToReceive.pop();
+            }
+
+            // shift the unhandled buffer to the beginning, process with next OnData()
+            _log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnDataArrived() conn[%s] received %d bytes, appending to buf[%d], chopped out %d replies, %d incompleted bytes left"), _connDesc, nCopySize, _inCommingByteSeen, completedCmds.size(), pEnd - pProcessed);
+            if (pEnd >= pProcessed)
+            {
+                _inCommingByteSeen = pEnd - pProcessed;
+                memcpy(_inCommingBuffer, pProcessed, _inCommingByteSeen);
+            }
+        } // end of processing of this ArrivedData
+    }
+        
+
 
 	// fire MessageProcessCmd for the replied commands
 	//////////////////////////////////////////////////////////
