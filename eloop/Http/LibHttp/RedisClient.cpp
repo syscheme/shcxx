@@ -635,19 +635,21 @@ void RedisClient::OnRead(ssize_t nread, const char *buf)
 
         while (nread > 0)
         {
+            _log(Log::L_DEBUG, CLOGFMT(RedisClient, "_inCommingByteSeen[%d]"), _inCommingByteSeen);
             int nCopySize = 0;
-            if (nread > REDIS_RECV_BUF_SIZE)
+            if (nread >= REDIS_RECV_BUF_SIZE)
             {
-                memcpy((char*) &_inCommingBuffer[_inCommingByteSeen], buf, REDIS_RECV_BUF_SIZE);
-                nCopySize = REDIS_RECV_BUF_SIZE;
+                nCopySize = REDIS_RECV_BUF_SIZE - _inCommingByteSeen - 1;
+                memcpy((char*) &_inCommingBuffer[_inCommingByteSeen], buf, nCopySize);
             }
             else
             {
-                memcpy((char*) &_inCommingBuffer[_inCommingByteSeen], buf, nread);
                 nCopySize = nread;
+                memcpy((char*) &_inCommingBuffer[_inCommingByteSeen], buf, nCopySize);
             }
-
-            nread -= REDIS_RECV_BUF_SIZE;
+            
+            buf += nCopySize;
+            nread -= nCopySize;
 
             // 		{
             // 			char sockdesc[100];
