@@ -651,15 +651,15 @@ void RedisClient::OnRead(ssize_t nread, const char *buf)
             buf += nCopySize;
             nread -= nCopySize;
 
-            // 		{
-            // 			char sockdesc[100];
-            // 			snprintf(sockdesc, sizeof(sockdesc)-2, CLOGFMT(RedisClient, "OnDataArrived() conn[%s]"), _connDesc);
-            // 
-            // 			if (REDIS_VERBOSEFLG_RECV_HEX & _verboseFlags)
-            // 				_log.hexDump(Log::L_DEBUG, &_inCommingBuffer[_inCommingByteSeen], nread, sockdesc);
-            // 			else
-            // 				_log.hexDump(Log::L_INFO, &_inCommingBuffer[_inCommingByteSeen], nread, sockdesc, true);
-            // 		}
+            {
+                char sockdesc[100];
+                snprintf(sockdesc, sizeof(sockdesc)-2, CLOGFMT(RedisClient, "OnDataArrived() conn[%s]"), _connDesc);
+
+                if (REDIS_VERBOSEFLG_RECV_HEX & _verboseFlags)
+                    _log.hexDump(Log::L_DEBUG, &_inCommingBuffer[_inCommingByteSeen], nCopySize, sockdesc);
+             	else
+                    _log.hexDump(Log::L_INFO, &_inCommingBuffer[_inCommingByteSeen], nCopySize, sockdesc, true);
+            }
 
             // quit if there is no awaiting commands
             if (_commandQueueToReceive.empty())
