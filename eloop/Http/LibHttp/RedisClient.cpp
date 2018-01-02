@@ -87,6 +87,8 @@ void RedisCommand::OnReply(RedisClient& client, RedisCommand& cmd, Data& data)
 
     if (_pEvent)
         _pEvent->signal();
+
+    client._log(Log::L_DEBUG, CLOGFMT(RedisCommand, "OnReply() cmd[%s] reply"), _command.c_str());
 }
 
 std::string RedisCommand::desc()
