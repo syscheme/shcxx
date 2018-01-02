@@ -695,6 +695,7 @@ void RedisClient::OnRead(ssize_t nread, const char *buf)
             }
 
             int len = strlen(line);
+            _log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnRead() conn[%s] line:lenth[%s:%d] cmd[%s]"), _connDesc, line, len, pCmd->desc().c_str());
             pProcessed += len + sizeof(REDIS_NEWLINE)-1;
             if (len <=0) // ignore empty line
                 continue;
@@ -1175,7 +1176,7 @@ Evictor::Error RedisEvictor::loadFromStore(const std::string& key, StreamedObjec
         _cmdQueue.push(pCmd);
         send();
     }
-    if (!pCmd->wait(DEFAULT_CLIENT_TIMEOUT)) 
+    if (!pCmd->wait(10000)) 
         return (_lastErr = Evictor::eeTimeout);
     if (REDIS_LEADINGCH_ERROR == pCmd->_replyCtx.data.type)	
         return (_lastErr = Evictor::eeConnectErr); 
