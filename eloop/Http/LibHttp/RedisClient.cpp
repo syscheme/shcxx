@@ -428,7 +428,6 @@ int RedisClient::_sendLine(const std::string& cmdline)
 	if (cmdline.empty())
 		return -1;
 
-	_log(Log::L_DEBUG, CLOGFMT(RedisClient, "_sendLine() conn[%s] sending %s"), _connDesc, cmdline.c_str());
 	std::string cmdToSend = cmdline + REDIS_NEWLINE;
     int ret = TCP::write(cmdToSend.c_str(), cmdToSend.length());
 
@@ -608,7 +607,7 @@ void RedisClient::OnRead(ssize_t nread, const char *buf)
         int bytesToRead = sizeof(_inCommingBuffer) - _inCommingByteSeen;
         if (bytesToRead <=0)
         {
-            _log(Log::L_WARNING, CLOGFMT(RedisClient, "OnDataArrived() conn[%s] last incomplete message exceed bufsz[%d] from offset[%d], give it up"), _connDesc, sizeof(_inCommingBuffer), _inCommingByteSeen);
+            _log(Log::L_WARNING, CLOGFMT(RedisClient, "OnRead() conn[%s] last incomplete message exceed bufsz[%d] from offset[%d], give it up"), _connDesc, sizeof(_inCommingBuffer), _inCommingByteSeen);
             _inCommingByteSeen =0;
             bytesToRead = sizeof(_inCommingBuffer) - _inCommingByteSeen;
         }
@@ -621,33 +620,45 @@ void RedisClient::OnRead(ssize_t nread, const char *buf)
 #else
             if (EINPROGRESS == err)
 #endif // ZQ_OS_MSWIN
-                _log(Log::L_WARNING, CLOGFMT(RedisClient, "OnDataArrived() conn[%s] recv() temporary fail[%d/%d], errno[%d]"), _connDesc, nread, bytesToRead, err);
+                _log(Log::L_WARNING, CLOGFMT(RedisClient, "OnRead() conn[%s] recv() temporary fail[%d/%d], errno[%d]"), _connDesc, nread, bytesToRead, err);
             else
             {
-                _log(Log::L_ERROR, CLOGFMT(RedisClient, "OnDataArrived() conn[%s] recv() failed[%d/%d], errno[%d]"), _connDesc, nread, bytesToRead, err);
+                _log(Log::L_ERROR, CLOGFMT(RedisClient, "OnRead() conn[%s] recv() failed[%d/%d], errno[%d]"), _connDesc, nread, bytesToRead, err);
                 OnError();
             }
 
             return;
         }
-        memcpy((char*) &_inCommingBuffer[_inCommingByteSeen], buf, nread);
+
+        int nCopySize = 0, nLeftSize = 0;
+        if (bytesToRead < nread)
+        {
+            memcpy((char*) &_inCommingBuffer[_inCommingByteSeen], buf, bytesToRead);
+            nCopySize = bytesToRead;
+            nLeftSize = nread - bytesToRead;
+        }
+        else
+        {
+            memcpy((char*) &_inCommingBuffer[_inCommingByteSeen], buf, nread);
+            nCopySize = nread;
+        }
 
         _sendErrorCount.set(0); //current connection is normal, reset _sendErrorCount
 
         {
             char sockdesc[100];
-            snprintf(sockdesc, sizeof(sockdesc)-2, CLOGFMT(RedisClient, "OnDataArrived() conn[%s]"), _connDesc);
+            snprintf(sockdesc, sizeof(sockdesc)-2, CLOGFMT(RedisClient, "OnRead() conn[%s]"), _connDesc);
 
             if (REDIS_VERBOSEFLG_RECV_HEX & _verboseFlags)
-                _log.hexDump(Log::L_DEBUG, &_inCommingBuffer[_inCommingByteSeen], nread, sockdesc);
+                _log.hexDump(Log::L_DEBUG, &_inCommingBuffer[_inCommingByteSeen], nCopySize, sockdesc);
             else
-                _log.hexDump(Log::L_INFO, &_inCommingBuffer[_inCommingByteSeen], nread, sockdesc, true);
+                _log.hexDump(Log::L_INFO, &_inCommingBuffer[_inCommingByteSeen], nCopySize, sockdesc, true);
         }
 
         // quit if there is no awaiting commands
         if (_commandQueueToReceive.empty())
         {
-            _log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnDataArrived() conn[%s] ignore the receiving since there are no await commands"), _connDesc);
+            _log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnRead() conn[%s] ignore the receiving since there are no await commands"), _connDesc);
             return;
         }
 
@@ -659,7 +670,7 @@ void RedisClient::OnRead(ssize_t nread, const char *buf)
             activeCount = _thrdpool.activeCount();
 
             if (pendingSize >0)
-                _log(pendingSize>100? Log::L_WARNING :Log::L_DEBUG, CLOGFMT(RedisClient, "OnDataArrived() client ThreadPool[%d/%d] pending [%d] requests"), activeCount, poolSize, pendingSize);
+                _log(pendingSize>100? Log::L_WARNING :Log::L_DEBUG, CLOGFMT(RedisClient, "OnRead() client ThreadPool[%d/%d] pending [%d] requests"), activeCount, poolSize, pendingSize);
         }
 
         if(_commandQueueToReceive.empty())
@@ -667,7 +678,7 @@ void RedisClient::OnRead(ssize_t nread, const char *buf)
 
         RedisCommand::Ptr pCmd = _commandQueueToReceive.front();
 
-        char* pProcessed = _inCommingBuffer, *pEnd = _inCommingBuffer + _inCommingByteSeen + nread;
+        char* pProcessed = _inCommingBuffer, *pEnd = _inCommingBuffer + _inCommingByteSeen + nCopySize;
         bool bFinishedThisDataChuck = false;
         stampNow = TimeUtil::now();
         int minLen =0;
@@ -785,7 +796,7 @@ void RedisClient::OnRead(ssize_t nread, const char *buf)
                 break;
 
             default:
-                _log(Log::L_WARNING, CLOGFMT(RedisClient, "OnDataArrived() unknown proto-leading type[%c] received, cancel the connection"), pCmd->_replyCtx.data.type);
+                _log(Log::L_WARNING, CLOGFMT(RedisClient, "OnRead() unknown proto-leading type[%c] received, cancel the connection"), pCmd->_replyCtx.data.type);
                 pCmd->_replyCtx.errCode = RedisSink::rdeProtocolMissed;
                 break;
             }   
@@ -805,11 +816,18 @@ void RedisClient::OnRead(ssize_t nread, const char *buf)
         }
 
         // shift the unhandled buffer to the beginning, process with next OnData()
-        _log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnDataArrived() conn[%s] received %d bytes, appending to buf[%d], chopped out %d replies, %d incompleted bytes left"), _connDesc, nread, _inCommingByteSeen, completedCmds.size(), pEnd - pProcessed);
+        _log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnRead() conn[%s] received %d bytes, appending to buf[%d], chopped out %d replies, %d incompleted bytes left"), _connDesc, nCopySize, _inCommingByteSeen, completedCmds.size(), pEnd - pProcessed);
         if (pEnd >= pProcessed)
         {
             _inCommingByteSeen = pEnd - pProcessed;
             memcpy(_inCommingBuffer, pProcessed, _inCommingByteSeen);
+        }
+
+        if (nLeftSize > 0)
+        {
+            _inCommingByteSeen += nLeftSize;
+            buf += nLeftSize;
+            memcpy((char*)&_inCommingBuffer[_inCommingByteSeen], buf, nLeftSize);
         }
     } // end of processing of this ArrivedData
 
