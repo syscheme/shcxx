@@ -829,7 +829,7 @@ void RedisClient::OnRead(ssize_t nread, const char *buf)
             }
 
             // shift the unhandled buffer to the beginning, process with next OnData()
-            _log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnDataArrived() conn[%s] received %d bytes, appending to buf[%d], chopped out %d replies, %d incompleted bytes left"), _connDesc, nCopySize, _inCommingByteSeen, completedCmds.size(), pEnd - pProcessed);
+            _log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnDataArrived() conn[%s] cmd[%s], received %d bytes, appending to buf[%d], chopped out %d replies, %d incompleted bytes left"), _connDesc, pCmd->desc().c_str(), nCopySize, _inCommingByteSeen, completedCmds.size(), pEnd - pProcessed);
             if (pEnd >= pProcessed)
             {
                 _inCommingByteSeen = pEnd - pProcessed;
