@@ -3,34 +3,30 @@
 namespace ZQ {
 namespace eloop {
 
-ThreadPool::ThreadPool(Loop& loop)
-		:_loop(loop),
-		_data(NULL)
+ThreadRequest::ThreadRequest(Loop& loop)
+		:_loop(loop)
 {
+	work();
 }
 
-int ThreadPool::work(void* data)
+int ThreadRequest::work()
 {
-	uv_work_t *req = new uv_work_t;
-	this->_data = data;
-	req->data = static_cast<void *>(this);
+	uv_work_t* req = (uv_work_t *)context_ptr();
 	return uv_queue_work(_loop.context_ptr(),req,_cbWork,_cbAfterWrok);
 }
 
-void ThreadPool::_cbWork(uv_work_t *req)
+void ThreadRequest::_cbWork(uv_work_t *req)
 {
-	ThreadPool *h = static_cast<ThreadPool *>(req->data);
+	ThreadRequest *h = static_cast<ThreadRequest *>(req->data);
 	if (NULL != h)
 		h->doWork();
 }
 
-void ThreadPool::_cbAfterWrok(uv_work_t *req,int status)
+void ThreadRequest::_cbAfterWrok(uv_work_t *req,int status)
 {
-	ThreadPool *h = static_cast<ThreadPool *>(req->data);
+	ThreadRequest *h = static_cast<ThreadRequest *>(req->data);
 	if (NULL != h)
 		h->OnAfterWork(status);
-	free(req);
-	h->_data = NULL;
 }
 	
 } } // namespace ZQ::eloop

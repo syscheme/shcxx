@@ -34,29 +34,27 @@
 namespace ZQ {
 namespace eloop {
 
-class ZQ_ELOOP_API ThreadPool;
+class ZQ_ELOOP_API ThreadRequest;
 
 // ---------------------------------------
-// class ThreadPool
+// class ThreadRequest
 // ---------------------------------------
-class ThreadPool
+class ThreadRequest:public EloopRequest
 {
 public:
-	ThreadPool(Loop& loop);
-	int work(void* data);
+	ThreadRequest(Loop& loop);
 
 protected:
 	virtual void doWork() {}
-	virtual void OnAfterWork(int status) {}
-	void*	_data;
+	virtual void OnAfterWork(int status) {delete this;}
 
 private:
+	int work();
 	static void _cbWork(uv_work_t *req);
 	static void _cbAfterWrok(uv_work_t *req,int status);
 
 private:
 	Loop& _loop;
-
 };
 
 } } // namespace ZQ::eloop

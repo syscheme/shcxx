@@ -49,7 +49,7 @@ class Stream : public Handle
 	friend class Process;
 protected:
 	Stream();
-	~Stream();
+	virtual ~Stream();
 
 public:
 	int shutdown();
@@ -81,31 +81,7 @@ protected:
 	virtual void doAllocate(eloop_buf_t* buf, size_t suggested_size);
 
 	virtual void doFree(eloop_buf_t* buf);
-/*
-	virtual void doAllocate(eloop_buf_t* buf, size_t suggested_size)	
-	{
-		size_t len = suggested_size;
-		if ((len <= 0) || (len >= 65535))
-			len = 65535;
 
-		buf->base = (char*)malloc(len);
-		if (buf->base)
-		{
-			buf->len =  len;
-			memset(buf->base,0,buf->len);
-		}
-	}
-
-	virtual void doFree(eloop_buf_t* buf)
-	{
-		if (buf->base)
-		{
-			free(buf->base);
-			buf->base = NULL;
-			buf->len = 0;
-		} 
-	}
-*/
 	int write(const eloop_buf_t bufs[],unsigned int nbufs,uv_stream_t *send_handle);
 
 private:

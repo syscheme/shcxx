@@ -23,8 +23,6 @@ namespace ZQ {
 
 		int Stream::shutdown() {
 			uv_shutdown_t* req = new uv_shutdown_t;
-            if (req == NULL)
-                return -1;
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
 			return uv_shutdown(req, stream, _cbShutdown);
 		}
@@ -53,6 +51,8 @@ namespace ZQ {
 		int Stream::write(const eloop_buf_t bufs[],unsigned int nbufs,Handle *send_handle)
 		{
 			uv_write_t*	req = new uv_write_t;
+			if (req == NULL)
+				return -1;
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
 			if (send_handle != NULL)
 				return uv_write2(req, stream, bufs,nbufs,(uv_stream_t *)send_handle->context_ptr(), _cbWrote);
@@ -67,19 +67,18 @@ namespace ZQ {
 			return uv_write(req, stream, &wbuf, 1, _cbWrote);
 		}
 */
-
 		int Stream::write(const eloop_buf_t bufs[],unsigned int nbufs,uv_stream_t *send_handle)
 		{  
 			uv_write_t*  req = new uv_write_t;
-            if (req == NULL)
-                return -1;
+			if (req == NULL)
+				return -1;
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
 			if (NULL == send_handle)
-            {
-                delete req;
-                req = NULL;
+			{
+				delete req;
+				req = NULL;
 				return elpuEPIPE;
-            }
+			}
 
 			return uv_write2(req, stream, bufs, nbufs, send_handle, _cbWrote);
 		}
@@ -88,8 +87,8 @@ namespace ZQ {
 
 			uv_buf_t wbuf = uv_buf_init((char *)buf, length);
 			uv_write_t *req = new uv_write_t;
-            if (req == NULL)
-                return -1;
+			if (req == NULL)
+				return -1;
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
 			if (send_handle != NULL)
 				return uv_write2(req, stream, &wbuf, 1, (uv_stream_t *)send_handle->context_ptr(), _cbWrote);
@@ -171,6 +170,7 @@ namespace ZQ {
 				self->OnWrote(status);
 			}
 			delete req;
+			req = NULL;
 		}
 
 		void Stream::doAllocate(eloop_buf_t* buf, size_t suggested_size)
@@ -324,6 +324,8 @@ namespace ZQ {
 
 		int TCP::connect(const struct sockaddr *addr) {
 			uv_connect_t *req = new uv_connect_t;
+			if (req == NULL)
+				return -1;
 
 			uv_tcp_t* tcp = (uv_tcp_t *)context_ptr();
 
