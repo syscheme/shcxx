@@ -82,11 +82,15 @@ void RedisCommand::OnRequestError(RedisClient& client, RedisCommand& cmd, Error 
 
 void RedisCommand::OnReply(RedisClient& client, RedisCommand& cmd, Data& data)
 {
+    client._log(Log::L_DEBUG, CLOGFMT(RedisCommand, "OnReply() entered cmd[%s]"), _command.c_str());
     if (_cbRedirect)
         return _cbRedirect->OnReply(client, cmd, data);
 
     if (_pEvent)
+    {
         _pEvent->signal();
+        client._log(Log::L_DEBUG, CLOGFMT(RedisCommand, "OnReply() event not null"), _command.c_str());
+    }
 
     client._log(Log::L_DEBUG, CLOGFMT(RedisCommand, "OnReply() cmd[%s] reply"), _command.c_str());
 }
