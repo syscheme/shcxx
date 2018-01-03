@@ -181,7 +181,7 @@ namespace ZQ {
 			
 			if (_buf.base)
 			{
-				memset(_buf->base,0,_buf->len);
+				memset(_buf.base,0,_buf.len);
 				buf->base = _buf.base;
 				buf->len = _buf.len;
 			}
