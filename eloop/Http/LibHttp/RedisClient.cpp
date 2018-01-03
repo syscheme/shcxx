@@ -1197,6 +1197,7 @@ Evictor::Error RedisEvictor::loadFromStore(const std::string& key, StreamedObjec
     }
     data.stampAsOf = ZQ::common::now();
 
+    Evictor::_log(Log::L_DEBUG, CLOGFMT(RedisEvictor, "loadFromStore() %d data size and %d recieve len"), data.data.size(), vlen);
     return Evictor::eeOK;
 }
 
