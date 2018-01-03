@@ -331,7 +331,7 @@ int RedisClient::encode(std::string& output, const void* source, size_t len)
 		char page[REDIS_RECV_BUF_SIZE];
 		bz_stream bzstrm;
 		memset(&bzstrm, 0x00, sizeof(bzstrm));
-		if (BZ_OK == BZ2_bzCompressInit(&bzstrm, 9, 4, 250))
+		if (BZ_OK == BZ2_bzCompressInit(&bzstrm, 9, 0, 250))
 		{
 			bzstrm.next_in  =(char*) source;
 			bzstrm.avail_in =len;
@@ -374,7 +374,7 @@ int RedisClient::decode(const char* source, void* target, size_t maxlen)
 		char page[REDIS_RECV_BUF_SIZE];
 		bz_stream bzstrm;
 		memset(&bzstrm, 0x00, sizeof(bzstrm));
-        int nRet = BZ2_bzDecompressInit(&bzstrm, 4, 0);
+        int nRet = BZ2_bzDecompressInit(&bzstrm, 0, 0);
 		if (BZ_OK != nRet)
 			return 0;
 
