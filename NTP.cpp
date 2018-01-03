@@ -11,6 +11,7 @@ NTPServer::NTPServer(ZQ::common::Log& log, const InetAddress &bind, tpport_t spo
 {
 	_log(ZQ::common::Log::L_INFO,CLOGFMT(NTPServer, "NTPServer() start NTP Server..."));
 }
+
 NTPServer::~NTPServer()
 {
 	_log(ZQ::common::Log::L_INFO,CLOGFMT(NTPServer, "~NTPServer() Quiting NTP Server..."));
@@ -19,6 +20,7 @@ void NTPServer::stop()
 {
 	_bQuit=true;
 }
+
 int NTPServer::run()
 {
   if(INVALID_SOCKET == get())
@@ -26,6 +28,7 @@ int NTPServer::run()
 	_log(ZQ::common::Log::L_INFO,CLOGFMT(NTPServer, "NTPServer() Fail to start NTP Server..."));
 	_bQuit=true;
   }
+
   while(!_bQuit)
   {
 	Packet ntp_ServerPacket;
@@ -36,22 +39,18 @@ int NTPServer::run()
 	if (nReceive != sizeof(ntp_ServerPacket))
 	{
 		if (_bQuit)
-		{
 			break;
-		}
+
 #ifdef ZQ_OS_MSWIN
 		if (SOCKET_ERROR == nReceive )
-		{
 			_log(ZQ::common::Log::L_ERROR,CLOGFMT(NTPServer,"run() receiveFrom client error"));
-		}
 #else
 		if (nReceive < 0)
-		{
 			_log(ZQ::common::Log::L_ERROR,CLOGFMT(NTPServer,"run() receiveFrom client error"));
-		}
 #endif
 		continue;
 	}
+
 	TimeStamp pServerTime;
 	int64 intServerTime=ZQ::common::TimeUtil::now();
 	NTPClient::time2ntp(intServerTime*10000,pServerTime);
@@ -66,21 +65,25 @@ int NTPServer::run()
 	NTPClient::time2ntp(intServerTime*10000,pServerTime);
 	ntp_ServerPacket.stampTransmit=pServerTime;
 	//send response
+
 	setPeer(cAddress,cPort);
+
 	int nSend=send(&ntp_ServerPacket,sizeof(ntp_ServerPacket));
 	if (nSend != sizeof(ntp_ServerPacket))
 	{
 		if (_bQuit)
-		{
 			break;
-		}
-		_log(Log::L_ERROR, CLOGFMT(NTPServer, "run() Fail to send ntp reply to address [%s] at port [%d]"),cAddress.getLocalAddress(),cPort);
+
+		_log(Log::L_ERROR, CLOGFMT(NTPServer, "run() Fail to send ntp reply to address [%s] at port [%d]"),cAddress.getHostAddress(), cPort);
 		continue;
 	}
-	_log(Log::L_INFO, CLOGFMT(NTPServer, "run() Success to send ntp reply to address [%s] at port [%d]"),cAddress.getHostAddress(),cPort);
+
+	_log(Log::L_INFO, CLOGFMT(NTPServer, "run() Success to send ntp reply to address [%s] at port [%d]"), cAddress.getHostAddress(), cPort);
   }
+
   return 0;
 }
+
 // -----------------------------
 // class NTPClient
 // -----------------------------
@@ -88,9 +91,11 @@ NTPClient::NTPClient(ZQ::common::Log& log, const InetAddress &bind, tpport_t bin
 :_log(log),_serveAddress(bind),_serverPort(bindport),_timeout(timeout),_version(version)
 {
 }
+
 NTPClient::~NTPClient()
 {
 }
+
 int64 NTPClient::getServerTime(Txn& txn, const InetAddress server, int port/*=DEFAULT_PORT_NTP*/)
 {
 	NTPServer::Packet _ntpClientPacket;
@@ -103,24 +108,28 @@ int64 NTPClient::getServerTime(Txn& txn, const InetAddress server, int port/*=DE
 	time2ntp(intClientOriginateTime*10000,clientOriginateTime);
 	_ntpClientPacket.stampOriginate=clientOriginateTime;
 	setPeer(server,port);
+
 	int nSend = send(&_ntpClientPacket,sizeof(_ntpClientPacket));
 	if (nSend != sizeof(_ntpClientPacket))
 	{
 		_log(ZQ::common::Log::L_ERROR,CLOGFMT(NTPClient, "getServerTime() send the data error"));
 		return -1;
 	}
+
 	int nReceive = receiveTimeout(&_ntpClientPacket,sizeof(_ntpClientPacket),_timeout);
 	if (nReceive != sizeof(_ntpClientPacket))
 	{
 		_log(ZQ::common::Log::L_ERROR,CLOGFMT(NTPClient, "getServerTime() receive the data error [%d]"),nReceive);
 		return -1;
 	}
+
 	if (checkPacketError(_ntpClientPacket))
 	{
 		_log(ZQ::common::Log::L_ERROR,CLOGFMT(NTPClient, "getServerTime() receive the data error"));
 		//_T1=_T2=_T3=_T4=0;
 		return -1;
 	}
+
 	NTPServer::TimeStamp clientRespArrive;
 	int64 intclientRespArrive=ZQ::common::TimeUtil::now();
 	NTPClient::time2ntp(intclientRespArrive*10000,clientRespArrive);
@@ -131,6 +140,7 @@ int64 NTPClient::getServerTime(Txn& txn, const InetAddress server, int port/*=DE
 	NTPClient::ntp2time(_ntpClientPacket.stampTransmit,T5);
 	return T5;
 }
+
 int NTPClient::receiveTimeout(void *buf, size_t len, uint32 dwTimeout)
 {
 	SOCKET _so=get();
@@ -142,35 +152,33 @@ int NTPClient::receiveTimeout(void *buf, size_t len, uint32 dwTimeout)
 	FD_SET( _so, &setCheck );
 	select(_so+1, &setCheck, 0, 0, &timeout);
 	if(FD_ISSET(_so,&setCheck))
-	{
 		return receive(buf,len);
-	}
+
 	return 0;
 }
+
 bool NTPClient::checkPacketError(NTPServer::Packet& ntpReply)
 {
 	int32 nControlWord = ntohl(ntpReply.Control_Word);
 	// check LI field
 	int32 nLI = (nControlWord >> 30) & 0x00000003;
 	if (3 == nLI)
-	{
 		return true;
-	}
+
 	// check stratum field
 	int32 nStratum = (nControlWord >> 16) & 0x000000FF;
 	if (nStratum < 1 || nStratum >15)
-	{
 		return true;
-	}
+
 	NTPServer::TimeStamp transmitTime;
 	transmitTime.dwIntSec = ntohl(ntpReply.stampTransmit.dwIntSec);
 	transmitTime.dwFracSec = ntohl(ntpReply.stampTransmit.dwFracSec);
 	if (0 == transmitTime.dwIntSec && 0 == transmitTime.dwFracSec)
-	{
 		return true;
-	}
+
 	return false;
 }
+
 bool NTPClient::ntp2time(const NTPServer::TimeStamp nt, uint64& time64)
 {
 #ifdef ZQ_OS_MSWIN
@@ -201,8 +209,10 @@ bool NTPClient::ntp2time(const NTPServer::TimeStamp nt, uint64& time64)
 	time64=ntpsec*NTP_100_NSEC+ntpfrac;
 	time64 -=NTP_JAN_1970*NTP_100_NSEC;
 #endif
+
 	return true;
 }
+
 bool NTPClient::time2ntp(uint64 time64, NTPServer::TimeStamp& nt)
 {
 #ifdef ZQ_OS_MSWIN
@@ -229,6 +239,7 @@ bool NTPClient::time2ntp(uint64 time64, NTPServer::TimeStamp& nt)
 	double d4 = (d2/(double)NTP_100_NSEC) * (double)NTP_FRAC;
 	nt.dwIntSec = htonl((uint32)d1);
 	nt.dwFracSec = htonl((uint32)d4);
+
 	return true;
 }
 
@@ -236,20 +247,22 @@ void NTPClient::setTimeout(int32 timeout/* =5000 */)
 {
 	_timeout=timeout;
 }
+
 void NTPClient::setVersion(int version)
 {
 	_version=version;
 }
+
 void NTPClient::setNTPVersion(uint32& control_word)
 {
 	uint32 temp=_version;
 	control_word = control_word & 0xC7FFFFFF;
 	for (int i=4;i<31;i++)
-	{
 		temp=temp << 1;
-	}
+
 	control_word = control_word | temp;
 }
+
 int32 NTPClient::readDelay(Txn& txn)
 {
 	uint64 T1=0,T2=0,T3=0,T4=0;
@@ -258,8 +271,10 @@ int32 NTPClient::readDelay(Txn& txn)
 	NTPClient::ntp2time(txn.packet.stampTransmit,T3);
 	NTPClient::ntp2time(txn.stampRespArrive,T4);
 	int64 delayTime = (T4 - T1) - (T3 - T2);
-	return (delayTime/10000);
+
+	return (int32)(delayTime/10000);
 }
+
 int32 NTPClient::readOffset(Txn& txn)
 {
 	uint64 T1=0,T2=0,T3=0,T4=0;
@@ -270,14 +285,15 @@ int32 NTPClient::readOffset(Txn& txn)
 	int64 tx = T2 - T1;
 	int64 ty = T3 - T4;
 	int64 nOffset = (tx + ty) /2;
-	nOffset /= 10000;
-	return nOffset;
+
+	return (int32) (nOffset /10000);
 }
+
 int64 NTPClient::readReturnTime(Txn& txn)
 {
 	uint64 T=0;
 	NTPClient::ntp2time(txn.stampRespArrive,T);
 	return T;
 }
-	}//common
-}//ZQ
+
+}} //namespaces
