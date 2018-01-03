@@ -367,204 +367,6 @@ const char* RTSPSink::announceCodeToStr(uint announceCode)
 	}
 }
 
-std::string RTSPSink::trim(char const* str)
-{
-	if (NULL == str)
-		return "";
-	int len = strlen(str);
-	// The line begins with the desired header name.  Trim off any whitespace
-	const char* t =str + len;
-	for (; *str == ' ' || *str == '\t'; str++);
-	for (; *(t-1) == ' ' || *(t-1) == '\t'; t--);
-	return std::string(str, t-str);
-}
-
-char* RTSPSink::nextLine(char* startOfLine, int maxByte)
-{
-	// returns the start of the next line, or NULL if none.  Note that this modifies the input string to add '\0' characters.
-
-	// locate the beginning of the line
-	for (; (*startOfLine =='\0' || *startOfLine == '\n') && maxByte >0; startOfLine++, maxByte--);
-
-	// locate the end of line
-	char* ptr = startOfLine;
-	for (; maxByte >0 && *ptr != '\r' && *ptr != '\n'; ++ptr, maxByte--);
-
-	if (maxByte<=0)
-		return NULL;
-
-	// change the "\r\n" as the string NULL
-	if (*ptr == '\r')
-		*ptr = '\0';
-
-	return startOfLine;
-}
-
-bool RTSPSink::parseRequestLine(const std::string& line, std::string& cmdName, std::string& url, std::string& proto)
-{
-	char* buf = new char[line.length()+2];
-	strcpy(buf, line.c_str());
-	bool bSucc =false;
-
-	do {
-		char* p = buf, *q=p;
-		while (*p == ' ' || *p == '\t')	p++; // skip the leading white spaces
-		for (q=p; *q && *q!= ' ' && *q != '\t'; q++); // find the next white spaces
-
-		if (*q)
-			*q++ = '\0';
-
-		cmdName = trim(p);
-		if (NULL == (p = strstr(q, "RTSP/")))
-			break; // failed
-
-		*(p-1) = '\0';
-
-		url = trim(q);
-		proto = trim(p);
-
-		bSucc = true;
-
-	} while(0);
-
-	delete [] buf;
-	return bSucc;
-}
-
-bool RTSPSink::parseResponseLine(const std::string& line, uint& resultCode, std::string& resultStr, std::string& proto)
-{
-	char* buf = new char[line.length()+2];
-	strcpy(buf, line.c_str());
-	bool bSucc =false;
-
-	do {
-		char* p = buf, *q=p;
-
-		if (NULL == (p = strstr(q, "RTSP/")))
-			break; // failed
-
-		while (*p == ' ' || *p == '\t')	p++; // skip the leading white spaces
-		for (q=p; *q && *q!= ' ' && *q != '\t'; q++); // find the next white spaces
-
-		std::string temp(p, q-p);
-		proto = trim(temp.c_str());
-
-		if (*q)
-			*q++ = '\0';
-
-		for (p=q; *p && *p!= ' ' && *p != '\t'; p++); // find the next white spaces
-
-		temp = std::string(q, p-q);
-		resultCode=atoi(temp.c_str());
-		if (resultCode < 100) // result code must be 3-digits
-			break;
-
-		resultStr = trim(p);
-		bSucc = true;
-
-	} while(0);
-
-	delete [] buf;
-	return bSucc;
-}
-
-#define RTSP_NPT_NOW (-321.00)
-
-static bool parseNPTTime(char* nptTime, double& npttime)
-{
-// [rfc2326] 3.6 Normal Play Time
-//   npt-time     =   "now" | npt-sec | npt-hhmmss
-//   npt-sec      =   1*DIGIT [ "." *DIGIT ]
-//   npt-hhmmss   =   npt-hh ":" npt-mm ":" npt-ss [ "." *DIGIT ]
-//   npt-hh       =   1*DIGIT     ; any positive number
-//   npt-mm       =   1*2DIGIT    ; 0-59
-//   npt-ss       =   1*2DIGIT    ; 0-59
-
-	char* pTail = nptTime + strlen(nptTime);
-	for (; *nptTime == ' ' || *nptTime == '\t'; nptTime++);
-	for (; pTail > nptTime && (*(pTail-1) == ' ' || *(pTail-1) == '\t'); pTail--);
-	*pTail = '\0';
-
-	if (strlen(nptTime) <=0)
-		return false;
-
-	if (0 == strcmp(nptTime, "now"))
-	{
-		npttime = 0.0; // TODO: replaced with RTSP_NPT_NOW
-		return true;
-	}
-
-	if (strchr(nptTime, ':') !=NULL)
-	{
-		int hh=0, mm=0, ss=0, msec=0;
-		int ret = sscanf(nptTime, "%d:%2d:%2d.%3d", &hh, &mm, &ss, &msec);
-		if (ret <3)
-			return false;
-
-		npttime = (hh*60 + mm) *60 +ss;
-
-		if (ret >3)
-		{
-			if (msec<10)
-				npttime += (float)msec/10;
-			else if (msec<100)
-				npttime += (float)msec/100;
-			else 
-				npttime += (float)msec/1000;
-		}
-
-		return true;
-	}
-
-	if (sscanf(nptTime, "%lf", &npttime) >0)
-		return true;
-
-	return false;
-}
-
-static bool parseNPTRange(char* str, double& rangeStart, double& rangeEnd)
-{
-// [rfc2326] 3.6 Normal Play Time
-//   npt-range    =   ( npt-time "-" [ npt-time ] ) | ( "-" npt-time )
-//   Examples:
-//     npt=123.45-125
-//     npt=12:05:35.3-
-//     npt=now-
-
-	char* pos = strchr(str, '-');
-	if (NULL == pos)
-		return false;
-	*pos = '\0';
-
-	rangeStart = rangeEnd = 0.0;
-	bool ret1 = parseNPTTime(str,   rangeStart);
-	bool ret2 = parseNPTTime(pos+1, rangeEnd);
-	if (!ret1 && !ret2)
-		return false;
-
-	return true;
-}
-
-/*
-bool RTSPSink::isNowNPT(double& npt)
-{
-	return abs(npt - RTSP_NPT_NOW) < 0.1;
-}
-*/
-bool RTSPSink::parseRangeParam(char const* paramStr, double& rangeStart, double& rangeEnd)
-{
-	char str[128] = "";
-	strncpy(str, paramStr, sizeof(str) -2);
-
-	char* posEq = strchr(str, '=');
-	if (NULL == posEq)
-		return false;
-	*posEq = '\0';
-
-	return parseNPTRange(posEq+1, rangeStart, rangeEnd);
-}
-
-
 static int errorno()
 {
 #ifdef ZQ_OS_MSWIN
@@ -582,18 +384,7 @@ static int errorno()
 class MessageProcessCmd : public ThreadRequest
 {
 public:
-	typedef struct _ReqRespPair
-	{
-		uint cSeq;
-		RTSPMessage::Ptr inMsg;
-		RTSPRequest::Ptr  outReq;
-
-		static bool less(_ReqRespPair i, _ReqRespPair j) { return (i.cSeq<j.cSeq); }
-	} ReqRespPair;
-
-	typedef std::vector <ReqRespPair> MsgPairs;
-
-	MessageProcessCmd(RTSPClient& client, const ReqRespPair& pair)
+	MessageProcessCmd(RTSPClient& client, const RTSPSink::MsgPair& pair)
 		:ThreadRequest(client._thrdpool), _client(client), _pair(pair)
 	{
 		ThreadRequest::setPriority(DEFAULT_REQUEST_PRIO -1); // make the priority of this ThreadRequest higher than normal
@@ -601,7 +392,7 @@ public:
 
 protected:
 	RTSPClient& _client;
-	ReqRespPair _pair;
+	RTSPSink::MsgPair _pair;
 
 	virtual int run()
 	{
@@ -618,7 +409,7 @@ protected:
 			if (_pair.outReq)
 			{
 				// a matched response of request
-				if (!RTSPSink::parseResponseLine(_pair.inMsg->startLine, resultCode, resultStr, proto))
+				if (!RTSPParser::parseResponseLine(_pair.inMsg->startLine, resultCode, resultStr, proto))
 				{
 					_client._log(Log::L_WARNING, CLOGFMT(MessageProcessCmd, "failed to parse the response startline[%s][%d]"), _pair.inMsg->startLine.c_str(), _pair.cSeq);
 					return -2;
@@ -645,7 +436,7 @@ protected:
 						size_t pos_timeout = sessId.find(';');
 						if (::std::string::npos != pos_timeout)
 						{
-							sessId = RTSPSink::trim(sessId.substr(0, pos_timeout).c_str());
+							sessId = RTSPParser::trim(sessId.substr(0, pos_timeout).c_str());
 							pos_timeout = itHeader->second.find("timeout", pos_timeout);
 							if (::std::string::npos != pos_timeout && ::std::string::npos != (pos_timeout = itHeader->second.find('=', pos_timeout)))
 								timeoutSec = atoi(itHeader->second.substr(pos_timeout +1).c_str());
@@ -687,7 +478,7 @@ protected:
 			}
 
 			// the incomming request
-			if (!RTSPSink::parseRequestLine(_pair.inMsg->startLine, cmdName, url, proto))
+			if (!RTSPParser::parseRequestLine(_pair.inMsg->startLine, cmdName, url, proto))
 			{
 				_client._log(Log::L_WARNING, CLOGFMT(MessageProcessCmd, "failed to parse the request startline[%s][%d]"), _pair.inMsg->startLine.c_str(), _pair.cSeq);
 				return -3;
@@ -703,7 +494,7 @@ protected:
 				// rfc2326: section 12.37: "Session" ":" session-id [ ";" "timeout" "=" delta-seconds ]
 				size_t pos_timeout = sessId.find(';');
 				if (::std::string::npos != pos_timeout)
-					sessId = RTSPSink::trim(sessId.substr(0, pos_timeout).c_str());
+					sessId = RTSPParser::trim(sessId.substr(0, pos_timeout).c_str());
 			}
 
 #ifdef _DEBUG
@@ -813,8 +604,8 @@ void RTSPClient::setVerboseFlags(uint16 flags)
 }
 
 RTSPClient::RTSPClient(Log& log, NativeThreadPool& thrdpool, InetHostAddress& bindAddress, const std::string& baseURL, const char* userAgent, Log::loglevel_t verbosityLevel, tpport_t bindPort)
-: TCPClient(bindAddress, bindPort), _thrdpool(thrdpool), _log(log, verbosityLevel), 
-  _baseURL(trim(baseURL.c_str())), _cTcpStreams(0), _pCurrentMsg(NULL), _inCommingByteSeen(0)
+: TCPClient(bindAddress, bindPort), _thrdpool(thrdpool), _log(log, verbosityLevel), _parser(_log, *this), 
+_baseURL(RTSPParser::trim(baseURL.c_str())), _cTcpStreams(0) // , _pCurrentMsg(NULL), _inCommingByteSeen(0)
 // , _bindAddress(bindAddress), _bindPort(bindPort), 
 {
 	_userAgent = userAgent ? userAgent: "SeaChangeRTSPClient";
@@ -1418,7 +1209,10 @@ void RTSPClient::OnConnected()
 {
 	_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnConnected() connected to the peer, new conn[%s]"), connDescription());
 	TCPSocket::setTimeout(_messageTimeout >>1); // half of _messageTimeout to wake up the socket sleep()
-	_inCommingByteSeen =0; // reset _inCommingByteSeen to start from the beginning of the receive buffer
+	{
+		ZQ::common::MutexGuard g(_parser);
+		_parser.reset(); // reset _inCommingByteSeen to start from the beginning of the receive buffer
+	}
 
 	ZQ::common::MutexGuard g(_lockQueueToSend);
 	RequestQueue& pendingRequests = _requestsQueueToSend;
@@ -1479,22 +1273,10 @@ void RTSPClient::OnDataArrived()
 	struct sockaddr_in fromAddress;
 	socklen_t addressSize = sizeof(fromAddress);
 
-	MessageProcessCmd::MsgPairs tmpResponseList, pendingPeerRequests;
-
-//	int bytesRead = recvfrom(_so, (char*) &_inCommingBuffer[_inCommingByteSeen], sizeof(_inCommingBuffer) - _inCommingByteSeen,
-//		0,  (struct sockaddr*)&fromAddress, &addressSize);
-
-	MutexGuard g(_lockInCommingMsg);
-
-	int bytesToRead = sizeof(_inCommingBuffer) - _inCommingByteSeen;
-	if (bytesToRead <=0)
-	{
-		_log(Log::L_WARNING, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] last incomplete message exceed bufsz[%d] from offset[%d], give it up"), connDescription(), sizeof(_inCommingBuffer), _inCommingByteSeen);
-		_inCommingByteSeen =0;
-		bytesToRead = sizeof(_inCommingBuffer) - _inCommingByteSeen;
-	}
-
-	int bytesRead = recv(_so, (char*) &_inCommingBuffer[_inCommingByteSeen], bytesToRead, 0);
+	MutexGuard g(_parser);
+	int bytesToRead =0;
+	char* buf = _parser.getReceiveBuf(bytesToRead);
+	int bytesRead = recv(_so, buf, bytesToRead, 0);
 
 	if (bytesRead <= 0)
 	{
@@ -1514,13 +1296,6 @@ void RTSPClient::OnDataArrived()
 		return;
 	}
 
-// 	if (0 == bytesRead)
-// 	{
-// 		_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] closed"), connDescription());
-// 		disconnect();
-// 		return;
-// 	}
-
 	_sendErrorCount.set(0); //current connection is normal, reset _sendErrorCount
 
 	{
@@ -1528,9 +1303,9 @@ void RTSPClient::OnDataArrived()
 		snprintf(sockdesc, sizeof(sockdesc)-2, CLOGFMT(RTSPClient, "OnDataArrived() conn[%08x]"), TCPSocket::get());
 
 		if (RTSP_VERBOSEFLG_RECV_HEX & _verboseFlags)
-			_log.hexDump(Log::L_DEBUG, &_inCommingBuffer[_inCommingByteSeen], bytesRead, sockdesc);
+			_log.hexDump(Log::L_DEBUG, buf, bytesRead, sockdesc);
 		else
-			_log.hexDump(Log::L_INFO, &_inCommingBuffer[_inCommingByteSeen], bytesRead, sockdesc, true);
+			_log.hexDump(Log::L_INFO, buf, bytesRead, sockdesc, true);
 	}
 
 	if (RTSP_VERBOSEFLG_TCPTHREADPOOL & _verboseFlags)
@@ -1551,177 +1326,48 @@ void RTSPClient::OnDataArrived()
 			_log(pendingSize>100? Log::L_WARNING :Log::L_DEBUG, CLOGFMT(RTSPClient, "OnDataArrived() client ThreadPool[%d/%d] pending [%d] requests"), activeCount, poolSize, pendingSize);
 	}
 
-	char* pProcessed = _inCommingBuffer, *pEnd = _inCommingBuffer + _inCommingByteSeen + bytesRead;
-	bool bFinishedThisDataChuck = false;
-	int64 stampNow = TimeUtil::now();
-	while ((pProcessed < pEnd && !bFinishedThisDataChuck) || (_pCurrentMsg && _pCurrentMsg->headerCompleted && _pCurrentMsg->contentLenToRead==0))
-	{
-		if (!_pCurrentMsg)
-			_pCurrentMsg = new RTSPMessage();
+	_parser.parse();
+}
 
-		if (_pCurrentMsg->headerCompleted)
-		{
-			// read the data as the content body of the current message
-			// step 1. determin the length to read
-			int64 len = 0;
-			if (_pCurrentMsg->contentLenToRead >0) 
-				len = _pCurrentMsg->contentLenToRead - _pCurrentMsg->contentBodyRead;
-
-			if (len > pEnd - pProcessed)
-				len = pEnd - pProcessed;
-
-//			if (pEnd - pProcessed < len)
-//			{
-//				bFinishedThisDataChuck = true;
-//				break;
-//			}
-
-			_pCurrentMsg->contentBody += std::string(pProcessed, (uint) len);
-			pProcessed += len;
-			_pCurrentMsg->contentBodyRead += len;
-
-			if (_pCurrentMsg->contentBodyRead < _pCurrentMsg->contentLenToRead)
-			{
-				_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] incompleted message left, appended[%lld], Content-Length[%lld/%lld]"), connDescription(), len, _pCurrentMsg->contentBodyRead, _pCurrentMsg->contentLenToRead);
-				continue;
-			}
-
-			// the current message has been read completely when reach here
-			RTSPRequest::AttrMap::iterator itHeader;
-
-			if (_serverType.empty()) // record down the type of server
-			{
-				itHeader = _pCurrentMsg->headers.find("Server");
-				if (_pCurrentMsg->headers.end() != itHeader)
-					_serverType = itHeader->second;
-			}
-
-			// check the header CSeq
-			itHeader = _pCurrentMsg->headers.find("CSeq");
-			if (_pCurrentMsg->headers.end() == itHeader)
-			{
-				_log(Log::L_WARNING, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] ignore illegal response withno CSeq"), connDescription());
-				_pCurrentMsg = new RTSPMessage();
-				continue;
-			}
-
-			MessageProcessCmd::ReqRespPair pair;
-			pair.cSeq =_pCurrentMsg->cSeq = atoi(itHeader->second.c_str());
-			pair.inMsg = _pCurrentMsg;
-			pair.inMsg->stampCreated = stampNow; // the _pCurrentMsg could be left from previous round, stamp the time again to be more accurate
-			_pCurrentMsg = new RTSPMessage();
-
-			if (pair.cSeq <=0)
-			{
-				_log(Log::L_WARNING, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] ignore in comming message with illegal CSeq(%d)"), connDescription(), pair.cSeq);
-				continue;
-			}
-
-			std::string cmdName, url, proto;
-			if (parseRequestLine(pair.inMsg->startLine, cmdName, url, proto))
-				pendingPeerRequests.push_back(pair);
-			else tmpResponseList.push_back(pair);
-
-			continue;
-		}
-
-		// beginning of header reading
-		while (!bFinishedThisDataChuck && pProcessed < pEnd)
-		{
-			char* line = nextLine(pProcessed, pEnd - pProcessed);
-			if (NULL == line)
-			{
-				// met an incompleted line, shift it to the beginning of buffer then wait for the next OnDataArrived()
-				bFinishedThisDataChuck = true;
-				break;
-			}
-
-			int len = strlen(line);
-			pProcessed += (len + 2); // skip /r/n
-
-			if (len <=0) // an empty line
-			{
-				if (!_pCurrentMsg->startLine.empty())
-				{
-					_pCurrentMsg->headerCompleted = true;
-					// finished this header reading
-					break;
-				}
-
-				continue; // sounds like a bad line here
-			}
-
-			if (_pCurrentMsg->startLine.empty())
-			{
-				_pCurrentMsg->startLine = line;
-//				_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] received data [%s]"), connDescription(), _pCurrentMsg->startLine.c_str());
-				continue;
-			}
-
-			std::string header, value;
-			char* pos = strchr(line, ':');
-			if (NULL ==pos)
-				continue; // illegal header
-
-			*pos = '\0';
-			header = trim(line);
-			value = trim(pos+1);
-			MAPSET(RTSPRequest::AttrMap, _pCurrentMsg->headers, header, value);
-			if (0 == header.compare("Content-Length"))
-				_pCurrentMsg->contentLenToRead = atol(value.c_str());
-// 			else if(0 == header.compare("CSeq"))
-// 				_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] received data [CSeq: %s]"), connDescription(), _pCurrentMsg->headers["CSeq"].c_str());
-// 			else if(0 == header.compare("Method-Code"))
-// 				_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] received data [Method-Code: %s]"), connDescription(), _pCurrentMsg->headers["Method-Code"].c_str());
-// 			else if(0 == header.compare("Session"))
-// 				_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] received data [Session: %s]"), connDescription(), _pCurrentMsg->headers["Session"].c_str());
-		}; // end of header reading;
-
-	} // end of current buffer reading
-
-	// shift the unhandled buffer to the beginning, process with next OnData()
-	Log::loglevel_t llevel = Log::L_DEBUG;
-	if (_inCommingByteSeen>0 || pendingPeerRequests.size() + tmpResponseList.size() >1 || pEnd - pProcessed >0)
-		llevel = Log::L_INFO;
-
-	_log(llevel, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] received %d bytes, appending to buf[%d], chopped out %d ServerRequests and %d Responses, %d incompleted bytes left"), connDescription(), bytesRead, _inCommingByteSeen, pendingPeerRequests.size(), tmpResponseList.size(), pEnd - pProcessed);
-	if (pEnd >= pProcessed)
-	{
-		_inCommingByteSeen = pEnd - pProcessed;
-		memcpy(_inCommingBuffer, pProcessed, _inCommingByteSeen);
-	}
-
-	// fire MessageProcessCmd for the chopped message
-	::std::sort(tmpResponseList.begin(), tmpResponseList.end(), MessageProcessCmd::ReqRespPair::less);
-	MessageProcessCmd::MsgPairs::iterator itStack = tmpResponseList.begin();
-	MessageProcessCmd::MsgPairs pendingResponses, expiredRequests;
+void RTSPClient::OnResponses(RTSPSink::MsgPairs responses)
+{
+	RTSPSink::MsgPairs associatedResps, expiredRequests;
 	std::string expCSeqStr;
 
 	{
 		MutexGuard g(_lockAwaitResponse);
-		stampNow = TimeUtil::now();
-		for (CSeqToRTSPRequestMap::iterator it = _requestsAwaitResponse.begin(); itStack < tmpResponseList.end() && it != _requestsAwaitResponse.end(); it++)
+		int64 stampNow = TimeUtil::now();
+
+		RTSPSink::MsgPairs::iterator itPair =responses.begin();
+		for (CSeqToRTSPRequestMap::iterator it = _requestsAwaitResponse.begin(); itPair < responses.end() && it != _requestsAwaitResponse.end(); it++)
 		{
-			while (itStack < tmpResponseList.end() && itStack->cSeq < it->first)
+			if (_serverType.empty()) // record down the type of server
 			{
-				// the in-coming message is not recoganized to link to the known request
-				_log(Log::L_WARNING, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] ignore unrecoganized response CSeq(%d), it may have already expired"), connDescription(), itStack->cSeq);
-				itStack++;
+				RTSPRequest::AttrMap::iterator itHeader = itPair->inMsg->headers.find("Server");
+				if (itPair->inMsg->headers.end() != itHeader)
+					_serverType = itHeader->second;
 			}
 
-			if (itStack != tmpResponseList.end() && itStack->cSeq == it->first)
+			while (itPair < responses.end() && itPair->cSeq < it->first)
+			{
+				// the in-coming message is not recoganized to link to the known request
+				_log(Log::L_WARNING, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] ignore unrecoganized response CSeq(%d), it may have already expired"), connDescription(), itPair->cSeq);
+				itPair++;
+			}
+
+			if (itPair != responses.end() && itPair->cSeq == it->first)
 			{
 				// the matched response to the request
-				itStack->outReq = it->second;
-				pendingResponses.push_back(*itStack);
-				itStack ++;
+				itPair->outReq = it->second;
+				associatedResps.push_back(*itPair);
+				itPair ++;
 				continue;
 			}
 
 			// only exist in the _requestsAwaitResponse here, check if it has been expired
 			if (it->second->stampCreated + _messageTimeout < stampNow)
 			{
-				MessageProcessCmd::ReqRespPair pair;
+				RTSPSink::MsgPair pair;
 				pair.cSeq = it->second->cSeq;
 				pair.outReq = it->second;
 				expiredRequests.push_back(pair);
@@ -1731,49 +1377,44 @@ void RTSPClient::OnDataArrived()
 			}
 		}
 
-		// tmpResponseList.clear();
+		// responses.clear();
 
 		// clean up _requestsAwaitResponse per newPendingResponse and expiredRequests
-		for (itStack = pendingResponses.begin(); itStack < pendingResponses.end(); itStack++)
-		{
-			_requestsAwaitResponse.erase(itStack->cSeq);
-		}
+		for (RTSPSink::MsgPairs::iterator itPair = associatedResps.begin(); itPair < associatedResps.end(); itPair++)
+			_requestsAwaitResponse.erase(itPair->cSeq);
 
-		for (itStack = expiredRequests.begin(); itStack < expiredRequests.end(); itStack++)
-		{
-			_requestsAwaitResponse.erase(itStack->cSeq);
-		}
+		for (RTSPSink::MsgPairs::iterator itPair = expiredRequests.begin(); itPair < expiredRequests.end(); itPair++)
+			_requestsAwaitResponse.erase(itPair->cSeq);
 	}
 
 	// now issue the MessageProcessCmd
+	Log::loglevel_t llevel = Log::L_DEBUG;
 	int cPending = _thrdpool.pendingRequestSize();
 	int cThreads = _thrdpool.size();
 
-	_log((cPending>(cThreads*3)) ? Log::L_WARNING : Log::L_DEBUG, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] associated %d ServerRequests and %d Responses, %d requests were found expired, [%d]pendings on threadpool[%d/%d]"),
-		connDescription(), pendingPeerRequests.size(), tmpResponseList.size(), expiredRequests.size(), 
-		cPending, _thrdpool.activeCount(), cThreads);
+	_log((cPending>(cThreads*3)) ? Log::L_WARNING : Log::L_DEBUG, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] associated %d responses, %d requests were found expired, [%d]pendings on threadpool[%d/%d]"),
+		connDescription(), responses.size(), expiredRequests.size(),  cPending, _thrdpool.activeCount(), cThreads);
 
 	// the associated response of request
-	for (itStack = pendingResponses.begin(); itStack < pendingResponses.end(); itStack ++)
-	{
-		ISSUECMD(MessageProcessCmd, (*this, *itStack));
-	}
+	for (RTSPSink::MsgPairs::iterator itPair = associatedResps.begin(); itPair < associatedResps.end(); itPair ++)
+		ISSUECMD(MessageProcessCmd, (*this, *itPair));
 
-	// the RTSP requests from the peer
-	for (itStack = pendingPeerRequests.begin(); itStack < pendingPeerRequests.end(); itStack ++)
-	{
-		ISSUECMD(MessageProcessCmd, (*this, *itStack));
-	}
-
-	for (itStack = expiredRequests.begin(); itStack < expiredRequests.end(); itStack ++)
-	{
-		ISSUECMD(RequestErrCmd, (*this, itStack->outReq, Err_RequestTimeout));
-	}
+	for (RTSPSink::MsgPairs::iterator itPair = expiredRequests.begin(); itPair < expiredRequests.end(); itPair ++)
+		ISSUECMD(RequestErrCmd, (*this, itPair->outReq, Err_RequestTimeout));
 
 	if (expiredRequests.size() >0)
 		llevel = Log::L_INFO;
 
-	_log(llevel, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] message process dispatched: %d ServerRequests and %d Responses, %d expired requests: %s"), connDescription(), pendingPeerRequests.size(), tmpResponseList.size(), expiredRequests.size(), expCSeqStr.c_str());
+	_log(llevel, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] %d responses dispatched, %d expired: %s"), connDescription(), responses.size(), expiredRequests.size(), expCSeqStr.c_str());
+}
+
+void RTSPClient::OnRequests(RTSPSink::MsgPairs requests)
+{
+	// the RTSP requests from the peer
+	for (RTSPSink::MsgPairs::iterator itPair = requests.begin(); itPair < requests.end(); itPair ++)
+		ISSUECMD(MessageProcessCmd, (*this, *itPair));
+
+	_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] %d request dispatched"), connDescription(), requests.size());
 }
 
 void RTSPClient::OnError()
@@ -1983,6 +1624,369 @@ void RTSPClient_sync::wakeupByCSeq(uint32 cseq, bool success)
 		return;
 
 	pEvent->signal(success);
+}
+
+// -----------------------------
+// class RTSPParser
+// -----------------------------
+char* RTSPParser::getReceiveBuf(int& bytesAvail)
+{
+	_bytesAvail = sizeof(_inCommingBuffer) - _inCommingByteSeen;
+	if (bytesAvail <=0)
+	{
+		_log(Log::L_WARNING, CLOGFMT(RTSPParser, "getReceiveBuf() conn[%s] last incomplete message exceed bufsz[%d] from offset[%d], give it up"), _bind.connDesc(), sizeof(_inCommingBuffer), _inCommingByteSeen);
+		reset();
+	}
+
+	bytesAvail = _bytesAvail;
+	return (char*) &_inCommingBuffer[_inCommingByteSeen];
+}
+
+void RTSPParser::reset()
+{
+	_inCommingByteSeen =0;
+		_bytesAvail = sizeof(_inCommingBuffer) - _inCommingByteSeen;
+}
+
+void RTSPParser::parse()
+{
+	RTSPSink::MsgPairs receivedResps, receivedReqs;
+
+	char* pProcessed = _inCommingBuffer, *pEnd = _inCommingBuffer + _inCommingByteSeen + _bytesAvail;
+	bool bFinishedThisDataChuck = false;
+	int64 stampNow = TimeUtil::now();
+
+	while ((pProcessed < pEnd && !bFinishedThisDataChuck) || (_pCurrentMsg && _pCurrentMsg->headerCompleted && _pCurrentMsg->contentLenToRead==0))
+	{
+		if (!_pCurrentMsg)
+			_pCurrentMsg = new RTSPMessage();
+
+		if (_pCurrentMsg->headerCompleted)
+		{
+			// read the data as the content body of the current message
+			// step 1. determin the length to read
+			int64 len = 0;
+			if (_pCurrentMsg->contentLenToRead >0) 
+				len = _pCurrentMsg->contentLenToRead - _pCurrentMsg->contentBodyRead;
+
+			if (len > pEnd - pProcessed)
+				len = pEnd - pProcessed;
+
+			//			if (pEnd - pProcessed < len)
+			//			{
+			//				bFinishedThisDataChuck = true;
+			//				break;
+			//			}
+
+			_pCurrentMsg->contentBody += std::string(pProcessed, (uint) len);
+			pProcessed += len;
+			_pCurrentMsg->contentBodyRead += len;
+
+			if (_pCurrentMsg->contentBodyRead < _pCurrentMsg->contentLenToRead)
+			{
+				_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] incompleted message left, appended[%lld], Content-Length[%lld/%lld]"), _bind.connDesc(), len, _pCurrentMsg->contentBodyRead, _pCurrentMsg->contentLenToRead);
+				continue;
+			}
+
+			// the current message has been read completely when reach here
+
+			// check the header CSeq
+			RTSPRequest::AttrMap::iterator itHeader = _pCurrentMsg->headers.find("CSeq");
+			if (_pCurrentMsg->headers.end() == itHeader)
+			{
+				_log(Log::L_WARNING, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] ignore illegal response withno CSeq"), _bind.connDesc());
+				_pCurrentMsg = new RTSPMessage();
+				continue;
+			}
+
+			RTSPSink::MsgPair pair;
+			pair.cSeq =_pCurrentMsg->cSeq = atoi(itHeader->second.c_str());
+			pair.inMsg = _pCurrentMsg;
+			pair.inMsg->stampCreated = stampNow; // the _pCurrentMsg could be left from previous round, stamp the time again to be more accurate
+			_pCurrentMsg = new RTSPMessage();
+
+			if (pair.cSeq <=0)
+			{
+				_log(Log::L_WARNING, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] ignore in comming message with illegal CSeq(%d)"), _bind.connDesc(), pair.cSeq);
+				continue;
+			}
+
+			std::string cmdName, url, proto;
+			if (parseRequestLine(pair.inMsg->startLine, cmdName, url, proto))
+				receivedReqs.push_back(pair);
+			else receivedResps.push_back(pair);
+
+			continue;
+		}
+
+		// beginning of header reading
+		while (!bFinishedThisDataChuck && pProcessed < pEnd)
+		{
+			char* line = RTSPParser::nextLine(pProcessed, pEnd - pProcessed);
+			if (NULL == line)
+			{
+				// met an incompleted line, shift it to the beginning of buffer then wait for the next OnDataArrived()
+				bFinishedThisDataChuck = true;
+				break;
+			}
+
+			int len = strlen(line);
+			pProcessed += (len + 2); // skip /r/n
+
+			if (len <=0) // an empty line
+			{
+				if (!_pCurrentMsg->startLine.empty())
+				{
+					_pCurrentMsg->headerCompleted = true;
+					// finished this header reading
+					break;
+				}
+
+				continue; // sounds like a bad line here
+			}
+
+			if (_pCurrentMsg->startLine.empty())
+			{
+				_pCurrentMsg->startLine = line;
+				//				_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] received data [%s]"), connDescription(), _pCurrentMsg->startLine.c_str());
+				continue;
+			}
+
+			std::string header, value;
+			char* pos = strchr(line, ':');
+			if (NULL ==pos)
+				continue; // illegal header
+
+			*pos = '\0';
+			header = RTSPParser::trim(line);
+			value = RTSPParser::trim(pos+1);
+			MAPSET(RTSPRequest::AttrMap, _pCurrentMsg->headers, header, value);
+			if (0 == header.compare("Content-Length"))
+				_pCurrentMsg->contentLenToRead = atol(value.c_str());
+			// 			else if(0 == header.compare("CSeq"))
+			// 				_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] received data [CSeq: %s]"), connDescription(), _pCurrentMsg->headers["CSeq"].c_str());
+			// 			else if(0 == header.compare("Method-Code"))
+			// 				_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] received data [Method-Code: %s]"), connDescription(), _pCurrentMsg->headers["Method-Code"].c_str());
+			// 			else if(0 == header.compare("Session"))
+			// 				_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] received data [Session: %s]"), connDescription(), _pCurrentMsg->headers["Session"].c_str());
+		}; // end of header reading;
+
+	} // end of current buffer reading
+
+	// shift the unhandled buffer to the beginning, process with next OnData()
+	Log::loglevel_t llevel = Log::L_DEBUG;
+	if (_inCommingByteSeen>0 || receivedReqs.size() + receivedResps.size() >1 || pEnd - pProcessed >0)
+		llevel = Log::L_INFO;
+
+	_log(llevel, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] received %d bytes, appending to buf[%d], chopped out %d ServerRequests and %d Responses, %d incompleted bytes left"), _bind.connDesc(), _bytesAvail, _inCommingByteSeen, receivedReqs.size(), receivedResps.size(), pEnd - pProcessed);
+	if (pEnd >= pProcessed)
+	{
+		_inCommingByteSeen = pEnd - pProcessed;
+		memcpy(_inCommingBuffer, pProcessed, _inCommingByteSeen);
+	}
+
+	// notifying the sink
+	::std::sort(receivedResps.begin(), receivedResps.end(), RTSPSink::MsgPair::less);
+	_bind.OnResponses(receivedResps);
+	if (receivedReqs.size() >0)
+		_bind.OnRequests(receivedReqs);
+}
+
+std::string RTSPParser::trim(char const* str)
+{
+	if (NULL == str)
+		return "";
+	int len = strlen(str);
+	// The line begins with the desired header name.  Trim off any whitespace
+	const char* t =str + len;
+	for (; *str == ' ' || *str == '\t'; str++);
+	for (; *(t-1) == ' ' || *(t-1) == '\t'; t--);
+	return std::string(str, t-str);
+}
+
+char* RTSPParser::nextLine(char* startOfLine, int maxByte)
+{
+	// returns the start of the next line, or NULL if none.  Note that this modifies the input string to add '\0' characters.
+
+	// locate the beginning of the line
+	for (; (*startOfLine =='\0' || *startOfLine == '\n') && maxByte >0; startOfLine++, maxByte--);
+
+	// locate the end of line
+	char* ptr = startOfLine;
+	for (; maxByte >0 && *ptr != '\r' && *ptr != '\n'; ++ptr, maxByte--);
+
+	if (maxByte<=0)
+		return NULL;
+
+	// change the "\r\n" as the string NULL
+	if (*ptr == '\r')
+		*ptr = '\0';
+
+	return startOfLine;
+}
+
+bool RTSPParser::parseRequestLine(const std::string& line, std::string& cmdName, std::string& url, std::string& proto)
+{
+	char* buf = new char[line.length()+2];
+	strcpy(buf, line.c_str());
+	bool bSucc =false;
+
+	do {
+		char* p = buf, *q=p;
+		while (*p == ' ' || *p == '\t')	p++; // skip the leading white spaces
+		for (q=p; *q && *q!= ' ' && *q != '\t'; q++); // find the next white spaces
+
+		if (*q)
+			*q++ = '\0';
+
+		cmdName = trim(p);
+		if (NULL == (p = strstr(q, "RTSP/")))
+			break; // failed
+
+		*(p-1) = '\0';
+
+		url = trim(q);
+		proto = trim(p);
+
+		bSucc = true;
+
+	} while(0);
+
+	delete [] buf;
+	return bSucc;
+}
+
+bool RTSPParser::parseResponseLine(const std::string& line, uint& resultCode, std::string& resultStr, std::string& proto)
+{
+	char* buf = new char[line.length()+2];
+	strcpy(buf, line.c_str());
+	bool bSucc =false;
+
+	do {
+		char* p = buf, *q=p;
+
+		if (NULL == (p = strstr(q, "RTSP/")))
+			break; // failed
+
+		while (*p == ' ' || *p == '\t')	p++; // skip the leading white spaces
+		for (q=p; *q && *q!= ' ' && *q != '\t'; q++); // find the next white spaces
+
+		std::string temp(p, q-p);
+		proto = trim(temp.c_str());
+
+		if (*q)
+			*q++ = '\0';
+
+		for (p=q; *p && *p!= ' ' && *p != '\t'; p++); // find the next white spaces
+
+		temp = std::string(q, p-q);
+		resultCode=atoi(temp.c_str());
+		if (resultCode < 100) // result code must be 3-digits
+			break;
+
+		resultStr = trim(p);
+		bSucc = true;
+
+	} while(0);
+
+	delete [] buf;
+	return bSucc;
+}
+
+#define RTSP_NPT_NOW (-321.00)
+
+static bool parseNPTTime(char* nptTime, double& npttime)
+{
+// [rfc2326] 3.6 Normal Play Time
+//   npt-time     =   "now" | npt-sec | npt-hhmmss
+//   npt-sec      =   1*DIGIT [ "." *DIGIT ]
+//   npt-hhmmss   =   npt-hh ":" npt-mm ":" npt-ss [ "." *DIGIT ]
+//   npt-hh       =   1*DIGIT     ; any positive number
+//   npt-mm       =   1*2DIGIT    ; 0-59
+//   npt-ss       =   1*2DIGIT    ; 0-59
+
+	char* pTail = nptTime + strlen(nptTime);
+	for (; *nptTime == ' ' || *nptTime == '\t'; nptTime++);
+	for (; pTail > nptTime && (*(pTail-1) == ' ' || *(pTail-1) == '\t'); pTail--);
+	*pTail = '\0';
+
+	if (strlen(nptTime) <=0)
+		return false;
+
+	if (0 == strcmp(nptTime, "now"))
+	{
+		npttime = 0.0; // TODO: replaced with RTSP_NPT_NOW
+		return true;
+	}
+
+	if (strchr(nptTime, ':') !=NULL)
+	{
+		int hh=0, mm=0, ss=0, msec=0;
+		int ret = sscanf(nptTime, "%d:%2d:%2d.%3d", &hh, &mm, &ss, &msec);
+		if (ret <3)
+			return false;
+
+		npttime = (hh*60 + mm) *60 +ss;
+
+		if (ret >3)
+		{
+			if (msec<10)
+				npttime += (float)msec/10;
+			else if (msec<100)
+				npttime += (float)msec/100;
+			else 
+				npttime += (float)msec/1000;
+		}
+
+		return true;
+	}
+
+	if (sscanf(nptTime, "%lf", &npttime) >0)
+		return true;
+
+	return false;
+}
+
+static bool parseNPTRange(char* str, double& rangeStart, double& rangeEnd)
+{
+// [rfc2326] 3.6 Normal Play Time
+//   npt-range    =   ( npt-time "-" [ npt-time ] ) | ( "-" npt-time )
+//   Examples:
+//     npt=123.45-125
+//     npt=12:05:35.3-
+//     npt=now-
+
+	char* pos = strchr(str, '-');
+	if (NULL == pos)
+		return false;
+	*pos = '\0';
+
+	rangeStart = rangeEnd = 0.0;
+	bool ret1 = parseNPTTime(str,   rangeStart);
+	bool ret2 = parseNPTTime(pos+1, rangeEnd);
+	if (!ret1 && !ret2)
+		return false;
+
+	return true;
+}
+
+/*
+bool RTSPSink::isNowNPT(double& npt)
+{
+	return abs(npt - RTSP_NPT_NOW) < 0.1;
+}
+*/
+bool RTSPParser::parseRangeParam(char const* paramStr, double& rangeStart, double& rangeEnd)
+{
+	char str[128] = "";
+	strncpy(str, paramStr, sizeof(str) -2);
+
+	char* posEq = strchr(str, '=');
+	if (NULL == posEq)
+		return false;
+	*posEq = '\0';
+
+	return parseNPTRange(posEq+1, rangeStart, rangeEnd);
 }
 
 }}//endof namespace
