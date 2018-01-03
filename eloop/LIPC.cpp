@@ -246,7 +246,7 @@ public:
 	{
 		read_start();
 		_service.addConn(this);
-//		printf("new pipe Passive Conn\n");
+
 		//if (TRACE_LEVEL_FLAG)
 			_service._log(ZQ::common::Log::L_DEBUG, CLOGFMT(PassiveConn, "new passive conn"));
 	}
