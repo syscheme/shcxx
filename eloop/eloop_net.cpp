@@ -69,16 +69,13 @@ namespace ZQ {
 */
 		int Stream::write(const eloop_buf_t bufs[],unsigned int nbufs,uv_stream_t *send_handle)
 		{  
+			if (NULL == send_handle)
+				return elpuEPIPE;
+			
 			uv_write_t*  req = new uv_write_t;
 			if (req == NULL)
 				return -1;
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
-			if (NULL == send_handle)
-			{
-				delete req;
-				req = NULL;
-				return elpuEPIPE;
-			}
 
 			return uv_write2(req, stream, bufs, nbufs, send_handle, _cbWrote);
 		}
@@ -128,6 +125,7 @@ namespace ZQ {
 				self->OnShutdown((ElpeError)status);
 			}
 			delete req;
+			req = NULL;
 		}
 
 		void Stream::_cbConnection(uv_stream_t *stream, int status) {
@@ -183,6 +181,7 @@ namespace ZQ {
 			
 			if (_buf.base)
 			{
+				memset(_buf.base,0,_buf.len);
 				buf->base = _buf.base;
 				buf->len = _buf.len;
 			}
@@ -190,7 +189,6 @@ namespace ZQ {
 
 		void Stream::doFree(eloop_buf_t* buf)
 		{
-			memset(buf->base,0,buf->len);
 		}
 
 /*
