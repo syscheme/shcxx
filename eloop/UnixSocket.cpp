@@ -49,10 +49,7 @@ void UnixSocket::OnRead(ssize_t nread, const char *buf)
 		return;
 	}
 
-	std::string temp;
-	temp.assign(buf,nread);
-	//printf("recv msg:len = %d,data:%s\n",temp.length(),temp.c_str());
-	_lipcLog(ZQ::common::Log::L_DEBUG,CLOGFMT(UnixSocket, "OnRead() received %dB: %s"), temp.length(), temp.c_str());
+	_lipcLog(ZQ::common::Log::L_DEBUG,CLOGFMT(UnixSocket, "OnRead() received %dB: %s"), nread, buf);
 //	parseMessage();
 	processMessage(nread,buf);
 }
