@@ -7,17 +7,17 @@ namespace ZQ {
 		// -----------------------------
 
 		Stream::Stream(){
-			_buf.base = NULL;
-			_buf.len = 0;
+			_eloopBuf.base = NULL;
+			_eloopBuf.len = 0;
 		}
 
 		Stream::~Stream()
 		{
-			if(_buf.base)
+			if(_eloopBuf.base)
 			{
-				free(_buf.base);
-				_buf.base = NULL;
-				_buf.len = 0;
+				free(_eloopBuf.base);
+				_eloopBuf.base = NULL;
+				_eloopBuf.len = 0;
 			}
 		}
 
@@ -173,17 +173,17 @@ namespace ZQ {
 
 		void Stream::doAllocate(eloop_buf_t* buf, size_t suggested_size)
 		{
-			if (_buf.base == NULL)
+			if (_eloopBuf.base == NULL)
 			{
-				_buf.len = 64 * 1024;
-				_buf.base = (char*)malloc(_buf.len);
+				_eloopBuf.len = 64 * 1024;
+				_eloopBuf.base = (char*)malloc(_eloopBuf.len);
 			}
 			
-			if (_buf.base)
+			if (_eloopBuf.base)
 			{
-				memset(_buf.base,0,_buf.len);
-				buf->base = _buf.base;
-				buf->len = _buf.len;
+				memset(_eloopBuf.base,0,_eloopBuf.len);
+				buf->base = _eloopBuf.base;
+				buf->len = _eloopBuf.len;
 			}
 		}
 

@@ -92,7 +92,7 @@ private:
 	static void _cbWrote(uv_write_t *req, int status);
 //	static void _cbWrote2(uv_write_t *req, int status);
 
-	eloop_buf_t	_buf;
+	eloop_buf_t	_eloopBuf;
 };
 
 // -----------------------------
