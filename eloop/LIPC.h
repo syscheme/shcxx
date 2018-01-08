@@ -34,7 +34,7 @@
 #include "UnixSocket.h"
 
 #include <vector>
-#include <list>
+#include <set>
 
 namespace ZQ {
 namespace eloop {
@@ -189,7 +189,7 @@ class LIPCService : public ZQ::eloop::Pipe
 	friend class PassiveConn;
 
 public:
-	typedef std::list< PassiveConn* > PipeClientList;
+	typedef std::set<PassiveConn*> PipeClientList;
 
 public:
 	LIPCService(ZQ::common::Log& log) : _log(log),_isOnClose(false) {}

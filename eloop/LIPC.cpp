@@ -311,7 +311,7 @@ public:
 
 	virtual void onError( int error, const char* errorDescription)
 	{
-		_service.onError(error, errorDescription);
+		_service._log(ZQ::common::Log::L_ERROR, CLOGFMT(PassiveConn, "errCode = %d, errDesc:%s"), error, errorDescription);
 		close();
 	}
 
@@ -364,26 +364,17 @@ void LIPCService::OnClose()
 void LIPCService::OnUnInit()
 {
 	if(TRACE_LEVEL_FLAG)
-	_log(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCService, "OnUnInit()"));
+		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCService, "OnUnInit()"));
 }
 
 void LIPCService::addConn(PassiveConn* conn)
 {
-	_clients.push_back(conn);
+	_clients.insert(conn);
 }
 
 void LIPCService::delConn(PassiveConn* conn)
 {
-	PipeClientList::iterator iter = _clients.begin();
-	while(iter != _clients.end())
-	{
-		if (*iter == conn)
-		{
-			_clients.erase(iter);		//_PipeConn.erase(iter++);
-			break;
-		}
-	}
-
+	_clients.erase(conn);
 	if (_isOnClose && _clients.empty())
 		OnUnInit();
 }
