@@ -378,11 +378,13 @@ void LIPCService::delConn(PassiveConn* conn)
 	while(iter != _clients.end())
 	{
 		if (*iter == conn)
-			iter = _clients.erase(iter);		//_PipeConn.erase(iter++);
-		else
-			iter++;
+		{
+			_clients.erase(iter);		//_PipeConn.erase(iter++);
+			break;
+		}
 	}
-	if (_isOnClose)
+
+	if (_isOnClose && _clients.empty())
 		OnUnInit();
 }
 
