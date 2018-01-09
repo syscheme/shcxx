@@ -1,6 +1,7 @@
 #include "ZQ_common_conf.h"
 #include "LIPC.h"
 #include "TimeUtil.h"
+#include "Guid.h"
 
 #define MAX_CSEQ    0x0fffffff
 
@@ -196,10 +197,8 @@ void LIPCResponse::post(bool bAsync)
 	if (_cSeq <= 0)
 		return;
 
- 	if (bAsync)
- 		_conn.AsyncSend(toString(),getFd());
- 	else
- 		_conn.send(toString(), getFd());
+	if (_server)
+		_server->sendResp(toString(),getFd(),_connId, bAsync);
 
 //	int64 step1 = ZQ::eloop::usStampNow();
 // 	std::string temp = toString();
@@ -240,7 +239,13 @@ class PassiveConn : public UnixSocket
 public:
 	PassiveConn(LIPCService& service)
 		:_service(service), UnixSocket(service._log)
-	{}
+	{
+		char buf[80];
+		ZQ::common::Guid guid;
+		guid.create();
+		guid.toCompactIdstr(buf, sizeof(buf) -2);
+		_clientId = buf;
+	}
 
 	void start()
 	{
@@ -259,7 +264,7 @@ public:
 
 		if(!parsing)
 		{
-			LIPCResponse::Ptr resp = new LIPCResponse(0, *this);
+			LIPCResponse::Ptr resp = new LIPCResponse(0, _clientId, &_service);
 			resp->postException(LIPCMessage::LIPC_PARSING_ERROR);
 			return;
 		}
@@ -283,7 +288,7 @@ public:
 		if (msg.isMember(JSON_RPC_ID))
 			cseq = msg[JSON_RPC_ID].asUInt();
 
-		LIPCResponse::Ptr resp = new LIPCResponse(cseq, *this);
+		LIPCResponse::Ptr resp = new LIPCResponse(cseq, _clientId, &_service);
 
 		if (msg.isMember(JSON_RPC_METHOD))
 			methodName = msg[JSON_RPC_METHOD].asString();
@@ -312,7 +317,7 @@ public:
 	virtual void onError( int error, const char* errorDescription)
 	{
 		_service._log(ZQ::common::Log::L_ERROR, CLOGFMT(PassiveConn, "errCode = %d, errDesc:%s"), error, errorDescription);
-		close();
+		closeUnixSocket();
 	}
 
 	virtual void OnWrote(int status)
@@ -332,8 +337,11 @@ public:
 		delete this;
 	}
 
+	std::string getClientId(){return _clientId;}
+
 private:
 	LIPCService&	_service;
+	std::string		_clientId;
 };
 
 // -------------------------------------------------
@@ -354,6 +362,21 @@ void LIPCService::UnInit()
 		(*it)->close();
 }
 
+void LIPCService::sendResp(const std::string& msg, int fd, const std::string& connId, bool bAsync)
+{
+	ZQ::common::MutexGuard gd(_connLock);
+	for(PipeClientList::iterator itconn = _clients.begin();itconn != _clients.end();itconn++)
+	{
+		if ((*itconn)->getClientId() == connId)
+		{
+			if (bAsync)
+				(*itconn)->AsyncSend(msg, fd);
+			else
+				(*itconn)->send(msg, fd);
+		}
+	}
+}
+
 void LIPCService::OnClose()
 { 
 	_isOnClose = true;
@@ -369,11 +392,13 @@ void LIPCService::OnUnInit()
 
 void LIPCService::addConn(PassiveConn* conn)
 {
+	ZQ::common::MutexGuard gd(_connLock);
 	_clients.insert(conn);
 }
 
 void LIPCService::delConn(PassiveConn* conn)
 {
+	ZQ::common::MutexGuard gd(_connLock);
 	_clients.erase(conn);
 	if (_isOnClose && _clients.empty())
 		OnUnInit();
@@ -589,7 +614,7 @@ void LIPCClient::close()
 	{
 		_reconnect = false;
 		_isConn = false;
-		_conn->close();
+		_conn->closeUnixSocket();
 	}
 
 	if (_timer != NULL)
@@ -687,7 +712,7 @@ void LIPCClient::OnIndividualMessage(Json::Value& msg)
 	if (cseq <=0)
 		return;
 
-	LIPCResponse::Ptr resp = new LIPCResponse(cseq, *_conn);
+	LIPCResponse::Ptr resp = new LIPCResponse(cseq);
 	resp->_msg = msg;
 
 	if (msg.isMember(JSON_RPC_FD))
@@ -734,8 +759,7 @@ void LIPCClient::OnMessage(std::string& msg)
 	bool parsing = Json::Reader().parse(msg, root);
 	if (!parsing)
 	{
-		LIPCResponse::Ptr resp = new LIPCResponse(0, *_conn);
-		resp->postException(LIPCMessage::LIPC_PARSING_ERROR);
+		_log(ZQ::common::Log::L_ERROR, CLOGFMT(LIPCClient, "OnMessage parse msg[%s] error."),msg.c_str());
 		return;
 	}
 

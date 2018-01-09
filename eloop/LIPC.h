@@ -32,6 +32,7 @@
 #define __ZQ_COMMON_ELOOP_LIPC_H__
 
 #include "UnixSocket.h"
+#include <Locks.h>
 
 #include <vector>
 #include <set>
@@ -153,7 +154,7 @@ public:
 	Json::Value getParam();
 	std::string getMethod();
 };
-
+class LIPCService;
 // ------------------------------------------------
 // class LIPCResponse
 // ------------------------------------------------
@@ -164,8 +165,8 @@ class LIPCResponse : public LIPCMessage
 public:
 	typedef ZQ::common::Pointer<LIPCResponse> Ptr;
 
-	LIPCResponse(int cseq, UnixSocket& conn)
-		: _conn(conn), LIPCMessage(cseq)
+	LIPCResponse(int cseq, const std::string& connId = "clientSide",LIPCService* server = NULL)
+		: _connId(connId), _server(server),LIPCMessage(cseq)
 	{}
 
 	virtual ~LIPCResponse();
@@ -178,7 +179,8 @@ public:
 	void postException(int code,std::string errMsg = "",bool bAsync = true);
 
 private:
-	UnixSocket&	_conn;
+	const std::string& _connId;
+	LIPCService* _server;
 };
 
 // ------------------------------------------------
@@ -202,6 +204,8 @@ public:
 
 	void UnInit();
 
+	void sendResp(const std::string& msg, int fd, const std::string& connId,bool bAsync = false);
+
 protected:
 //	ZQ::common::Log& _log;
 	ZQ::common::LogWrapper _log;
@@ -224,9 +228,10 @@ protected:
 
 
 private:
-	PipeClientList _clients;
-	int			   _ipc;
-	bool		   _isOnClose;
+	ZQ::common::Mutex	_connLock;
+	PipeClientList		_clients;
+	int					_ipc;
+	bool				_isOnClose;
 };
 
 // ------------------------------------------------

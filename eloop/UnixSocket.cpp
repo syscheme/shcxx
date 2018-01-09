@@ -34,7 +34,7 @@ int UnixSocket::init(Loop &loop, int ipc)
 	return ZQ::eloop::Pipe::init(loop,ipc);
 }
 
-void UnixSocket::close()
+void UnixSocket::closeUnixSocket()
 {
 	_async->close();
 }
@@ -78,8 +78,11 @@ int UnixSocket::AsyncSend(const std::string& msg, int fd)
 		ZQ::common::MutexGuard gd(_lkSendMsgList);
 		_SendMsgList.push_back(asyncMsg);
 	}
+	if (_async != NULL)
+		return _async->send();
 
-	return _async->send();
+	_lipcLog(ZQ::common::Log::L_WARNING,CLOGFMT(UnixSocket, "AsyncSend async Handle is close."));
+	return -1;
 }
 
 void UnixSocket::OnAsyncSend()
@@ -112,7 +115,7 @@ void UnixSocket::OnCloseAsync()
 		delete _async;
 		_async = NULL;
 	}
-	ZQ::eloop::Pipe::close();
+	close();
 }
 
 

@@ -35,7 +35,7 @@ public:
 	}
 
 	int  init(Loop &loop, int ipc=1);
-	void close();
+	void closeUnixSocket();
 
 	virtual void OnRead(ssize_t nread, const char *buf);
 
@@ -79,7 +79,6 @@ private:
 	ZQ::common::Mutex _lkSendMsgList;
 	std::list<AsyncMessage> _SendMsgList;
 	AsyncSender* _async;
-
 
 //	ZQ::common::Mutex _lkRecvMsgList;
 //	std::list<std::string> _RecvMsgList;
