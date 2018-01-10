@@ -36,7 +36,10 @@ int UnixSocket::init(Loop &loop, int ipc)
 
 void UnixSocket::closeUnixSocket()
 {
-	_async->close();
+	if(_async != NULL)
+		_async->close();
+	else
+		shutdown();
 }
 
 void UnixSocket::OnRead(ssize_t nread, const char *buf)
@@ -115,7 +118,7 @@ void UnixSocket::OnCloseAsync()
 		delete _async;
 		_async = NULL;
 	}
-	close();
+	shutdown();
 }
 
 

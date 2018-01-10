@@ -5,20 +5,20 @@
 
 #define MAX_CSEQ    0x0fffffff
 
-#define SYSTEM_DESCRIBE        "LIPC.systemDescribe"
-#define JSON_RPC_PROTO         "LIPC.jsonrpc"
-#define JSON_RPC_PROTO_VERSION "LIPC.2.0"
-#define JSON_RPC_ID            "LIPC.id"
-#define JSON_RPC_METHOD        "LIPC.method"
-#define JSON_RPC_PARAMS        "LIPC.params"
-#define JSON_RPC_RESULT        "LIPC.result"
-#define JSON_RPC_EXCEPTION     "LIPC.exception"
-#define JSON_RPC_ERROR         "LIPC.error"
-#define JSON_RPC_ERROR_CODE    "LIPC.code"
-#define JSON_RPC_ERROR_MESSAGE "LIPC.message"
-#define JSON_RPC_ERROR_DATA    "LIPC.data"
-#define JSON_RPC_FD            "LIPC.fd"
-#define JSON_RPC_FD_TYPE       "LIPC.fd_type"
+#define SYSTEM_DESCRIBE        "systemDescribe"
+#define JSON_RPC_PROTO         "jsonrpc"
+#define JSON_RPC_PROTO_VERSION "2.0"
+#define JSON_RPC_ID            "id"
+#define JSON_RPC_METHOD        "method"
+#define JSON_RPC_PARAMS        "params"
+#define JSON_RPC_RESULT        "result"
+#define JSON_RPC_EXCEPTION     "exception"
+#define JSON_RPC_ERROR         "error"
+#define JSON_RPC_ERROR_CODE    "code"
+#define JSON_RPC_ERROR_MESSAGE "message"
+#define JSON_RPC_ERROR_DATA    "data"
+#define JSON_RPC_FD            "fd"
+#define JSON_RPC_FD_TYPE       "fd_type"
 
 namespace ZQ {
 namespace eloop {
@@ -359,7 +359,7 @@ void LIPCService::UnInit()
 {
 	close();
 	for(PipeClientList::iterator it=_clients.begin(); it!= _clients.end(); it++)
-		(*it)->close();
+		(*it)->closeUnixSocket();
 }
 
 void LIPCService::sendResp(const std::string& msg, int fd, const std::string& connId, bool bAsync)
@@ -421,7 +421,7 @@ void LIPCService::doAccept(ZQ::eloop::Handle::ElpeError status)
 		client->start();
 	}
 	else {
-		client->close();
+		client->closeUnixSocket();
 		std::string desc = "accept error:";
 		desc.append(ZQ::eloop::Handle::errDesc(ret));
 		onError(ret, desc.c_str());
