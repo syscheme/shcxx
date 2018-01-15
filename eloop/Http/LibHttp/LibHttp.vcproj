@@ -168,6 +168,30 @@
 				RelativePath=".\HttpServer.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\RTSPClient.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\RTSPConnection.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\RTSPMessage.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\RTSPServer.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\RTSPSession.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\TCPServer.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -192,6 +216,30 @@
 			</File>
 			<File
 				RelativePath=".\HttpServer.h"
+				>
+			</File>
+			<File
+				RelativePath=".\RTSPClient.h"
+				>
+			</File>
+			<File
+				RelativePath=".\RTSPConnection.h"
+				>
+			</File>
+			<File
+				RelativePath=".\RTSPMessage.h"
+				>
+			</File>
+			<File
+				RelativePath=".\RTSPServer.h"
+				>
+			</File>
+			<File
+				RelativePath=".\RTSPSession.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TCPServer.h"
 				>
 			</File>
 		</Filter>

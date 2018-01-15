@@ -8,9 +8,10 @@ namespace eloop {
 // ---------------------------------------
 // class HttpConnection
 // ---------------------------------------
-HttpConnection::HttpConnection(bool clientSide,ZQ::common::Log& logger)
-		:_Type(clientSide?HttpMessage::MSG_RESPONSE:HttpMessage::MSG_REQUEST),
-		_Parser(NULL), _Logger(logger), _RespState(RESP_COMPLETE), _ParserSettings(NULL)
+HttpConnection::HttpConnection(bool clientSide,ZQ::common::Log& logger,TCPServer* tcpServer)
+		:TCPConnection(logger,tcpServer),
+		_Type(clientSide?HttpMessage::MSG_RESPONSE:HttpMessage::MSG_REQUEST),
+		_Parser(NULL), _RespState(RESP_COMPLETE), _ParserSettings(NULL)
 {
 	_Parser = (http_parser*)malloc(sizeof(http_parser));
 	_ParserSettings = (http_parser_settings*)malloc(sizeof(http_parser_settings));
@@ -98,7 +99,7 @@ void HttpConnection::OnClose()
 void HttpConnection::OnShutdown(ElpeError status)
 {
 	if (status != elpeSuccess)
-		_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpPassiveConn,"shutdown error code[%d] Description[%s]"),status,errDesc(status));
+		_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpConnection,"shutdown error code[%d] Description[%s]"),status,errDesc(status));
 
 	close();
 }

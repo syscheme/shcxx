@@ -3,7 +3,7 @@
 
 #include "HttpMessage.h"
 #include "eloop_net.h"
-//#include <set>
+#include "TCPServer.h"
 #include <list>
 
 
@@ -71,7 +71,7 @@ public:
 // ---------------------------------------
 // class HttpConnection
 // ---------------------------------------
-class HttpConnection: public TCP, public IHttpParseSink
+class HttpConnection: public TCPConnection, public IHttpParseSink
 {
 	friend class HttpPassiveConn;
 public:
@@ -98,7 +98,7 @@ public:
 	virtual void onRespComplete() {_RespState = RESP_COMPLETE;}	
 
 protected:
-	HttpConnection(bool clientSide,ZQ::common::Log& logger);
+	HttpConnection(bool clientSide,ZQ::common::Log& logger,TCPServer* tcpServer = NULL);
 	void reset( IHttpParseSink* callback = NULL);
 	
 	virtual void OnRead(ssize_t nread, const char *buf);
@@ -132,7 +132,6 @@ protected: // implementation of IHttpParseSink that also present the message rec
 	virtual void onError( int error,const char* errorDescription ) {}
 	
 private:
-	ZQ::common::Log&		 _Logger;
 	http_parser*             _Parser; // its type can be determined by clientSide
 	http_parser_settings*    _ParserSettings;
 	HttpMessage::Ptr         _CurrentParseMsg;
