@@ -488,7 +488,7 @@ void RedisClient::_cancelCommands()
 void RedisClient::disconnect()
 {
 	ZQ::common::MutexGuard g(_lockCommandQueue);
-	_log(Log::L_DEBUG, CLOGFMT(RedisClient, "cancel() drop conn[%s] by cancel %d pending commands and %d await commands"), _connDesc, _commandQueueToSend.size(), _commandQueueToReceive.size());
+	_log(Log::L_INFO, CLOGFMT(RedisClient, "cancel() drop conn[%s] by cancel %d pending commands and %d await commands"), _connDesc, _commandQueueToSend.size(), _commandQueueToReceive.size());
 	_cancelCommands();
 	shutdown();
 }
@@ -510,7 +510,7 @@ void RedisClient::OnConnected(ElpeError status)
         return;
     }
     _tcpStatus = Connected;
-	_log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnConnected() connected to the peer, new conn: %s"), _connDesc);
+	_log(Log::L_INFO, CLOGFMT(RedisClient, "OnConnected() connected to the peer, new conn: %s"), _connDesc);
 	set_blocking(1);
     read_start();
 	_inCommingByteSeen =0;
@@ -595,7 +595,7 @@ void RedisClient::OnTimeout()
 
 void RedisClient::OnRead(ssize_t nread, const char *buf)
 {
-    _log(Log::L_WARNING, CLOGFMT(RedisClient, "OnRead() conn[%s] read size[%d]"), _connDesc, nread);
+    _log(Log::L_INFO, CLOGFMT(RedisClient, "OnRead() conn[%s] read size[%d]"), _connDesc, nread);
 
     CommandQueue completedCmds;
     bool bCancelConnection = false;
@@ -1197,7 +1197,7 @@ Evictor::Error RedisEvictor::loadFromStore(const std::string& key, StreamedObjec
     }
     data.stampAsOf = ZQ::common::now();
 
-    Evictor::_log(Log::L_DEBUG, CLOGFMT(RedisEvictor, "loadFromStore() %d data size and %d recieve len"), data.data.size(), vlen);
+    Evictor::_log(Log::L_INFO, CLOGFMT(RedisEvictor, "loadFromStore() %d data size and %d recieve len"), data.data.size(), vlen);
     return Evictor::eeOK;
 }
 
