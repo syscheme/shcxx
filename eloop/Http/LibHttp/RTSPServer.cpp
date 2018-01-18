@@ -5,6 +5,134 @@ namespace ZQ {
 namespace eloop {
 
 // ---------------------------------------
+// class RTSPHandler
+// ---------------------------------------
+void RTSPHandler::onOptions(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp)
+{
+	resp->code(200);
+	
+	resp->header("Server",_server._Config.serverName);
+	resp->header("Public","OPTIONS, DESCRIBE, ANNOUNCE, SETUP, TEARDOWN, PLAY, PAUSE");
+}
+
+void RTSPHandler::onDescribe(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp)
+{
+	// URL: rtsp://127.0.0.1:9960/3012
+	std::string url = req->url(); 
+	int midStartPos = url.rfind("/");
+	std::string mid = url.substr(midStartPos + 1);
+
+	// SDP
+	std::string sdp = mediaSDP(mid);
+
+	resp->code(200);
+
+	resp->header("Server", _server._Config.serverName);
+
+	resp->header("Content-base", url);
+	resp->header("Content-type", "application/sdp");
+	resp->header("Content-length", sdp.size());
+	resp->appendBody(sdp.c_str(),sdp.size());
+}
+
+void RTSPHandler::onAnnounce(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp) {}
+
+void RTSPHandler::onSetup(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp)
+{
+	// URL: rtsp://127.0.0.1:9960/3201/(rtx/audio/video)
+	std::string url = req->url(); 
+
+	// mid and stream name
+	int urlEndPos = url.rfind("/");
+	std::string streamName = url.substr(urlEndPos + 1);
+	url = url.erase(urlEndPos);
+	int midStartPos = url.rfind("/");
+	std::string mid = url.substr(midStartPos + 1);
+
+
+	RTSPSession::Ptr pSess = createSession();
+	if (pSess == NULL)
+	{
+		resp->code(500);
+		return;
+	}
+	_server.addSession(pSess);
+
+	std::string strTran = req->header( "Transport" );
+
+	if(strTran.find("TCP") != std::string::npos)
+	{
+
+	}
+	else if(strTran.find("multicast") != std::string::npos)
+	{
+		
+	}
+	else		//UDP
+	{
+		
+	}
+
+	pSess->setup();
+
+
+	resp->code(200);
+	resp->header("Server", _server._Config.serverName);
+	resp->header("Session", pSess->id());
+	resp->header("Transport", strTran);
+
+}
+
+void RTSPHandler::onPlay(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp)
+{
+
+	std::string sid =  req->header("Session");
+	RTSPSession::Ptr pSess = _server.findSession(sid);
+	if (pSess == NULL)
+	{
+		resp->code(454);
+		return;
+	}
+	 std::string strTime = req->header("Range");
+
+	 pSess->play();
+
+
+	 resp->code(200);
+	 resp->header("Server", _server._Config.serverName);
+	 resp->header("Session", pSess->id());
+	 resp->header("RTP-Info", pSess->streamsInfo());
+}
+
+void RTSPHandler::onPause(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp)
+{
+	std::string sid =  req->header("Session");
+	RTSPSession::Ptr pSess = _server.findSession(sid);
+	if (pSess == NULL)
+	{
+		resp->code(454);
+		return;
+	}
+
+	pSess->pause();
+
+}
+
+void RTSPHandler::onTeardown(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp)
+{
+	std::string sid =  req->header("Session");
+	RTSPSession::Ptr pSess = _server.findSession(sid);
+	if (pSess == NULL)
+	{
+		resp->code(454);
+		return;
+	}
+
+	pSess->teardown();
+}
+
+
+// ---------------------------------------
 // class RTSPPassiveConn
 // ---------------------------------------
 void RTSPPassiveConn::onError( int error,const char* errorDescription )
@@ -21,12 +149,55 @@ void RTSPPassiveConn::OnRequests(RTSPMessage::MsgVec& requests)
 {
 	for(RTSPMessage::MsgVec::iterator it = requests.begin(); it != requests.end(); it++)
 	{
-		RTSPMessage::Ptr msgPtr = (*it);
-// 		switch(msgPtr->method())
-// 		{
-// 		case "d":break;
-// 		}
+		RTSPMessage::Ptr req = (*it);
+		RTSPMessage::Ptr resp = new RTSPMessage(RTSPMessage::RTSP_MSG_RESPONSE);
+		resp->cSeq(req->cSeq());
+
+		RTSPServer* pSev = dynamic_cast<RTSPServer*>(_tcpServer);
+		if (pSev == NULL)
+		{
+			simpleResponse(503,req->cSeq(),this);
+			continue;
+		}
+
+		_rtspHandler = pSev->createHandler( req->url(), *this);
+
+		if(!_rtspHandler)
+		{
+			//should make a 404 response
+			_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn,"OnRequests failed to find a suitable handle to process url: %s"), req->url().c_str() );
+			simpleResponse(404,req->cSeq(),this);
+			continue;
+		}
+
+
+		if (0 == req->method().compare("OPTIONS"))		_rtspHandler->onOptions(req, resp);
+		else if (0 == req->method().compare("ANNOUNCE")) _rtspHandler->onAnnounce(req, resp);
+		else if (0 == req->method().compare("DESCRIBE")) _rtspHandler->onDescribe(req, resp);
+		else if (0 == req->method().compare("SETUP"))	_rtspHandler->onSetup(req, resp);
+		else if (0 == req->method().compare("PLAY"))		_rtspHandler->onPlay(req, resp);
+		else if (0 == req->method().compare("PAUSE"))	_rtspHandler->onPause(req, resp);
+		else if (0 == req->method().compare("TEARDOWN"))	_rtspHandler->onTeardown(req, resp);
+		else
+		{
+			simpleResponse(405,req->cSeq(),this);
+			continue;
+		}
+
+		std::string response = resp->toRaw();
+		write(response.c_str(), response.size());
 	}
+}
+
+void RTSPPassiveConn::simpleResponse(int code,uint32 cseq,RTSPConnection* conn)
+{
+	RTSPMessage::Ptr resp = new RTSPMessage(RTSPMessage::RTSP_MSG_RESPONSE);
+	resp->code(code);
+	resp->cSeq(cseq);
+	resp->status(RTSPMessage::code2status(code));
+
+	std::string response = resp->toRaw();
+	conn->write(response.c_str(), response.size());
 }
 
 
@@ -67,7 +238,33 @@ bool RTSPServer::mount(const std::string& uriEx, RTSPHandler::AppPtr app, const 
 
 RTSPHandler::Ptr RTSPServer::createHandler( const std::string& uri, RTSPPassiveConn& conn, const std::string& virtualSite)
 {
-	return NULL;
+	RTSPHandler::AppPtr app = NULL;
+
+	// cut off the paramesters
+	std::string uriWithnoParams = uri;
+	size_t pos = uriWithnoParams.find_first_of("?#");
+	if (std::string::npos != pos)
+		uriWithnoParams = uriWithnoParams.substr(0, pos);
+
+	// address the virtual site
+	VSites::const_iterator itSite = _vsites.find(virtualSite);
+	if (_vsites.end() == itSite)
+		itSite = _vsites.find(DEFAULT_SITE); // the default site
+
+	RTSPHandler::Ptr handler;
+	MountDirs::const_iterator it = itSite->second.begin();
+
+	for( ; it != itSite->second.end(); it++)
+	{
+		if (boost::regex_match(uriWithnoParams, it->re))
+		{
+			if (it->app)
+				handler = it->app->create(*this, it->props);
+			break;
+		}
+	}
+
+	return handler;
 }
 
 RTSPSession::Ptr RTSPServer::findSession(const std::string& sessId)

@@ -99,8 +99,8 @@ public:
 	bool start();
 	bool stop();
 
-	virtual bool onStart(){}
-	virtual bool onStop(){}
+	virtual bool onStart(){ return true; }
+	virtual bool onStop(){ return true; }
 
 
 	void	addConn( TCPConnection* servant );

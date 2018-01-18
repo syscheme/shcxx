@@ -477,7 +477,7 @@ void TCPServer::delConn( TCPConnection* servant )
 
 TCPConnection* TCPServer::createPassiveConn()
 {
-	new TCPConnection(_Logger,this);
+	return new TCPConnection(_Logger,this);
 }
 
 void TCPServer::single()

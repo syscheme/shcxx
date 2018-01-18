@@ -10,43 +10,6 @@ namespace ZQ {
 namespace eloop {
 
 //-------------------------------------
-//	class RTSPParser
-//-------------------------------------
-class RTSPParser
-{
-public:
-	typedef enum {
-		TrackVideo = 0, TrackAudio
-	} TrackType;
-
-// 	struct RtspTrack{
-// 		uint8_t PT;
-// 		uint8_t trackId;
-// 		uint8_t interleaved;
-// 		TrackType type = (TrackType) -1;
-// 		string trackSdp;
-// 		string trackStyle;
-// 		bool inited;
-// 		uint32_t ssrc = 0;
-// 		uint16_t seq;
-// 		uint32_t timeStamp;
-// 	};
-
-	enum ParseState {
-		STATE_INIT,
-		STATE_HEADERS,
-		STATE_BODY,
-		STATE_COMPLETE
-	};
-	ParseState			_ParserState;
-	size_t parse( const char* data, size_t len);
-//	int parserSDP(const std::string& sdp, RtspTrack Track[2]);
-
-};
-
-
-
-//-------------------------------------
 //	class RTSPConnection
 //-------------------------------------
 class RTSPConnection : public TCPConnection

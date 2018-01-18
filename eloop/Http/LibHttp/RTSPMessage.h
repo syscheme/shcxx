@@ -18,25 +18,60 @@ namespace eloop {
 #define ChunkTail "0\r\n\r\n"
 #define RTSPVersion "RTSP/1.0"
 
-typedef enum _RtspMethod
-{
-	RTSP_NULL_MTHD = 0, // first several are most common ones
-	RTSP_ANNOUNCE_MTHD,
-	RTSP_DESCRIBE_MTHD,
-	RTSP_PLAY_MTHD,
-	RTSP_RECORD_MTHD,
-	RTSP_SETUP_MTHD,
-	RTSP_TEARDOWN_MTHD,
-	RTSP_PAUSE_MTHD,
+// typedef enum _RtspMethod
+// {
+// 	RTSP_ANNOUNCE_MTHD,
+// 	RTSP_DESCRIBE_MTHD,
+// 	RTSP_PLAY_MTHD,
+// 	RTSP_RECORD_MTHD,
+// 	RTSP_SETUP_MTHD,
+// 	RTSP_TEARDOWN_MTHD,
+// 	RTSP_PAUSE_MTHD,
+// 
+// 	RTSP_GET_PARAMETER_MTHD,
+// 	RTSP_OPTIONS_MTHD,
+// 	RTSP_REDIRECT_MTHD,
+// 	RTSP_SET_PARAMETER_MTHD,
+// 	RTSP_SET_PING_MTHD,
+// 	RTSP_RESPONSE_MTHD,
+// 	RTSP_UNKNOWN_MTHD        // 13
+// } RtspMethod;
+// 
+// CharData(""),
+// CharData("ANNOUNCE"),
+// CharData("DESCRIBE"),
+// CharData("PLAY"),
+// CharData("RECORD"),
+// CharData("SETUP"),
+// CharData("TEARDOWN"),
+// CharData("PAUSE"),
+// 
+// CharData("GET_PARAMETER"),
+// CharData("OPTIONS"),
+// CharData("REDIRECT"),
+// CharData("SET_PARAMETER"),
+// CharData("PING"),
+// CharData("RESPONSE"),
+// CharData("")
 
-	RTSP_GET_PARAMETER_MTHD,
-	RTSP_OPTIONS_MTHD,
-	RTSP_REDIRECT_MTHD,
-	RTSP_SET_PARAMETER_MTHD,
-	RTSP_SET_PING_MTHD,
-	RTSP_RESPONSE_MTHD,
-	RTSP_UNKNOWN_MTHD        // 13
-} RtspMethod;
+
+// struct RtspMethod2Str {
+// 	RtspMethod		num;
+// 	const char*		method;
+// };
+// 
+// static const char *method_strings[] = {
+// 
+// 	{ RTSP_ANNOUNCE_MTHD, "ANNOUNCE" },
+// 
+// 	{ 200, "OK" },
+// 	{ 201, "Created" },
+// 
+// 	"PLAY",
+// 	"SETUP",
+// };//static std::map<RtspMethod, std::string> RtspMethod2StrMap;
+
+
 
 struct RtspCode2Desc {
 	int 			code;
@@ -124,11 +159,13 @@ public:
 	typedef std::map<std::string,std::string> HEADERS;
 
 public:
-	RTSPMessage():_cSeq(-1),_bodyLen(0),_stampCreated(ZQ::common::now())
+	RTSPMessage(RTSPMessgeType type = RTSP_MSG_REQUEST):_msgType(type),_cSeq(-1),_bodyLen(0),_stampCreated(ZQ::common::now())
 	{
 
 	}
 	virtual ~RTSPMessage(){}
+
+	static const std::string& code2status(int code);
 
 	const std::string& header( const std::string& key) const;
 
@@ -156,9 +193,9 @@ public:
 
 	int	code() const { return _statusCode; }	
 
-	void status( const std::string& s) { _statusDesc = s; }
+	void status(const std::string& st) { _statusDesc = st; }
 
-	const std::string& status() const { return _statusDesc;}
+	const std::string& status() const { return _statusDesc; }
 
 	int64	contentLength() const { return _bodyLen; }
 	void	contentLength(uint64 length) { _bodyLen = length; } //set content-length
@@ -166,9 +203,12 @@ public:
 	void appendBody(const char* body, size_t len) {  _contentBody.append(body,len); }
 
 	uint32	cSeq() const { return _cSeq; }
+	void	cSeq(uint32 cSeq) { _cSeq = cSeq; }
 
 	RTSPMessgeType getMsgType() const { return _msgType; }
 	void setMsgType(RTSPMessgeType type) { _msgType = type; }
+
+	std::string toRaw();
 
 
 private:
@@ -181,6 +221,7 @@ private:
 	uint32				_cSeq;
 	RTSPMessgeType		_msgType;
 	int64				_stampCreated;
+	std::string 		_RawMessage;
 
 	std::string			_statusDesc;
 	int					_statusCode;//status code

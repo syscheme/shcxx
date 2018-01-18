@@ -7,14 +7,6 @@ namespace eloop {
 #define  RTSP_RECV_BUF_SIZE (8*1024)
 
 //-------------------------------------
-//	class RTSPParser
-//-------------------------------------
-size_t RTSPParser::parse( const char* data, size_t len)
-{
-
-}
-
-//-------------------------------------
 //	class RTSPConnection
 //-------------------------------------
 void RTSPConnection::doAllocate(eloop_buf_t* buf, size_t suggested_size)

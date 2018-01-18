@@ -26,6 +26,9 @@ public:
 	}
 
 	const std::string& id() const { return _id; }
+	std::string streamsInfo(){ return _info; }
+
+	virtual int seek(int pos = -1) = 0;
 
 	virtual bool	setup() {}
 	virtual bool	play() {}
@@ -34,6 +37,7 @@ public:
 
 private:
 	std::string		_id;
+	std::string		_info;
 };
 
 

@@ -16,7 +16,7 @@ namespace eloop {
 class RTSPServer;
 
 // ---------------------------------------
-// interface RTSPHandler
+// class RTSPHandler
 // ---------------------------------------
 class RTSPHandler: public virtual ZQ::common::SharedObject
 {
@@ -48,7 +48,7 @@ public:
 		ZQ::common::Log& log() { return _log; }
 
 		// NOTE: this method may be accessed by multi threads concurrently
-		virtual RTSPHandler::Ptr create(const RTSPHandler::Properties& dirProps) =0;
+		virtual RTSPHandler::Ptr create(RTSPServer& server, const RTSPHandler::Properties& dirProps) =0;
 
 	protected:
 		RTSPHandler::Properties _appProps;
@@ -59,8 +59,8 @@ public:
 
 
 protected: // hatched by HttpApplication
-	RTSPHandler(IBaseApplication& app, const RTSPHandler::Properties& dirProps = RTSPHandler::Properties())
-		: _app(app), _dirProps(dirProps)
+	RTSPHandler(IBaseApplication& app, RTSPServer& server, const RTSPHandler::Properties& dirProps = RTSPHandler::Properties())
+		: _app(app), _server(server), _dirProps(dirProps)
 	{
 	}
 
@@ -68,18 +68,23 @@ protected: // hatched by HttpApplication
 	virtual void	onDataReceived( size_t size ){}
 
 
-// 	virtual bool	options() = 0;
-// 	virtual bool	describe() = 0;
-// 
-// 	virtual bool	setup() = 0;
-// 	virtual bool	play() = 0;
-// 	virtual bool	pause() = 0;
-// 	virtual bool	teardown() = 0;
+	virtual void	onOptions(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
+	virtual void	onDescribe(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
+
+	virtual void	onAnnounce(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
+
+	virtual void	onSetup(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
+	virtual void	onPlay(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
+	virtual void	onPause(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
+	virtual void	onTeardown(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
+
+	virtual std::string mediaSDP(const std::string& mid) {return "";}
+	virtual RTSPSession::Ptr createSession() {return NULL;}
 
 
 	IBaseApplication& _app;
 	RTSPHandler::Properties _dirProps;
-
+	RTSPServer&		  _server;
 };
 
 template <class Handler>
@@ -94,9 +99,9 @@ public:
 		: IBaseApplication(logger, appProps) {}
 	virtual ~RTSPApplication() {}
 
-	virtual RTSPHandler::Ptr create(const RTSPHandler::Properties& dirProps)
+	virtual RTSPHandler::Ptr create(RTSPServer& server,const RTSPHandler::Properties& dirProps)
 	{ 
-		return new HandlerT(*this, dirProps);
+		return new HandlerT(*this, server, dirProps);
 	}
 };
 
@@ -115,6 +120,12 @@ public:
 protected: // impl of RTSPParseSink
 	virtual void OnResponses(RTSPMessage::MsgVec& responses);
 	virtual void OnRequests(RTSPMessage::MsgVec& requests);
+
+private:
+	RTSPHandler::Ptr		_rtspHandler;
+
+private:
+	static void simpleResponse(int code,uint32 cseq,RTSPConnection* conn);
 };
 
 
