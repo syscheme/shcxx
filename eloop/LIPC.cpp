@@ -334,7 +334,6 @@ public:
 	virtual void OnClose()
 	{
 		_service.delConn(this);
-		delete this;
 	}
 
 	std::string getClientId(){return _clientId;}
@@ -399,7 +398,17 @@ void LIPCService::addConn(PassiveConn* conn)
 void LIPCService::delConn(PassiveConn* conn)
 {
 	ZQ::common::MutexGuard gd(_connLock);
-	_clients.erase(conn);
+	for (PipeClientList::iterator it = _clients.begin(); it != _clients.end(); it++)
+	{
+		if ((*it) == conn)
+		{
+			delete *it;
+			conn = NULL;
+			_clients.erase(it);
+			break;
+		}
+	}
+
 	if (_isOnClose && _clients.empty())
 		OnUnInit();
 }
