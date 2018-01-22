@@ -1,4 +1,5 @@
 #include "RTSPClient.h"
+#include <urlstr.h>
 
 namespace ZQ {
 	namespace eloop {
@@ -51,11 +52,12 @@ int RTSPClient::sendRequest(RTSPMessage::Ptr req, int64 timeout)
 	if (!_isConnected)
 	{
 		_reqList.push_back(req);
-		if (_peerIp.empty() || _peerPort <= 0)
-		{
-			onError(RtspNoConnection,"send error:No connection server");
-		}
-		connect4(_peerIp.c_str(),_peerPort);
+
+		std::string url = req->url();
+		ZQ::common::URLStr urlstr(url.c_str());
+		const char* host = urlstr.getHost();
+
+		connect4(host,urlstr.getPort());
 		return 0;
 	}
 

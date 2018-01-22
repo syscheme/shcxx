@@ -18,8 +18,8 @@ public:
 		RtspReqTimeout			= -10001
 	} Error;
 public:
-	RTSPClient(ZQ::common::Log& logger,const char* serverIp,uint serverPort,int64 timeout =500)
-		:RTSPConnection(logger), _peerIp(serverIp), _peerPort(serverPort), _isConnected(false),_timeout(timeout) { _lastCSeq.set(1); }
+	RTSPClient(ZQ::common::Log& logger,int64 timeout =500)
+		:RTSPConnection(logger),_isConnected(false),_timeout(timeout) { _lastCSeq.set(1); }
 	virtual void OnConnected(ElpeError status);
 
 protected: // impl of RTSPParseSink
@@ -31,7 +31,6 @@ protected: // impl of RTSPParseSink
 
 
 private:
-
 	int sendRequest(RTSPMessage::Ptr req, int64 timeout = 500);
 
 	uint lastCSeq();
@@ -49,9 +48,6 @@ private:
 	ZQ::common::Mutex _lkAwaits; // because sendRequest() is open for other threads out of eloop to call
 
 	RTSPMessage::MsgVec		_reqList;
-
-	const std::string&		_peerIp;
-	int						_peerPort;
 
 	bool		_isConnected;
 };

@@ -8,7 +8,6 @@
 // ---------------------------------------
 // class RTSPSession
 // ---------------------------------------
-
 class RTSPSession : public virtual ZQ::common::SharedObject
 {
 public:
@@ -39,8 +38,5 @@ private:
 	std::string		_id;
 	std::string		_info;
 };
-
-
-
 
 #endif

@@ -33,19 +33,15 @@ protected:
 
 	virtual void onError( int error,const char* errorDescription ){}
 
+	virtual void	onDataSent(size_t size){}
+	virtual void	onDataReceived( size_t size ){}
+
 protected: // impl of RTSPParseSink
 	virtual void OnResponses(RTSPMessage::MsgVec& responses){}
 	virtual void OnRequests(RTSPMessage::MsgVec& requests){}
 
 
 private:
-	enum ParseState {
-		STATE_INIT,
-		STATE_HEADERS,
-		STATE_BODY,
-		STATE_COMPLETE
-	};
-
 	typedef struct rtsp_parser_msg
 	{
 		std::string startLine;
@@ -74,12 +70,6 @@ private:
 	RTSP_PARSER_MSG	  _currentParseMsg;
 	int	             _byteSeen;
 };
-
-
-
-
-
-
 
 } }//namespace ZQ::eloop
 #endif

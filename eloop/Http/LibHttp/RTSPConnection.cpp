@@ -46,6 +46,8 @@ void RTSPConnection::OnRead(ssize_t nread, const char *buf)
 
 	_Logger.hexDump(ZQ::common::Log::L_DEBUG, _recvBuf.base+_byteSeen, nread, hint().c_str());
 
+	onDataReceived(nread);
+
 	parse(nread);
 }
 
@@ -231,7 +233,7 @@ void RTSPConnection::OnWrote(int status)
 		return;
 	}
 
-//	onHttpDataSent(status);
+	onDataSent(status);
 }
 
 } }//namespace ZQ::eloop

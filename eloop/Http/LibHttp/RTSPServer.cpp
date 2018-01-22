@@ -156,8 +156,8 @@ void RTSPPassiveConn::OnRequests(RTSPMessage::MsgVec& requests)
 		RTSPServer* pSev = dynamic_cast<RTSPServer*>(_tcpServer);
 		if (pSev == NULL)
 		{
-			simpleResponse(503,req->cSeq(),this);
-			continue;
+			resp->code(503);
+			goto sendResp;
 		}
 
 		_rtspHandler = pSev->createHandler( req->url(), *this);
@@ -166,8 +166,8 @@ void RTSPPassiveConn::OnRequests(RTSPMessage::MsgVec& requests)
 		{
 			//should make a 404 response
 			_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn,"OnRequests failed to find a suitable handle to process url: %s"), req->url().c_str() );
-			simpleResponse(404,req->cSeq(),this);
-			continue;
+			resp->code(404);
+			goto sendResp;
 		}
 
 
@@ -180,12 +180,13 @@ void RTSPPassiveConn::OnRequests(RTSPMessage::MsgVec& requests)
 		else if (0 == req->method().compare("TEARDOWN"))	_rtspHandler->onTeardown(req, resp);
 		else
 		{
-			simpleResponse(405,req->cSeq(),this);
-			continue;
+			resp->code(405);
+			goto sendResp;
 		}
 
-		std::string response = resp->toRaw();
-		write(response.c_str(), response.size());
+	sendResp:
+			std::string response = resp->toRaw();
+			write(response.c_str(), response.size());
 	}
 }
 
@@ -199,7 +200,6 @@ void RTSPPassiveConn::simpleResponse(int code,uint32 cseq,RTSPConnection* conn)
 	std::string response = resp->toRaw();
 	conn->write(response.c_str(), response.size());
 }
-
 
 
 // ---------------------------------------
