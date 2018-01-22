@@ -468,7 +468,7 @@ RedisCommand::Ptr RedisClient::sendCommand(RedisCommand::Ptr pCmd)
 		long sendLatency = (long) (stampNow - pCmd->_stampCreated);
 
 		if (_messageTimeout >20 && sendLatency > _messageTimeout/4)
-			_log(Log::L_WARNING, CLOGFMT(RedisClient, "sendCommand() %s took %dmsec, too long until sent"), cmddesc.c_str(), sendLatency);
+			_log(Log::L_WARNING, CLOGFMT(RedisClient, "sendCommand() %s took %ldmsec, too long until sent"), cmddesc.c_str(), sendLatency);
 
 		_commandQueueToReceive.push(pCmd);
 		awaitsize = _commandQueueToReceive.size();
@@ -999,7 +999,7 @@ void RedisClient::OnDataArrived()
 			completedCmds.push(pCmd);
 
 		// shift the unhandled buffer to the beginning, process with next OnData()
-		_log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnDataArrived() conn[%s] received %d bytes, appending to buf[%d], chopped out %d replies, %d incompleted bytes left"), connDescription(), bytesRead, _inCommingByteSeen, completedCmds.size(), pEnd - pProcessed);
+		_log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnDataArrived() conn[%s] received %d bytes, appending to buf[%d], chopped out %d replies, %d incompleted bytes left"), connDescription(), bytesRead, _inCommingByteSeen, completedCmds.size(), (int)(pEnd - pProcessed));
 		if (pEnd >= pProcessed)
 		{
 			_inCommingByteSeen = pEnd - pProcessed;

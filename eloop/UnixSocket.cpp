@@ -60,7 +60,7 @@ void UnixSocket::OnRead(ssize_t nread, const char *buf)
 void UnixSocket::OnWrote(int status)
 {
 	ZQ::common::MutexGuard gd(_lkSendMsgList);
-    _lipcLog(ZQ::common::Log::L_DEBUG,CLOGFMT(UnixSocket, "OnWrote _SendMsgLists.size()"), _SendMsgList.size());
+    _lipcLog(ZQ::common::Log::L_DEBUG,CLOGFMT(UnixSocket, "OnWrote listSize[%u]"), _SendMsgList.size());
 	if(!_SendMsgList.empty())
 	{
 		AsyncMessage asyncMsg;
