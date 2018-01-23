@@ -343,6 +343,22 @@ private:
 	std::string		_clientId;
 };
 
+// ------------------------------------------------
+// class AsyncClose
+// ------------------------------------------------
+class AsyncClose : public ZQ::eloop::Async
+{
+public:
+	AsyncClose(LIPCService& sev):_sev(sev){}
+
+protected:
+	virtual void OnAsync() {close();}
+	virtual void OnClose(){_sev.close();}
+
+private:
+	LIPCService& _sev;
+};
+
 // -------------------------------------------------
 // class LIPCService
 // -------------------------------------------------
@@ -351,12 +367,14 @@ uint32 LIPCService::_verboseFlags =0xffffffff;
 int LIPCService::init(ZQ::eloop::Loop &loop, int ipc)
 {
 	_ipc = ipc;
+	_asyncClose = new AsyncClose(*this);
+	_asyncClose->init(loop);
 	return ZQ::eloop::Pipe::init(loop, ipc);
 }
 
 void LIPCService::UnInit()
 {
-	close();
+	_asyncClose->send();
 	for(PipeClientList::iterator it=_clients.begin(); it!= _clients.end(); it++)
 		(*it)->closeUnixSocket();
 }
@@ -378,6 +396,12 @@ void LIPCService::sendResp(const std::string& msg, int fd, const std::string& co
 
 void LIPCService::OnClose()
 { 
+	if (_asyncClose != NULL)
+	{
+		delete _asyncClose;
+		_asyncClose = NULL;
+	}
+
 	_isOnClose = true;
 	if (_clients.empty())
 		OnUnInit();
