@@ -1076,12 +1076,12 @@ const char* TimeUtil::msec2hms(int64 msec, char* str, int maxlen, bool hasDay)
 	int min = (int)(msec %60);   msec /= 60;
 	if (!hasDay||msec <24)
 	{
-		snprintf(str, maxlen, "%d:%02d:%02d.%03d", msec, min, sec, ms);
+		snprintf(str, maxlen, "%d:%02d:%02d.%03d", (int)msec, min, sec, ms);
 		return str;
 	}
 
 	int hr  = (int)(msec %24);   msec /= 60;
-	snprintf(str, maxlen, "%dd%02d:%02d:%02d.%03d", msec, hr, min, sec, ms);
+	snprintf(str, maxlen, "%dd%02d:%02d:%02d.%03d", (int)msec, hr, min, sec, ms);
 	return str;
 }
 

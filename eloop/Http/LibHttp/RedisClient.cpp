@@ -491,6 +491,7 @@ void RedisClient::disconnect()
 	_log(Log::L_DEBUG, CLOGFMT(RedisClient, "cancel() drop conn[%s] by cancel %d pending commands and %d await commands"), _connDesc, _commandQueueToSend.size(), _commandQueueToReceive.size());
 	_cancelCommands();
 	shutdown();
+    _tcpStatus = unConnect;
 }
 
 void RedisClient::OnConnected(ElpeError status)

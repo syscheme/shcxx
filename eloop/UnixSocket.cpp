@@ -53,14 +53,14 @@ void UnixSocket::OnRead(ssize_t nread, const char *buf)
 	}
 
 	_lipcLog(ZQ::common::Log::L_DEBUG,CLOGFMT(UnixSocket, "OnRead() received %dB: %s"), nread, buf);
-//	parseMessage();
+//	processMessage2(nread,buf);
 	processMessage(nread,buf);
 }
 
 void UnixSocket::OnWrote(int status)
 {
 	ZQ::common::MutexGuard gd(_lkSendMsgList);
-    _lipcLog(ZQ::common::Log::L_DEBUG,CLOGFMT(UnixSocket, "OnWrote _SendMsgLists.size()"), _SendMsgList.size());
+    _lipcLog(ZQ::common::Log::L_DEBUG,CLOGFMT(UnixSocket, "OnWrote listSize[%u]"), _SendMsgList.size());
 	if(!_SendMsgList.empty())
 	{
 		AsyncMessage asyncMsg;
@@ -156,6 +156,68 @@ void UnixSocket::encode(const std::string& src,std::string& dest)
     dest.append(",");
 }
 
+// void UnixSocket::processMessage2(ssize_t nread, const char *buf)
+// {
+// 	int MegLen = nread;
+// 
+// 	size_t len = 0;
+// 	size_t index = 0; /* position of ":" */
+// 	size_t i = 0; 
+// 	while(MegLen > 0)
+// 	{
+// 		for (int i = 0; i<MegLen; i++)
+// 		{
+// 			if (buf[i] == ':')
+// 				break;
+// 		}
+// 
+// 		if (i >= MegLen)
+// 		{
+// 			_buf.clear();
+// 			char errDesc[10240];
+// 			snprintf(errDesc,sizeof(errDesc),"parse error:not found ':',MegLen[%d],Message[%s]",MegLen, pProcessed);
+// 			onError(lipcParseError,errDesc);
+// 			return;
+// 		}
+// 
+// 		index = i;
+// 		len = 0;
+// 		for (int j=0; j< index; j++)
+// 		{
+// 			if(!isdigit(buf[j]))
+// 			{
+// 				_buf.clear();
+// 				char errDesc[10240];
+// 				snprintf(errDesc,sizeof(errDesc),"parse error:The index is not digital,MegLen[%d],Message[%s]",MegLen, buf);
+// 				onError(lipcParseError,errDesc);
+// 				return;
+// 				//parse error
+// 			}
+// 
+// 			len = len * 10 + (buf[j] - (char)0x30);
+// 		}
+// 
+// 		if (len <= MegLen-index-2)
+// 		{
+// 			buf += (index+1);
+// 			_buf.append(buf,len);
+// 			buf += (len+1);
+// 
+// 			MegLen -= (len + index+2);
+// 			_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "multi packet, temp[%s] MegLen[%d]"), _buf.c_str(), MegLen);
+// 			OnMessage(_buf);
+// 			_buf.clear();
+// 		}
+// 		else					//len > _buf.size()-index-2
+// 		{
+// 			buf += (index+1);
+// 			_buf.append(buf,MegLen-index-1);
+// 			MegLen
+// 			
+// 		}
+// 	}
+// }
+
 void UnixSocket::processMessage(ssize_t nread, const char *buf)
 {
 	_buf.append(buf,nread);
@@ -192,14 +254,14 @@ void UnixSocket::processMessage(ssize_t nread, const char *buf)
 			len = len * 10 + (data[i] - (char)0x30);
 		}
 
-		if (len < _buf.size()-index-2)
+		if (len < _buf.length()-index-2)
 		{
 			temp = _buf.substr(index+1,len);
 			_buf = _buf.substr(index+len+2);
 			_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "multi packet, temp[%s] _buf[%s]"), temp.c_str(), _buf.c_str());
 			OnMessage(temp);
 		}
-		else if(len == _buf.size()-index-2)
+		else if(len == _buf.length()-index-2)
 		{
 			temp = _buf.substr(index+1,len);
 			_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "single packet, temp[%s]"), temp.c_str());

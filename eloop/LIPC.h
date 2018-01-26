@@ -49,6 +49,7 @@ class ZQ_ELOOP_API LIPCMessage;
 class PassiveConn;
 class ClientConn;
 class ClientTimer;
+class AsyncClose;
 
 
 #define FLG_TRACE               FLAG(0)
@@ -183,6 +184,7 @@ private:
 	LIPCService* _server;
 };
 
+
 // ------------------------------------------------
 // class LIPCService
 // ------------------------------------------------
@@ -232,6 +234,7 @@ private:
 	PipeClientList		_clients;
 	int					_ipc;
 	bool				_isOnClose;
+	AsyncClose*			_asyncClose;
 };
 
 // ------------------------------------------------

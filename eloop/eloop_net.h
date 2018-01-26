@@ -80,7 +80,7 @@ protected:
 
 	virtual void doAllocate(eloop_buf_t* buf, size_t suggested_size);
 
-	virtual void doFree(eloop_buf_t* buf);
+	virtual void doFree(eloop_buf_t* buf){}
 
 	int write(const eloop_buf_t bufs[],unsigned int nbufs,uv_stream_t *send_handle);
 
@@ -92,7 +92,10 @@ private:
 	static void _cbWrote(uv_write_t *req, int status);
 //	static void _cbWrote2(uv_write_t *req, int status);
 
-	eloop_buf_t	_eloopBuf;
+protected:
+	eloop_buf_t	_recvBuf;
+	int			_byteSeen;
+
 };
 
 // -----------------------------

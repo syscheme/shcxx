@@ -2,22 +2,24 @@
 namespace ZQ {
 	namespace eloop {
 
+		#define RECV_BUF_SIZE (32*1024)
+
 		// -----------------------------
 		// class Stream
 		// -----------------------------
 
-		Stream::Stream(){
-			_eloopBuf.base = NULL;
-			_eloopBuf.len = 0;
+		Stream::Stream():_byteSeen(0){
+			_recvBuf.base = NULL;
+			_recvBuf.len = 0;
 		}
 
 		Stream::~Stream()
 		{
-			if(_eloopBuf.base)
+			if(_recvBuf.base)
 			{
-				free(_eloopBuf.base);
-				_eloopBuf.base = NULL;
-				_eloopBuf.len = 0;
+				free(_recvBuf.base);
+				_recvBuf.base = NULL;
+				_recvBuf.len = 0;
 			}
 		}
 
@@ -173,22 +175,22 @@ namespace ZQ {
 
 		void Stream::doAllocate(eloop_buf_t* buf, size_t suggested_size)
 		{
-			if (_eloopBuf.base == NULL)
+			if (_recvBuf.base == NULL)
 			{
-				_eloopBuf.len = 64 * 1024;
-				_eloopBuf.base = (char*)malloc(_eloopBuf.len);
+				_recvBuf.len = RECV_BUF_SIZE;
+				_recvBuf.base = (char*)malloc(_recvBuf.len);
 			}
 			
-			if (_eloopBuf.base)
+			if (_recvBuf.base)
 			{
-				memset(_eloopBuf.base,0,_eloopBuf.len);
-				buf->base = _eloopBuf.base;
-				buf->len = _eloopBuf.len;
-			}
-		}
+				if (_byteSeen > _recvBuf.len )
+					_byteSeen = _recvBuf.len;
 
-		void Stream::doFree(eloop_buf_t* buf)
-		{
+				buf->base = _recvBuf.base + _byteSeen;
+				buf->len = _recvBuf.len - _byteSeen;
+
+				memset(buf->base,0,buf->len);
+			}
 		}
 
 /*

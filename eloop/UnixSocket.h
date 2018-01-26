@@ -49,6 +49,8 @@ public:
 	
 	void encode(const std::string& src,std::string& dest);
 
+//	void processMessage2(ssize_t nread, const char *buf);
+
 	void processMessage(ssize_t nread, const char *buf);
 
 // 	void parseMessage(ssize_t nread, const char *buf);
