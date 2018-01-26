@@ -88,6 +88,7 @@ class ZQ_COMMON_API RedisClient;
 class ZQ_COMMON_API RedisCommand;
 class ZQ_COMMON_API RedisEvictor;
 
+#define DEFAULT_ERRORKEY_TTL        (10000)
 #define DEFAULT_CLIENT_TIMEOUT      (5000) // 5sec
 #define DEFAULT_CONNECT_TIMEOUT     (3000) // 3sec
 #define MAX_SEND_ERROR_COUNT        (10)
@@ -262,6 +263,8 @@ public: // Redis commands
 	RedisCommand::Ptr sendGET(const char *key, RedisSink::Ptr reply=NULL);
 	RedisCommand::Ptr sendGETSET(const char *key, const uint8* val, int vlen =-1, RedisSink::Ptr reply=NULL);
 	RedisCommand::Ptr sendDEL(const char *key, RedisSink::Ptr reply=NULL);
+
+    RedisCommand::Ptr sendEXPIRE(const char *key, int seconds, RedisSink::Ptr reply=NULL);
 
 	RedisCommand::Ptr sendKEYS(const char *pattern, RedisSink::Ptr reply=NULL);
 
