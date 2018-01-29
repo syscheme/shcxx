@@ -1,7 +1,7 @@
 #ifndef __RTSP_SERVER_H__
 #define __RTSP_SERVER_H__
 
-
+#include "TCPServer.h"
 #include "RTSPConnection.h"
 #include <SystemUtils.h>
 #include <boost/regex.hpp>
@@ -79,7 +79,7 @@ protected: // hatched by HttpApplication
 	virtual void	onTeardown(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
 
 	virtual std::string mediaSDP(const std::string& mid) {return "";}
-	virtual RTSPSession::Ptr createSession() {return NULL;}
+	virtual RTSPSession::Ptr createSession(const std::string& sessId) {return new RTSPSession(sessId);}
 
 
 	IBaseApplication& _app;
@@ -118,8 +118,8 @@ public:
 	virtual void onError( int error,const char* errorDescription );
 
 protected: // impl of RTSPParseSink
-	virtual void OnResponses(RTSPMessage::MsgVec& responses);
-	virtual void OnRequests(RTSPMessage::MsgVec& requests);
+	virtual void OnResponse(RTSPMessage::Ptr resp);
+	virtual void OnRequest(RTSPMessage::Ptr req);
 
 private:
 	RTSPHandler::Ptr		_rtspHandler;
@@ -132,7 +132,7 @@ private:
 // ---------------------------------------
 // class RTSPServer
 // ---------------------------------------
-class RTSPServer : public TCPServer
+class RTSPServer : public TCPServer, public ZQ::eloop::RTSPSessionManager
 {
 public:
 	RTSPServer( const TCPServer::ServerConfig& conf,ZQ::common::Log& logger)
@@ -145,9 +145,7 @@ public:
 
 	RTSPHandler::Ptr createHandler( const std::string& uri, RTSPPassiveConn& conn, const std::string& virtualSite = std::string(DEFAULT_SITE));
 
-	RTSPSession::Ptr findSession(const std::string& sessId);
-	void addSession(RTSPSession::Ptr sess);
-	void removeSession(const std::string& sessId);
+	virtual TCPConnection* createPassiveConn();
 
 private:
 	typedef struct _MountDir
@@ -162,9 +160,6 @@ private:
 	typedef std::map<std::string, MountDirs> VSites;
 
 	VSites _vsites;
-
-
-	RTSPSession::Map			_sessMap;
 };
 
 

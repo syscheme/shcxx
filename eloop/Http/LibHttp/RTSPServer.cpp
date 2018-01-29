@@ -50,7 +50,7 @@ void RTSPHandler::onSetup(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp)
 	std::string mid = url.substr(midStartPos + 1);
 
 
-	RTSPSession::Ptr pSess = createSession();
+	RTSPSession::Ptr pSess = createSession(_server.generateSessionID());
 	if (pSess == NULL)
 	{
 		resp->code(500);
@@ -140,54 +140,72 @@ void RTSPPassiveConn::onError( int error,const char* errorDescription )
 
 }
 
-void RTSPPassiveConn::OnResponses(RTSPMessage::MsgVec& responses)
+void RTSPPassiveConn::OnResponse(RTSPMessage::Ptr resp)
 {
 
 }
 
-void RTSPPassiveConn::OnRequests(RTSPMessage::MsgVec& requests)
+void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 {
-	for(RTSPMessage::MsgVec::iterator it = requests.begin(); it != requests.end(); it++)
+	RTSPMessage::Ptr resp = new RTSPMessage(RTSPMessage::RTSP_MSG_RESPONSE);
+	resp->cSeq(req->cSeq());
+	std::string OnDemandSessionId = req->header("OnDemandSessionId");
+	if (!OnDemandSessionId.empty())
+		resp->header("OnDemandSessionId", OnDemandSessionId);
+
+
+	RTSPServer* pSev = dynamic_cast<RTSPServer*>(_tcpServer);
+	if (pSev == NULL)
 	{
-		RTSPMessage::Ptr req = (*it);
-		RTSPMessage::Ptr resp = new RTSPMessage(RTSPMessage::RTSP_MSG_RESPONSE);
-		resp->cSeq(req->cSeq());
-
-		RTSPServer* pSev = dynamic_cast<RTSPServer*>(_tcpServer);
-		if (pSev == NULL)
-		{
-			resp->code(503);
-			goto sendResp;
-		}
-
-		_rtspHandler = pSev->createHandler( req->url(), *this);
-
-		if(!_rtspHandler)
-		{
-			//should make a 404 response
-			_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn,"OnRequests failed to find a suitable handle to process url: %s"), req->url().c_str() );
-			resp->code(404);
-			goto sendResp;
-		}
-
-
-		if (0 == req->method().compare("OPTIONS"))		_rtspHandler->onOptions(req, resp);
-		else if (0 == req->method().compare("ANNOUNCE")) _rtspHandler->onAnnounce(req, resp);
-		else if (0 == req->method().compare("DESCRIBE")) _rtspHandler->onDescribe(req, resp);
-		else if (0 == req->method().compare("SETUP"))	_rtspHandler->onSetup(req, resp);
-		else if (0 == req->method().compare("PLAY"))		_rtspHandler->onPlay(req, resp);
-		else if (0 == req->method().compare("PAUSE"))	_rtspHandler->onPause(req, resp);
-		else if (0 == req->method().compare("TEARDOWN"))	_rtspHandler->onTeardown(req, resp);
-		else
-		{
-			resp->code(405);
-			goto sendResp;
-		}
-
-	sendResp:
-			std::string response = resp->toRaw();
-			write(response.c_str(), response.size());
+		resp->code(503);
+		goto sendResp;
 	}
+
+
+// 	if (0 == req->method().compare("OPTIONS"))		pSev->onOptions(req, resp);
+// 	else if (0 == req->method().compare("ANNOUNCE")) pSev->onAnnounce(req, resp);
+// 	else if (0 == req->method().compare("DESCRIBE")) pSev->onDescribe(req, resp);
+// 	else if (0 == req->method().compare("SETUP"))	pSev->onSetup(req, resp);
+// 	else if (0 == req->method().compare("PLAY"))		pSev->onPlay(req, resp);
+// 	else if (0 == req->method().compare("PAUSE"))	pSev->onPause(req, resp);
+// 	else if (0 == req->method().compare("TEARDOWN"))	pSev->onTeardown(req, resp);
+// 	else
+// 	{
+// 		resp->code(405);
+// 		goto sendResp;
+// 	}
+
+// 	if (!_rtspHandler)
+// 		_rtspHandler = pSev->createHandler( req->url(), *this);
+
+	_rtspHandler = pSev->createHandler( req->url(), *this);
+
+	if(!_rtspHandler)
+	{
+		//should make a 404 response
+		_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn,"OnRequests failed to find a suitable handle to process url: %s"), req->url().c_str() );
+		resp->code(404);
+		goto sendResp;
+	}
+
+	if (0 == req->method().compare("OPTIONS"))		_rtspHandler->onOptions(req, resp);
+	else if (0 == req->method().compare("ANNOUNCE")) _rtspHandler->onAnnounce(req, resp);
+	else if (0 == req->method().compare("DESCRIBE")) _rtspHandler->onDescribe(req, resp);
+	else if (0 == req->method().compare("SETUP"))	_rtspHandler->onSetup(req, resp);
+	else if (0 == req->method().compare("PLAY"))		_rtspHandler->onPlay(req, resp);
+	else if (0 == req->method().compare("PAUSE"))	_rtspHandler->onPause(req, resp);
+	else if (0 == req->method().compare("TEARDOWN"))	_rtspHandler->onTeardown(req, resp);
+	else
+	{
+		resp->code(405);
+		goto sendResp;
+	}
+
+sendResp:
+	std::string respMsg = resp->toRaw();
+	_Logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), respMsg.size(), hint().c_str(),true);
+	printf("send resp[%s]\n",respMsg.c_str());
+	write(respMsg.c_str(), respMsg.size());
 }
 
 void RTSPPassiveConn::simpleResponse(int code,uint32 cseq,RTSPConnection* conn)
@@ -205,6 +223,11 @@ void RTSPPassiveConn::simpleResponse(int code,uint32 cseq,RTSPConnection* conn)
 // ---------------------------------------
 // class RTSPServer
 // ---------------------------------------
+TCPConnection* RTSPServer::createPassiveConn()
+{
+	return new RTSPPassiveConn(_Logger,this);
+}
+
 bool RTSPServer::mount(const std::string& uriEx, RTSPHandler::AppPtr app, const RTSPHandler::Properties& props, const char* virtualSite)
 {
 	std::string vsite = (virtualSite && *virtualSite) ? virtualSite :DEFAULT_SITE;
@@ -265,27 +288,6 @@ RTSPHandler::Ptr RTSPServer::createHandler( const std::string& uri, RTSPPassiveC
 	}
 
 	return handler;
-}
-
-RTSPSession::Ptr RTSPServer::findSession(const std::string& sessId)
-{
-	RTSPSession::Map::iterator it = _sessMap.find(sessId);
-	if (it != _sessMap.end())
-		return it->second;
-	return NULL;
-}
-
-void RTSPServer::addSession(RTSPSession::Ptr sess)
-{
-	if (sess)
-		_sessMap[sess->id()] = sess;
-}
-
-void RTSPServer::removeSession(const std::string& sessId)
-{
-	RTSPSession::Map::iterator it = _sessMap.find(sessId);
-	if (it != _sessMap.end())
-		_sessMap.erase(it);
 }
 
 } }//namespace ZQ::eloop

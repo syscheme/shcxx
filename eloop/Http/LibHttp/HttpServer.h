@@ -109,7 +109,7 @@ public:
 class HttpPassiveConn : public HttpConnection
 {
 public:
-	HttpPassiveConn(TCPServer* tcpServer,ZQ::common::Log& logger);
+	HttpPassiveConn(ZQ::common::Log& logger,TCPServer* tcpServer);
 	~HttpPassiveConn();
 
 	virtual bool onStart();
@@ -161,6 +161,8 @@ public:
 	bool mount(const std::string& uriEx, HttpHandler::AppPtr app, const HttpHandler::Properties& props=HttpHandler::Properties(), const char* virtualSite =DEFAULT_SITE);
 
 	HttpHandler::Ptr createHandler( const std::string& uri, HttpPassiveConn& conn, const std::string& virtualSite = std::string(DEFAULT_SITE));
+
+	virtual TCPConnection* createPassiveConn();
 
 private:
 	typedef struct _MountDir

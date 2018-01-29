@@ -1,14 +1,37 @@
 #include "RTSPConnection.h"
 #include "TimeUtil.h"
+#include <urlstr.h>
 
 namespace ZQ {
 namespace eloop {
 
 #define  RTSP_RECV_BUF_SIZE (8*1024)
-
+#define RTSP_MAX_CSEQ    0x0fffffff
 //-------------------------------------
 //	class RTSPConnection
 //-------------------------------------
+ZQ::common::Mutex RTSPConnection::_lkConnId;
+int64 RTSPConnection::_connId = 0;
+
+void RTSPConnection::OnConnected(ElpeError status)
+{
+	if (status != ZQ::eloop::Handle::elpeSuccess)
+	{
+		std::string desc = "connect error:";
+		desc.append(ZQ::eloop::Handle::errDesc(status));
+		onError(status,desc.c_str());
+		return;
+	}
+	start();
+
+	for (RTSPMessage::MsgVec::iterator it = _reqList.begin();it != _reqList.end();)
+	{
+		sendRequest(*it);
+		_reqList.erase(it++);
+	}
+	_reqList.clear();
+}
+
 void RTSPConnection::doAllocate(eloop_buf_t* buf, size_t suggested_size)
 {
 	if (_recvBuf.base == NULL)
@@ -44,11 +67,71 @@ void RTSPConnection::OnRead(ssize_t nread, const char *buf)
 	if (nread == 0)
 		return;
 
-	_Logger.hexDump(ZQ::common::Log::L_DEBUG, _recvBuf.base+_byteSeen, nread, hint().c_str());
+	_Logger.hexDump(ZQ::common::Log::L_DEBUG, _recvBuf.base+_byteSeen, nread, hint().c_str(),true);
+
 
 	onDataReceived(nread);
 
 	parse(nread);
+}
+
+int RTSPConnection::sendRequest(RTSPMessage::Ptr req, int64 timeout, bool expectResp)
+{
+	if (!_isConnected)
+	{
+		_reqList.push_back(req);
+
+		std::string url = req->url();
+		ZQ::common::URLStr urlstr(url.c_str());
+		const char* host = urlstr.getHost();
+
+		connect4(host,urlstr.getPort());
+		return 0;
+	}
+
+	uint cseq = lastCSeq();
+	req->cSeq(cseq);
+
+	AwaitRequest ar;
+	ar.req = req;
+	_timeout = (timeout > 0)?timeout:_timeout;
+	ar.expiration = ZQ::common::now() + _timeout;
+
+	{
+		ZQ::common::MutexGuard g(_lkAwaits);
+		_awaits.insert(AwaitRequestMap::value_type(req->cSeq(), ar));
+	}
+
+	OnRequestPrepared(req);
+	std::string reqStr = req->toRaw();
+	int ret = write(reqStr.c_str(), reqStr.size());
+	_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPClient, "sendRequest() conn[%s] msg[%s]"), hint().c_str(),reqStr.c_str());
+
+	if (ret < 0)
+	{
+		OnRequestDone(cseq,ret);
+		return ret;
+	}
+
+	return cseq;
+}
+
+uint RTSPConnection::lastCSeq()
+{
+	int v = _lastCSeq.add(1);
+	if (v>0 && v < RTSP_MAX_CSEQ)
+		return (uint) v;
+
+	static ZQ::common::Mutex lock;
+	ZQ::common::MutexGuard g(lock);
+	v = _lastCSeq.add(1);
+	if (v >0 && v < RTSP_MAX_CSEQ)
+		return (uint) v;
+
+	_lastCSeq.set(1);
+	v = _lastCSeq.add(1);
+
+	return (uint) v;
 }
 
 void RTSPConnection::parse(ssize_t bytesRead)
@@ -188,6 +271,48 @@ void RTSPConnection::parse(ssize_t bytesRead)
 	{
 		_byteSeen = pEnd - pProcessed;
 		memcpy(_recvBuf.base, pProcessed, _byteSeen);
+	}
+
+	// notifying the sink
+	if (receivedResps.size() > 0)
+	{
+		::std::sort(receivedResps.begin(), receivedResps.end(), RTSPMessage::less);
+		for (RTSPMessage::MsgVec::iterator itResp = receivedResps.begin(); itResp != receivedResps.end(); itResp++)
+		{
+			RTSPMessage::Ptr resp = (*itResp);
+			if (!resp)
+			{
+				_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPConnection, "resp is NULL"));
+				continue;
+			}
+
+			int cseq = resp->cSeq();
+			ZQ::common::MutexGuard g(_lkAwaits);
+			AwaitRequestMap::iterator itW = _awaits.find(cseq);
+			if (_awaits.end() == itW) // unknown request or it has been previously expired
+			{
+				_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPConnection, "unknown request or it has been previously expired. cseq(%d)"),cseq);
+				continue;
+			}
+
+			int64 stampNow = ZQ::common::now();
+			OnResponse(resp);
+			int elapsed = (int) (ZQ::common::now() - stampNow);
+			int err = 200;
+			if (resp)
+				err = resp->code();
+
+			_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPConnection, "OnResponse() %s(%d) ret(%d) took %dmsec triggered, cleaning from await list"), resp->method().c_str(), cseq, err, elapsed);
+
+			OnRequestDone(cseq, err);
+			_awaits.erase(cseq);
+		}
+	}
+
+	if (receivedReqs.size() >0)
+	{
+		for (RTSPMessage::MsgVec::iterator itReq = receivedReqs.begin(); itReq != receivedReqs.end(); itReq++)
+			OnRequest(*itReq);
 	}
 }
 

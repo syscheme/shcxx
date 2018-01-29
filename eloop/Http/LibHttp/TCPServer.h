@@ -21,14 +21,21 @@ class TCPServer;
 class TCPConnection : public TCP
 {
 public:
-	TCPConnection(ZQ::common::Log& log, TCPServer* tcpServer = NULL):_Logger(log),_tcpServer(tcpServer){}
+	TCPConnection(ZQ::common::Log& log, TCPServer* tcpServer = NULL):_Logger(log), _isConnected(false), _tcpServer(tcpServer){}
 
 	bool start();
 	bool stop();
 	const std::string& hint() const { return _Hint; }
 
+protected:
 	virtual bool onStart(){return true;}
 	virtual bool onStop(){return true;}
+
+	// called after buffer has been written into the stream
+	virtual void OnWrote(int status) {}
+	// called after buffer has been read from the stream
+	virtual void OnRead(ssize_t nread, const char *buf) {printf("------------\n");} // TODO: uv_buf_t is unacceptable to appear here, must take a new manner known in this C++ wrapper level
+
 
 private:
 	// NOTE: DO NOT INVOKE THIS METHOD unless you known what you are doing
@@ -41,6 +48,7 @@ protected:
 	ZQ::common::Log&		_Logger;
 	TCPServer*				_tcpServer;
 	std::string				_Hint;
+	bool					_isConnected;
 };
 
 
@@ -111,11 +119,9 @@ public:
 		return _Config.keepalive_timeout;
 	}
 
+	void single();
 	virtual TCPConnection* createPassiveConn();
 
-	void single();
-
-public:
 	ServerConfig		_Config;
 
 protected:

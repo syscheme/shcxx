@@ -151,6 +151,8 @@ public:
 
 	typedef std::vector<Ptr> MsgVec;
 
+	static bool less(Ptr i, Ptr j) {  return (i->cSeq() < j->cSeq()); }
+
 	typedef enum _RTSPMessgeType { 
 		RTSP_MSG_REQUEST = 0,
 		RTSP_MSG_RESPONSE = 1
@@ -165,6 +167,8 @@ public:
 	}
 	virtual ~RTSPMessage(){}
 
+
+	static std::string date( int deltaInSecond = 0 );
 	static const std::string& code2status(int code);
 
 	const std::string& header( const std::string& key) const;

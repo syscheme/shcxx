@@ -19,12 +19,33 @@ private:
 	RTSPConnection& operator=( const RTSPConnection&);
 
 public:
+	typedef enum
+	{
+		RtspNoConnection	    = -10000,
+		RtspReqTimeout			= -10001
+	} Error;
+
 	virtual ~RTSPConnection(){}
+
+	int64 id() const
+	{
+		ZQ::common::MutexGuard g(_lkConnId);
+		return _connId;
+	}
+
+	int sendRequest(RTSPMessage::Ptr req, int64 timeout = 500,bool expectResp = true);
 
 protected:
 	RTSPConnection(ZQ::common::Log& log, TCPServer* tcpServer = NULL)
 		:TCPConnection(log,tcpServer),_byteSeen(0)
-	{}
+	{
+		_lastCSeq.set(1);
+
+		ZQ::common::MutexGuard g(_lkConnId);
+		_connId++;
+	}
+
+	virtual void OnConnected(ElpeError status);
 
 	virtual void doAllocate(eloop_buf_t* buf, size_t suggested_size);
 
@@ -37,9 +58,11 @@ protected:
 	virtual void	onDataReceived( size_t size ){}
 
 protected: // impl of RTSPParseSink
-	virtual void OnResponses(RTSPMessage::MsgVec& responses){}
-	virtual void OnRequests(RTSPMessage::MsgVec& requests){}
+	virtual void OnResponse(RTSPMessage::Ptr resp){}
+	virtual void OnRequest(RTSPMessage::Ptr req){}
 
+	virtual void OnRequestPrepared(RTSPMessage::Ptr req) {}
+	virtual void OnRequestDone(int cseq, int ret) {}
 
 private:
 	typedef struct rtsp_parser_msg
@@ -60,6 +83,22 @@ private:
 
 	} RTSP_PARSER_MSG;
 
+	uint lastCSeq();
+	ZQ::common::AtomicInt _lastCSeq;
+
+	typedef struct
+	{
+		RTSPMessage::Ptr req;
+		int64            expiration;
+	} AwaitRequest;
+
+	int64 _timeout;
+	typedef std::map<uint, AwaitRequest> AwaitRequestMap;
+	AwaitRequestMap _awaits;
+	ZQ::common::Mutex _lkAwaits; // because sendRequest() is open for other threads out of eloop to call
+
+	RTSPMessage::MsgVec		_reqList;
+
 
 	void parse(ssize_t bytesRead);
 
@@ -67,8 +106,10 @@ private:
 	static char* nextLine(char* startOfLine, int maxByte); // this func may change the input chars of startOfLine
 
 private:
-	RTSP_PARSER_MSG	  _currentParseMsg;
-	int	             _byteSeen;
+	RTSP_PARSER_MSG	 _currentParseMsg;
+	int				 _byteSeen;
+	static int64	 _connId;
+	static ZQ::common::Mutex _lkConnId;
 };
 
 } }//namespace ZQ::eloop

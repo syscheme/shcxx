@@ -368,6 +368,7 @@ private:
 // ---------------------------------------
 bool TCPConnection::start()
 {
+	_isConnected = true;
 	read_start();
 	initHint();
 	if (_tcpServer)
@@ -380,6 +381,7 @@ bool TCPConnection::start()
 
 bool TCPConnection::stop()
 {
+	_isConnected = false;
 	shutdown();
 	return onStop();
 }
@@ -396,7 +398,10 @@ void TCPConnection::initHint()
 
 
 	std::ostringstream oss;
-	oss<<"["<<localIp<<":"<<localPort<<"==>"<<peerIp<<":"<<peerPort<<"]";
+	if (_tcpServer == NULL)
+		oss<<"["<<localIp<<":"<<localPort<<"==>"<<peerIp<<":"<<peerPort<<"]";
+	else
+		oss<<"["<<peerIp<<":"<<peerPort<<"==>"<<localIp<<":"<<localPort<<"]";
 	_Hint = oss.str();
 }
 

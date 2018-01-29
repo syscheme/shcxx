@@ -8,6 +8,34 @@ namespace eloop {
 //-------------------------------------
 RtspCode2StatusMapInit rtspcode2status;
 
+std::string RTSPMessage::date( int delta ) {
+	char buffer[64] = {0};
+
+	static const char* DateStrWeekDay[] = {"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
+	static const char* DateStrMonth[] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
+
+	struct tm tnow;
+	time_t time_now;
+	time(&time_now);
+	time_now += (time_t)delta;
+#ifdef ZQ_OS_MSWIN   
+	gmtime_s(&tnow, &time_now);
+	struct tm* t = &tnow;
+#elif defined ZQ_OS_LINUX
+	struct tm* t = gmtime_r( &time_now, &tnow);		
+#endif//ZQ_OS
+	sprintf(buffer,"%3s, %02d %3s %04d %02d:%02d:%02d GMT", 
+		DateStrWeekDay[t->tm_wday],	
+		t->tm_mday,
+		DateStrMonth[t->tm_mon],
+		t->tm_year+1900,
+		t->tm_hour,
+		t->tm_min,
+		t->tm_sec);
+
+	return buffer;
+}
+
 const std::string& RTSPMessage::code2status(int code)
 {
 	std::map<int,std::string>::const_iterator it = RtspCode2StatusMap.find(code);
@@ -48,6 +76,8 @@ std::string RTSPMessage::toRaw()
 		_headers.erase("Content-Length");
 	}
 
+	_headers["Date"] = date();
+
 	if (_cSeq > 0)
 	{
 		std::ostringstream ossBL;ossBL<<_cSeq;
@@ -59,6 +89,8 @@ std::string RTSPMessage::toRaw()
 		oss<<it->first<<": "<<it->second<<line_term;
 	}
 	oss<<line_term;
+	if (!_contentBody.empty())
+		oss<<_contentBody;
 	_RawMessage = oss.str();
 	return _RawMessage;	
 }
