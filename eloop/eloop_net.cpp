@@ -2,22 +2,24 @@
 namespace ZQ {
 	namespace eloop {
 
+		#define RECV_BUF_SIZE (64*1024)
+
 		// -----------------------------
 		// class Stream
 		// -----------------------------
 
 		Stream::Stream(){
-			_buf.base = NULL;
-			_buf.len = 0;
+			_recvBuf.base = NULL;
+			_recvBuf.len = 0;
 		}
 
 		Stream::~Stream()
 		{
-			if(_buf.base)
+			if(_recvBuf.base)
 			{
-				free(_buf.base);
-				_buf.base = NULL;
-				_buf.len = 0;
+				free(_recvBuf.base);
+				_recvBuf.base = NULL;
+				_recvBuf.len = 0;
 			}
 		}
 
@@ -175,22 +177,18 @@ namespace ZQ {
 
 		void Stream::doAllocate(eloop_buf_t* buf, size_t suggested_size)
 		{
-			if (_buf.base == NULL)
+			if (_recvBuf.base == NULL)
 			{
-				_buf.len = 64 * 1024;
-				_buf.base = (char*)malloc(_buf.len);
+				_recvBuf.len = RECV_BUF_SIZE;
+				_recvBuf.base = (char*)malloc(_recvBuf.len);
 			}
 			
-			if (_buf.base)
+			if (_recvBuf.base)
 			{
-				buf->base = _buf.base;
-				buf->len = _buf.len;
+				memset(_recvBuf.base,0,_recvBuf.len);
+				buf->base = _recvBuf.base;
+				buf->len = _recvBuf.len;
 			}
-		}
-
-		void Stream::doFree(eloop_buf_t* buf)
-		{
-			memset(buf->base,0,buf->len);
 		}
 
 /*
