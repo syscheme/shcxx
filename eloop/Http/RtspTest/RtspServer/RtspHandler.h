@@ -19,11 +19,6 @@ public:
 	}
 	~RTSPTestHandler(){}
 
-	virtual void	onOptions(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
-	virtual void	onDescribe(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
-
-	virtual void	onAnnounce(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
-
 	virtual void	onSetup(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
 	virtual void	onPlay(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
 	virtual void	onPause(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);

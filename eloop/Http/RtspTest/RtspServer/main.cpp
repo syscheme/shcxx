@@ -12,8 +12,20 @@ void usage() {
 		<< std::endl;
 }
 
+#include <set>
+class test
+{
+public:
+	test(int id):_id(id){}
+	~test(){printf("test id = %d\n",_id);}
+	int id() {return _id;}
+private:
+	int _id;
+};
+
 int main(int argc,char* argv[])
 {
+
 	if (argc < 2)
 	{
 		usage();
@@ -53,7 +65,7 @@ int main(int argc,char* argv[])
 	std::string ip = host.substr(0,host.find(":"));
 	int port = atoi((host.substr(host.find(":")+1)).c_str());
 
-	printf("logfile = %s,workdir = %s,ip=%s,port = %d,threadCount = %d\n",logFilePath.c_str(),ip.c_str(), port, threadCount);
+	printf("logfile = %s,ip=%s,port = %d,threadCount = %d\n",logFilePath.c_str(),ip.c_str(), port, threadCount);
 
 
 	ZQ::eloop::RTSPHandler::AppPtr RtspTest = new ZQ::eloop::RTSPTestHandler::RTSPTestHandleFactory(*pLog);
@@ -68,11 +80,11 @@ int main(int argc,char* argv[])
 	ZQ::eloop::RTSPServer* server = new ZQ::eloop::RTSPServer(conf,*pLog);
 
 
-
-	server->mount("/RtspTest/.*",RtspTest);
+	server->mount(".*",RtspTest);
 	server->start();
 
 	while(1)
 		SYS::sleep(10000);
+
 	return 0;
 }
