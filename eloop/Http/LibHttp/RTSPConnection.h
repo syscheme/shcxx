@@ -1,13 +1,105 @@
 #ifndef __RTSP_Connection_H__
 #define __RTSP_Connection_H__
 
-#include "RTSPMessage.h"
-#include <Pointer.h>
+#include "Pointer.h"
 #include "TCPServer.h"
-
+#include "TimeUtil.h"
 
 namespace ZQ {
 namespace eloop {
+
+//-------------------------------------
+//	class RTSPMessage
+//-------------------------------------
+class RTSPMessage : public ZQ::common::SharedObject
+{
+public:
+	typedef ZQ::common::Pointer<RTSPMessage> Ptr;
+
+	typedef std::vector<Ptr> MsgVec;
+
+	static bool less(Ptr i, Ptr j) {  return (i->cSeq() < j->cSeq()); }
+
+	typedef enum _RTSPMessgeType { 
+		RTSP_MSG_REQUEST = 0,
+		RTSP_MSG_RESPONSE = 1
+	} RTSPMessgeType;
+
+	typedef std::map<std::string,std::string> HEADERS;
+
+public:
+	RTSPMessage(RTSPMessgeType type = RTSP_MSG_REQUEST):_msgType(type),_cSeq(-1),_bodyLen(0),_stampCreated(ZQ::common::now())
+	{
+	}
+
+	virtual ~RTSPMessage() {}
+
+	static std::string date( int deltaInSecond = 0 );
+	static const std::string& code2status(int code);
+
+	const std::string& header( const std::string& key) const;
+
+	template<typename T>
+	void header( const std::string& key, const T& value)
+	{
+		std::ostringstream oss;
+		oss<<value;
+		ZQ::common::MutexGuard gd(_lockHeaders);
+		_headers[key] = oss.str();
+	}
+
+	const std::string& version() const { return _protocolVersion; }
+	void version(const std::string& version) { _protocolVersion = version; }
+
+
+	const std::string&	method() const { return _method; }
+	void method(const std::string& method) { _method = method; }
+
+	const std::string& url() const { return _url; }
+	void url(const std::string& url) { _url = url; }
+
+	void code( int c) { _statusCode = c; }	
+
+	int	code() const { return _statusCode; }	
+
+	void status(const std::string& st) { _statusDesc = st; }
+
+	const std::string& status() const { return _statusDesc; }
+
+	int64	contentLength() const { return _bodyLen; }
+	void	contentLength(uint64 length) { _bodyLen = length; } //set content-length
+
+	void appendBody(const char* body, size_t len) {  _contentBody.append(body,len); }
+
+	uint32	cSeq() const { return _cSeq; }
+	void	cSeq(uint32 cSeq) { _cSeq = cSeq; }
+
+	RTSPMessgeType getMsgType() const { return _msgType; }
+	void setMsgType(RTSPMessgeType type) { _msgType = type; }
+
+	std::string toRaw();
+
+
+private:
+	ZQ::common::Mutex	_lockHeaders;
+	HEADERS				_headers;
+	std::string			_dummyVal;
+
+	uint64				_bodyLen;
+	std::string			_contentBody;
+	uint32				_cSeq;
+	RTSPMessgeType		_msgType;
+	int64				_stampCreated;
+	std::string 		_RawMessage;
+
+	std::string			_statusDesc;
+	int					_statusCode;//status code
+
+	std::string			_method;
+	std::string			_url;
+	std::string			_protocolVersion;
+
+};
 
 //-------------------------------------
 //	class RTSPConnection

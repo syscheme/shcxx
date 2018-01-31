@@ -1,6 +1,11 @@
 #include "RTSPConnection.h"
 #include "TimeUtil.h"
-#include <urlstr.h>
+#include "urlstr.h"
+
+#include <sstream>
+#include <string>
+#include <map>
+#include <vector>
 
 namespace ZQ {
 namespace eloop {
@@ -22,6 +27,7 @@ void RTSPConnection::OnConnected(ElpeError status)
 		onError(status,desc.c_str());
 		return;
 	}
+
 	start();
 
 	for (RTSPMessage::MsgVec::iterator it = _reqList.begin();it != _reqList.end();)
@@ -29,8 +35,10 @@ void RTSPConnection::OnConnected(ElpeError status)
 		sendRequest(*it);
 		_reqList.erase(it++);
 	}
+
 	_reqList.clear();
 }
+
 
 void RTSPConnection::doAllocate(eloop_buf_t* buf, size_t suggested_size)
 {
@@ -64,6 +72,7 @@ void RTSPConnection::OnRead(ssize_t nread, const char *buf)
 		onError(nread,desc.c_str());
 		return;
 	}
+
 	if (nread == 0)
 		return;
 

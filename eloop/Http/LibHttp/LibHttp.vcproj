@@ -227,10 +227,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\RTSPMessage.h"
-				>
-			</File>
-			<File
 				RelativePath=".\RTSPServer.h"
 				>
 			</File>

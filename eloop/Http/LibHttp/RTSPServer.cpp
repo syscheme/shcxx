@@ -1,5 +1,7 @@
 #include "RTSPServer.h"
 
+#include "SystemUtils.h"
+#include <boost/regex.hpp>
 
 namespace ZQ {
 namespace eloop {
@@ -180,28 +182,27 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 
 	_rtspHandler = pSev->createHandler( req->url(), *this);
 
-	if(!_rtspHandler)
-	{
-		//should make a 404 response
-		_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn,"OnRequests failed to find a suitable handle to process url: %s"), req->url().c_str() );
-		resp->code(404);
-		goto sendResp;
-	}
+	do {
+		if(!_rtspHandler)
+		{
+			//should make a 404 response
+			_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn,"OnRequests failed to find a suitable handle to process url: %s"), req->url().c_str() );
+			resp->code(404);
+			break;
+		}
 
-	if (0 == req->method().compare("OPTIONS"))		_rtspHandler->onOptions(req, resp);
-	else if (0 == req->method().compare("ANNOUNCE")) _rtspHandler->onAnnounce(req, resp);
-	else if (0 == req->method().compare("DESCRIBE")) _rtspHandler->onDescribe(req, resp);
-	else if (0 == req->method().compare("SETUP"))	_rtspHandler->onSetup(req, resp);
-	else if (0 == req->method().compare("PLAY"))		_rtspHandler->onPlay(req, resp);
-	else if (0 == req->method().compare("PAUSE"))	_rtspHandler->onPause(req, resp);
-	else if (0 == req->method().compare("TEARDOWN"))	_rtspHandler->onTeardown(req, resp);
-	else
-	{
+		if (0 == req->method().compare("OPTIONS"))	{ _rtspHandler->onOptions(req, resp);  break; }
+		if (0 == req->method().compare("ANNOUNCE")) { _rtspHandler->onAnnounce(req, resp); break; }
+		if (0 == req->method().compare("DESCRIBE")) { _rtspHandler->onDescribe(req, resp); break; }
+		if (0 == req->method().compare("SETUP"))    { _rtspHandler->onSetup(req, resp);    break; }
+		if (0 == req->method().compare("PLAY"))     { _rtspHandler->onPlay(req, resp);     break; }
+		if (0 == req->method().compare("PAUSE"))    { _rtspHandler->onPause(req, resp);    break; }
+		if (0 == req->method().compare("TEARDOWN")) { _rtspHandler->onTeardown(req, resp); break; }
+
 		resp->code(405);
-		goto sendResp;
-	}
 
-sendResp:
+	} while(0);
+
 	std::string respMsg = resp->toRaw();
 	_Logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), respMsg.size(), hint().c_str(),true);
 	printf("send resp[%s]\n",respMsg.c_str());
@@ -218,7 +219,6 @@ void RTSPPassiveConn::simpleResponse(int code,uint32 cseq,RTSPConnection* conn)
 	std::string response = resp->toRaw();
 	conn->write(response.c_str(), response.size());
 }
-
 
 // ---------------------------------------
 // class RTSPServer
