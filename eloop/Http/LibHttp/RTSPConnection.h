@@ -5,6 +5,11 @@
 #include "TCPServer.h"
 #include "TimeUtil.h"
 
+#include <sstream>
+#include <string>
+#include <map>
+#include <vector>
+
 namespace ZQ {
 namespace eloop {
 

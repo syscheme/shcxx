@@ -2,11 +2,6 @@
 #include "TimeUtil.h"
 #include "urlstr.h"
 
-#include <sstream>
-#include <string>
-#include <map>
-#include <vector>
-
 namespace ZQ {
 namespace eloop {
 

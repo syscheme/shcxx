@@ -155,34 +155,32 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 	if (!OnDemandSessionId.empty())
 		resp->header("OnDemandSessionId", OnDemandSessionId);
 
-
-	RTSPServer* pSev = dynamic_cast<RTSPServer*>(_tcpServer);
-	if (pSev == NULL)
-	{
-		resp->code(503);
-		goto sendResp;
-	}
-
-
-// 	if (0 == req->method().compare("OPTIONS"))		pSev->onOptions(req, resp);
-// 	else if (0 == req->method().compare("ANNOUNCE")) pSev->onAnnounce(req, resp);
-// 	else if (0 == req->method().compare("DESCRIBE")) pSev->onDescribe(req, resp);
-// 	else if (0 == req->method().compare("SETUP"))	pSev->onSetup(req, resp);
-// 	else if (0 == req->method().compare("PLAY"))		pSev->onPlay(req, resp);
-// 	else if (0 == req->method().compare("PAUSE"))	pSev->onPause(req, resp);
-// 	else if (0 == req->method().compare("TEARDOWN"))	pSev->onTeardown(req, resp);
-// 	else
-// 	{
-// 		resp->code(405);
-// 		goto sendResp;
-// 	}
-
-// 	if (!_rtspHandler)
-// 		_rtspHandler = pSev->createHandler( req->url(), *this);
-
-	_rtspHandler = pSev->createHandler( req->url(), *this);
-
 	do {
+		RTSPServer* pSev = dynamic_cast<RTSPServer*>(_tcpServer);
+		if (pSev == NULL)
+		{
+			resp->code(503);
+			break;
+		}
+
+		// 	if (0 == req->method().compare("OPTIONS"))		pSev->onOptions(req, resp);
+		// 	else if (0 == req->method().compare("ANNOUNCE")) pSev->onAnnounce(req, resp);
+		// 	else if (0 == req->method().compare("DESCRIBE")) pSev->onDescribe(req, resp);
+		// 	else if (0 == req->method().compare("SETUP"))	pSev->onSetup(req, resp);
+		// 	else if (0 == req->method().compare("PLAY"))		pSev->onPlay(req, resp);
+		// 	else if (0 == req->method().compare("PAUSE"))	pSev->onPause(req, resp);
+		// 	else if (0 == req->method().compare("TEARDOWN"))	pSev->onTeardown(req, resp);
+		// 	else
+		// 	{
+		// 		resp->code(405);
+		// 		goto sendResp;
+		// 	}
+
+		// 	if (!_rtspHandler)
+		// 		_rtspHandler = pSev->createHandler( req->url(), *this);
+
+		_rtspHandler = pSev->createHandler( req->url(), *this);
+
 		if(!_rtspHandler)
 		{
 			//should make a 404 response
