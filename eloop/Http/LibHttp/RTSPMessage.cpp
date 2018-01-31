@@ -120,7 +120,7 @@ const std::string& RTSPMessage::code2status(int code)
 const std::string& RTSPMessage::header( const std::string& key) const 
 {
 	ZQ::common::MutexGuard gd(_lockHeaders);
-	HEADERS::const_iterator it = _headers.find(key);
+	Headers::const_iterator it = _headers.find(key);
 	if( it == _headers.end())
 		return _dummyVal;
 	return it->second;
@@ -157,7 +157,7 @@ std::string RTSPMessage::toRaw()
 		_headers["CSeq"] = ossBL.str();
 	}
 
-	HEADERS::const_iterator it = _headers.begin();
+	Headers::const_iterator it = _headers.begin();
 	for( ; it != _headers.end() ; it ++ ) {
 		oss<<it->first<<": "<<it->second<<line_term;
 	}

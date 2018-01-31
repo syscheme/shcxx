@@ -2,7 +2,6 @@
 #define __RTSP_SERVER_H__
 
 #include "RTSPConnection.h"
-#include "RTSPSession.h"
 
 #include "TCPServer.h"
 
@@ -11,9 +10,10 @@
 namespace ZQ {
 namespace eloop {
 
-#define DEFAULT_SITE "."
-
 class RTSPServer;
+class RTSPHandler;
+
+#define DEFAULT_SITE "."
 
 // ---------------------------------------
 // class RTSPHandler
@@ -56,7 +56,6 @@ public:
 	};
 
 	typedef ZQ::common::Pointer<IBaseApplication> AppPtr;
-
 
 protected: // hatched by HttpApplication
 	RTSPHandler(IBaseApplication& app, RTSPServer& server, const RTSPHandler::Properties& dirProps = RTSPHandler::Properties())
@@ -107,11 +106,11 @@ public:
 // ---------------------------------------
 // class RTSPServer
 // ---------------------------------------
-class RTSPServer : public TCPServer, public ZQ::eloop::RTSPSessionManager
+class RTSPServer : public TCPServer  //:public ZQ::eloop::Timer
 {
 public:
-	RTSPServer( const TCPServer::ServerConfig& conf, ZQ::common::Log& logger)
-		:TCPServer(conf,logger)
+	RTSPServer( const TCPServer::ServerConfig& conf, ZQ::common::Log& logger, uint32 maxSess = 10000)
+		:TCPServer(conf, logger), _maxSession(maxSess)
 	{}
 
 	virtual ~RTSPServer()
@@ -119,9 +118,41 @@ public:
 
  	bool mount(const std::string& uriEx, RTSPHandler::AppPtr app, const RTSPHandler::Properties& props=RTSPHandler::Properties(), const char* virtualSite =DEFAULT_SITE);
 	RTSPHandler::Ptr createHandler(const std::string& uri, RTSPPassiveConn& conn, const std::string& virtualSite = std::string(DEFAULT_SITE));
-	RTSPHandler::Ptr findSessionHandler(const std::string& sessId); //TODO: PLAY/PAUSE et operation other than SETUP will give dummy uri, so a RTSPServer should be able to find the proper Handler by session ID
+	// RTSPHandler::Ptr findSessionHandler(const std::string& sessId); //TODO: PLAY/PAUSE et operation other than SETUP will give dummy uri, so a RTSPServer should be able to find the proper Handler by session ID
 
 	virtual TCPConnection* createPassiveConn();
+
+public: // about the session management
+	// ---------------------------------------
+	// subclass server-side RTSPSession
+	// ---------------------------------------
+	class Session : public RTSPSession
+	{
+	public:
+		typedef ZQ::common::Pointer<Session> Ptr;
+		typedef std::map<std::string, Ptr> Map;
+
+	public:
+		virtual bool	setup()    { return false; }
+		virtual bool	play()     { return false; }
+		virtual bool	pause()    { return false; }
+		virtual bool	teardown() { return false; }
+	};
+
+	std::string	generateSessionID();
+
+	Session::Ptr findSession(const std::string& sessId);
+	void addSession(Session::Ptr sess);
+	void removeSession(const std::string& sessId);
+
+	size_t getSessionCount() const;
+
+	void setMaxSession(uint32 maxSession);
+	uint32 getMaxSession() const;
+
+protected:
+	virtual void OnTimer() {}
+
 
 private:
 
@@ -137,6 +168,11 @@ private:
 	typedef std::map<std::string, MountDirs> VSites;
 
 	VSites _vsites;
+
+private:
+	ZQ::common::Mutex			_lkSessMap;
+	Session::Map     			_sessMap;
+	uint32						_maxSession;
 };
 
 } }//namespace ZQ::eloop

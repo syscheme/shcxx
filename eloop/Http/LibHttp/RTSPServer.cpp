@@ -1,5 +1,6 @@
 #include "RTSPServer.h"
 
+#include "Guid.h"
 #include "SystemUtils.h"
 #include <boost/regex.hpp>
 
@@ -73,8 +74,7 @@ void RTSPHandler::onSetup(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp)
 	int midStartPos = url.rfind("/");
 	std::string mid = url.substr(midStartPos + 1);
 
-
-	RTSPSession::Ptr pSess = createSession(_server.generateSessionID());
+	RTSPServer::Session::Ptr pSess = RTSPServer::Session::Ptr::dynamicCast(createSession(_server.generateSessionID()));
 	if (pSess == NULL)
 	{
 		resp->code(500);
@@ -99,19 +99,17 @@ void RTSPHandler::onSetup(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp)
 
 	pSess->setup();
 
-
 	resp->code(200);
 	resp->header("Server", _server._Config.serverName);
 	resp->header("Session", pSess->id());
 	resp->header("Transport", strTran);
-
 }
 
 void RTSPHandler::onPlay(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp)
 {
 
 	std::string sid =  req->header("Session");
-	RTSPSession::Ptr pSess = _server.findSession(sid);
+	RTSPServer::Session::Ptr pSess = RTSPServer::Session::Ptr::dynamicCast(_server.findSession(sid));
 	if (pSess == NULL)
 	{
 		resp->code(454);
@@ -123,15 +121,15 @@ void RTSPHandler::onPlay(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp)
 
 
 	 resp->code(200);
-	 resp->header("Server", _server._Config.serverName);
-	 resp->header("Session", pSess->id());
+	 resp->header("Server",  _server._Config.serverName);
+	 resp->header("Session",  pSess->id());
 	 resp->header("RTP-Info", pSess->streamsInfo());
 }
 
 void RTSPHandler::onPause(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp)
 {
 	std::string sid =  req->header("Session");
-	RTSPSession::Ptr pSess = _server.findSession(sid);
+	RTSPServer::Session::Ptr pSess = RTSPServer::Session::Ptr::dynamicCast(_server.findSession(sid));
 	if (pSess == NULL)
 	{
 		resp->code(454);
@@ -145,7 +143,7 @@ void RTSPHandler::onPause(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp)
 void RTSPHandler::onTeardown(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp)
 {
 	std::string sid =  req->header("Session");
-	RTSPSession::Ptr pSess = _server.findSession(sid);
+	RTSPServer::Session::Ptr pSess = RTSPServer::Session::Ptr::dynamicCast(_server.findSession(sid));
 	if (pSess == NULL)
 	{
 		resp->code(454);
@@ -305,6 +303,55 @@ RTSPHandler::Ptr RTSPServer::createHandler( const std::string& uri, RTSPPassiveC
 	}
 
 	return handler;
+}
+
+std::string	RTSPServer::generateSessionID()
+{
+	char buf[80];
+	ZQ::common::Guid guid;
+	guid.create();
+	guid.toCompactIdstr(buf, sizeof(buf) -2);
+	return buf;
+}
+
+RTSPServer::Session::Ptr RTSPServer::findSession(const std::string& sessId)
+{
+	ZQ::common::MutexGuard g(_lkSessMap);
+	Session::Map::iterator it = _sessMap.find(sessId);
+	if (it != _sessMap.end())
+		return it->second;
+	return NULL;
+}
+
+void RTSPServer::addSession(RTSPServer::Session::Ptr sess)
+{
+	ZQ::common::MutexGuard g(_lkSessMap);
+	if (sess)
+		_sessMap[sess->id()] = sess;
+}
+
+void RTSPServer::removeSession(const std::string& sessId)
+{
+	ZQ::common::MutexGuard g(_lkSessMap);
+	Session::Map::iterator it = _sessMap.find(sessId);
+	if (it != _sessMap.end())
+		_sessMap.erase(it);
+}
+
+size_t RTSPServer::getSessionCount() const
+{
+	ZQ::common::MutexGuard g(_lkSessMap);
+	return _sessMap.size();
+}
+
+void RTSPServer::setMaxSession(uint32 maxSession)
+{
+	_maxSession = maxSession;
+}
+
+uint32 RTSPServer::getMaxSession() const
+{
+	return _maxSession;
 }
 
 } }//namespace ZQ::eloop

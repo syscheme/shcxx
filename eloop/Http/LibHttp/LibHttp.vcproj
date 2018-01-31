@@ -185,10 +185,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\RTSPSession.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\TCPServer.cpp"
 				>
 			</File>
@@ -228,10 +224,6 @@
 			</File>
 			<File
 				RelativePath=".\RTSPServer.h"
-				>
-			</File>
-			<File
-				RelativePath=".\RTSPSession.h"
 				>
 			</File>
 			<File

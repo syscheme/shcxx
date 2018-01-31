@@ -30,7 +30,8 @@ public:
 		RTSP_MSG_RESPONSE = 1
 	} RTSPMessgeType;
 
-	typedef std::map<std::string,std::string> HEADERS;
+	typedef std::map<std::string, std::string> Properties;
+	typedef Properties Headers;
 
 public:
 	RTSPMessage(RTSPMessgeType type = RTSP_MSG_REQUEST):_msgType(type),_cSeq(-1),_bodyLen(0),_stampCreated(ZQ::common::now())
@@ -55,7 +56,6 @@ public:
 
 	const std::string& version() const { return _protocolVersion; }
 	void version(const std::string& version) { _protocolVersion = version; }
-
 
 	const std::string&	method() const { return _method; }
 	void method(const std::string& method) { _method = method; }
@@ -84,10 +84,10 @@ public:
 
 	std::string toRaw();
 
-
 private:
+
 	ZQ::common::Mutex	_lockHeaders;
-	HEADERS				_headers;
+	Headers				_headers;
 	std::string			_dummyVal;
 
 	uint64				_bodyLen;
@@ -104,6 +104,65 @@ private:
 	std::string			_url;
 	std::string			_protocolVersion;
 
+};
+
+#ifndef SYS_PROP
+#  define SYS_PROP(_PROP)  ("sys." #_PROP)
+#endif // SYS_PROP
+
+// ---------------------------------------
+// base RTSPSession
+// ---------------------------------------
+class RTSPSession : public virtual ZQ::common::SharedObject
+{
+public:
+	typedef ZQ::common::Pointer<RTSPSession> Ptr;
+	typedef RTSPMessage::Properties Properties;
+
+public:
+	RTSPSession(const std::string& id): _id(id) {}
+	virtual ~RTSPSession() {}
+
+	const std::string& id() const { return _id; }
+	std::string streamsInfo()   { return _props[SYS_PROP(streamKey)]; }
+	Properties properities() const { return _props; }
+
+/* TODO: decalare the common part of both server-side and client-side session
+	// destroy would withdraw this session from background session manager, further leaving of Ptr would lead the deletion of this session
+	virtual void destroy();
+
+	/// set the destination where the stream should be pumped to
+	///@destUrl the URL sepecifies the destination to pump to
+	bool setStreamDestination(const char* destUrl, bool validate=true);
+
+	/// reserved
+	void getSessionRange(double& startTime, double& endTime) const
+		{ startTime = _maxPlayStartTime; endTime = _maxPlayEndTime; }
+
+	/// reserved
+	void setSessionRange(double startTime, double endTime)
+		{ _maxPlayStartTime =startTime; _maxPlayEndTime =endTime; }
+
+	///@ return the scale of session
+	virtual float& scale() { return _scale; }
+
+	//const char* mediaSessionType() const { return _mediaSessionType.c_str(); }
+	const char* sessionName() const { return _sessionName.c_str(); }
+	const char* controlUri() const { return _controlUri.c_str(); }
+	const char* guid() const { return _sessGuid.c_str(); }
+	int64 getStampSetup() { return _stampSetup; };
+
+	virtual const char* sessionDescription(bool generate=false, const char* serverType =NULL);
+	virtual const char* getTransport(bool generate=false, const char* serverType =NULL, bool streamOutgoing =false);
+
+	//void  setSessionGroup(const std::string& SessionGroup) { _sessGroup = SessionGroup; }
+	//const std::string& getSessionGroup() const { return _sessGroup; }
+*/
+
+private:
+	std::string		_id;
+	Properties  	_props;
+	// std::string		_sessGroup;
 };
 
 //-------------------------------------
