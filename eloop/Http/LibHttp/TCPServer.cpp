@@ -261,7 +261,7 @@ public:
 			return 0;
 #endif
 
-		_socket = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
+		_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
 		int reuse_value = 1;
 		if( setsockopt(_socket, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse_value, sizeof(reuse_value)) != 0 )
@@ -317,8 +317,8 @@ public:
 		struct sockaddr_storage addr;
 		while( _bRunning )
 		{
-			socklen_t size= (socklen_t)sizeof( addr );
-			int sock = accept( _socket, (struct sockaddr*)&addr, &size);
+			socklen_t size= (socklen_t) sizeof(addr);
+			socket_t sock = accept( _socket, (struct sockaddr*)&addr, &size);
 			if( sock < 0 || !_bRunning)
 				continue;
 
@@ -335,7 +335,7 @@ public:
 			//}
 
 			ServantThread* pthread = _vecThread[_roundCount];
-			pthread->addSocket(sock);
+			pthread->addSocket((int)sock);
 			pthread->send();
 
 			_roundCount = (++_roundCount) % _threadCount;
@@ -355,7 +355,15 @@ public:
 
 private:
 	bool	_bRunning;
-	int		_socket;
+
+#ifdef ZQ_OS_MSWIN
+	typedef SOCKET	socket_t;
+#else
+	typedef int	socket_t;
+#endif
+
+	socket_t _socket;
+
 	std::vector<ServantThread*> _vecThread;
 	int		_roundCount;
 	int		_threadCount;

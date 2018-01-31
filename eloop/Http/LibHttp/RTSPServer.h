@@ -68,18 +68,18 @@ protected: // hatched by HttpApplication
 
 	// non session-based requests
 	//@return RTSP status code
-	virtual int	onOptions(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
-	virtual int	onDescribe(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
-	virtual int	onAnnounce(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
+	virtual RTSPMessage::ExtendedErrCode onOptions(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
+	virtual RTSPMessage::ExtendedErrCode onDescribe(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
+	virtual RTSPMessage::ExtendedErrCode onAnnounce(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
 
 	// session-based requests
 	//@return RTSP status code
-	virtual int procSessionSetup(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual int	procSessionPlay(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual int	procSessionPause(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual int	procSessionTeardown(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual int	procSessionAnnounce(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual int	procSessionDescribe(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionSetup(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionPlay(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionPause(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionTeardown(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionAnnounce(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionDescribe(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
 
 	virtual std::string mediaSDP(const std::string& mid) {return "";}
 

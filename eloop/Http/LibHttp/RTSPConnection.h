@@ -27,6 +27,74 @@ public:
 
 	static bool less(Ptr i, Ptr j) {  return (i->cSeq() < j->cSeq()); }
 
+	typedef enum _ExtendedErrCode
+	{
+		rcOK                    = 200,
+		rcContinue				= 100,
+		rcBadRequest            = 400,
+		rcUnauthorized          = 401,
+		rcForbidden 		    = 403,
+		rcObjectNotFound        = 404,
+		rcNotAcceptable  		= 406,
+		rcRequestTimeout        = 408,
+		rcBadParameter          = 451,
+		rcNotEnoughBandwidth    = 453,
+		rcSessNotFound			= 454,
+		rcInvalidState			= 455,
+		rcInvalidRange			= 457,
+		rcInternalError			= 500,
+		rcNotImplement			= 501,
+		rcServiceUnavail		= 503,
+		rcOptionNotSupport		= 551,
+
+		// NGOD-compatible extensions
+		rcNoResponse			    = 770,
+		rcAssetNotFound			    = 771,
+		rcSopNotAvail			    = 772,
+		rcUnknownSopGroup		    = 773,
+		rcUnkownSopnames		    = 774,
+		rcNotEnoughVolBandwidth	    = 775,
+		rcNotEnoughNetworkBandwidth = 776,
+		rcInvalidRequest			= 777,
+
+		// exec error code
+		Err_BackendError   = -100,
+		Err_ConnectionLost = -101,
+		Err_InvalidParams  = -102,
+		Err_SendFailed     = -103,
+		Err_RequestTimeout = -104,
+
+	} ExtendedErrCode;
+
+	typedef enum _AnnounceCode
+	{
+		// TianShan extensions
+		racStateChanged             = 8802,
+		racScaleChanged             = 8801,
+
+		// NGOD compatible codes
+		racEndOfStream              = 2101,
+		racTransition               = 2103,
+		racBeginOfStream            = 2104,
+		racPauseTimeout             = 2105,
+		racTrickNoConstrained       = 2201,
+		racTrickConstrained         = 2204,
+		racItemSkipped              = 2205,
+		racClientSessionTerminated  = 5402,
+		racSessionInProgress        = 5700,
+		racErrorReadingData         = 4400,
+		racDownstreamFail           = 5401,
+		racInternalServerError      = 5502,
+		racBandwidthExceeded        = 5602,
+		racServerResourceUnavail    = 5200,
+		racStreamBwUnaval           = 6001,
+		racDownstreamUreachable     = 6004,
+		racUnableEncrpt             = 6005,
+
+		racFakedItemStepped         = 8810, // TianShan spec defined 8803 as "ItemStepped", Gehua copied the idea
+		                                    // but renumber it to 8810, which is a mess up
+	} AnnounceCode;
+
 	typedef enum _RTSPMessgeType { 
 		RTSP_MSG_REQUEST = 0,
 		RTSP_MSG_RESPONSE = 1
@@ -73,8 +141,8 @@ public:
 
 	const std::string& status() const { return _statusDesc; }
 
-	int64	contentLength() const { return _bodyLen; }
-	void	contentLength(uint64 length) { _bodyLen = length; } //set content-length
+	int  	contentLength() const { return _bodyLen; }
+	void	contentLength(uint length) { _bodyLen = length; } //set content-length
 
 	void appendBody(const char* body, size_t len) {  _contentBody.append(body,len); }
 
@@ -92,7 +160,7 @@ private:
 	Headers				_headers;
 	std::string			_dummyVal;
 
-	uint64				_bodyLen;
+	uint				_bodyLen;
 	std::string			_contentBody;
 	uint32				_cSeq;
 	RTSPMessgeType		_msgType;
@@ -227,7 +295,7 @@ private:
 	{
 		std::string startLine;
 		bool		headerCompleted;
-		uint64      contentBodyRead;
+		uint        contentBodyRead;
 		RTSPMessage::Ptr pMsg;
 
 		rtsp_parser_msg() { reset(); }

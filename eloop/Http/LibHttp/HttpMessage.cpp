@@ -84,8 +84,8 @@ void DataStreamHelper::reset()
 // return true for reach the target
 bool DataStreamHelper::search(const char* data, size_t len, SearchResult& result)
 {
-	int m = _target.size();
-	int i = _nLocked;
+	size_t m = _target.size();
+	size_t i = _nLocked;
 	size_t j = 0;
 	// kmp algorithm
 	while(j < len)
@@ -102,7 +102,7 @@ bool DataStreamHelper::search(const char* data, size_t len, SearchResult& result
 	}
 
 	// not found
-	int vPos = _nLocked + j - i;
+	size_t vPos = _nLocked + j - i;
 	if(vPos > (int)_nLocked)
 	{ // all locked part released
 		result.released.data = _target.data();

@@ -58,13 +58,13 @@ void RTSPConnection::doAllocate(eloop_buf_t* buf, size_t suggested_size)
 	}
 }
 
-void RTSPConnection::OnRead(ssize_t nread, const char *buf)
+void RTSPConnection::OnRead(int nread, const char *buf)
 {
 	if (nread < 0)
 	{
 		std::string desc = "Read error:";
 		desc.append(errDesc(nread));
-		onError(nread,desc.c_str());
+		onError(nread, desc.c_str());
 		return;
 	}
 
@@ -152,12 +152,12 @@ void RTSPConnection::parse(ssize_t bytesRead)
 		{
 			// read the data as the content body of the current message
 			// step 1. determin the length to read
-			int64 len = 0;
+			int len = 0;
 			if (_currentParseMsg.pMsg->contentLength() >0) 
 				len = _currentParseMsg.pMsg->contentLength() - _currentParseMsg.contentBodyRead;
 
 			if (len > pEnd - pProcessed)
-				len = pEnd - pProcessed;
+				len = (int)(pEnd - pProcessed);
 
 			//			if (pEnd - pProcessed < len)
 			//			{
@@ -165,7 +165,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 			//				break;
 			//			}
 
-			_currentParseMsg.pMsg->appendBody(pProcessed,len);
+			_currentParseMsg.pMsg->appendBody(pProcessed, len);
 			pProcessed += len;
 			_currentParseMsg.contentBodyRead += len;
 
@@ -197,7 +197,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 		// beginning of header reading
 		while (!bFinishedThisDataChuck && pProcessed < pEnd)
 		{
-			char* line = nextLine(pProcessed, pEnd - pProcessed);
+			char* line = nextLine(pProcessed, (int)(pEnd - pProcessed));
 			if (NULL == line)
 			{
 				// met an incompleted line, shift it to the beginning of buffer then wait for the next OnDataArrived()
@@ -205,7 +205,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 				break;
 			}
 
-			int len = strlen(line);
+			size_t len = strlen(line);
 			pProcessed += (len + 2); // skip /r/n
 
 			if (len <=0) // an empty line
@@ -273,7 +273,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 
 	if (pEnd >= pProcessed)
 	{
-		_byteSeen = pEnd - pProcessed;
+		_byteSeen = int(pEnd - pProcessed);
 		memcpy(_recvBuf.base, pProcessed, _byteSeen);
 	}
 
@@ -324,11 +324,13 @@ std::string RTSPConnection::trim(char const* str)
 {
 	if (NULL == str)
 		return "";
-	int len = strlen(str);
+
+	size_t len = strlen(str);
 	// The line begins with the desired header name.  Trim off any whitespace
 	const char* t =str + len;
 	for (; *str == ' ' || *str == '\t'; str++);
 	for (; *(t-1) == ' ' || *(t-1) == '\t'; t--);
+
 	return std::string(str, t-str);
 }
 
