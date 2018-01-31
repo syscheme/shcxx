@@ -81,10 +81,9 @@ protected: // hatched by HttpApplication
 	virtual std::string mediaSDP(const std::string& mid) {return "";}
 	virtual RTSPSession::Ptr createSession(const std::string& sessId) {return new RTSPSession(sessId);}
 
-
-	IBaseApplication& _app;
+	IBaseApplication&       _app;
 	RTSPHandler::Properties _dirProps;
-	RTSPServer&		  _server;
+	RTSPServer&		        _server;
 };
 
 template <class Handler>
@@ -105,49 +104,27 @@ public:
 	}
 };
 
-
-// ---------------------------------------
-// class RTSPPassiveConn
-// ---------------------------------------
-class RTSPPassiveConn : public RTSPConnection
-{
-public:
-	RTSPPassiveConn(ZQ::common::Log& log, TCPServer* tcpServer):RTSPConnection(log, tcpServer){}
-	~RTSPPassiveConn(){}
-
-	virtual void onError( int error,const char* errorDescription );
-
-protected: // impl of RTSPParseSink
-	virtual void OnResponse(RTSPMessage::Ptr resp);
-	virtual void OnRequest(RTSPMessage::Ptr req);
-
-private:
-	RTSPHandler::Ptr		_rtspHandler;
-
-private:
-	static void simpleResponse(int code,uint32 cseq,RTSPConnection* conn);
-};
-
-
 // ---------------------------------------
 // class RTSPServer
 // ---------------------------------------
 class RTSPServer : public TCPServer, public ZQ::eloop::RTSPSessionManager
 {
 public:
-	RTSPServer( const TCPServer::ServerConfig& conf,ZQ::common::Log& logger)
-	:TCPServer(conf,logger){}
-	~RTSPServer(){}
+	RTSPServer( const TCPServer::ServerConfig& conf, ZQ::common::Log& logger)
+		:TCPServer(conf,logger)
+	{}
+
+	virtual ~RTSPServer()
+	{}
 
  	bool mount(const std::string& uriEx, RTSPHandler::AppPtr app, const RTSPHandler::Properties& props=RTSPHandler::Properties(), const char* virtualSite =DEFAULT_SITE);
-
-//	HttpHandler::Ptr createHandler( const std::string& uri, HttpPassiveConn& conn, const std::string& virtualSite = std::string(DEFAULT_SITE));
-
-	RTSPHandler::Ptr createHandler( const std::string& uri, RTSPPassiveConn& conn, const std::string& virtualSite = std::string(DEFAULT_SITE));
+	RTSPHandler::Ptr createHandler(const std::string& uri, RTSPPassiveConn& conn, const std::string& virtualSite = std::string(DEFAULT_SITE));
+	RTSPHandler::Ptr findSessionHandler(const std::string& sessId); //TODO: PLAY/PAUSE et operation other than SETUP will give dummy uri, so a RTSPServer should be able to find the proper Handler by session ID
 
 	virtual TCPConnection* createPassiveConn();
 
 private:
+
 	typedef struct _MountDir
 	{
 		std::string					uriEx;
@@ -161,8 +138,6 @@ private:
 
 	VSites _vsites;
 };
-
-
 
 } }//namespace ZQ::eloop
 #endif

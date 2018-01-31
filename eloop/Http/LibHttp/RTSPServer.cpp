@@ -7,6 +7,28 @@ namespace ZQ {
 namespace eloop {
 
 // ---------------------------------------
+// class RTSPPassiveConn
+// ---------------------------------------
+class RTSPPassiveConn : public RTSPConnection
+{
+public:
+	RTSPPassiveConn(ZQ::common::Log& log, TCPServer* tcpServer):RTSPConnection(log, tcpServer){}
+	~RTSPPassiveConn(){}
+
+	virtual void onError( int error,const char* errorDescription );
+
+protected: // impl of RTSPParseSink
+	virtual void OnResponse(RTSPMessage::Ptr resp);
+	virtual void OnRequest(RTSPMessage::Ptr req);
+
+private:
+	RTSPHandler::Ptr		_rtspHandler;
+
+private:
+	static void simpleResponse(int code,uint32 cseq,RTSPConnection* conn);
+};
+
+// ---------------------------------------
 // class RTSPHandler
 // ---------------------------------------
 void RTSPHandler::onOptions(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp)
@@ -139,12 +161,10 @@ void RTSPHandler::onTeardown(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp
 // ---------------------------------------
 void RTSPPassiveConn::onError( int error,const char* errorDescription )
 {
-
 }
 
 void RTSPPassiveConn::OnResponse(RTSPMessage::Ptr resp)
 {
-
 }
 
 void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
@@ -179,7 +199,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 		// 	if (!_rtspHandler)
 		// 		_rtspHandler = pSev->createHandler( req->url(), *this);
 
-		_rtspHandler = pSev->createHandler( req->url(), *this);
+		_rtspHandler = pSev->createHandler(req->url(), *this);
 
 		if(!_rtspHandler)
 		{
@@ -255,7 +275,6 @@ bool RTSPServer::mount(const std::string& uriEx, RTSPHandler::AppPtr app, const 
 	itSite->second.push_back(dir);
 	return true;
 }
-
 
 RTSPHandler::Ptr RTSPServer::createHandler( const std::string& uri, RTSPPassiveConn& conn, const std::string& virtualSite)
 {
