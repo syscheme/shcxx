@@ -243,7 +243,7 @@ public:
 			return stricmp(lhr.c_str(),rhs.c_str()) < 0;
 		}
 	};
-	typedef std::map<std::string,std::string,caseInsensativeCmp> HEADERS;
+	typedef std::map<std::string,std::string,caseInsensativeCmp> Headers;
 
 	inline unsigned int versionMajor() const { return _VerMajor; }
 	inline unsigned int versionMinor() const { return _VerMinor; }
@@ -271,7 +271,7 @@ private:
 
 	unsigned int		_VerMajor;
 	unsigned int		_VerMinor;
-	HEADERS				_Headers;
+	Headers				_Headers;
 	std::map<std::string, std::string> _argument;
 	std::string			_DummyHeaderValue;
 	int64				_BodyLength;//only valid if _bChunked == false
