@@ -66,19 +66,22 @@ protected: // hatched by HttpApplication
 	virtual void	onDataSent(size_t size){}
 	virtual void	onDataReceived( size_t size ){}
 
+	// non session-based requests
+	//@return RTSP status code
+	virtual int	onOptions(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
+	virtual int	onDescribe(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
+	virtual int	onAnnounce(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
 
-	virtual void	onOptions(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
-	virtual void	onDescribe(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
-
-	virtual void	onAnnounce(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
-
-	virtual void	onSetup(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
-	virtual void	onPlay(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
-	virtual void	onPause(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
-	virtual void	onTeardown(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
+	// session-based requests
+	//@return RTSP status code
+	virtual int procSessionSetup(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual int	procSessionPlay(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual int	procSessionPause(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual int	procSessionTeardown(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual int	procSessionAnnounce(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual int	procSessionDescribe(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
 
 	virtual std::string mediaSDP(const std::string& mid) {return "";}
-	virtual RTSPSession::Ptr createSession(const std::string& sessId) {return new RTSPSession(sessId);}
 
 	IBaseApplication&       _app;
 	RTSPHandler::Properties _dirProps;
@@ -133,12 +136,16 @@ public: // about the session management
 		typedef std::map<std::string, Ptr> Map;
 
 	public:
-		virtual bool	setup()    { return false; }
-		virtual bool	play()     { return false; }
-		virtual bool	pause()    { return false; }
-		virtual bool	teardown() { return false; }
+		Session(const std::string& id): RTSPSession(id) {}
+		virtual ~Session() {}
+
+		//virtual bool	setup()    { return false; }
+		//virtual bool	play()     { return false; }
+		//virtual bool	pause()    { return false; }
+		//virtual bool	teardown() { return false; }
 	};
 
+	virtual Session::Ptr createSession(const std::string& sessId) { return new Session(sessId); }
 	std::string	generateSessionID();
 
 	Session::Ptr findSession(const std::string& sessId);

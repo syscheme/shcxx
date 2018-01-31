@@ -13,6 +13,8 @@
 namespace ZQ {
 namespace eloop {
 
+#define RTSP_RET_SUCC(_RET) (_RET>=200 && _RET <300)
+
 //-------------------------------------
 //	class RTSPMessage
 //-------------------------------------
