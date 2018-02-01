@@ -2,13 +2,13 @@
 namespace ZQ {
 	namespace eloop {
 
-		#define RECV_BUF_SIZE (64*1024)
+		#define RECV_BUF_SIZE (32*1024)
 
 		// -----------------------------
 		// class Stream
 		// -----------------------------
 
-		Stream::Stream(){
+		Stream::Stream():_byteSeen(0){
 			_recvBuf.base = NULL;
 			_recvBuf.len = 0;
 		}
@@ -71,16 +71,13 @@ namespace ZQ {
 */
 		int Stream::write(const eloop_buf_t bufs[],unsigned int nbufs,uv_stream_t *send_handle)
 		{  
+			if (NULL == send_handle)
+				return elpuEPIPE;
+			
 			uv_write_t*  req = new uv_write_t;
 			if (req == NULL)
 				return -1;
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
-			if (NULL == send_handle)
-			{
-				delete req;
-				req = NULL;
-				return elpuEPIPE;
-			}
 
 			return uv_write2(req, stream, bufs, nbufs, send_handle, _cbWrote);
 		}
@@ -130,6 +127,7 @@ namespace ZQ {
 				self->OnShutdown((ElpeError)status);
 			}
 			delete req;
+			req = NULL;
 		}
 
 		void Stream::_cbConnection(uv_stream_t *stream, int status) {
@@ -185,9 +183,13 @@ namespace ZQ {
 			
 			if (_recvBuf.base)
 			{
-				memset(_recvBuf.base,0,_recvBuf.len);
-				buf->base = _recvBuf.base;
-				buf->len = _recvBuf.len;
+				if (_byteSeen > _recvBuf.len )
+					_byteSeen = _recvBuf.len;
+
+				buf->base = _recvBuf.base + _byteSeen;
+				buf->len = _recvBuf.len - _byteSeen;
+
+				memset(buf->base,0,buf->len);
 			}
 		}
 

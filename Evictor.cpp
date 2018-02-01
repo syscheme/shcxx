@@ -779,6 +779,20 @@ Evictor::Item::_Data::_Data() : status(clean), completed(false)
     stampCreated = stampLastSave = 0; 
 }
 
+Evictor::_StreamedObject::_StreamedObject( const _StreamedObject& other )
+{
+    key = other.key;
+    status = other.status;
+    data.assign(other.data.begin(), other.data.end());
+    stampAsOf = other.stampAsOf;
+}
+
+Evictor::_StreamedObject::_StreamedObject()
+{
+    status = 0;
+    stampAsOf = 0;
+}
+
 }} // namespace
 
 

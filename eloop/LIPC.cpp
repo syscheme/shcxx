@@ -1,6 +1,7 @@
 #include "ZQ_common_conf.h"
 #include "LIPC.h"
 #include "TimeUtil.h"
+#include "Guid.h"
 
 #define MAX_CSEQ    0x0fffffff
 
@@ -196,10 +197,8 @@ void LIPCResponse::post(bool bAsync)
 	if (_cSeq <= 0)
 		return;
 
- 	if (bAsync)
- 		_conn.AsyncSend(toString(),getFd());
- 	else
- 		_conn.send(toString(), getFd());
+	if (_server)
+		_server->sendResp(toString(),getFd(),_connId, bAsync);
 
 //	int64 step1 = ZQ::eloop::usStampNow();
 // 	std::string temp = toString();
@@ -240,13 +239,19 @@ class PassiveConn : public UnixSocket
 public:
 	PassiveConn(LIPCService& service)
 		:_service(service), UnixSocket(service._log)
-	{}
+	{
+		char buf[80];
+		ZQ::common::Guid guid;
+		guid.create();
+		guid.toCompactIdstr(buf, sizeof(buf) -2);
+		_clientId = buf;
+	}
 
 	void start()
 	{
 		read_start();
 		_service.addConn(this);
-//		printf("new pipe Passive Conn\n");
+
 		//if (TRACE_LEVEL_FLAG)
 			_service._log(ZQ::common::Log::L_DEBUG, CLOGFMT(PassiveConn, "new passive conn"));
 	}
@@ -259,7 +264,7 @@ public:
 
 		if(!parsing)
 		{
-			LIPCResponse::Ptr resp = new LIPCResponse(0, *this);
+			LIPCResponse::Ptr resp = new LIPCResponse(0, _clientId, &_service);
 			resp->postException(LIPCMessage::LIPC_PARSING_ERROR);
 			return;
 		}
@@ -283,7 +288,7 @@ public:
 		if (msg.isMember(JSON_RPC_ID))
 			cseq = msg[JSON_RPC_ID].asUInt();
 
-		LIPCResponse::Ptr resp = new LIPCResponse(cseq, *this);
+		LIPCResponse::Ptr resp = new LIPCResponse(cseq, _clientId, &_service);
 
 		if (msg.isMember(JSON_RPC_METHOD))
 			methodName = msg[JSON_RPC_METHOD].asString();
@@ -311,8 +316,8 @@ public:
 
 	virtual void onError( int error, const char* errorDescription)
 	{
-		_service.onError(error, errorDescription);
-		close();
+		_service._log(ZQ::common::Log::L_ERROR, CLOGFMT(PassiveConn, "errCode = %d, errDesc:%s"), error, errorDescription);
+		closeUnixSocket();
 	}
 
 	virtual void OnWrote(int status)
@@ -329,11 +334,29 @@ public:
 	virtual void OnClose()
 	{
 		_service.delConn(this);
-		delete this;
 	}
+
+	std::string getClientId(){return _clientId;}
 
 private:
 	LIPCService&	_service;
+	std::string		_clientId;
+};
+
+// ------------------------------------------------
+// class AsyncClose
+// ------------------------------------------------
+class AsyncClose : public ZQ::eloop::Async
+{
+public:
+	AsyncClose(LIPCService& sev):_sev(sev){}
+
+protected:
+	virtual void OnAsync() {close();}
+	virtual void OnClose(){_sev.close();}
+
+private:
+	LIPCService& _sev;
 };
 
 // -------------------------------------------------
@@ -344,18 +367,41 @@ uint32 LIPCService::_verboseFlags =0xffffffff;
 int LIPCService::init(ZQ::eloop::Loop &loop, int ipc)
 {
 	_ipc = ipc;
+	_asyncClose = new AsyncClose(*this);
+	_asyncClose->init(loop);
 	return ZQ::eloop::Pipe::init(loop, ipc);
 }
 
 void LIPCService::UnInit()
 {
-	close();
+	_asyncClose->send();
 	for(PipeClientList::iterator it=_clients.begin(); it!= _clients.end(); it++)
-		(*it)->close();
+		(*it)->closeUnixSocket();
+}
+
+void LIPCService::sendResp(const std::string& msg, int fd, const std::string& connId, bool bAsync)
+{
+	ZQ::common::MutexGuard gd(_connLock);
+	for(PipeClientList::iterator itconn = _clients.begin();itconn != _clients.end();itconn++)
+	{
+		if ((*itconn)->getClientId() == connId)
+		{
+			if (bAsync)
+				(*itconn)->AsyncSend(msg, fd);
+			else
+				(*itconn)->send(msg, fd);
+		}
+	}
 }
 
 void LIPCService::OnClose()
 { 
+	if (_asyncClose != NULL)
+	{
+		delete _asyncClose;
+		_asyncClose = NULL;
+	}
+
 	_isOnClose = true;
 	if (_clients.empty())
 		OnUnInit();
@@ -364,25 +410,30 @@ void LIPCService::OnClose()
 void LIPCService::OnUnInit()
 {
 	if(TRACE_LEVEL_FLAG)
-	_log(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCService, "OnUnInit()"));
+		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(LIPCService, "OnUnInit()"));
 }
 
 void LIPCService::addConn(PassiveConn* conn)
 {
-	_clients.push_back(conn);
+	ZQ::common::MutexGuard gd(_connLock);
+	_clients.insert(conn);
 }
 
 void LIPCService::delConn(PassiveConn* conn)
 {
-	PipeClientList::iterator iter = _clients.begin();
-	while(iter != _clients.end())
+	ZQ::common::MutexGuard gd(_connLock);
+	for (PipeClientList::iterator it = _clients.begin(); it != _clients.end(); it++)
 	{
-		if (*iter == conn)
-			iter = _clients.erase(iter);		//_PipeConn.erase(iter++);
-		else
-			iter++;
+		if ((*it) == conn)
+		{
+			delete *it;
+			conn = NULL;
+			_clients.erase(it);
+			break;
+		}
 	}
-	if (_isOnClose)
+
+	if (_isOnClose && _clients.empty())
 		OnUnInit();
 }
 
@@ -403,7 +454,7 @@ void LIPCService::doAccept(ZQ::eloop::Handle::ElpeError status)
 		client->start();
 	}
 	else {
-		client->close();
+		client->closeUnixSocket();
 		std::string desc = "accept error:";
 		desc.append(ZQ::eloop::Handle::errDesc(ret));
 		onError(ret, desc.c_str());
@@ -596,7 +647,7 @@ void LIPCClient::close()
 	{
 		_reconnect = false;
 		_isConn = false;
-		_conn->close();
+		_conn->closeUnixSocket();
 	}
 
 	if (_timer != NULL)
@@ -694,7 +745,7 @@ void LIPCClient::OnIndividualMessage(Json::Value& msg)
 	if (cseq <=0)
 		return;
 
-	LIPCResponse::Ptr resp = new LIPCResponse(cseq, *_conn);
+	LIPCResponse::Ptr resp = new LIPCResponse(cseq);
 	resp->_msg = msg;
 
 	if (msg.isMember(JSON_RPC_FD))
@@ -741,8 +792,7 @@ void LIPCClient::OnMessage(std::string& msg)
 	bool parsing = Json::Reader().parse(msg, root);
 	if (!parsing)
 	{
-		LIPCResponse::Ptr resp = new LIPCResponse(0, *_conn);
-		resp->postException(LIPCMessage::LIPC_PARSING_ERROR);
+		_log(ZQ::common::Log::L_ERROR, CLOGFMT(LIPCClient, "OnMessage parse msg[%s] error."),msg.c_str());
 		return;
 	}
 

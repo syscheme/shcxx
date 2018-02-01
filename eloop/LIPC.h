@@ -32,9 +32,10 @@
 #define __ZQ_COMMON_ELOOP_LIPC_H__
 
 #include "UnixSocket.h"
+#include <Locks.h>
 
 #include <vector>
-#include <list>
+#include <set>
 
 namespace ZQ {
 namespace eloop {
@@ -48,6 +49,7 @@ class ZQ_ELOOP_API LIPCMessage;
 class PassiveConn;
 class ClientConn;
 class ClientTimer;
+class AsyncClose;
 
 
 #define FLG_TRACE               FLAG(0)
@@ -153,7 +155,7 @@ public:
 	Json::Value getParam();
 	std::string getMethod();
 };
-
+class LIPCService;
 // ------------------------------------------------
 // class LIPCResponse
 // ------------------------------------------------
@@ -164,8 +166,8 @@ class LIPCResponse : public LIPCMessage
 public:
 	typedef ZQ::common::Pointer<LIPCResponse> Ptr;
 
-	LIPCResponse(int cseq, UnixSocket& conn)
-		: _conn(conn), LIPCMessage(cseq)
+	LIPCResponse(int cseq, const std::string& connId = "clientSide",LIPCService* server = NULL)
+		: _connId(connId), _server(server),LIPCMessage(cseq)
 	{}
 
 	virtual ~LIPCResponse();
@@ -178,8 +180,10 @@ public:
 	void postException(int code,std::string errMsg = "",bool bAsync = true);
 
 private:
-	UnixSocket&	_conn;
+	const std::string& _connId;
+	LIPCService* _server;
 };
+
 
 // ------------------------------------------------
 // class LIPCService
@@ -189,7 +193,7 @@ class LIPCService : public ZQ::eloop::Pipe
 	friend class PassiveConn;
 
 public:
-	typedef std::list< PassiveConn* > PipeClientList;
+	typedef std::set<PassiveConn*> PipeClientList;
 
 public:
 	LIPCService(ZQ::common::Log& log) : _log(log),_isOnClose(false) {}
@@ -201,6 +205,8 @@ public:
 //	PipeClientList& getPipeClientList() { return _clients; }
 
 	void UnInit();
+
+	void sendResp(const std::string& msg, int fd, const std::string& connId,bool bAsync = false);
 
 protected:
 //	ZQ::common::Log& _log;
@@ -224,9 +230,11 @@ protected:
 
 
 private:
-	PipeClientList _clients;
-	int			   _ipc;
-	bool		   _isOnClose;
+	ZQ::common::Mutex	_connLock;
+	PipeClientList		_clients;
+	int					_ipc;
+	bool				_isOnClose;
+	AsyncClose*			_asyncClose;
 };
 
 // ------------------------------------------------

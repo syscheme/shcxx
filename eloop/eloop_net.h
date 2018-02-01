@@ -94,7 +94,7 @@ private:
 
 protected:
 	eloop_buf_t	_recvBuf;
-
+	int			_byteSeen;
 };
 
 // -----------------------------
