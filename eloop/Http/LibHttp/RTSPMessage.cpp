@@ -4,6 +4,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include "strHelper.h"
 
 namespace ZQ {
 namespace eloop {
@@ -76,10 +77,58 @@ public:
 	}
 };
 
+RtspCode2StatusMapInit rtspcode2status;
 //-------------------------------------
 //	class RTSPMessage
 //-------------------------------------
-RtspCode2StatusMapInit rtspcode2status;
+void RTSPMessage::splitStrPair(const std::string& strPairData, StrPairVec& outVec,const std::string& delimiter)
+{
+	if (strPairData.empty())
+		return;
+	std::string::size_type posCurrent = 0;
+	std::string::size_type posNext = 0;
+	size_t szDelimiter = delimiter.length();
+	do 
+	{
+		StrPair	tempPair;
+
+		std::string::size_type posEqualMark = strPairData.find( '=' , posCurrent );
+		std::string::size_type posDelimiter = strPairData.find( delimiter , posCurrent );
+
+		if( posEqualMark != std::string::npos )
+		{			
+			if( posEqualMark < posDelimiter )
+			{// key and value are both available
+				tempPair.key			= strPairData.substr( posCurrent , posEqualMark -posCurrent );
+				tempPair.value			= strPairData.substr( posEqualMark + 1 , posDelimiter - posEqualMark -1 );
+			}
+			else
+			{
+				tempPair.key			= strPairData.substr( posCurrent , posDelimiter -posCurrent );
+				tempPair.value			= "";
+			}			
+		}
+		else
+		{				
+			tempPair.key			= strPairData.substr( posCurrent , posDelimiter -posCurrent );
+			tempPair.value			= "";			
+		}
+		if( posDelimiter != std::string::npos ) 
+		{
+			posCurrent = posDelimiter + szDelimiter;
+		}
+		else
+		{
+			posCurrent = std::string::npos;
+		}
+
+		ZQ::common::stringHelper::TrimExtra(tempPair.key);
+		ZQ::common::stringHelper::TrimExtra(tempPair.value);
+		if( !tempPair.key.empty() )
+			outVec.push_back( tempPair );
+
+	} while ( posCurrent != std::string::npos );
+}
 
 std::string RTSPMessage::date( int delta ) {
 	char buffer[64] = {0};

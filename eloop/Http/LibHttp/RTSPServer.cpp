@@ -152,6 +152,12 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionDescribe(const RTSPMessage:
 	return RTSPMessage::rcNotImplement;
 }
 
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionGetParameter(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess)
+{
+	// TODO: the handler impl here
+	return RTSPMessage::rcNotImplement;
+}
+
 // ---------------------------------------
 // class RTSPPassiveConn
 // ---------------------------------------
@@ -258,7 +264,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 	resp->code(respCode);
 	std::string respMsg = resp->toRaw();
 	_Logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), hint().c_str(),true);
-	printf("send resp[%s]\n",respMsg.c_str());
+
 	write(respMsg.c_str(), respMsg.size());
 }
 

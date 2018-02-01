@@ -232,18 +232,45 @@ void RTSPConnection::parse(ssize_t bytesRead)
 					_currentParseMsg.pMsg->setMsgType(RTSPMessage::RTSP_MSG_RESPONSE);
 					_currentParseMsg.pMsg->version(token);
 					token = strtok(NULL, delim);
+					if (token == NULL)
+					{
+						onError(ParseStartLineError,"parse start line error");
+						continue;
+					}
+
 					_currentParseMsg.pMsg->code(atoi(token));
 					token = strtok(NULL, delim);
+					if (token == NULL)
+					{
+						onError(ParseStartLineError,"parse start line error");
+						continue;
+					}
+
 					_currentParseMsg.pMsg->status(token);
 
 				}
 				else
 				{
+					if (token == NULL)
+					{
+						onError(ParseStartLineError,"parse start line error");
+						continue;
+					}
 					_currentParseMsg.pMsg->setMsgType(RTSPMessage::RTSP_MSG_REQUEST);
 					_currentParseMsg.pMsg->method(token);
 					token = strtok(NULL, delim);
+					if (token == NULL)
+					{
+						onError(ParseStartLineError,"parse start line error");
+						continue;
+					}
 					_currentParseMsg.pMsg->url(token);
 					token = strtok(NULL, delim);
+					if (token == NULL)
+					{
+						onError(ParseStartLineError,"parse start line error");
+						continue;
+					}
 					_currentParseMsg.pMsg->version(token);
 				}
 				continue;
@@ -262,6 +289,9 @@ void RTSPConnection::parse(ssize_t bytesRead)
 
 			if (0 == header.compare("Content-Length"))
 				_currentParseMsg.pMsg->contentLength(atol(value.c_str()));
+
+			if (0 == header.compare("CSeq"))
+				_currentParseMsg.pMsg->cSeq(atol(value.c_str()));
 			// 			else if(0 == header.compare("CSeq"))
 			// 				_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] received data [CSeq: %s]"), connDescription(), _pCurrentMsg->headers["CSeq"].c_str());
 			// 			else if(0 == header.compare("Method-Code"))

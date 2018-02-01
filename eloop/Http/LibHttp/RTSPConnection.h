@@ -103,12 +103,22 @@ public:
 	typedef std::map<std::string, std::string> Properties;
 	typedef Properties Headers;
 
+	typedef struct _StrPair
+	{
+		std::string		key;
+		std::string		value;
+	}StrPair;
+	typedef std::vector<StrPair>	StrPairVec;
+
 public:
 	RTSPMessage(RTSPMessgeType type = RTSP_MSG_REQUEST):_msgType(type),_cSeq(-1),_bodyLen(0),_stampCreated(ZQ::common::now())
 	{
 	}
 
 	virtual ~RTSPMessage() {}
+
+
+	static void splitStrPair(const std::string& strPairData, StrPairVec& outVec,const std::string& delimiter="\r\n");
 
 	static std::string date( int deltaInSecond = 0 );
 	static const std::string& code2status(int code);
@@ -247,8 +257,9 @@ private:
 public:
 	typedef enum
 	{
-		RtspNoConnection	    = -10000,
-		RtspReqTimeout			= -10001
+		ParseStartLineError		= -10000,
+		RtspNoConnection	    = -10001,
+		RtspReqTimeout			= -10002
 	} Error;
 
 	virtual ~RTSPConnection(){}
