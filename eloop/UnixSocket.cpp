@@ -235,7 +235,7 @@ void UnixSocket::processMessage(ssize_t nread, const char *buf)
 		if(index == std::string::npos)
 		{
 			char errDesc[10240];
-			snprintf(errDesc,sizeof(errDesc),"parse error:not found ':',nread[%d],buf[%s]",nread,_buf.c_str());
+			snprintf(errDesc,sizeof(errDesc),"parse error: missing leading-':',nread[%d],buf[%s]",nread,_buf.c_str());
 			onError(lipcParseError,errDesc);
 			_buf.clear();
 			return;
