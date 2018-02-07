@@ -4,8 +4,6 @@
 namespace ZQ {
 namespace eloop {
 
-#define TRACE_LEVEL_FLAG (_verboseFlags & FLG_TRACE)
-#define INFO_LEVEL_FLAG (_verboseFlags & FLG_INFO)
 // ------------------------------------------------
 // class AsyncSender
 // ------------------------------------------------
@@ -53,8 +51,7 @@ void UnixSocket::OnRead(ssize_t nread, const char *buf)
 		return;
 	}
 
-	if (TRACE_LEVEL_FLAG)
-		_lipcLog(ZQ::common::Log::L_DEBUG,CLOGFMT(UnixSocket, "OnRead() received %dB: %s"), nread, buf);
+	_lipcLog(ZQ::common::Log::L_DEBUG,CLOGFMT(UnixSocket, "OnRead() received %dB: %s"), nread, buf);
 //	processMessage2(nread,buf);
 	processMessage(nread,buf);
 }
@@ -128,8 +125,8 @@ int UnixSocket::send(const std::string& msg, int fd)
 {
 	std::string dest;
 	encode(msg, dest);
-	if (TRACE_LEVEL_FLAG)
-		_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "send() sent %dB: %s"), dest.length(), dest.c_str());
+
+	_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "send() sent %dB: %s"), dest.length(), dest.c_str());
 	if (fd > 0)
 	{
 #ifdef ZQ_OS_LINUX
@@ -260,15 +257,15 @@ void UnixSocket::processMessage(ssize_t nread, const char *buf)
 		{
 			temp = _buf.substr(index+1,len);
 			_buf = _buf.substr(index+len+2);
-			if (TRACE_LEVEL_FLAG)
-				_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "multi packet, temp[%s] _buf[%s]"), temp.c_str(), _buf.c_str());
+
+			_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "multi packet, temp[%s] _buf[%s]"), temp.c_str(), _buf.c_str());
 			OnMessage(temp);
 		}
 		else if(len == _buf.length()-index-2)
 		{
 			temp = _buf.substr(index+1,len);
-			if (TRACE_LEVEL_FLAG)
-				_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "single packet, temp[%s]"), temp.c_str());
+
+			_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "single packet, temp[%s]"), temp.c_str());
 			OnMessage(temp);
 			_buf.clear();
 		}
