@@ -4,6 +4,7 @@
 namespace ZQ {
 namespace eloop {
 
+#define INFO_LEVEL_FLAG (_verboseFlags & FLG_INFO)
 // ------------------------------------------------
 // class AsyncSender
 // ------------------------------------------------
@@ -23,6 +24,7 @@ private:
 // -----------------------------------------
 // class UnixSocket
 // -----------------------------------------
+uint32 UnixSocket::_verboseFlags =0xffffffff;
 int UnixSocket::init(Loop &loop, int ipc)
 {
 	if (_async == NULL)
@@ -50,8 +52,9 @@ void UnixSocket::OnRead(ssize_t nread, const char *buf)
 		onError(nread,desc.c_str());
 		return;
 	}
-
-	_lipcLog(ZQ::common::Log::L_DEBUG,CLOGFMT(UnixSocket, "OnRead() received %dB: %s"), nread, buf);
+	
+	if(INFO_LEVEL_FLAG)
+		_lipcLog(ZQ::common::Log::L_DEBUG,CLOGFMT(UnixSocket, "OnRead() received %dB: %s"), nread, buf);
 //	processMessage2(nread,buf);
 	processMessage(nread,buf);
 }
@@ -83,7 +86,8 @@ int UnixSocket::AsyncSend(const std::string& msg, int fd)
 	if (_async != NULL)
 		return _async->send();
 
-	_lipcLog(ZQ::common::Log::L_WARNING,CLOGFMT(UnixSocket, "AsyncSend async Handle is close."));
+	if(INFO_LEVEL_FLAG)
+		_lipcLog(ZQ::common::Log::L_WARNING,CLOGFMT(UnixSocket, "AsyncSend async Handle is close."));
 	return -1;
 }
 
@@ -126,7 +130,8 @@ int UnixSocket::send(const std::string& msg, int fd)
 	std::string dest;
 	encode(msg, dest);
 
-	_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "send() sent %dB: %s"), dest.length(), dest.c_str());
+	if(INFO_LEVEL_FLAG)
+		_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "send() sent %dB: %s"), dest.length(), dest.c_str());
 	if (fd > 0)
 	{
 #ifdef ZQ_OS_LINUX
@@ -258,14 +263,16 @@ void UnixSocket::processMessage(ssize_t nread, const char *buf)
 			temp = _buf.substr(index+1,len);
 			_buf = _buf.substr(index+len+2);
 
-			_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "multi packet, temp[%s] _buf[%s]"), temp.c_str(), _buf.c_str());
+			if(INFO_LEVEL_FLAG)
+				_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "multi packet, temp[%s] _buf[%s]"), temp.c_str(), _buf.c_str());
 			OnMessage(temp);
 		}
 		else if(len == _buf.length()-index-2)
 		{
 			temp = _buf.substr(index+1,len);
 
-			_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "single packet, temp[%s]"), temp.c_str());
+			if(INFO_LEVEL_FLAG)
+				_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "single packet, temp[%s]"), temp.c_str());
 			OnMessage(temp);
 			_buf.clear();
 		}

@@ -64,6 +64,8 @@ public:
 //protected:
 //	ZQ::common::Log& _lipcLog;
 	ZQ::common::LogWrapper& _lipcLog;
+	static uint32 _verboseFlags;
+	void    setVerbosity(uint32 verbose = (0 | ZQ::common::Log::L_ERROR)) { _verboseFlags = verbose; }
 
 private:
 	std::string		_buf;
