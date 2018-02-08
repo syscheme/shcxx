@@ -224,7 +224,17 @@ void UnixSocket::encode(const std::string& src,std::string& dest)
 
 void UnixSocket::processMessage(ssize_t nread, const char *buf)
 {
-	_buf.append(buf,nread);
+	int buflen = strlen(buf);
+	if (nread != buflen)
+	{
+		char errDesc[10240];
+		snprintf(errDesc,sizeof(errDesc),"processMessage nread[%d] is not equal to buflen[%d],buf[%s]",nread,buflen,buf);
+		onError(lipcParseError,errDesc);
+		_buf.clear();
+		return;
+	}
+
+	_buf.append(buf);
 	size_t len = 0;
 	size_t index = 0; /* position of ":" */
 	size_t i = 0;
