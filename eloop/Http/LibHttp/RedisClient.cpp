@@ -94,73 +94,8 @@ std::string RedisCommand::desc()
     return _command;
 }
 
-// -----------------------------
-// class RequestErrCmd
-// -----------------------------
-class RequestErrCmd : public ThreadRequest
-{
-public:
-    RequestErrCmd(RedisClient& client, const RedisCommand::Ptr& pCmd, RedisSink::Error errCode)
-        : ThreadRequest(client._thrdpool), _client(client), _pCmd(pCmd), _errCode(errCode)
-    {
-    }
-
-protected:
-    RedisClient&      _client;
-    RedisCommand::Ptr _pCmd;
-    RedisSink::Error   _errCode;
-
-    virtual int run()
-    {
-        try {
-            if (_pCmd)
-                _pCmd->OnRequestError(_client, *_pCmd.get(), _errCode);
-        }
-        catch(...) {}
-
-        return 0;
-    }
-
-    void final(int retcode =0, bool bCancelled =false)
-    {
-        delete this;
-    }
-};
-
-// -----------------------------
-// class ReplyDispatcher
-// -----------------------------
-class ReplyDispatcher : public ThreadRequest
-{
-public:
-    ReplyDispatcher(RedisClient& client, const RedisCommand::Ptr& pCmd)
-        : ThreadRequest(client._thrdpool), _client(client), _pCmd(pCmd)
-    {
-    }
-
-protected:
-    RedisClient&      _client;
-    RedisCommand::Ptr _pCmd;
-
-    virtual int run()
-    {
-        try {
-            if (_pCmd)
-                _pCmd->OnReply(_client, *_pCmd.get(), _pCmd->_replyCtx.data);
-        }
-        catch(...) {}
-
-        return 0;
-    }
-
-    void final(int retcode =0, bool bCancelled =false)
-    {
-        delete this;
-    }
-};
-
-RedisClient::RedisClient(ZQ::eloop::Loop& loop, ZQ::common::Log& log, ZQ::common::NativeThreadPool& thrdpool, const std::string& server, unsigned short serverPort, ZQ::common::Log::loglevel_t verbosityLevel)
-: _serverIp(server), _serverPort(serverPort), _thrdpool(thrdpool), _log(log, verbosityLevel), _verboseFlags(0), _lastErr(RedisSink::rdeOK),
+RedisClient::RedisClient(ZQ::eloop::Loop& loop, ZQ::common::Log& log, const std::string& server, unsigned short serverPort, ZQ::common::Log::loglevel_t verbosityLevel)
+: _serverIp(server), _serverPort(serverPort), _log(log, verbosityLevel), _verboseFlags(0), _lastErr(RedisSink::rdeOK),
 _inCommingByteSeen(0), _tcpStatus(unConnect)
 {
     init(loop);
@@ -261,7 +196,7 @@ RedisCommand::Ptr RedisClient::sendCommand(RedisCommand::Ptr pCmd)
 						continue;
 
 					try {
-						(new RequestErrCmd(*this, pCmd, RedisSink::rdeConnectError))->start();
+                        pCmd->OnRequestError(*this, *pCmd, RedisSink::rdeConnectError);
 					}
 					catch(...) {}
 				}
@@ -271,7 +206,7 @@ RedisCommand::Ptr RedisClient::sendCommand(RedisCommand::Ptr pCmd)
 		}
 
 		// The client is currently connected, send the command instantly
-		size_t awaitsize = 0, poolsize = _thrdpool.size();
+		size_t awaitsize = 0;
 		int64 stampNow = TimeUtil::now();
 
 		if (_messageTimeout >0 && (stampNow - pCmd->_stampCreated) > _messageTimeout)
@@ -308,7 +243,7 @@ RedisCommand::Ptr RedisClient::sendCommand(RedisCommand::Ptr pCmd)
 	} while(0);
 
 	// An error occurred, so call the response handler immediately (indicating the error)
-	(new RequestErrCmd(*this, pCmd, _lastErr))->start();
+    pCmd->OnRequestError(*this, *pCmd, _lastErr);
 	return NULL;
 }
 
@@ -468,7 +403,7 @@ void RedisClient::_cancelCommands()
 		_commandQueueToSend.pop();
 
 		try {
-			(new RequestErrCmd(*this, pCmd, RedisSink::rdeClientCanceled))->start();
+            pCmd->OnRequestError(*this, *pCmd, RedisSink::rdeClientCanceled);
 		}
 		catch(...) {}
 	}
@@ -479,7 +414,7 @@ void RedisClient::_cancelCommands()
 		_commandQueueToReceive.pop();
 
 		try {
-			(new RequestErrCmd(*this, pCmd, RedisSink::rdeClientCanceled))->start();
+            pCmd->OnRequestError(*this, *pCmd, RedisSink::rdeClientCanceled);
 		}
 		catch(...) {}
 	}
@@ -535,7 +470,7 @@ void RedisClient::OnConnected(ElpeError status)
 			try {
 				if (pCmd->_stampCreated + _messageTimeout/2 < stampNow)
 				{
-					(new RequestErrCmd(*this, pCmd, RedisSink::rdeRequestTimeout))->start();
+                    pCmd->OnRequestError(*this, *pCmd, RedisSink::rdeRequestTimeout);
 					cExpired++;
 					continue;
 				}
@@ -568,30 +503,6 @@ void RedisClient::OnError()
 {
 	_log(Log::L_ERROR, CLOGFMT(RedisClient, "OnError() conn[%s] socket error[] occurred, canceling all commands..."), _connDesc);
 	disconnect();
-}
-
-// overridding of TCPSocket
-void RedisClient::OnTimeout()
-{
-	// _cleanupExpiredAwaitRequests(2, "OnTimeout");
-
-	if (REDIS_VERBOSEFLG_TCPTHREADPOOL & _verboseFlags)
-	{
-// 		int poolSize, activeCount, pendingSize=0;
-// 		if (TCPSocket::getThreadPoolStatus(poolSize, activeCount, pendingSize) && pendingSize>0)
-// 			_log(pendingSize>100? Log::L_WARNING :Log::L_DEBUG, CLOGFMT(RedisClient, "OnTimeout() TCP ThreadPool[%d/%d] pending [%d]requests"), activeCount, poolSize, pendingSize);
-	}
-
-	if (REDIS_VERBOSEFLG_THREADPOOL & _verboseFlags)
-	{
-		int poolSize, activeCount, pendingSize=0;
-		poolSize    = _thrdpool.size();
-		pendingSize = _thrdpool.pendingRequestSize();
-		activeCount = _thrdpool.activeCount();
-
-		if (pendingSize >0)
-			_log(pendingSize>100? Log::L_WARNING :Log::L_DEBUG, CLOGFMT(RedisClient, "OnTimeout() client ThreadPool[%d/%d] pending [%d]requests"), activeCount, poolSize, pendingSize);
-	}
 }
 
 void RedisClient::OnRead(ssize_t nread, const char *buf)
@@ -661,17 +572,6 @@ void RedisClient::OnRead(ssize_t nread, const char *buf)
         {
             _log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnRead() conn[%s] ignore the receiving since there are no await commands"), _connDesc);
             return;
-        }
-
-        if (REDIS_VERBOSEFLG_THREADPOOL & _verboseFlags)
-        {
-            int poolSize, activeCount, pendingSize=0;
-            poolSize    = _thrdpool.size();
-            pendingSize = _thrdpool.pendingRequestSize();
-            activeCount = _thrdpool.activeCount();
-
-            if (pendingSize >0)
-                _log(pendingSize>100? Log::L_WARNING :Log::L_DEBUG, CLOGFMT(RedisClient, "OnRead() client ThreadPool[%d/%d] pending [%d] requests"), activeCount, poolSize, pendingSize);
         }
 
         if(_commandQueueToReceive.empty())

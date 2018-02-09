@@ -50,7 +50,6 @@
 #include "Log.h"
 #include "Pointer.h"
 #include "eloop_net.h"
-#include "NativeThreadPool.h"
 #include "TimeUtil.h"
 #include "Pointer.h"
 #include "Evictor.h"
@@ -210,8 +209,6 @@ protected:
 class RedisClient : public ZQ::eloop::TCP, virtual public ZQ::common::SharedObject
 {
 	friend class RedisCommand;
-	friend class RequestErrCmd;
-	friend class ReplyDispatcher;
     friend class RedisEvictor;
 public:
 	typedef ZQ::common::Pointer < RedisClient > Ptr;
@@ -223,7 +220,7 @@ public:
         Connected,
     };
 
-    RedisClient(ZQ::eloop::Loop& loop, ZQ::common::Log& log, ZQ::common::NativeThreadPool& thrdpool, const std::string& server="localhost", unsigned short serverPort=REDIS_DEFAULT_PORT, ZQ::common::Log::loglevel_t verbosityLevel =ZQ::common::Log::L_DEBUG);
+    RedisClient(ZQ::eloop::Loop& loop, ZQ::common::Log& log, const std::string& server="localhost", unsigned short serverPort=REDIS_DEFAULT_PORT, ZQ::common::Log::loglevel_t verbosityLevel =ZQ::common::Log::L_DEBUG);
     virtual ~RedisClient();
 
 	uint16	getVerbosity() { return (ZQ::common::Log::loglevel_t)_log.getVerbosity() | (_verboseFlags<<8); }
@@ -244,7 +241,6 @@ protected:
 	virtual void OnError();
 	virtual void OnRead(ssize_t nread, const char *buf);
     virtual void OnWrote(int status);
-	virtual void OnTimeout();
     virtual void OnClose(){}
 
 	// new  callbacks
@@ -293,7 +289,6 @@ private:
 	RedisCommand::Ptr sendMultikeyBulkCmd(const char *cmd, std::vector<std::string>& keys, RedisSink::Ptr reply);
 
 protected:
-	ZQ::common::NativeThreadPool&  _thrdpool;
 	ZQ::common::LogWrapper		  _log;
 
 	RedisSink::Error  _lastErr;
