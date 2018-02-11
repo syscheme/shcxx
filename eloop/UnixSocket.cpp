@@ -154,7 +154,7 @@ void UnixSocket::encode(const std::string& src,std::string& dest)
     char strLen[32];
 
     // format of a netstring is [len]:[string]
-    sprintf(strLen, "%lu:", len);
+    sprintf(strLen, "~%lu:", len);
     dest.append(strLen);
     dest.append(src);
     dest.append(",");
@@ -252,8 +252,17 @@ void UnixSocket::processMessage(ssize_t nread, const char *buf)
 		}
 
 		const char* data = _buf.data();
+		if (data[0] != '~')
+		{
+			char errDesc[10240];
+			snprintf(errDesc,sizeof(errDesc),"parse error:The index head is not '~',nread[%d],buf[%s]",nread,_buf.c_str());
+			onError(lipcParseError,errDesc);
+			_buf.clear();
+			return;
+			//parse error
+		}
 		len = 0;
-		for(i = 0 ; i < index ; i++)
+		for(i = 1 ; i < index ; i++)
 		{
 			if(!isdigit(data[i]))
 			{
