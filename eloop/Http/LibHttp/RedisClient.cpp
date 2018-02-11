@@ -1125,7 +1125,7 @@ Evictor::Item::Ptr RedisEvictor::pin( const Evictor::Ident& ident, Evictor::Item
     if (ident.category == "indexHeader")
         return item;
 
-    //_cache.insert(Map::value_type(ident, item));
+    _cache.insert(Map::value_type(ident, item));
     _evictorList.push_front(ident);
     item->_pos = _evictorList.begin();
     item->_orphan = false;
