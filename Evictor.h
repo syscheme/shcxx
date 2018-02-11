@@ -42,7 +42,7 @@ namespace common{
 class ZQ_COMMON_API EvictorException;
 class ZQ_COMMON_API Evictor;
 
-#define EVICTOR_DEFAULT_SIZE (0)
+#define EVICTOR_DEFAULT_SIZE (200)
 
 #define FLG_TRACE               FLAG(0)
 #define FLG_SAVE_COMPLETED_ONLY FLAG(8)

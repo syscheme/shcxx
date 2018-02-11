@@ -165,7 +165,7 @@ Evictor::Item::Ptr Evictor::pin(const Ident& ident, Item::Ptr item)
 		return NULL;
 
 	item->_ident = ident;
-	_cache.insert(Map::value_type(ident, item));
+	//_cache.insert(Map::value_type(ident, item));
 	_evictorList.push_front(ident);
 	item->_pos = _evictorList.begin();
 	item->_orphan = false;
