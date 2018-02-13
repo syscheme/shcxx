@@ -2,7 +2,7 @@
 
 namespace ZQ {
 	namespace eloop {
-
+/*
 void RTSPTestHandler::onSetup(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp)
 {
 	RTSPSession::Ptr pSess = createSession(_server.generateSessionID());
@@ -111,5 +111,48 @@ void RTSPTestHandler::onTeardown(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& 
 
 	resp->appendBody(body.c_str(),body.size());
 }
+*/
+
+
+
+// session-based requests
+//@return RTSP status code
+RTSPMessage::ExtendedErrCode RTSPTestHandler::procSessionSetup(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess)
+{
+	printf("1111111111111111111111\n");
+	return RTSPMessage::rcOK;
+}
+
+RTSPMessage::ExtendedErrCode RTSPTestHandler::procSessionPlay(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess)
+{
+	return RTSPMessage::rcOK;
+}
+
+RTSPMessage::ExtendedErrCode RTSPTestHandler::procSessionPause(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess)
+{
+	return RTSPMessage::rcOK;
+}
+
+RTSPMessage::ExtendedErrCode RTSPTestHandler::procSessionTeardown(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess)
+{
+	return RTSPMessage::rcOK;
+}
+
+RTSPMessage::ExtendedErrCode RTSPTestHandler::procSessionAnnounce(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess)
+{
+	return RTSPMessage::rcOK;
+}
+
+RTSPMessage::ExtendedErrCode RTSPTestHandler::procSessionDescribe(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess)
+{
+	return RTSPMessage::rcOK;
+}
+
+RTSPMessage::ExtendedErrCode RTSPTestHandler::procSessionGetParameter(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess)
+{
+	printf("222222222222222222222222\n");
+	return RTSPMessage::rcOK;
+}
+
 
 }}
