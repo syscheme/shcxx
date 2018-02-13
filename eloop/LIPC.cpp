@@ -364,6 +364,13 @@ private:
 // -------------------------------------------------
 uint32 LIPCService::_verboseFlags =0xffffffff;
 
+void LIPCService::setVerbosity(uint32 verbose) 
+{
+	_log.setVerbosity(verbose & 0x0f); _verboseFlags =verbose>>8; 
+	for(PipeClientList::iterator it=_clients.begin(); it!= _clients.end(); it++)
+		(*it)->setVerbosity(_verboseFlags);
+}
+
 int LIPCService::init(ZQ::eloop::Loop &loop, int ipc)
 {
 	_ipc = ipc;

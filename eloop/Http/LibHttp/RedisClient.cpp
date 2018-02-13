@@ -910,6 +910,14 @@ RedisCommand::Ptr RedisClient::sendDEL(const char *key, RedisSink::Ptr reply)
 	return sendCommand(cmdstr.c_str(), REDIS_LEADINGCH_INLINE, reply);
 }
 
+ZQ::eloop::RedisCommand::Ptr RedisClient::sendEXPIRE( const char *key, int seconds, RedisSink::Ptr reply/*=NULL*/ )
+{
+    char ttls[32];
+    snprintf(ttls, sizeof(ttls) - 1, " %d", seconds);
+    std::string cmdstr = std::string("EXPIRE ") + key + ttls;
+    return sendCommand(cmdstr.c_str(), REDIS_LEADINGCH_INLINE, reply);
+}
+
 RedisCommand::Ptr RedisClient::sendGETSET(const char *key, const uint8* val, int vlen, RedisSink::Ptr reply)
 {
 	std::string cmdstr;
@@ -1178,7 +1186,7 @@ Evictor::Error RedisEvictor::loadFromStore(const std::string& key, StreamedObjec
         _cmdQueue.push(pCmd);
         send();
     }
-    if (!pCmd->wait(10000)) 
+    if (!pCmd->wait(DEFAULT_CLIENT_TIMEOUT)) 
         return (_lastErr = Evictor::eeTimeout);
     if (REDIS_LEADINGCH_ERROR == pCmd->_replyCtx.data.type)	
         return (_lastErr = Evictor::eeConnectErr); 

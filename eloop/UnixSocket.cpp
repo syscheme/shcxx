@@ -4,7 +4,7 @@
 namespace ZQ {
 namespace eloop {
 
-
+#define INFO_LEVEL_FLAG (_verboseFlags & FLG_INFO)
 // ------------------------------------------------
 // class AsyncSender
 // ------------------------------------------------
@@ -24,6 +24,7 @@ private:
 // -----------------------------------------
 // class UnixSocket
 // -----------------------------------------
+uint32 UnixSocket::_verboseFlags =0xffffffff;
 int UnixSocket::init(Loop &loop, int ipc)
 {
 	if (_async == NULL)
@@ -51,8 +52,9 @@ void UnixSocket::OnRead(ssize_t nread, const char *buf)
 		onError(nread,desc.c_str());
 		return;
 	}
-
-	_lipcLog(ZQ::common::Log::L_DEBUG,CLOGFMT(UnixSocket, "OnRead() received %dB: %s"), nread, buf);
+	
+	if(INFO_LEVEL_FLAG)
+		_lipcLog(ZQ::common::Log::L_DEBUG,CLOGFMT(UnixSocket, "OnRead() received %dB: %s"), nread, buf);
 //	processMessage2(nread,buf);
 	processMessage(nread,buf);
 }
@@ -84,7 +86,8 @@ int UnixSocket::AsyncSend(const std::string& msg, int fd)
 	if (_async != NULL)
 		return _async->send();
 
-	_lipcLog(ZQ::common::Log::L_WARNING,CLOGFMT(UnixSocket, "AsyncSend async Handle is close."));
+	if(INFO_LEVEL_FLAG)
+		_lipcLog(ZQ::common::Log::L_WARNING,CLOGFMT(UnixSocket, "AsyncSend async Handle is close."));
 	return -1;
 }
 
@@ -126,8 +129,9 @@ int UnixSocket::send(const std::string& msg, int fd)
 {
 	std::string dest;
 	encode(msg, dest);
-	//printf("send msg len = %d,data=%s\n", dest.length(), dest.c_str());
-	_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "send() sent %dB: %s"), dest.length(), dest.c_str());
+
+	if(INFO_LEVEL_FLAG)
+		_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "send() sent %dB: %s"), dest.length(), dest.c_str());
 	if (fd > 0)
 	{
 #ifdef ZQ_OS_LINUX
@@ -150,7 +154,7 @@ void UnixSocket::encode(const std::string& src,std::string& dest)
     char strLen[32];
 
     // format of a netstring is [len]:[string]
-    sprintf(strLen, "%lu:", len);
+    sprintf(strLen, "~%lu:", len);
     dest.append(strLen);
     dest.append(src);
     dest.append(",");
@@ -220,7 +224,17 @@ void UnixSocket::encode(const std::string& src,std::string& dest)
 
 void UnixSocket::processMessage(ssize_t nread, const char *buf)
 {
-	_buf.append(buf,nread);
+	int buflen = strlen(buf);
+	if (nread != buflen)
+	{
+		char errDesc[10240];
+		snprintf(errDesc,sizeof(errDesc),"processMessage nread[%d] is not equal to buflen[%d],buf[%s]",nread,buflen,buf);
+		onError(lipcParseError,errDesc);
+		_buf.clear();
+		return;
+	}
+
+	_buf.append(buf);
 	size_t len = 0;
 	size_t index = 0; /* position of ":" */
 	size_t i = 0;
@@ -231,15 +245,24 @@ void UnixSocket::processMessage(ssize_t nread, const char *buf)
 		if(index == std::string::npos)
 		{
 			char errDesc[10240];
-			snprintf(errDesc,sizeof(errDesc),"parse error:not found ':',nread[%d],buf[%s]",nread,_buf.c_str());
+			snprintf(errDesc,sizeof(errDesc),"parse error: missing leading-':',nread[%d],buf[%s]",nread,_buf.c_str());
 			onError(lipcParseError,errDesc);
 			_buf.clear();
 			return;
 		}
 
 		const char* data = _buf.data();
+		if (data[0] != '~')
+		{
+			char errDesc[10240];
+			snprintf(errDesc,sizeof(errDesc),"parse error:The index head is not '~',nread[%d],buf[%s]",nread,_buf.c_str());
+			onError(lipcParseError,errDesc);
+			_buf.clear();
+			return;
+			//parse error
+		}
 		len = 0;
-		for(i = 0 ; i < index ; i++)
+		for(i = 1 ; i < index ; i++)
 		{
 			if(!isdigit(data[i]))
 			{
@@ -258,13 +281,17 @@ void UnixSocket::processMessage(ssize_t nread, const char *buf)
 		{
 			temp = _buf.substr(index+1,len);
 			_buf = _buf.substr(index+len+2);
-			_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "multi packet, temp[%s] _buf[%s]"), temp.c_str(), _buf.c_str());
+
+			if(INFO_LEVEL_FLAG)
+				_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "multi packet, temp[%s] _buf[%s]"), temp.c_str(), _buf.c_str());
 			OnMessage(temp);
 		}
 		else if(len == _buf.length()-index-2)
 		{
 			temp = _buf.substr(index+1,len);
-			_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "single packet, temp[%s]"), temp.c_str());
+
+			if(INFO_LEVEL_FLAG)
+				_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "single packet, temp[%s]"), temp.c_str());
 			OnMessage(temp);
 			_buf.clear();
 		}
