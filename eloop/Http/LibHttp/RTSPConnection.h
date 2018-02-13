@@ -15,6 +15,17 @@ namespace eloop {
 
 #define RTSP_RET_SUCC(_RET) (_RET>=200 && _RET <300)
 
+
+#define	HeaderSequence				"CSeq"
+#define HeaderServer				"Server"
+#define	HeaderSession				"Session"
+#define HeaderOnDemandSessId		"OnDemandSessionId"
+#define HeaderRequire				"Require"
+#define HeaderSessionGroup			"SessionGroup"
+#define HeaderVolume				"Volume"
+#define HeaderStartpoint			"StartPoint"
+#define	HeaderTransport				"Transport"
+
 //-------------------------------------
 //	class RTSPMessage
 //-------------------------------------
@@ -155,6 +166,7 @@ public:
 	void	contentLength(uint length) { _bodyLen = length; } //set content-length
 
 	void appendBody(const char* body, size_t len) {  _contentBody.append(body,len); }
+	const std::string& body() { return _contentBody; }
 
 	uint32	cSeq() const { return _cSeq; }
 	void	cSeq(uint32 cSeq) { _cSeq = cSeq; }

@@ -197,7 +197,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 
 		if (!sid.empty())
 		{
-			pSess = RTSPServer::Session::Ptr::dynamicCast(pSev->findSession(sid));
+			pSess = pSev->findSession(sid);//RTSPServer::Session::Ptr::dynamicCast(pSev->findSession(sid));
 			if (NULL == pSess)
 			{
 				respCode =454;
