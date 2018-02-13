@@ -58,7 +58,7 @@ void RTSPConnection::doAllocate(eloop_buf_t* buf, size_t suggested_size)
 	}
 }
 
-void RTSPConnection::OnRead(int nread, const char *buf)
+void RTSPConnection::OnRead(ssize_t nread, const char *buf)
 {
 	if (nread < 0)
 	{

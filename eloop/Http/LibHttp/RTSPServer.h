@@ -12,6 +12,7 @@ namespace eloop {
 
 class RTSPServer;
 class RTSPHandler;
+class RTSPPassiveConn;
 
 #define DEFAULT_SITE "."
 

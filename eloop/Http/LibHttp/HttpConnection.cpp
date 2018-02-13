@@ -53,7 +53,7 @@ void HttpConnection::reset(IHttpParseSink* p)
 	_CurrentParseMsg = new HttpMessage(_Type);
 }
 
-void HttpConnection::OnRead(int nread, const char *buf)
+void HttpConnection::OnRead(ssize_t nread, const char *buf)
 {
 	if (nread < 0)
 	{
