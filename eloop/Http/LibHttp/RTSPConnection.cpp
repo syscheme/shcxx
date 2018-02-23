@@ -301,10 +301,15 @@ void RTSPConnection::parse(ssize_t bytesRead)
 		}; // end of header reading;
 	}
 
-	if (pEnd >= pProcessed)
+	if (pEnd > pProcessed)
 	{
 		_byteSeen = int(pEnd - pProcessed);
 		memcpy(_recvBuf.base, pProcessed, _byteSeen);
+	}
+	else
+	{
+		_byteSeen = 0;
+		memset(_recvBuf.base,0,_recvBuf.len);
 	}
 
 	// notifying the sink

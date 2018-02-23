@@ -325,6 +325,7 @@ private:
 
 		void reset()
 		{
+			startLine.clear();
 			headerCompleted = false;
 			contentBodyRead = 0;
 			pMsg = new RTSPMessage();
