@@ -123,9 +123,7 @@ public:
 	virtual TCPConnection* createPassiveConn();
 
 	ServerConfig		_Config;
-
-protected:
-	ZQ::common::Log&		_Logger;
+	ZQ::common::Log&	_Logger;
 
 private:
 	typedef std::set<TCPConnection*>	ConnList;
