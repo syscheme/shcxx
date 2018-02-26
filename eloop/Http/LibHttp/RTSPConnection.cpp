@@ -287,10 +287,10 @@ void RTSPConnection::parse(ssize_t bytesRead)
 			_currentParseMsg.pMsg->header(header,value);
 
 
-			if (0 == header.compare("Content-Length"))
+			if (0 == header.compare(Header_ContentLength))
 				_currentParseMsg.pMsg->contentLength(atol(value.c_str()));
 
-			if (0 == header.compare("CSeq"))
+			if (0 == header.compare(Header_CSeq))
 				_currentParseMsg.pMsg->cSeq(atol(value.c_str()));
 			// 			else if(0 == header.compare("CSeq"))
 			// 				_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] received data [CSeq: %s]"), connDescription(), _pCurrentMsg->headers["CSeq"].c_str());

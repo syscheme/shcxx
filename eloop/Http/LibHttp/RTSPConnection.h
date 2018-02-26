@@ -15,16 +15,21 @@ namespace eloop {
 
 #define RTSP_RET_SUCC(_RET) (_RET>=200 && _RET <300)
 
+#define	Header_CSeq					"CSeq"
+#define Header_Server				"Server"
+#define	Header_Session				"Session"
+#define	Header_Transport			"Transport"
+#define Header_ContentLength		"Content-Length"
 
-#define	HeaderSequence				"CSeq"
-#define HeaderServer				"Server"
-#define	HeaderSession				"Session"
-#define HeaderOnDemandSessId		"OnDemandSessionId"
-#define HeaderRequire				"Require"
-#define HeaderSessionGroup			"SessionGroup"
-#define HeaderVolume				"Volume"
-#define HeaderStartpoint			"StartPoint"
-#define	HeaderTransport				"Transport"
+
+#define Method_OPTIONS				"OPTIONS"
+#define Method_ANNOUNCE				"ANNOUNCE"
+#define Method_DESCRIBE				"DESCRIBE"
+#define Method_GetParameter			"GetParameter"
+#define Method_SETUP				"SETUP"
+#define Method_PLAY					"PLAY"
+#define Method_PAUSE				"PAUSE"
+#define Method_TEARDOWN				"TEARDOWN"
 
 //-------------------------------------
 //	class RTSPMessage

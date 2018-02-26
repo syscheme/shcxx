@@ -18,12 +18,15 @@ public:
 
 	virtual void onError( int error,const char* errorDescription );
 
+	virtual void	onDataSent(size_t size);
+	virtual void	onDataReceived( size_t size );
+
 protected: // impl of RTSPParseSink
 	virtual void OnResponse(RTSPMessage::Ptr resp);
 	virtual void OnRequest(RTSPMessage::Ptr req);
 
 private:
-	RTSPHandler::Ptr		_rtspHandler;
+	RTSPHandler::Ptr _rtspHandler;
 
 private:
 	static void simpleResponse(int code,uint32 cseq,RTSPConnection* conn);
@@ -165,6 +168,18 @@ void RTSPPassiveConn::onError( int error,const char* errorDescription )
 {
 }
 
+void RTSPPassiveConn::onDataSent(size_t size)
+{
+	if(_rtspHandler)
+		_rtspHandler->onDataSent(size);
+}
+
+void RTSPPassiveConn::onDataReceived( size_t size )
+{
+	if(_rtspHandler)
+		_rtspHandler->onDataReceived(size);
+}
+
 void RTSPPassiveConn::OnResponse(RTSPMessage::Ptr resp)
 {
 }
@@ -191,10 +206,19 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 			break;
 		}
 
-		resp->header("Server", pSev->_Config.serverName);
+		_rtspHandler = pSev->createHandler(req->url(), *this);
+		if(!_rtspHandler)
+		{
+			// should make a 404 response
+			_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn, "OnRequests failed to find a suitable handle to process url: %s"), req->url().c_str() );
+			respCode =404;
+			break;
+		}
+
+		resp->header(Header_Server, pSev->_Config.serverName);
 
 		// check if the request is session-based or not
-		std::string sid =  req->header("Session");
+		std::string sid =  req->header(Header_Session);
 		RTSPSession::Ptr pSess; // should be server-side session
 
 		if (!sid.empty())
@@ -209,18 +233,8 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 
 		if (NULL == pSess)
 		{
-			// no-session specified
-			_rtspHandler = pSev->createHandler(req->url(), *this);
-			if(!_rtspHandler)
-			{
-				// should make a 404 response
-				_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn, "OnRequests failed to find a suitable handle to process url: %s"), req->url().c_str() );
-				respCode =404;
-				break;
-			}
-
 			// handle if it is a SETUP
-			if (0 == req->method().compare("SETUP")) 
+			if (0 == req->method().compare(Method_SETUP)) 
 			{ 
 				RTSPServer::Session::Ptr sess = pSev->createSession(pSev->generateSessionID());
 				pSess = RTSPSession::Ptr::dynamicCast(sess);
@@ -233,7 +247,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 				respCode = _rtspHandler->procSessionSetup(req, resp, pSess);
 				if (RTSP_RET_SUCC(respCode))
 				{
-					resp->header("Session",  pSess->id());
+					resp->header(Header_Session,  pSess->id());
 					pSev->addSession(sess);
 				}
 
@@ -241,20 +255,25 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 			}
 
 			// non-session based requests
-			if (0 == req->method().compare("OPTIONS"))	{ respCode = _rtspHandler->onOptions(req, resp);  break; }
-			if (0 == req->method().compare("ANNOUNCE")) { respCode = _rtspHandler->onAnnounce(req, resp); break; }
-			if (0 == req->method().compare("DESCRIBE")) { respCode = _rtspHandler->onDescribe(req, resp); break; }
-			break;
+			if (0 == req->method().compare(Method_OPTIONS))	{ respCode = _rtspHandler->onOptions(req, resp);  break; }
+			if (0 == req->method().compare(Method_ANNOUNCE)) { respCode = _rtspHandler->onAnnounce(req, resp); break; }
+			if (0 == req->method().compare(Method_DESCRIBE)) { respCode = _rtspHandler->onDescribe(req, resp); break; }
 		}
 
 		// session-based requests and session has been addressed
-		 resp->header("Session",  pSess->id());
+		 resp->header(Header_Session,  pSess->id());
 
-		if (0 == req->method().compare("PLAY"))     { respCode = _rtspHandler->procSessionPlay(req, resp, pSess);     break; }
-		if (0 == req->method().compare("PAUSE"))    { respCode = _rtspHandler->procSessionPause(req, resp, pSess);    break; }
-		if (0 == req->method().compare("TEARDOWN")) { respCode = _rtspHandler->procSessionTeardown(req, resp, pSess); break; }
-		if (0 == req->method().compare("ANNOUNCE")) { respCode = _rtspHandler->procSessionAnnounce(req, resp, pSess); break; }
-		if (0 == req->method().compare("DESCRIBE")) { respCode = _rtspHandler->procSessionDescribe(req, resp, pSess); break; }
+		if (0 == req->method().compare(Method_PLAY))     { respCode = _rtspHandler->procSessionPlay(req, resp, pSess);     break; }
+		if (0 == req->method().compare(Method_PAUSE))    { respCode = _rtspHandler->procSessionPause(req, resp, pSess);    break; }
+		if (0 == req->method().compare(Method_ANNOUNCE)) { respCode = _rtspHandler->procSessionAnnounce(req, resp, pSess); break; }
+		if (0 == req->method().compare(Method_DESCRIBE)) { respCode = _rtspHandler->procSessionDescribe(req, resp, pSess); break; }
+
+		if (0 == req->method().compare(Method_TEARDOWN)) 
+		{ 
+			respCode = _rtspHandler->procSessionTeardown(req, resp, pSess); 
+			pSev->removeSession(pSess->id());
+			break; 
+		}
 
 		respCode =405;
 
@@ -376,17 +395,38 @@ RTSPServer::Session::Ptr RTSPServer::findSession(const std::string& sessId)
 
 void RTSPServer::addSession(RTSPServer::Session::Ptr sess)
 {
-	ZQ::common::MutexGuard g(_lkSessMap);
-	if (sess)
+	if (!sess)
+	{
+		_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(RTSPServer, "addSession() session is null"));
+		return;
+	}
+	int sessSize = 0;
+	{
+		ZQ::common::MutexGuard g(_lkSessMap);
+		Session::Map::iterator it = _sessMap.find(sess->id());
+		if (it != _sessMap.end())
+		{
+			_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(RTSPServer, "addSession() sessId[%s] already exists"), sess->id().c_str());
+			return;
+		}
+
 		_sessMap[sess->id()] = sess;
+		sessSize = _sessMap.size();
+	}
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPServer, "addSession() sessId[%s],sessSize[%d]"), sess->id().c_str(), sessSize);
 }
 
 void RTSPServer::removeSession(const std::string& sessId)
 {
-	ZQ::common::MutexGuard g(_lkSessMap);
-	Session::Map::iterator it = _sessMap.find(sessId);
-	if (it != _sessMap.end())
-		_sessMap.erase(it);
+	int sessSize = 0;
+	{
+		ZQ::common::MutexGuard g(_lkSessMap);
+		Session::Map::iterator it = _sessMap.find(sessId);
+		if (it != _sessMap.end())
+			_sessMap.erase(it);
+		sessSize = _sessMap.size();
+	}
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPServer, "removeSession() sessId[%s],sessSize[%d]"), sessId.c_str(), sessSize);
 }
 
 size_t RTSPServer::getSessionCount() const
