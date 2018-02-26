@@ -39,7 +39,7 @@ class SingleLoopTCPEngine:public TCP,public ITCPEngine,public ZQ::common::Native
 {
 public:
 	SingleLoopTCPEngine(const std::string& ip,int port,ZQ::common::Log& logger,TCPServer& server)
-		:ITCPEngine(ip,port,logger,server)
+		:ITCPEngine(ip,port,logger,server),_loop(false)
 	{
 
 	}
