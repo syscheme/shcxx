@@ -13,8 +13,20 @@
 #include <vector>
 #include <functional>
 
+#ifdef ZQ_OS_MSWIN
+#  ifdef LIBHTTP_EXPORTS
+#    define ZQ_HTTP_API __EXPORT
+#  else
+#    define ZQ_HTTP_API __DLLRTL
+#  endif
+#else
+#  define ZQ_HTTP_API
+#endif // OS
+
 namespace ZQ {
 namespace eloop {
+
+class ZQ_HTTP_API HttpMessage;
 
 #define CRLF "\r\n"
 #define ChunkTail "0\r\n\r\n"

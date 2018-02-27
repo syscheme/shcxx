@@ -128,7 +128,7 @@ protected:
 	virtual bool	onHeadersEnd( const HttpMessage::Ptr msg);
 	virtual bool	onBodyData( const char* data, size_t size);
 	virtual void	onMessageCompleted();
-	virtual void	OnClose();
+	//virtual void	OnClose();
 
 private:
 	// NOTE: DO NOT INVOKE THIS METHOD unless you known what you are doing

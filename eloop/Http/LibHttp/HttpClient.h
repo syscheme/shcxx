@@ -6,6 +6,8 @@
 
 namespace ZQ {
 namespace eloop {
+
+class ZQ_HTTP_API HttpClient;
 // ---------------------------------------
 // class HttpClient
 // ---------------------------------------

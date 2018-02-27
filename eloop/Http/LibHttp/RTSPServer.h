@@ -10,9 +10,10 @@
 namespace ZQ {
 namespace eloop {
 
-class RTSPServer;
-class RTSPHandler;
-class RTSPPassiveConn;
+class ZQ_HTTP_API RTSPServer;
+class ZQ_HTTP_API RTSPHandler;
+class ZQ_HTTP_API RTSPPassiveConn;
+//class ZQ_HTTP_API RTSPApplication;
 
 #define DEFAULT_SITE "."
 

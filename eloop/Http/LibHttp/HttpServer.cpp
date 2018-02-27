@@ -215,7 +215,16 @@ void HttpPassiveConn::onMessageCompleted()
 
 	_Handler->onMessageCompleted();
 }
-
+/*
+void HttpPassiveConn::OnClose()
+{
+	HttpServer* pSev = dynamic_cast<HttpServer*>(_tcpServer);
+	if (pSev != NULL)
+		pSev->delConn(this);
+	_Handler = NULL;
+	delete this;
+}
+*/
 // ---------------------------------------
 // class HttpServer
 // ---------------------------------------

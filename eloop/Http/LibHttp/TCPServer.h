@@ -1,7 +1,6 @@
 #ifndef __TCP_SERVER_H__
 #define __TCP_SERVER_H__
 
-
 #include "FileLog.h"
 #include "eloop_net.h"
 #include <NativeThread.h>
@@ -10,8 +9,23 @@
 #include <set>
 #include <string>
 
+#include "ZQ_common_conf.h"
+
+#ifdef ZQ_OS_MSWIN
+#  ifdef LIBHTTP_EXPORTS
+#    define ZQ_HTTP_API __EXPORT
+#  else
+#    define ZQ_HTTP_API __DLLRTL
+#  endif
+#else
+#  define ZQ_HTTP_API
+#endif // OS
+
 namespace ZQ {
 namespace eloop {
+
+class ZQ_HTTP_API TCPServer;
+class ZQ_HTTP_API TCPConnection;
 
 class ITCPEngine;
 class TCPServer;

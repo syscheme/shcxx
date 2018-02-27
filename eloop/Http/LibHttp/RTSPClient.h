@@ -6,6 +6,7 @@
 namespace ZQ {
 namespace eloop {
 
+class ZQ_HTTP_API RTSPClient;
 // ---------------------------------------
 // class RTSPClient
 // ---------------------------------------

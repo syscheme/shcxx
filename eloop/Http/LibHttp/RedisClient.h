@@ -49,11 +49,10 @@
 
 #include "Log.h"
 #include "Pointer.h"
-#include "eloop_net.h"
 #include "NativeThreadPool.h"
 #include "TimeUtil.h"
-#include "Pointer.h"
 #include "Evictor.h"
+#include "eloop_net.h"
 
 #include <map>
 #include <vector>
