@@ -479,7 +479,6 @@ public:
 
 	virtual void OnConnected(ElpeError status) { _client.OnConnected(status);	}
 	virtual void OnWrote(int status)  {	OnAsyncSend(); _client.OnWrote(status);	}
-	virtual void OnShutdown(ElpeError status)	{ _client.OnShutdown(status);	}
 	virtual void OnClose()	{	_client.OnCloseConn(); }
 	virtual void OnMessage(std::string& msg) {	_client.OnMessage(msg); }
 	virtual void onError( int error, const char* errorDescription ) {	_client.onError(error, errorDescription); }
@@ -661,14 +660,6 @@ void LIPCClient::close()
 		_timer->close();
 }
 
-int LIPCClient::shutdown()
-{
-	if (_conn == NULL)
-		return -1;
-
-	return _conn->shutdown();
-}
-
 void LIPCClient::OnTimer()
 {
 	std::vector<uint> expiredList;
@@ -825,18 +816,6 @@ void LIPCClient::OnConnected(ZQ::eloop::Handle::ElpeError status)
 	}
 	read_start();
 	_isConn = true;
-}
-
-void LIPCClient::OnShutdown(ZQ::eloop::Handle::ElpeError status)
-{
-	if (status != ZQ::eloop::Handle::elpeSuccess)
-	{
-		std::string desc = "shutdown error:";
-		desc.append(ZQ::eloop::Handle::errDesc(status));
-		onError(status,desc.c_str());
-		return;
-	}
-	close();
 }
 
 void LIPCClient::OnClose()
