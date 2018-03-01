@@ -252,8 +252,8 @@ public:
 		read_start();
 		_service.addConn(this);
 
-		//if (TRACE_LEVEL_FLAG)
-			_service._log(ZQ::common::Log::L_DEBUG, CLOGFMT(PassiveConn, "new passive conn"));
+		if (INFO_LEVEL_FLAG)
+			_service._log(ZQ::common::Log::L_INFO, CLOGFMT(PassiveConn, "new passive conn"));
 	}
 
 	virtual void OnMessage(std::string& msg)
