@@ -18,6 +18,37 @@ class ZQ_HTTP_API RTSPPassiveConn;
 #define DEFAULT_SITE "."
 
 // ---------------------------------------
+// class RTSPResponse
+// ---------------------------------------
+class RTSPResponse : public RTSPMessage
+{
+public:
+	typedef ZQ::common::Pointer<RTSPResponse> Ptr;
+
+	RTSPResponse(RTSPConnection& conn, const RTSPMessage::Ptr& req)
+		: _conn(conn), RTSPMessage(RTSPMessage::RTSP_MSG_RESPONSE)
+	{
+		// this->method = req->method();
+		// this->cSeq = req->cSeq();
+	}
+
+	~RTSPResponse(){}
+
+	void post(int statusCode) 
+	{
+		if (statusCode>100)
+			code(statusCode);
+		std::string respMsg = toRaw();
+		// TODO: _conn._logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), _conn.hint().c_str(),true);
+		_conn.write(respMsg.c_str(), respMsg.size());
+	}
+
+private:
+	RTSPConnection& _conn; // TODO: what if the connection is lost piror to response sending
+};
+
+
+// ---------------------------------------
 // class RTSPHandler
 // ---------------------------------------
 class RTSPHandler: public virtual ZQ::common::SharedObject
@@ -70,19 +101,19 @@ protected: // hatched by HttpApplication
 
 	// non session-based requests
 	//@return RTSP status code
-	virtual RTSPMessage::ExtendedErrCode onOptions(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
-	virtual RTSPMessage::ExtendedErrCode onDescribe(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
-	virtual RTSPMessage::ExtendedErrCode onAnnounce(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp);
+	virtual RTSPMessage::ExtendedErrCode onOptions(const RTSPMessage::Ptr& req, RTSPResponse::Ptr& resp);
+	virtual RTSPMessage::ExtendedErrCode onDescribe(const RTSPMessage::Ptr& req, RTSPResponse::Ptr& resp);
+	virtual RTSPMessage::ExtendedErrCode onAnnounce(const RTSPMessage::Ptr& req, RTSPResponse::Ptr& resp);
 
 	// session-based requests
 	//@return RTSP status code
-	virtual RTSPMessage::ExtendedErrCode procSessionSetup(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionPlay(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionPause(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionTeardown(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionAnnounce(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionDescribe(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionGetParameter(const RTSPMessage::Ptr& req, RTSPMessage::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionSetup(const RTSPMessage::Ptr& req, RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionPlay(const RTSPMessage::Ptr& req, RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionPause(const RTSPMessage::Ptr& req, RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionTeardown(const RTSPMessage::Ptr& req, RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionAnnounce(const RTSPMessage::Ptr& req, RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionDescribe(const RTSPMessage::Ptr& req, RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionGetParameter(const RTSPMessage::Ptr& req, RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess);
 
 	virtual std::string mediaSDP(const std::string& mid) {return "";}
 

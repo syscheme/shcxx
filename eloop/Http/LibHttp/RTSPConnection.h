@@ -80,6 +80,8 @@ public:
 		Err_SendFailed     = -103,
 		Err_RequestTimeout = -104,
 
+		// async handling
+		Err_AsyncHandling  = -200,
 	} ExtendedErrCode;
 
 	typedef enum _AnnounceCode
