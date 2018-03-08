@@ -10,6 +10,7 @@
 #include <string>
 
 #include "ZQ_common_conf.h"
+#include "Guid.h"
 
 #ifdef ZQ_OS_MSWIN
 #  ifdef LIBHTTP_EXPORTS
@@ -35,10 +36,23 @@ class TCPServer;
 class TCPConnection : public TCP
 {
 public:
-	TCPConnection(ZQ::common::Log& log, TCPServer* tcpServer = NULL):_Logger(log), _isConnected(false), _tcpServer(tcpServer){}
+	TCPConnection(ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL):_Logger(log), _isConnected(false), _tcpServer(tcpServer)
+	{
+		if (connId != NULL)
+			_connId = connId;
+		else
+		{
+			char buf[80];
+			ZQ::common::Guid guid;
+			guid.create();
+			guid.toCompactIdstr(buf, sizeof(buf) -2);
+			_connId = buf;
+		}
+	}
 
 	bool start();
 	bool stop();
+	const std::string& connId() const { return _connId; }
 	const std::string& hint() const { return _Hint; }
 
 protected:
@@ -48,7 +62,7 @@ protected:
 	// called after buffer has been written into the stream
 	virtual void OnWrote(int status) {}
 	// called after buffer has been read from the stream
-	virtual void OnRead(ssize_t nread, const char *buf) {printf("------------\n");} // TODO: uv_buf_t is unacceptable to appear here, must take a new manner known in this C++ wrapper level
+	virtual void OnRead(ssize_t nread, const char *buf) {} // TODO: uv_buf_t is unacceptable to appear here, must take a new manner known in this C++ wrapper level
 
 
 private:
@@ -63,6 +77,7 @@ protected:
 	TCPServer*				_tcpServer;
 	std::string				_Hint;
 	bool					_isConnected;
+	std::string				_connId;
 };
 
 
@@ -127,6 +142,7 @@ public:
 
 	void	addConn( TCPConnection* servant );
 	void	delConn( TCPConnection* servant );
+	TCPConnection*	findConn( const std::string& connId);
 
 	int64 keepAliveTimeout() const
 	{
@@ -140,9 +156,9 @@ public:
 	ZQ::common::Log&	_Logger;
 
 private:
-	typedef std::set<TCPConnection*>	ConnList;
+	typedef std::map<std::string, TCPConnection*>	ConnMAP;
 
-	ConnList				_PassiveConn;
+	ConnMAP					_PassiveConn;
 	ZQ::common::Mutex		_connCountLock;
 	SYS::SingleObject		_sysWakeUp;
 	ITCPEngine*				_engine;

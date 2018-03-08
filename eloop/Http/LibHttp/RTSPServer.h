@@ -25,26 +25,40 @@ class RTSPResponse : public RTSPMessage
 public:
 	typedef ZQ::common::Pointer<RTSPResponse> Ptr;
 
-	RTSPResponse(RTSPConnection& conn, const RTSPMessage::Ptr& req)
-		: _conn(conn), RTSPMessage(RTSPMessage::RTSP_MSG_RESPONSE)
+	RTSPResponse(TCPServer* sev, const std::string& connId, const RTSPMessage::Ptr& req)
+		: _sev(sev), _connId(connId), RTSPMessage(RTSPMessage::RTSP_MSG_RESPONSE)
 	{
 		// this->method = req->method();
-		// this->cSeq = req->cSeq();
+		cSeq(req->cSeq());
 	}
 
 	~RTSPResponse(){}
 
-	void post(int statusCode) 
+	void post(int statusCode,RTSPConnection& conn) 
 	{
 		if (statusCode>100)
 			code(statusCode);
 		std::string respMsg = toRaw();
 		// TODO: _conn._logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), _conn.hint().c_str(),true);
-		_conn.write(respMsg.c_str(), respMsg.size());
+
+		conn.write(respMsg.c_str(), respMsg.size());
 	}
 
+	void asyncPost(int statusCode) 
+	{
+		if (statusCode>100)
+			code(statusCode);
+		std::string respMsg = toRaw();
+		// TODO: _conn._logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), _conn.hint().c_str(),true);
+
+		//_conn.write(respMsg.c_str(), respMsg.size());
+		//_sev.AsyncSend();
+	}
+
+
 private:
-	RTSPConnection& _conn; // TODO: what if the connection is lost piror to response sending
+	std::string _connId; // TODO: what if the connection is lost piror to response sending
+	TCPServer* _sev;
 };
 
 

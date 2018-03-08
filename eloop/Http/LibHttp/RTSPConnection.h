@@ -15,10 +15,15 @@ namespace eloop {
 
 #define RTSP_RET_SUCC(_RET) (_RET>=200 && _RET <300)
 
+#define LINE_TERM					"\r\n"
+
 #define	Header_CSeq					"CSeq"
 #define Header_Server				"Server"
 #define	Header_Session				"Session"
 #define	Header_Transport			"Transport"
+
+#define Header_UserAgent			"User-Agent"
+#define Header_ContentType			"Content-Type"
 #define Header_ContentLength		"Content-Length"
 
 
@@ -283,22 +288,13 @@ public:
 
 	virtual ~RTSPConnection(){}
 
-	int64 id() const
-	{
-		ZQ::common::MutexGuard g(_lkConnId);
-		return _connId;
-	}
-
 	int sendRequest(RTSPMessage::Ptr req, int64 timeout = 500,bool expectResp = true);
 
 protected:
-	RTSPConnection(ZQ::common::Log& log, TCPServer* tcpServer = NULL)
-		:TCPConnection(log,tcpServer),_byteSeen(0)
+	RTSPConnection(ZQ::common::Log& log, const char* connId = NULL,TCPServer* tcpServer = NULL)
+		:TCPConnection(log,connId,tcpServer),_byteSeen(0)
 	{
 		_lastCSeq.set(1);
-
-		ZQ::common::MutexGuard g(_lkConnId);
-		_connId++;
 	}
 
 	virtual void OnConnected(ElpeError status);
@@ -365,8 +361,6 @@ private:
 private:
 	RTSP_PARSER_MSG	 _currentParseMsg;
 	int				 _byteSeen;
-	static int64	 _connId;
-	static ZQ::common::Mutex _lkConnId;
 };
 
 } }//namespace ZQ::eloop

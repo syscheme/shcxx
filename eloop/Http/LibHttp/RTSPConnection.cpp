@@ -10,9 +10,6 @@ namespace eloop {
 //-------------------------------------
 //	class RTSPConnection
 //-------------------------------------
-ZQ::common::Mutex RTSPConnection::_lkConnId;
-int64 RTSPConnection::_connId = 0;
-
 void RTSPConnection::OnConnected(ElpeError status)
 {
 	if (status != ZQ::eloop::Handle::elpeSuccess)

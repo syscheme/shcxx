@@ -13,7 +13,7 @@ namespace eloop {
 class RTSPPassiveConn : public RTSPConnection
 {
 public:
-	RTSPPassiveConn(ZQ::common::Log& log, TCPServer* tcpServer):RTSPConnection(log, tcpServer){}
+	RTSPPassiveConn(ZQ::common::Log& log, TCPServer* tcpServer):RTSPConnection(log, NULL,tcpServer){}
 	~RTSPPassiveConn(){}
 
 	virtual void onError( int error,const char* errorDescription );
@@ -188,7 +188,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 {
 	int64 stampStart = ZQ::eloop::usStampNow();
 
-	RTSPResponse::Ptr resp = new RTSPResponse(*this, req);
+	RTSPResponse::Ptr resp = new RTSPResponse(_tcpServer,_connId, req);
 	//std::string method = req->method();
 	//resp->cSeq(req->cSeq());
 	
@@ -273,7 +273,6 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 		if (0 == req->method().compare(Method_PAUSE))    { respCode = _rtspHandler->procSessionPause(req, resp, pSess);    if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
 		if (0 == req->method().compare(Method_ANNOUNCE)) { respCode = _rtspHandler->procSessionAnnounce(req, resp, pSess); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
 		if (0 == req->method().compare(Method_DESCRIBE)) { respCode = _rtspHandler->procSessionDescribe(req, resp, pSess); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
-
 		if (0 == req->method().compare(Method_TEARDOWN)) 
 		{ 
 			respCode = _rtspHandler->procSessionTeardown(req, resp, pSess); 
@@ -292,7 +291,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 	//std::string respMsg = resp->toRaw();
 	//_Logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), hint().c_str(),true);
 	//write(respMsg.c_str(), respMsg.size());
-	resp->post(respCode);
+	resp->post(respCode,*this);
 
 	int64 elapsed = ZQ::eloop::usStampNow() - stampStart;
 	if (_tcpServer)

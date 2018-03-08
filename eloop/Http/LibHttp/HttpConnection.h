@@ -98,7 +98,7 @@ public:
 	virtual void onRespComplete() {_RespState = RESP_COMPLETE;}	
 
 protected:
-	HttpConnection(bool clientSide,ZQ::common::Log& logger,TCPServer* tcpServer = NULL);
+	HttpConnection(bool clientSide,ZQ::common::Log& logger,const char* connId = NULL,TCPServer* tcpServer = NULL);
 	void reset( IHttpParseSink* callback = NULL);
 	
 	virtual void OnRead(ssize_t nread, const char *buf);

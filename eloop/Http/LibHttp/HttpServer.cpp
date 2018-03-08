@@ -23,7 +23,7 @@ void HttpMonitorTimer::OnTimer()
 // class HttpPassiveConn
 // ---------------------------------------
 HttpPassiveConn::HttpPassiveConn(ZQ::common::Log& logger,TCPServer* tcpServer)
-		:HttpConnection(false,logger,tcpServer),
+		:HttpConnection(false,logger, NULL,tcpServer),
 		_Handler(NULL),
 		_keepAlive_Timeout(tcpServer->keepAliveTimeout()),
 		_startTime(0),

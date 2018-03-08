@@ -381,7 +381,7 @@ bool TCPConnection::start()
 	initHint();
 	if (_tcpServer)
 	{
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"new connection from [%s]"),_Hint.c_str());
+		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"new connection connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
 		_tcpServer->addConn(this);
 	}
 	return onStart();
@@ -418,6 +418,7 @@ void TCPConnection::OnClose()
 {
 	if (_tcpServer)
 		_tcpServer->delConn(this);
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"close connection connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
 	delete this;
 }
 
@@ -460,9 +461,9 @@ bool TCPServer::stop()
 	}
 	else
 	{
-		ConnList::iterator itconn;
+		ConnMAP::iterator itconn;
 		for(itconn = _PassiveConn.begin();itconn != _PassiveConn.end();itconn++)
-			(*itconn)->shutdown();
+			itconn->second->shutdown();
 	}
 
 	_sysWakeUp.wait(-1);
@@ -477,20 +478,29 @@ bool TCPServer::stop()
 void TCPServer::addConn( TCPConnection* servant )
 {
 	ZQ::common::MutexGuard gd(_connCountLock);
-	_PassiveConn.insert(servant);
+	_PassiveConn[servant->connId()] = servant;
 }
 
 void TCPServer::delConn( TCPConnection* servant )
 {
 	ZQ::common::MutexGuard gd(_connCountLock);
-	_PassiveConn.erase(servant);
+	_PassiveConn.erase(servant->connId());
 	if (!_isStart&&_PassiveConn.empty())
 		_engine->stop();
 }
 
+TCPConnection* TCPServer::findConn( const std::string& connId)
+{
+	ZQ::common::MutexGuard gd(_connCountLock);
+	ConnMAP::iterator it = _PassiveConn.find(connId);
+	if (it != _PassiveConn.end())
+		return it->second;
+	return NULL;
+}
+
 TCPConnection* TCPServer::createPassiveConn()
 {
-	return new TCPConnection(_Logger,this);
+	return new TCPConnection(_Logger,NULL,this);
 }
 
 void TCPServer::single()
