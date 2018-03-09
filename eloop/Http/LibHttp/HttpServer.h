@@ -31,6 +31,8 @@ public:
 	typedef ZQ::common::Pointer<HttpHandler> Ptr;
 	virtual ~HttpHandler() {}
 
+	HttpPassiveConn& conn() { return _conn; }
+
 	// ---------------------------------------
 	// interface IBaseApplication
 	// ---------------------------------------
@@ -58,14 +60,13 @@ public:
 
 	typedef ZQ::common::Pointer<IBaseApplication> AppPtr;
 
-
 protected: // hatched by HttpApplication
 	HttpHandler(IBaseApplication& app, HttpPassiveConn& conn, const HttpHandler::Properties& dirProps = HttpHandler::Properties())
 		: _conn(conn), _app(app), _dirProps(dirProps)
 	{}
 
-	virtual void	onHttpDataSent(size_t size){}
-	virtual void	onHttpDataReceived( size_t size ){}
+	virtual void	onHttpDataSent(size_t size) {}
+	virtual void	onHttpDataReceived( size_t size ) {}
 
 	HttpPassiveConn& _conn;
 	IBaseApplication& _app;
@@ -116,8 +117,8 @@ public:
 	void			stop();
 
 	bool			keepAlive(){return _keepAlive_Timeout>0;}
-	virtual void onRespComplete();
 	void 			errorResponse( int code );
+	virtual void    onRespComplete();
 
 protected:
 
@@ -152,6 +153,37 @@ private:
 
 	std::string					_Hint;
 // 	int64						_lastRespTime;
+};
+
+// ---------------------------------------
+// class HTTPResponse
+// ---------------------------------------
+class HTTPResponse : public HttpMessage
+{
+public:
+	typedef ZQ::common::Pointer<HTTPResponse> Ptr;
+
+	HTTPResponse(HttpHandler::Ptr handler)
+		: _handler(handler), HttpMessage(HttpMessage::MSG_RESPONSE)
+	{
+	}
+
+	virtual ~HTTPResponse() {}
+
+	void post(int statusCode) 
+	{
+		if (statusCode>100)
+			code(statusCode);
+
+		std::string respMsg = toRaw();
+		// TODO: _conn._logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), _conn.hint().c_str(),true);
+
+		if (_handler)
+			_handler->conn().write(respMsg.c_str(), respMsg.size());
+	}
+
+private:
+	HttpHandler::Ptr _handler;
 };
 
 // ---------------------------------------
