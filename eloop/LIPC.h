@@ -199,7 +199,7 @@ public:
 	LIPCService(ZQ::common::Log& log) : _log(log),_isOnClose(false) {}
 
 	uint32	getVerbosity() { return (ZQ::common::Log::loglevel_t)_log.getVerbosity() | (_verboseFlags<<8); }
-	void    setVerbosity(uint32 verbose = (0 | ZQ::common::Log::L_ERROR)) { _log.setVerbosity(verbose & 0x0f); _verboseFlags =verbose>>8; }
+	void    setVerbosity(uint32 verbose = (0 | ZQ::common::Log::L_ERROR));
 
 	int init(ZQ::eloop::Loop &loop, int ipc=1);
 //	PipeClientList& getPipeClientList() { return _clients; }
@@ -262,7 +262,6 @@ public:
 	int read_start();
 	int read_stop();
 	int sendRequest(const std::string& methodName, LIPCRequest::Ptr req, int64 timeout = 500, bool bAsync = true, bool expectResp = true);		//default timeout = 500ms
-	int shutdown();
 	void close();
 	bool isConnect(){ return _isConn;}
 
@@ -276,7 +275,6 @@ protected:
 protected: // redirect from UnixSocket
 	virtual void OnConnected(ZQ::eloop::Handle::ElpeError status);
 	virtual void OnWrote(int status) {}
-	virtual void OnShutdown(ZQ::eloop::Handle::ElpeError status);
 	virtual void OnClose();
 	virtual void onError( int error, const char* errorDescription );
 
