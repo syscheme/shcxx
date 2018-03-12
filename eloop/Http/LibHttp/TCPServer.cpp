@@ -371,9 +371,35 @@ private:
 	int		_quitCount;
 };
 
+// ------------------------------------------------
+// class AsyncSender
+// ------------------------------------------------
+class AsyncTCPSender : public ZQ::eloop::Async
+{
+public:
+	AsyncTCPSender(TCPConnection& conn):_conn(conn){}
+
+protected:
+	virtual void OnAsync() {_conn.OnAsyncSend();}
+	virtual void OnClose(){_conn.OnCloseAsync();}
+
+private:
+	TCPConnection& _conn;
+};
+
 // ---------------------------------------
 // class TCPConnection
 // ---------------------------------------
+int TCPConnection::init(Loop &loop) {
+	if (_async == NULL)
+	{
+		_async = new AsyncTCPSender(*this);
+		_async->init(loop);
+	}
+
+	return ZQ::eloop::TCP::init(loop);
+}
+
 bool TCPConnection::start()
 {
 	_isConnected = true;
@@ -389,6 +415,11 @@ bool TCPConnection::start()
 
 bool TCPConnection::stop()
 {
+	if (_async != NULL)
+	{
+		_async->close();
+		return true;
+	}
 	_isConnected = false;
 	shutdown();
 	return onStop();
@@ -430,6 +461,51 @@ void TCPConnection::OnShutdown(ElpeError status)
 	close();
 }
 
+int TCPConnection::AsyncSend(const std::string& msg)
+{
+	{
+		ZQ::common::MutexGuard gd(_lkSendMsgList);
+		_sendMsgList.push_back(msg);
+	}
+
+	if (_async != NULL)
+		return _async->send();
+
+	return -1;
+}
+
+void TCPConnection::OnAsyncSend()
+{
+	int i = 1000;
+	ZQ::common::MutexGuard gd(_lkSendMsgList);
+	while (!_sendMsgList.empty() && i>0)
+	{
+		std::string asyncMsg = _sendMsgList.front();
+		_sendMsgList.pop_front();
+
+		int ret = write(asyncMsg.c_str(), asyncMsg.size());
+		if (ret < 0)
+		{
+			std::string desc = "send msg :";
+			desc.append(asyncMsg);
+			desc.append(" errDesc:");
+			desc.append(errDesc(ret));
+			onError(ret,desc.c_str());
+		}
+		i--;
+	}
+}
+
+void TCPConnection::OnCloseAsync()
+{
+	OnAsyncSend();
+	if (_async != NULL)
+	{
+		delete _async;
+		_async = NULL;
+	}
+	stop();
+}
 
 // ---------------------------------------
 // class TCPServer

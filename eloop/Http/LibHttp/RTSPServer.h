@@ -34,25 +34,26 @@ public:
 
 	~RTSPResponse(){}
 
-	void post(int statusCode,RTSPConnection& conn) 
+	void post(int statusCode) 
 	{
 		if (statusCode>100)
 			code(statusCode);
 		std::string respMsg = toRaw();
 		// TODO: _conn._logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), _conn.hint().c_str(),true);
 
-		conn.write(respMsg.c_str(), respMsg.size());
-	}
-
-	void asyncPost(int statusCode) 
-	{
-		if (statusCode>100)
-			code(statusCode);
-		std::string respMsg = toRaw();
-		// TODO: _conn._logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), _conn.hint().c_str(),true);
-
-		//_conn.write(respMsg.c_str(), respMsg.size());
-		//_sev.AsyncSend();
+		TCPConnection* conn = _sev->findConn(_connId);
+		if (conn == NULL)
+		{
+			_sev->_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(RTSPResponse, "post() conn[%s] already closed"),_connId.c_str());
+			return;
+		}
+		int ret = conn->AsyncSend(respMsg);
+		if (ret < 0)
+		{
+			conn->onError(ret,ZQ::eloop::Handle::errDesc(ret));
+			return;
+		}
+		_sev->_Logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), conn->hint().c_str(),true);
 	}
 
 

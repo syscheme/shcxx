@@ -30,13 +30,15 @@ class ZQ_HTTP_API TCPConnection;
 
 class ITCPEngine;
 class TCPServer;
+class AsyncTCPSender;
 // ---------------------------------------
 // class TCPConnection
 // ---------------------------------------
 class TCPConnection : public TCP
 {
+	friend class AsyncTCPSender;
 public:
-	TCPConnection(ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL):_Logger(log), _isConnected(false), _tcpServer(tcpServer)
+	TCPConnection(ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL):_Logger(log), _isConnected(false), _async(NULL), _tcpServer(tcpServer)
 	{
 		if (connId != NULL)
 			_connId = connId;
@@ -50,10 +52,15 @@ public:
 		}
 	}
 
+	int init(Loop &loop);
 	bool start();
 	bool stop();
 	const std::string& connId() const { return _connId; }
 	const std::string& hint() const { return _Hint; }
+
+	int AsyncSend(const std::string& msg);
+
+	virtual void onError( int error,const char* errorDescription ) {}
 
 protected:
 	virtual bool onStart(){return true;}
@@ -64,7 +71,6 @@ protected:
 	// called after buffer has been read from the stream
 	virtual void OnRead(ssize_t nread, const char *buf) {} // TODO: uv_buf_t is unacceptable to appear here, must take a new manner known in this C++ wrapper level
 
-
 private:
 	// NOTE: DO NOT INVOKE THIS METHOD unless you known what you are doing
 	void initHint();
@@ -72,12 +78,19 @@ private:
 	virtual void OnClose();
 	virtual void OnShutdown(ElpeError status);
 
+	void OnAsyncSend();
+	void OnCloseAsync();
+
 protected:
 	ZQ::common::Log&		_Logger;
 	TCPServer*				_tcpServer;
 	std::string				_Hint;
 	bool					_isConnected;
 	std::string				_connId;
+
+	ZQ::common::Mutex _lkSendMsgList;
+	std::list<std::string> _sendMsgList;
+	AsyncTCPSender* _async;
 };
 
 
@@ -121,6 +134,7 @@ public:
 		uint64		keepAliveIdleMax;
 		uint64		maxConns;
 	};
+
 public:
 	TCPServer( const ServerConfig& conf,ZQ::common::Log& logger)
 	:_Config(conf),
