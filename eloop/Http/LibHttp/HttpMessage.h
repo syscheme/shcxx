@@ -107,7 +107,7 @@ public:
 	static std::string httpdate( int deltaInSecond = 0 );
 	static std::string uint2hex(unsigned long u, size_t alignLen = 0, char paddingChar = '0');
 
-	HttpMethod method() const;
+	HttpMethod  method() const;
 	void		method(HttpMethod mtd);
 
 	const std::string& url() const;
@@ -123,7 +123,19 @@ public:
 	void queryArgument(const std::string& k, const std::string& v);
 	std::map<std::string, std::string> queryArguments();
 
+	struct caseInsensativeCmp
+	{
+		bool operator()( const std::string& lhr, const std::string& rhs) const {
+#ifdef ZQ_OS_LINUX
+#	define stricmp strcasecmp
+#endif
+			return stricmp(lhr.c_str(),rhs.c_str()) < 0;
+		}
+	};
+
+	typedef std::map<std::string, std::string, caseInsensativeCmp> Headers;
 	const std::string& header( const std::string& key) const;
+	const Headers headers() const { return _Headers; }
 
 	template<typename T>
 	void	header( const std::string& key, const T& value){
@@ -133,6 +145,7 @@ public:
 
 		_Headers[key] = oss.str();
 	}
+
 	void	eraseHeader( const std::string& key );
 
 	bool	keepAlive() const;	//check if keepAlive is set
@@ -150,18 +163,6 @@ public:
 	}
 
 	std::string toRaw(); // generate raw http message, only start line and headers are generated
-
-	struct caseInsensativeCmp
-	{
-		bool operator()( const std::string& lhr, const std::string& rhs) const {
-#ifdef ZQ_OS_LINUX
-#	define stricmp strcasecmp
-#endif
-			return stricmp(lhr.c_str(),rhs.c_str()) < 0;
-		}
-	};
-
-	typedef std::map<std::string,std::string,caseInsensativeCmp> HEADERS;
 
 	inline unsigned int versionMajor() const { return _VerMajor; }
 	inline unsigned int versionMinor() const { return _VerMinor; }
@@ -190,7 +191,7 @@ private:
 
 	unsigned int		_VerMajor;
 	unsigned int		_VerMinor;
-	HEADERS				_Headers;
+	Headers				_Headers;
 	std::map<std::string, std::string> _argument;
 	std::string			_DummyHeaderValue;
 	int64				_BodyLength;//only valid if _bChunked == false

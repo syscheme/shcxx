@@ -250,6 +250,8 @@ public:
 
 	void single();
 
+	const HttpServerConfig& config() { return _Config; }
+
 private:
 	HttpServerConfig		_Config;
 	ZQ::common::Log&		_Logger;
