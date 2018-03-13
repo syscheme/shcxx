@@ -1034,7 +1034,10 @@ Evictor::Item::ObjectPtr RedisEvictor::locate( const Ident& ident )
         {
             Item::Ptr item = itCache->second;
             if (_sink)
+            {
                 _sink->OnDataResponse(ident, item->_data.servant);
+                return NULL;
+            }
         }
     }
 

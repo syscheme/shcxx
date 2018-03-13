@@ -87,7 +87,7 @@ class ZQ_COMMON_API RedisClient;
 class ZQ_COMMON_API RedisCommand;
 class ZQ_COMMON_API RedisEvictor;
 
-#define DEFAULT_ERRORKEY_TTL        (10000)
+#define DEFAULT_ERRORKEY_TTL        (10)   // 10sec
 #define DEFAULT_CLIENT_TIMEOUT      (5000) // 5sec
 #define DEFAULT_CONNECT_TIMEOUT     (3000) // 3sec
 #define MAX_SEND_ERROR_COUNT        (10)
