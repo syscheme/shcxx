@@ -263,7 +263,7 @@ public:
 	//const std::string& getSessionGroup() const { return _sessGroup; }
 */
 
-private:
+protected:
 	std::string		_id;
 	Properties  	_props;
 	// std::string		_sessGroup;

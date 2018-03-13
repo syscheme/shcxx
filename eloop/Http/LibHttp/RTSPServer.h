@@ -34,10 +34,13 @@ public:
 
 	~RTSPResponse(){}
 
-	void post(int statusCode) 
+	void post(int statusCode, const char* desc = NULL) 
 	{
 		if (statusCode>100)
 			code(statusCode);
+		if (desc != NULL)
+			status(desc);
+
 		std::string respMsg = toRaw();
 		// TODO: _conn._logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), _conn.hint().c_str(),true);
 
@@ -185,16 +188,18 @@ public: // about the session management
 		typedef std::map<std::string, Ptr> Map;
 
 	public:
-		Session(const std::string& id): RTSPSession(id) {}
+		Session(RTSPServer& sev, const std::string& id): _sev(sev),RTSPSession(id) {}
 		virtual ~Session() {}
 
 		//virtual bool	setup()    { return false; }
 		//virtual bool	play()     { return false; }
 		//virtual bool	pause()    { return false; }
 		//virtual bool	teardown() { return false; }
+	protected:
+		RTSPServer&		_sev;
 	};
 
-	virtual Session::Ptr createSession(const std::string& sessId) { return new Session(sessId); }
+	virtual Session::Ptr createSession(const std::string& sessId) { return new Session(*this, sessId); }
 	std::string	generateSessionID();
 
 	Session::Ptr findSession(const std::string& sessId);
