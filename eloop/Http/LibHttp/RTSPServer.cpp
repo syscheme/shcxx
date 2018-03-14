@@ -247,6 +247,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 				if (RTSPMessage::Err_AsyncHandling == respCode)
 				{
 					// the request is current being handled async-ly, add the session and quit the processing
+					resp->header(Header_Session,  pSess->id());
 					pSev->addSession(sess);
 					return;
 				}
