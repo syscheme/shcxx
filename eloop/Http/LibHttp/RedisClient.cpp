@@ -507,7 +507,7 @@ void RedisClient::OnError()
 
 void RedisClient::OnRead(ssize_t nread, const char *buf)
 {
-    _log(Log::L_WARNING, CLOGFMT(RedisClient, "OnRead() conn[%s] read size[%d]"), _connDesc, nread);
+    _log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnRead() conn[%s] read size[%d]"), _connDesc, nread);
 
     CommandQueue completedCmds;
     bool bCancelConnection = false;
@@ -763,7 +763,7 @@ void RedisClient::OnWrote( int status )
     {
         _log(Log::L_WARNING, CLOGFMT(RedisClient, "OnWrote() conn[%s] failed"), _connDesc);
     }
-    _log(Log::L_WARNING, CLOGFMT(RedisClient, "OnWrote() conn[%s] success"), _connDesc);
+    _log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnWrote() conn[%s] success"), _connDesc);
 }
 
 // async sending RedisCommands
