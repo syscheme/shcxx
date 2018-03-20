@@ -235,7 +235,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 			// handle if it is a SETUP
 			if (0 == req->method().compare(Method_SETUP)) 
 			{ 
-				RTSPServer::Session::Ptr sess = pSev->createSession(pSev->generateSessionID());
+				RTSPServer::Session::Ptr sess = pSev->createSession();
 				pSess = RTSPSession::Ptr::dynamicCast(sess);
 				if (NULL == pSess)
 				{

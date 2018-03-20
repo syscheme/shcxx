@@ -199,7 +199,12 @@ public: // about the session management
 		RTSPServer&		_sev;
 	};
 
-	virtual Session::Ptr createSession(const std::string& sessId) { return new Session(*this, sessId); }
+	virtual Session::Ptr createSession(const char* sessId = NULL) 
+	{
+		if (sessId == NULL)
+			sessId = generateSessionID().c_str();
+		return new Session(*this, sessId); 
+	}
 	std::string	generateSessionID();
 
 	Session::Ptr findSession(const std::string& sessId);
