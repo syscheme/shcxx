@@ -189,12 +189,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 	int64 stampStart = ZQ::eloop::usStampNow();
 
 	RTSPResponse::Ptr resp = new RTSPResponse(_tcpServer,_connId, req);
-	//std::string method = req->method();
-	//resp->cSeq(req->cSeq());
-	
-	//std::string OnDemandSessionId = req->header("OnDemandSessionId");
-	//if (!OnDemandSessionId.empty())
-	//	resp->header("OnDemandSessionId", OnDemandSessionId);
+
 	int respCode =500;
 
 	do {

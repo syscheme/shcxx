@@ -28,7 +28,7 @@ public:
 	RTSPResponse(TCPServer* sev, const std::string& connId, const RTSPMessage::Ptr& req)
 		: _sev(sev), _connId(connId), RTSPMessage(RTSPMessage::RTSP_MSG_RESPONSE)
 	{
-		// this->method = req->method();
+		header(Header_MethodCode, req->method());
 		cSeq(req->cSeq());
 	}
 
@@ -57,6 +57,11 @@ public:
 			return;
 		}
 		_sev->_Logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), conn->hint().c_str(),true);
+	}
+
+	TCPConnection* getConn()
+	{
+		return _sev->findConn(_connId);
 	}
 
 

@@ -22,6 +22,7 @@ namespace eloop {
 #define	Header_Session				"Session"
 #define	Header_Transport			"Transport"
 
+#define	Header_MethodCode			"Method-Code"
 #define Header_UserAgent			"User-Agent"
 #define Header_ContentType			"Content-Type"
 #define Header_ContentLength		"Content-Length"
