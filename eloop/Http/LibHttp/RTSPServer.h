@@ -166,7 +166,7 @@ public:
 // ---------------------------------------
 // class RTSPServer
 // ---------------------------------------
-class RTSPServer : public TCPServer  //:public ZQ::eloop::Timer
+class RTSPServer : public TCPServer
 {
 public:
 	RTSPServer( const TCPServer::ServerConfig& conf, ZQ::common::Log& logger, uint32 maxSess = 10000)
@@ -220,11 +220,6 @@ public: // about the session management
 
 	void setMaxSession(uint32 maxSession);
 	uint32 getMaxSession() const;
-
-protected:
-	virtual void OnTimer() {}
-
-
 private:
 
 	typedef struct _MountDir

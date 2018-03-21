@@ -317,6 +317,8 @@ protected: // impl of RTSPParseSink
 	virtual void OnRequestPrepared(RTSPMessage::Ptr req) {}
 	virtual void OnRequestDone(int cseq, int ret) {}
 
+	virtual void OnWatchDog();
+
 private:
 	typedef struct rtsp_parser_msg
 	{

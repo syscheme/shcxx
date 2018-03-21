@@ -28,17 +28,48 @@ namespace eloop {
 class ZQ_HTTP_API TCPServer;
 class ZQ_HTTP_API TCPConnection;
 
+//-------------------------------------
+//	class watchDog
+//-------------------------------------
+class IWatchDog
+{
+	friend class watchDogTimer;
+protected:
+	virtual void OnWatchDog() = 0;
+	virtual void OnWatchDogClose() = 0;
+};
+
+//-------------------------------------
+//	class watchDogTimer
+//-------------------------------------
+class watchDogTimer : public ZQ::eloop::Timer
+{
+public:
+	watchDogTimer(IWatchDog* dog) {_watchDogVec.push_back(dog);}
+
+	virtual void OnTimer();
+	virtual void OnClose();
+	void addWatchDog(IWatchDog* whDog);
+	void delWatchDog(IWatchDog* whDog);
+
+private:
+	std::vector<IWatchDog*>	_watchDogVec;
+	ZQ::common::Mutex		_watchDogLock;
+};
+
+
 class ITCPEngine;
 class TCPServer;
 class AsyncTCPSender;
 // ---------------------------------------
 // class TCPConnection
 // ---------------------------------------
-class TCPConnection : public TCP
+class TCPConnection : public TCP, public IWatchDog 
 {
 	friend class AsyncTCPSender;
 public:
-	TCPConnection(ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL):_Logger(log), _isConnected(false), _async(NULL), _tcpServer(tcpServer)
+	TCPConnection(ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL)
+		:_Logger(log), _isConnected(false), _async(NULL), _tcpServer(tcpServer), _watchDog(NULL)
 	{
 		if (connId != NULL)
 			_connId = connId;
@@ -62,6 +93,10 @@ public:
 
 	virtual void onError( int error,const char* errorDescription ) {}
 
+	void setWatchDog(watchDogTimer* watchDog)	{ _watchDog = watchDog; }
+	virtual void OnWatchDog() {}
+	virtual void OnWatchDogClose() {}
+
 protected:
 	virtual bool onStart(){return true;}
 	virtual bool onStop(){return true;}
@@ -69,6 +104,7 @@ protected:
 	// called after buffer has been written into the stream
 	virtual void OnWrote(int status) {}
 	// called after buffer has been read from the stream
+	
 	virtual void OnRead(ssize_t nread, const char *buf) {} // TODO: uv_buf_t is unacceptable to appear here, must take a new manner known in this C++ wrapper level
 
 private:
@@ -84,6 +120,7 @@ private:
 protected:
 	ZQ::common::Log&		_Logger;
 	TCPServer*				_tcpServer;
+	watchDogTimer*			_watchDog;
 	std::string				_Hint;
 	bool					_isConnected;
 	std::string				_connId;
@@ -97,7 +134,7 @@ protected:
 // ---------------------------------------
 // class TCPServer
 // ---------------------------------------
-class TCPServer
+class TCPServer//, public IWatchDog
 {
 public:
 	enum ServerMode
@@ -121,6 +158,7 @@ public:
 			maxConns 				= 100 * 1000;
 			mode					= DEFAULT_MODE;
 			threadCount				= 4;
+			watchDogInterval		= 5;		//ms;
 		}
 
 		std::string serverName;
@@ -133,6 +171,7 @@ public:
 		uint64		keepAliveIdleMin;
 		uint64		keepAliveIdleMax;
 		uint64		maxConns;
+		uint64		watchDogInterval;
 	};
 
 public:

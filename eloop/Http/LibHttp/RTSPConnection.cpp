@@ -93,20 +93,23 @@ int RTSPConnection::sendRequest(RTSPMessage::Ptr req, int64 timeout, bool expect
 	uint cseq = lastCSeq();
 	req->cSeq(cseq);
 
-	AwaitRequest ar;
-	ar.req = req;
-	_timeout = (timeout > 0)?timeout:_timeout;
-	ar.expiration = ZQ::common::now() + _timeout;
-
+	if (expectResp)
 	{
-		ZQ::common::MutexGuard g(_lkAwaits);
-		_awaits.insert(AwaitRequestMap::value_type(req->cSeq(), ar));
+		AwaitRequest ar;
+		ar.req = req;
+		_timeout = (timeout > 0)?timeout:_timeout;
+		ar.expiration = ZQ::common::now() + _timeout;
+
+		{
+			ZQ::common::MutexGuard g(_lkAwaits);
+			_awaits.insert(AwaitRequestMap::value_type(req->cSeq(), ar));
+		}
 	}
 
 	OnRequestPrepared(req);
 	std::string reqStr = req->toRaw();
 	int ret = write(reqStr.c_str(), reqStr.size());
-	_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPClient, "sendRequest() conn[%s] msg[%s]"), hint().c_str(),reqStr.c_str());
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPConnection, "sendRequest() conn[%s] msg[%s]"), hint().c_str(),reqStr.c_str());
 
 	if (ret < 0)
 	{
@@ -397,6 +400,28 @@ void RTSPConnection::OnWrote(int status)
 	}
 
 	onDataSent(status);
+}
+
+void RTSPConnection::OnWatchDog()
+{
+	std::vector<uint> expiredList;
+
+	{
+		ZQ::common::MutexGuard g(_lkAwaits);
+		for (AwaitRequestMap::iterator itW = _awaits.begin(); itW != _awaits.end();)
+		{
+			if (itW->second.expiration < ZQ::common::now())
+			{
+				expiredList.push_back(itW->first);
+				_awaits.erase(itW++);
+				continue;
+			}
+			itW++;
+		}
+	} // end of _lkAwaits
+
+	for (size_t i =0; i < expiredList.size(); i++)
+		OnRequestDone(expiredList[i], RtspReqTimeout);
 }
 
 } }//namespace ZQ::eloop

@@ -4,6 +4,39 @@
 namespace ZQ {
 namespace eloop {
 
+
+//-------------------------------------
+//	class watchDogTimer
+//-------------------------------------
+void watchDogTimer::OnTimer() 
+{
+	ZQ::common::MutexGuard gd(_watchDogLock);
+	for (int i=0; i<_watchDogVec.size();i++)
+		_watchDogVec[i]->OnWatchDog();
+}
+
+void watchDogTimer::OnClose()
+{
+	ZQ::common::MutexGuard gd(_watchDogLock);
+	for (int i=0; i<_watchDogVec.size();i++)
+		_watchDogVec[i]->OnWatchDogClose();
+}
+
+void watchDogTimer::addWatchDog(IWatchDog* whDog)
+{
+	ZQ::common::MutexGuard gd(_watchDogLock);
+	_watchDogVec.push_back(whDog);
+}
+void watchDogTimer::delWatchDog(IWatchDog* whDog)
+{
+	ZQ::common::MutexGuard gd(_watchDogLock);
+	for (std::vector<IWatchDog*>::iterator it= _watchDogVec.begin();it != _watchDogVec.end();it++)
+	{
+		if ((*it) == whDog)
+			_watchDogVec.erase(it);
+	}
+}
+
 //------------------------------------------
 //ITCPEngine
 //------------------------------------------
@@ -35,11 +68,11 @@ public:
 // class SingleLoopTCPEngine
 // ---------------------------------------
 // Single event loop
-class SingleLoopTCPEngine:public TCP,public ITCPEngine,public ZQ::common::NativeThread
+class SingleLoopTCPEngine:public TCP,public ITCPEngine,public ZQ::common::NativeThread, public IWatchDog
 {
 public:
 	SingleLoopTCPEngine(const std::string& ip,int port,ZQ::common::Log& logger,TCPServer& server)
-		:ITCPEngine(ip,port,logger,server),_loop(false)
+		:ITCPEngine(ip,port,logger,server),_loop(false),_timer(this)
 	{
 
 	}
@@ -65,6 +98,9 @@ public:
 		}
 	};
 
+	virtual void OnWatchDog(){}
+	virtual void OnWatchDogClose() { _async.send(); }
+
 public:
 	virtual bool startAt()
 	{
@@ -72,7 +108,10 @@ public:
 	}
 	virtual void stop()
 	{
-		_async.send();
+		if (_server._Config.watchDogInterval > 0)
+			_timer.close();
+		else
+			_async.send();
 	}
 	virtual int run(void)
 	{
@@ -80,6 +119,12 @@ public:
 		ZQ::eloop::TCP::init(_loop);
 		_async.data = this;
 		_async.init(_loop);
+		if (_server._Config.watchDogInterval > 0)
+		{
+			_timer.init(_loop);
+			_timer.start(0, _server._Config.watchDogInterval);
+		}
+
 		if (bind4(_ip.c_str(),_port) < 0)
 			return false;
 
@@ -101,6 +146,7 @@ public:
 
 		TCPConnection* client = _server.createPassiveConn();
 		client->init(get_loop());
+		client->setWatchDog(&_timer);
 
 		if (accept((Stream*)client) == 0) {
 			client->start();
@@ -119,6 +165,7 @@ public:
 private:
 	ZQ::eloop::Loop _loop;
 	AsyncQuit		_async;
+	watchDogTimer	_timer;
 };
 
 
@@ -164,11 +211,11 @@ public:
 	// ---------------------------------------
 	// class ServantThread
 	// ---------------------------------------
-	class ServantThread:public ZQ::common::NativeThread,public Async
+	class ServantThread:public ZQ::common::NativeThread,public Async, public IWatchDog
 	{
 	public:
 		ServantThread(TCPServer& server,MultipleLoopTCPEngine& engine,ZQ::common::Log& logger)
-			:_Logger(logger), _engine(engine),	_quit(false), _server(server)
+			:_Logger(logger), _engine(engine),	_quit(false), _server(server),_timer(this)
 		{
 			_loop = new Loop(false);
 		}
@@ -181,6 +228,11 @@ public:
 		virtual int run(void)
 		{
 			Async::init(*_loop);
+			if (_server._Config.watchDogInterval > 0)
+			{
+				_timer.init(*_loop);
+				_timer.start(0,_server._Config.watchDogInterval);
+			}
 			_Logger(ZQ::common::Log::L_INFO, CLOGFMT(ServantThread,"ServantThread start run!"));
 			int r = _loop->run(Loop::Default);
 			_Logger(ZQ::common::Log::L_INFO, CLOGFMT(ServantThread,"ServantThread quit!"));
@@ -193,12 +245,18 @@ public:
 			_ListSocket.push_back(sock);
 		}
 
+		virtual void OnWatchDog(){}
+		virtual void OnWatchDogClose() { close(); }
+
 		virtual void OnAsync()
 		{
 			ZQ::common::MutexGuard gd(_LockSocket);
 			if (_quit)
 			{
-				close();
+				if (_server._Config.watchDogInterval > 0)
+					_timer.close();
+				else
+					close();
 				return;
 			}
 			while( !_ListSocket.empty())
@@ -209,6 +267,7 @@ public:
 
 				TCPConnection* client = _server.createPassiveConn();
 				int r = client->init(get_loop());
+				client->setWatchDog(&_timer);
 				if (r != 0)
 				{
 					//printf("tcp init error:%s,name :%s\n", uv_strerror(r), uv_err_name(r));
@@ -234,6 +293,7 @@ public:
 			if (_loop != NULL)
 			{
 				delete _loop;
+				_loop = NULL;
 			}
 			_engine.QuitNotify(this);
 		}
@@ -248,6 +308,7 @@ public:
 		std::list<int>				_ListSocket;
 		ZQ::common::Mutex			_LockSocket;
 		bool						_quit;
+		watchDogTimer				_timer;
 		//	int					_Count;
 		//	ZQ::common::Mutex	_LockerCount;
 	};
@@ -410,6 +471,10 @@ bool TCPConnection::start()
 		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"new connection connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
 		_tcpServer->addConn(this);
 	}
+
+	if (_watchDog)
+		_watchDog->addWatchDog(this);
+
 	return onStart();
 }
 
@@ -449,6 +514,9 @@ void TCPConnection::OnClose()
 {
 	if (_tcpServer)
 		_tcpServer->delConn(this);
+
+	if (_watchDog)
+		_watchDog->delWatchDog(this);
 	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"close connection connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
 	delete this;
 }
