@@ -170,7 +170,20 @@ public:
 
 	virtual ~HTTPResponse() {}
 
-	void post(int statusCode) 
+	void setResponseBody(char* buf, uint len){
+		_respMsg.clear();
+		_respMsg.append(buf, len);
+	}
+
+	void setStatus(int statusCode, const std::string& strStatus = ""){
+
+		if (statusCode>100)
+			code(statusCode);
+
+		status(strStatus);
+	}
+    
+	void post(int statusCode = 0) 
 	{
 		if (statusCode>100)
 			code(statusCode);
@@ -179,11 +192,13 @@ public:
 		// TODO: _conn._logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), _conn.hint().c_str(),true);
 
 		if (_handler)
-			_handler->conn().write(respMsg.c_str(), respMsg.size());
+			_handler->conn().write(_respMsg.c_str(), _respMsg.size());
 	}
 
 private:
 	HttpHandler::Ptr _handler;
+
+	std::string      _respMsg;
 };
 
 // ---------------------------------------
