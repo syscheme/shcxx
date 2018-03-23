@@ -173,6 +173,7 @@ public:
 	void setResponseBody(char* buf, uint len){
 		_respMsg.clear();
 		_respMsg.append(buf, len);
+		contentLength(len);
 	}
 
 	void setStatus(int statusCode, const std::string& strStatus = ""){
@@ -191,8 +192,15 @@ public:
 		std::string respMsg = toRaw();
 		// TODO: _conn._logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), _conn.hint().c_str(),true);
 
+		printf("resp: %s\n", respMsg.c_str());
+
 		if (_handler)
-			_handler->conn().write(_respMsg.c_str(), _respMsg.size());
+		{
+			_handler->conn().write(respMsg.c_str(), respMsg.size());
+
+			if(!_respMsg.empty())
+				_handler->conn().write(_respMsg.c_str(), _respMsg.size());
+		}
 	}
 
 private:
