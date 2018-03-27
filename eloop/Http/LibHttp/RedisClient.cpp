@@ -763,7 +763,7 @@ void RedisClient::OnWrote( int status )
     {
         _log(Log::L_WARNING, CLOGFMT(RedisClient, "OnWrote() conn[%s] failed"), _connDesc);
     }
-    _log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnWrote() conn[%s] success"), _connDesc);
+    //_log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnWrote() conn[%s] success"), _connDesc);
 }
 
 // async sending RedisCommands
@@ -1020,7 +1020,12 @@ Evictor::Item::Ptr RedisEvictor::add( const ZQ::common::Evictor::Item::ObjectPtr
         _requeue(item); // this is only be called while item is locked
 
         if (ident.category != "indexHeader")
+        {
             _cache.insert(Evictor::Map::value_type(ident, item));
+            _evictorList.push_front(ident);
+            item->_pos = _evictorList.begin();
+            item->_orphan = false;
+        }
     }
 
     _log(Log::L_DEBUG, CLOGFMT(Evictor, "added object[%s](%s)"), ident_cstr(ident), Evictor::Item::stateToString(item->_data.status));
