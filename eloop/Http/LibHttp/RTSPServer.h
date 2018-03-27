@@ -216,6 +216,8 @@ public: // about the session management
 	void addSession(Session::Ptr sess);
 	void removeSession(const std::string& sessId);
 
+	const Session::Map& getSessList() const { return _sessMap; }
+
 	size_t getSessionCount() const;
 
 	void setMaxSession(uint32 maxSession);
