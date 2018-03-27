@@ -72,7 +72,7 @@ bool RedisCommand::wait(int timeout)
     return _pEvent->wait(timeout);
 }
 
-void RedisCommand::OnRequestError(RedisClient& client, RedisCommand& cmd, Error errCode, const char* errDesc)
+void RedisCommand::OnRequestError(RedisClient& client, RedisCommand& cmd, RedisSink::Error errCode, const char* errDesc)
 {
     if (_cbRedirect)
         return _cbRedirect->OnRequestError(client, cmd, errCode, errDesc);
@@ -94,73 +94,8 @@ std::string RedisCommand::desc()
     return _command;
 }
 
-// -----------------------------
-// class RequestErrCmd
-// -----------------------------
-class RequestErrCmd : public ThreadRequest
-{
-public:
-    RequestErrCmd(RedisClient& client, const RedisCommand::Ptr& pCmd, RedisSink::Error errCode)
-        : ThreadRequest(client._thrdpool), _client(client), _pCmd(pCmd), _errCode(errCode)
-    {
-    }
-
-protected:
-    RedisClient&      _client;
-    RedisCommand::Ptr _pCmd;
-    RedisSink::Error   _errCode;
-
-    virtual int run()
-    {
-        try {
-            if (_pCmd)
-                _pCmd->OnRequestError(_client, *_pCmd.get(), _errCode);
-        }
-        catch(...) {}
-
-        return 0;
-    }
-
-    void final(int retcode =0, bool bCancelled =false)
-    {
-        delete this;
-    }
-};
-
-// -----------------------------
-// class ReplyDispatcher
-// -----------------------------
-class ReplyDispatcher : public ThreadRequest
-{
-public:
-    ReplyDispatcher(RedisClient& client, const RedisCommand::Ptr& pCmd)
-        : ThreadRequest(client._thrdpool), _client(client), _pCmd(pCmd)
-    {
-    }
-
-protected:
-    RedisClient&      _client;
-    RedisCommand::Ptr _pCmd;
-
-    virtual int run()
-    {
-        try {
-            if (_pCmd)
-                _pCmd->OnReply(_client, *_pCmd.get(), _pCmd->_replyCtx.data);
-        }
-        catch(...) {}
-
-        return 0;
-    }
-
-    void final(int retcode =0, bool bCancelled =false)
-    {
-        delete this;
-    }
-};
-
-RedisClient::RedisClient(ZQ::eloop::Loop& loop, ZQ::common::Log& log, ZQ::common::NativeThreadPool& thrdpool, const std::string& server, unsigned short serverPort, ZQ::common::Log::loglevel_t verbosityLevel)
-: _serverIp(server), _serverPort(serverPort), _thrdpool(thrdpool), _log(log, verbosityLevel), _verboseFlags(0), _lastErr(RedisSink::rdeOK),
+RedisClient::RedisClient(ZQ::eloop::Loop& loop, ZQ::common::Log& log, const std::string& server, unsigned short serverPort, ZQ::common::Log::loglevel_t verbosityLevel)
+: _serverIp(server), _serverPort(serverPort), _log(log, verbosityLevel), _verboseFlags(0), _lastErr(RedisSink::rdeOK),
 _inCommingByteSeen(0), _tcpStatus(unConnect)
 {
     init(loop);
@@ -261,7 +196,7 @@ RedisCommand::Ptr RedisClient::sendCommand(RedisCommand::Ptr pCmd)
 						continue;
 
 					try {
-						(new RequestErrCmd(*this, pCmd, RedisSink::rdeConnectError))->start();
+                        pCmd->OnRequestError(*this, *pCmd, RedisSink::rdeConnectError);
 					}
 					catch(...) {}
 				}
@@ -271,7 +206,7 @@ RedisCommand::Ptr RedisClient::sendCommand(RedisCommand::Ptr pCmd)
 		}
 
 		// The client is currently connected, send the command instantly
-		size_t awaitsize = 0, poolsize = _thrdpool.size();
+		size_t awaitsize = 0;
 		int64 stampNow = TimeUtil::now();
 
 		if (_messageTimeout >0 && (stampNow - pCmd->_stampCreated) > _messageTimeout)
@@ -308,7 +243,7 @@ RedisCommand::Ptr RedisClient::sendCommand(RedisCommand::Ptr pCmd)
 	} while(0);
 
 	// An error occurred, so call the response handler immediately (indicating the error)
-	(new RequestErrCmd(*this, pCmd, _lastErr))->start();
+    pCmd->OnRequestError(*this, *pCmd, _lastErr);
 	return NULL;
 }
 
@@ -468,7 +403,7 @@ void RedisClient::_cancelCommands()
 		_commandQueueToSend.pop();
 
 		try {
-			(new RequestErrCmd(*this, pCmd, RedisSink::rdeClientCanceled))->start();
+            pCmd->OnRequestError(*this, *pCmd, RedisSink::rdeClientCanceled);
 		}
 		catch(...) {}
 	}
@@ -479,7 +414,7 @@ void RedisClient::_cancelCommands()
 		_commandQueueToReceive.pop();
 
 		try {
-			(new RequestErrCmd(*this, pCmd, RedisSink::rdeClientCanceled))->start();
+            pCmd->OnRequestError(*this, *pCmd, RedisSink::rdeClientCanceled);
 		}
 		catch(...) {}
 	}
@@ -535,7 +470,7 @@ void RedisClient::OnConnected(ElpeError status)
 			try {
 				if (pCmd->_stampCreated + _messageTimeout/2 < stampNow)
 				{
-					(new RequestErrCmd(*this, pCmd, RedisSink::rdeRequestTimeout))->start();
+                    pCmd->OnRequestError(*this, *pCmd, RedisSink::rdeRequestTimeout);
 					cExpired++;
 					continue;
 				}
@@ -570,33 +505,9 @@ void RedisClient::OnError()
 	disconnect();
 }
 
-// overridding of TCPSocket
-void RedisClient::OnTimeout()
-{
-	// _cleanupExpiredAwaitRequests(2, "OnTimeout");
-
-	if (REDIS_VERBOSEFLG_TCPTHREADPOOL & _verboseFlags)
-	{
-// 		int poolSize, activeCount, pendingSize=0;
-// 		if (TCPSocket::getThreadPoolStatus(poolSize, activeCount, pendingSize) && pendingSize>0)
-// 			_log(pendingSize>100? Log::L_WARNING :Log::L_DEBUG, CLOGFMT(RedisClient, "OnTimeout() TCP ThreadPool[%d/%d] pending [%d]requests"), activeCount, poolSize, pendingSize);
-	}
-
-	if (REDIS_VERBOSEFLG_THREADPOOL & _verboseFlags)
-	{
-		int poolSize, activeCount, pendingSize=0;
-		poolSize    = _thrdpool.size();
-		pendingSize = _thrdpool.pendingRequestSize();
-		activeCount = _thrdpool.activeCount();
-
-		if (pendingSize >0)
-			_log(pendingSize>100? Log::L_WARNING :Log::L_DEBUG, CLOGFMT(RedisClient, "OnTimeout() client ThreadPool[%d/%d] pending [%d]requests"), activeCount, poolSize, pendingSize);
-	}
-}
-
 void RedisClient::OnRead(ssize_t nread, const char *buf)
 {
-    _log(Log::L_WARNING, CLOGFMT(RedisClient, "OnRead() conn[%s] read size[%d]"), _connDesc, nread);
+    _log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnRead() conn[%s] read size[%d]"), _connDesc, nread);
 
     CommandQueue completedCmds;
     bool bCancelConnection = false;
@@ -661,17 +572,6 @@ void RedisClient::OnRead(ssize_t nread, const char *buf)
         {
             _log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnRead() conn[%s] ignore the receiving since there are no await commands"), _connDesc);
             return;
-        }
-
-        if (REDIS_VERBOSEFLG_THREADPOOL & _verboseFlags)
-        {
-            int poolSize, activeCount, pendingSize=0;
-            poolSize    = _thrdpool.size();
-            pendingSize = _thrdpool.pendingRequestSize();
-            activeCount = _thrdpool.activeCount();
-
-            if (pendingSize >0)
-                _log(pendingSize>100? Log::L_WARNING :Log::L_DEBUG, CLOGFMT(RedisClient, "OnRead() client ThreadPool[%d/%d] pending [%d] requests"), activeCount, poolSize, pendingSize);
         }
 
         if(_commandQueueToReceive.empty())
@@ -863,7 +763,7 @@ void RedisClient::OnWrote( int status )
     {
         _log(Log::L_WARNING, CLOGFMT(RedisClient, "OnWrote() conn[%s] failed"), _connDesc);
     }
-    _log(Log::L_WARNING, CLOGFMT(RedisClient, "OnWrote() conn[%s] success"), _connDesc);
+    _log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnWrote() conn[%s] success"), _connDesc);
 }
 
 // async sending RedisCommands
@@ -1047,8 +947,8 @@ RedisSink::Error RedisClient::KEYS(const std::string& pattern, StringList& keys)
 }
 
 #define ident_cstr(IDENT) Evictor::identToStr(IDENT).c_str()
-RedisEvictor::RedisEvictor(Sink* cbPtr, Log& log, RedisClient::Ptr client, const std::string& name, const Properties& props)
-: _cbPtr(cbPtr), _client(client), Evictor(log, name, props), _maxValueLen(REDIS_RECV_BUF_SIZE)
+RedisEvictor::RedisEvictor(Sink* sink, Log& log, RedisClient::Ptr client, const std::string& name, const Properties& props)
+:_sink(sink), _client(client), Evictor(log, name, props), _maxValueLen(REDIS_RECV_BUF_SIZE)
 { 
     _recvBuf = new uint8[_maxValueLen];
 }
@@ -1061,77 +961,6 @@ RedisEvictor::~RedisEvictor()
         _recvBuf = NULL;
     }
 }
-
-Evictor::Item::Ptr RedisEvictor::pin( const Evictor::Ident& ident, Evictor::Item::Ptr item /*= NULL*/ )
-{
-    {
-        MutexGuard g(_lkEvictor);
-        Map::iterator itCache = _cache.find(ident);
-        if (_cache.end() != itCache)
-            return itCache->second;
-    }
-
-    StreamedObject strmedObj;
-
-    try {        
-        _lastErr = loadFromStore(identToStr(ident), strmedObj);
-    }
-    catch(...)
-    {
-        _lastErr = eeClientError;
-    }
-
-    switch(_lastErr)
-    {
-    case eeNotFound:
-        break;
-
-    case eeOK:
-        if (!item)
-            item = new Item(*this, ident);
-
-        try {
-            if (unmarshal(ident.category, item->_data, strmedObj.data))
-            {
-                item->_data.status = Item::clean;
-                break;
-            }
-        }
-        catch(...)
-        {
-            _lastErr = eeMashalError;
-        }
-
-        // _log error
-        // TODO: clean this object from the DB
-        item->_data.status = Evictor::Item::dead;
-        break;
-
-    case eeTimeout:
-    default:
-        // _log error and retry
-        break;
-    }
-
-    MutexGuard g(_lkEvictor);
-    Map::iterator itCache = _cache.find(ident);
-    if (_cache.end() != itCache)
-        return itCache->second; // already in the cache
-
-    if (NULL == item)
-        return NULL;
-
-    item->_ident = ident;
-    if (ident.category == "indexHeader")
-        return item;
-
-    _cache.insert(Map::value_type(ident, item));
-    _evictorList.push_front(ident);
-    item->_pos = _evictorList.begin();
-    item->_orphan = false;
-    return item;
-}
-
 
 // save a batch of streamed object to the target object store
 int RedisEvictor::saveBatchToStore(StreamedList& batch)
@@ -1170,66 +999,7 @@ int RedisEvictor::saveBatchToStore(StreamedList& batch)
     return cUpdated+cDeleted;
 }
 
-// load a specified object from the object store
-//@ return IOError, NotFound, OK
-Evictor::Error RedisEvictor::loadFromStore(const std::string& key, StreamedObject& data)
-{
-    if (!_client)
-        return Evictor::eeConnectErr;
-
-    std::string cmdstr = std::string("GET ") + key;
-    ZQ::eloop::RedisCommand::Ptr pCmd = new ZQ::eloop::RedisCommand(*_client, cmdstr, REDIS_LEADINGCH_BULK);
-    if (!pCmd) 
-        return (_lastErr = Evictor::eeConnectErr);
-    {
-        ZQ::common::MutexGuard g(_lockLocateQueue);
-        _cmdQueue.push(pCmd);
-        send();
-    }
-    if (!pCmd->wait(DEFAULT_CLIENT_TIMEOUT)) 
-        return (_lastErr = Evictor::eeTimeout);
-    if (REDIS_LEADINGCH_ERROR == pCmd->_replyCtx.data.type)	
-        return (_lastErr = Evictor::eeConnectErr); 
-    else 
-        _lastErr = Evictor::eeOK;
-
-    uint vlen = 0;
-    if (pCmd->_replyCtx.data.bulks.size() <=0)
-    {
-        return Evictor::eeNotFound;
-    }
-    vlen = strlen(pCmd->_replyCtx.data.bulks[0].c_str());
-    {
-        ZQ::common::MutexGuard g(_lockBuf);
-        vlen = RedisClient::decode(pCmd->_replyCtx.data.bulks[0].c_str(), _recvBuf, vlen);
-        data.data.assign(_recvBuf, _recvBuf + vlen);
-    }
-    data.stampAsOf = ZQ::common::now();
-
-    Evictor::_log(Log::L_DEBUG, CLOGFMT(RedisEvictor, "loadFromStore() %d data size and %d recieve len"), data.data.size(), vlen);
-    return Evictor::eeOK;
-}
-
-void RedisEvictor::OnAsync()
-{
-    ZQ::common::MutexGuard g(_lockLocateQueue);
-    while (!_cmdQueue.empty())
-    {
-        RedisCommand::Ptr pCmd = _cmdQueue.front();
-        _client->sendCommand(pCmd);
-        _cmdQueue.pop();
-    }
-}
-
-void RedisEvictor::OnClose()
-{
-    if (_cbPtr)
-    {
-        _cbPtr->OnClose();
-    }
-}
-
-ZQ::common::Evictor::Item::Ptr RedisEvictor::add( const ZQ::common::Evictor::Item::ObjectPtr& obj, const ZQ::common::Evictor::Ident& ident )
+Evictor::Item::Ptr RedisEvictor::add( const ZQ::common::Evictor::Item::ObjectPtr& obj, const ZQ::common::Evictor::Ident& ident )
 {
     Evictor::Item::Ptr item = NULL;
 
@@ -1254,4 +1024,96 @@ ZQ::common::Evictor::Item::Ptr RedisEvictor::add( const ZQ::common::Evictor::Ite
 
     return item;
 }
+
+Evictor::Item::ObjectPtr RedisEvictor::locate( const Ident& ident )
+{
+    {
+        MutexGuard g(_lkEvictor);
+        Map::iterator itCache = _cache.find(ident);
+        if (_cache.end() != itCache)
+        {
+            Item::Ptr item = itCache->second;
+            if (_sink)
+            {
+                _sink->OnDataResponse(ident, item->_data.servant);
+                return NULL;
+            }
+        }
+    }
+
+    if (!_client)
+    {
+        if (_sink)
+            _sink->OnError(ident, Evictor::eeConnectErr, "redis client is NULL");
+        return NULL;
+    }       
+
+    std::string cmdstr = std::string("GET ") + ident_cstr(ident);
+    ZQ::eloop::RedisCommand::Ptr pCmd = new ZQ::eloop::RedisCommand(*_client, cmdstr, REDIS_LEADINGCH_BULK, this);
+    _client->sendCommand(pCmd);
+    return NULL;
+}
+
+void RedisEvictor::OnRequestError( RedisClient& client, RedisCommand& cmd, RedisSink::Error errCode, const char* errDesc/*=NULL*/ )
+{
+    Evictor::Ident ident;
+    cmdStrToIdent(ident, cmd.desc());
+    if (_sink)
+        _sink->OnError(ident, (int)errCode, errDesc);
+}
+
+void RedisEvictor::OnReply( RedisClient& client, RedisCommand& cmd, RedisSink::Data& data )
+{
+    Evictor::Ident ident;
+    cmdStrToIdent(ident, cmd.desc());
+    if (!_sink)
+    {
+        _log(Log::L_ERROR, CLOGFMT(RedisEvictor, "sink is null"));
+        return;
+    }
+
+    std::vector<uint8> temp;
+    uint vlen = 0;
+    if (data.bulks.size() <=0)
+    {
+        _sink->OnError(ident, 404, "not Found");
+        return ;
+    }
+    vlen = strlen(data.bulks[0].c_str());
+    {
+        ZQ::common::MutexGuard g(_lockBuf);
+        vlen = RedisClient::decode(data.bulks[0].c_str(), _recvBuf, vlen);
+        temp.assign(_recvBuf, _recvBuf + vlen);
+    }
+
+    Item::Ptr item = new Item(*this, ident);
+    if (!unmarshal("indexHeader", item->_data, temp))
+    {
+        _sink->OnError(ident, 400, "unmarshal failed");
+        return ;
+    }
+    _sink->OnDataResponse(ident, item->_data.servant);
+    if (ident.category != "indexHeader")
+    {
+        MutexGuard g(_lkEvictor);
+        _cache.insert(Evictor::Map::value_type(ident, item));
+        _evictorList.push_front(ident);
+        item->_pos = _evictorList.begin();
+        item->_orphan = false;
+    }
+
+    Evictor::_log(Log::L_DEBUG, CLOGFMT(RedisEvictor, "loadFromStore() %d recieve len"), vlen);
+}
+
+
+void RedisEvictor::cmdStrToIdent( ZQ::common::Evictor::Ident& ident, const std::string& cmd )
+{
+    std::string strCmd = cmd;
+    size_t pos = strCmd.find_first_of(" ");
+    strCmd = strCmd.substr(pos+1, strCmd.length() - pos);
+    pos = strCmd.find_last_of('@');
+    ident.name = strCmd.substr(0, pos);
+    ident.category = strCmd.substr(pos+1);
+}
+
 }} // namespaces

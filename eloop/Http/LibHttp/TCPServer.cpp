@@ -131,6 +131,7 @@ public:
 		if (listen() < 0)
 			return false;
 
+		_server.onStart(_loop);
 		int r=_loop.run(ZQ::eloop::Loop::Default);
 		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(SingleLoopTCPEngine,"SingleLoopTCPEngine quit!"));
 		return r;
@@ -233,6 +234,8 @@ public:
 				_timer.init(*_loop);
 				_timer.start(0,_server._Config.watchDogInterval);
 			}
+
+			_server.onStart(_loop);
 			_Logger(ZQ::common::Log::L_INFO, CLOGFMT(ServantThread,"ServantThread start run!"));
 			int r = _loop->run(Loop::Default);
 			_Logger(ZQ::common::Log::L_INFO, CLOGFMT(ServantThread,"ServantThread quit!"));
@@ -590,7 +593,7 @@ bool TCPServer::start()
 
 	_isStart = true;
 	_engine->startAt();
-	return onStart();
+	return true;
 }
 
 bool TCPServer::stop()

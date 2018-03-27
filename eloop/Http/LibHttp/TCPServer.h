@@ -189,7 +189,7 @@ public:
 	bool start();
 	bool stop();
 
-	virtual bool onStart(){ return true; }
+	virtual bool onStart(const ZQ::eloop::Loop& loop){ return true; }
 	virtual bool onStop(){ return true; }
 
 
