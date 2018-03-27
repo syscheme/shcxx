@@ -1018,6 +1018,9 @@ Evictor::Item::Ptr RedisEvictor::add( const ZQ::common::Evictor::Item::ObjectPtr
         MutexGuard g(_lkEvictor);
         _queueModified(item); // this is only be called while item is locked
         _requeue(item); // this is only be called while item is locked
+
+        if (ident.category != "indexHeader")
+            _cache.insert(Evictor::Map::value_type(ident, item));
     }
 
     _log(Log::L_DEBUG, CLOGFMT(Evictor, "added object[%s](%s)"), ident_cstr(ident), Evictor::Item::stateToString(item->_data.status));
