@@ -235,7 +235,7 @@ public:
 				_timer.start(0,_server._Config.watchDogInterval);
 			}
 
-			_server.onStart(_loop);
+			_server.onStart(*_loop);
 			_Logger(ZQ::common::Log::L_INFO, CLOGFMT(ServantThread,"ServantThread start run!"));
 			int r = _loop->run(Loop::Default);
 			_Logger(ZQ::common::Log::L_INFO, CLOGFMT(ServantThread,"ServantThread quit!"));
