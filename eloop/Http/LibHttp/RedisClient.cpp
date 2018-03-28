@@ -2,6 +2,7 @@
 #include "SystemUtils.h"
 #include "CryptoAlgm.h"
 #include "libbz/bzlib.h"
+#include <algorithm>
 
 #ifndef LIBSUFFIX
 #  if defined(DEBUG) || defined(_DEBUG)
@@ -763,7 +764,7 @@ void RedisClient::OnWrote( int status )
     {
         _log(Log::L_WARNING, CLOGFMT(RedisClient, "OnWrote() conn[%s] failed"), _connDesc);
     }
-    _log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnWrote() conn[%s] success"), _connDesc);
+    //_log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnWrote() conn[%s] success"), _connDesc);
 }
 
 // async sending RedisCommands
@@ -1018,6 +1019,17 @@ Evictor::Item::Ptr RedisEvictor::add( const ZQ::common::Evictor::Item::ObjectPtr
         MutexGuard g(_lkEvictor);
         _queueModified(item); // this is only be called while item is locked
         _requeue(item); // this is only be called while item is locked
+
+        if (ident.category != "indexHeader")
+        {
+            _cache.insert(Evictor::Map::value_type(ident, item));
+            IdentList::iterator iter = std::find(_evictorList.begin(), _evictorList.end(), ident);
+            if (iter != _evictorList.end())
+                _evictorList.erase(iter);
+            _evictorList.push_front(ident);
+            item->_pos = _evictorList.begin();
+            item->_orphan = false;
+        }
     }
 
     _log(Log::L_DEBUG, CLOGFMT(Evictor, "added object[%s](%s)"), ident_cstr(ident), Evictor::Item::stateToString(item->_data.status));
