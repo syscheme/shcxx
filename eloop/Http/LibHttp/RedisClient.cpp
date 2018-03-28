@@ -2,6 +2,7 @@
 #include "SystemUtils.h"
 #include "CryptoAlgm.h"
 #include "libbz/bzlib.h"
+#include <algorithm>
 
 #ifndef LIBSUFFIX
 #  if defined(DEBUG) || defined(_DEBUG)
@@ -1022,6 +1023,9 @@ Evictor::Item::Ptr RedisEvictor::add( const ZQ::common::Evictor::Item::ObjectPtr
         if (ident.category != "indexHeader")
         {
             _cache.insert(Evictor::Map::value_type(ident, item));
+            IdentList::iterator iter = std::find(_evictorList.begin(), _evictorList.end(), ident);
+            if (iter != _evictorList.end())
+                _evictorList.erase(iter);
             _evictorList.push_front(ident);
             item->_pos = _evictorList.begin();
             item->_orphan = false;
