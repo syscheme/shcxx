@@ -1022,7 +1022,7 @@ Evictor::Item::Ptr RedisEvictor::add( const ZQ::common::Evictor::Item::ObjectPtr
 
         if (ident.category != "indexHeader")
         {
-            _cache.insert(Evictor::Map::value_type(ident, item));
+            _cache[ident] = item;
             IdentList::iterator iter = std::find(_evictorList.begin(), _evictorList.end(), ident);
             if (iter != _evictorList.end())
                 _evictorList.erase(iter);
