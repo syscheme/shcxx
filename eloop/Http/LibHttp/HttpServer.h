@@ -156,6 +156,9 @@ public:
 	HttpServer( const TCPServer::ServerConfig& conf,ZQ::common::Log& logger)
 		:TCPServer(conf,logger){}
 
+	virtual bool onStart(ZQ::eloop::Loop& loop){ return true; }
+	virtual bool onStop(){ return true; }
+
 	// register an application to uri
 	//@param uriEx - the regular expression of uri
 	bool mount(const std::string& uriEx, HttpHandler::AppPtr app, const HttpHandler::Properties& props=HttpHandler::Properties(), const char* virtualSite =DEFAULT_SITE);
