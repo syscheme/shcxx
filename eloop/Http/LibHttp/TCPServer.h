@@ -117,9 +117,11 @@ private:
 	void OnAsyncSend();
 	void OnCloseAsync();
 
-protected:
+public:
 	ZQ::common::Log&		_Logger;
 	TCPServer*				_tcpServer;
+
+protected:
 	watchDogTimer*			_watchDog;
 	std::string				_Hint;
 	bool					_isConnected;
