@@ -604,6 +604,7 @@ bool TCPServer::stop()
 		return true;
 
 	_isStart = false;
+	onStop();
 	if (_PassiveConn.empty())
 	{
 		_engine->stop();
@@ -621,7 +622,7 @@ bool TCPServer::stop()
 		delete _engine;
 		_engine = NULL;
 	}
-	return onStop();
+	return true;
 }
 
 void TCPServer::addConn( TCPConnection* servant )
