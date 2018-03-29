@@ -147,7 +147,8 @@ public:
 
 		TCPConnection* client = _server.createPassiveConn();
 		client->init(get_loop());
-		client->setWatchDog(&_timer);
+		if (_server._Config.watchDogInterval > 0)
+			client->setWatchDog(&_timer);
 
 		if (accept((Stream*)client) == 0) {
 			client->start();
@@ -270,7 +271,8 @@ public:
 
 				TCPConnection* client = _server.createPassiveConn();
 				int r = client->init(get_loop());
-				client->setWatchDog(&_timer);
+				if (_server._Config.watchDogInterval > 0)
+					client->setWatchDog(&_timer);
 				if (r != 0)
 				{
 					//printf("tcp init error:%s,name :%s\n", uv_strerror(r), uv_err_name(r));

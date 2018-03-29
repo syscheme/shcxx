@@ -160,7 +160,7 @@ public:
 			maxConns 				= 100 * 1000;
 			mode					= DEFAULT_MODE;
 			threadCount				= 4;
-			watchDogInterval		= 5;		//ms;
+			watchDogInterval		= -1;		//ms;
 		}
 
 		std::string serverName;
