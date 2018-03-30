@@ -29,7 +29,11 @@ class HttpHandler: public IHttpParseSink, public virtual ZQ::common::SharedObjec
 public:
 	typedef std::map<std::string, std::string> Properties;
 	typedef ZQ::common::Pointer<HttpHandler> Ptr;
-	virtual ~HttpHandler() {}
+	virtual ~HttpHandler() {
+
+		(_app.log())(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpHandler, "~HttpHandler"));
+
+	}
 
 	HttpPassiveConn& conn() { return _conn; }
 
@@ -192,7 +196,7 @@ public:
 		std::string respMsg = toRaw();
 		// TODO: _conn._logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), _conn.hint().c_str(),true);
 
-		printf("resp: %s\n", respMsg.c_str());
+//		printf("resp: %s\n", respMsg.c_str());
 
 		if (_handler)
 		{
