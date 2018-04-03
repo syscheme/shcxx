@@ -13,7 +13,7 @@ LDFLAGS += -leloop -lZQCommon -lboost_regex -lpthread
 include $(TOPDIR)/build/common.mk
 
 prebuild:
-        if [ -e ../../../RedisClient.os ]; then $(RM) $(RMFLAGS) ../../../RedisClient.os; fi
-        if [ -e ../../../HttpClient.os ]; then $(RM) $(RMFLAGS) ../../../HttpClient.os; fi
+	if [ -e ../../../RedisClient.os ]; then $(RM) $(RMFLAGS) ../../../RedisClient.os; fi
+	if [ -e ../../../HttpClient.os ]; then $(RM) $(RMFLAGS) ../../../HttpClient.os; fi
 
 
