@@ -2,9 +2,9 @@ TOPDIR := ../../../..
 
 include $(TOPDIR)/build/defines.mk
 
-SOLIB := Http
+SOLIB	:= Http
 
-OBJS := RedisClient.os TCPServer.os RTSPMessage.os RTSPConnection.os RTSPServer.os RTSPClient.os HttpServer.os HttpClient.os HttpConnection.os HttpMessage.os http_parser.os
+OBJS	:= RedisClient.os TCPServer.os RTSPMessage.os RTSPConnection.os RTSPServer.os RTSPClient.os HttpServer.os HttpClient.os HttpConnection.os HttpMessage.os http_parser.os
 
 INCDIR += $(_uv_dir)/include $(TOPDIR)/Common/eloop
 
