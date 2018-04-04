@@ -103,8 +103,8 @@ protected:
 	
 	virtual void OnRead(ssize_t nread, const char *buf);
 	virtual void OnWrote(int status);
-	virtual void OnClose();
-	virtual void OnShutdown(ElpeError status);
+// 	virtual void OnClose();
+// 	virtual void OnShutdown(ElpeError status);
 
 protected:
 	// onReqMsgSent is only used to notify that the sending buffer is free and not held by HttpClient any mre

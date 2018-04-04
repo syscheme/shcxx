@@ -91,18 +91,18 @@ void HttpConnection::OnWrote(int status)
 	}
 }
 
-void HttpConnection::OnClose()
-{
-	delete this;
-}
-
-void HttpConnection::OnShutdown(ElpeError status)
-{
-	if (status != elpeSuccess)
-		_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpConnection,"shutdown error code[%d] Description[%s]"),status,errDesc(status));
-
-	close();
-}
+// void HttpConnection::OnClose()
+// {
+// 	delete this;
+// }
+// 
+// void HttpConnection::OnShutdown(ElpeError status)
+// {
+// 	if (status != elpeSuccess)
+// 		_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpConnection,"shutdown error code[%d] Description[%s]"),status,errDesc(status));
+// 
+// 	close();
+// }
 
 void HttpConnection::parse( const char* data, size_t size)
 {

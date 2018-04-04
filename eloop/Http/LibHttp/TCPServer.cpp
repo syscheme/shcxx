@@ -490,6 +490,7 @@ bool TCPConnection::stop()
 		_async->close();
 		return true;
 	}
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"connId[%s] stop from [%s]"),_connId.c_str(), _Hint.c_str());
 	_isConnected = false;
 	shutdown();
 	return onStop();
@@ -522,7 +523,7 @@ void TCPConnection::OnClose()
 
 	if (_watchDog)
 		_watchDog->delWatchDog(this);
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"close connection connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnClose connection connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
 	delete this;
 }
 
@@ -531,6 +532,8 @@ void TCPConnection::OnShutdown(ElpeError status)
 	if (status != elpeSuccess)
 		_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(TCPConnection,"shutdown error code[%d] Description[%s]"),status,errDesc(status));
 
+
+	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnShutdown connection connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
 	close();
 }
 
