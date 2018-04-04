@@ -605,15 +605,18 @@ bool TCPServer::stop()
 
 	_isStart = false;
 	onStop();
-	if (_PassiveConn.empty())
 	{
-		_engine->stop();
-	}
-	else
-	{
-		ConnMAP::iterator itconn;
-		for(itconn = _PassiveConn.begin();itconn != _PassiveConn.end();itconn++)
-			itconn->second->shutdown();
+		ZQ::common::MutexGuard gd(_connCountLock);
+		if (_PassiveConn.empty())
+		{
+			_engine->stop();
+		}
+		else
+		{
+			ConnMAP::iterator itconn;
+			for(itconn = _PassiveConn.begin();itconn != _PassiveConn.end();itconn++)
+				itconn->second->shutdown();
+		}
 	}
 
 	_sysWakeUp.wait(-1);
