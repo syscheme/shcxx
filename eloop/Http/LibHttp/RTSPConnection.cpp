@@ -31,7 +31,6 @@ void RTSPConnection::OnConnected(ElpeError status)
 	_reqList.clear();
 }
 
-
 void RTSPConnection::doAllocate(eloop_buf_t* buf, size_t suggested_size)
 {
 	if (_recvBuf.base == NULL)
@@ -100,10 +99,8 @@ int RTSPConnection::sendRequest(RTSPMessage::Ptr req, int64 timeout, bool expect
 		_timeout = (timeout > 0)?timeout:_timeout;
 		ar.expiration = ZQ::common::now() + _timeout;
 
-		{
-			ZQ::common::MutexGuard g(_lkAwaits);
-			_awaits.insert(AwaitRequestMap::value_type(req->cSeq(), ar));
-		}
+		ZQ::common::MutexGuard g(_lkAwaits);
+		_awaits.insert(AwaitRequestMap::value_type(req->cSeq(), ar));
 	}
 
 	OnRequestPrepared(req);
