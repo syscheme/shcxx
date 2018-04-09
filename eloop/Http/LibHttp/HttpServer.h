@@ -111,9 +111,6 @@ public:
 	HttpPassiveConn(ZQ::common::Log& logger,TCPServer* tcpServer);
 	~HttpPassiveConn();
 
-	virtual bool onStart();
-	virtual bool onStop();
-
 	bool			keepAlive(){return _keepAlive_Timeout>0;}
 	virtual void onRespComplete();
 	void 			errorResponse( int code );
@@ -128,6 +125,8 @@ protected:
 	virtual bool	onBodyData( const char* data, size_t size);
 	virtual void	onMessageCompleted();
 	//virtual void	OnClose();
+
+	virtual void OnTimer();
 
 private:
 	// NOTE: DO NOT INVOKE THIS METHOD unless you known what you are doing

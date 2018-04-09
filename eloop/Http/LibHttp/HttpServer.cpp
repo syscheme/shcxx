@@ -12,12 +12,13 @@ namespace eloop {
 //---------------------------------------
 //class HttpMonitorTimer
 //----------------------------------------
-void HttpMonitorTimer::OnTimer()
-{
-	HttpPassiveConn* conn = (HttpPassiveConn*)data;
-	if (conn != NULL)
-		conn->stop();
-}
+// void HttpMonitorTimer::OnTimer()
+// {
+// 	HttpPassiveConn* conn = (HttpPassiveConn*)data;
+// 	if (conn != NULL)
+// 		conn->stop();
+// }
+
 
 // ---------------------------------------
 // class HttpPassiveConn
@@ -36,23 +37,10 @@ HttpPassiveConn::~HttpPassiveConn()
 	_handler = NULL;
 }
 
-bool HttpPassiveConn::onStart()
+void HttpPassiveConn::OnTimer()
 {
-	if (_keepAlive_Timeout > 0)
-	{
-		_watchDog.init(this->get_loop());
-		_watchDog.data = this;
-	}
-	return true;
-}
-
-bool HttpPassiveConn::onStop()
-{
-	if (_keepAlive_Timeout>0 && _watchDog.is_active()!=0)
-	{
-		_watchDog.stop();
-		_watchDog.close();
-	}
+	if (_keepAlive_Timeout>0 && _startTime>0 &&(ZQ::common::now() - _startTime > _keepAlive_Timeout))
+		stop();
 }
 
 void HttpPassiveConn::errorResponse( int code ) 
@@ -131,9 +119,6 @@ void HttpPassiveConn::onRespComplete()
 
 	if (_startTime <= 0)
 		_startTime = ZQ::common::now();
-
-	int took = (int) (ZQ::common::now() - _startTime);
-	_watchDog.start(_keepAlive_Timeout+took,0);
 }
 
 
