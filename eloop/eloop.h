@@ -379,7 +379,7 @@ private:
 // -----------------------------
 // class Async
 // -----------------------------
-// 
+// the async class allow others, maybe the threads out of the eloop, to notify the handle registered in the eloop
 class Async : public Handle
 {
 public:
