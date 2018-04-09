@@ -90,18 +90,17 @@ public:
 	}
 };
 
-
-//---------------------------------------
-//class HttpMonitorTimer
-//----------------------------------------
-class HttpMonitorTimer : public Timer
-{
-public:
-	//	~HttpMonitorTimer(){printf("~HttpMonitorTimer\n");}
-	virtual void OnTimer();
-	//	virtual void OnClose(){printf("HttpMonitorTimer onclose!\n");}
-};
-
+////---------------------------------------
+////class HttpMonitorTimer
+////----------------------------------------
+//class HttpMonitorTimer : public Timer
+//{
+//public:
+//	//	~HttpMonitorTimer(){printf("~HttpMonitorTimer\n");}
+//	virtual void OnTimer();
+//	//	virtual void OnClose(){printf("HttpMonitorTimer onclose!\n");}
+//};
+//
 // ---------------------------------------
 // class HttpPassiveConn
 // ---------------------------------------
@@ -135,15 +134,12 @@ private:
 	void initHint();
 
 private:
-	HttpHandler::Ptr			_Handler;
+	HttpHandler::Ptr			_handler;
 
 	bool						_keepAlive;
 	int64						_keepAlive_Timeout;
 	int64						_startTime;
-	HttpMonitorTimer			_watchDog;
-
-//	std::string					_Hint;
-// 	int64						_lastRespTime;
+//	HttpMonitorTimer			_watchDog;
 };
 
 // ---------------------------------------
@@ -181,7 +177,6 @@ private:
 
 	VSites _vsites;
 };
-
 
 // ---------------------------------------
 // class HttpStatistics
@@ -228,7 +223,7 @@ public:
 	} CountersOfMethod;
 
 	CountersOfMethod _counters[METHOD_MAX];
-	int64		_mesureSince;
+	int64		_measureSince;
 
 	void reset();
 	void addCounter(HttpMessage::HttpMethod mtd, int32 errCode, int32 latencyHeader, int32 latencyBody);

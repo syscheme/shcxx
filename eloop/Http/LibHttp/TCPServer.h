@@ -75,7 +75,7 @@ class TCPConnection : public TCP, public WatchDog::IObservee
 
 public:
 	TCPConnection(ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL)
-		:_Logger(log), _isConnected(false), _async(NULL), _tcpServer(tcpServer), _watchDog(NULL)
+		:_logger(log), _isConnected(false), _async(NULL), _tcpServer(tcpServer), _watchDog(NULL)
 	{
 		if (connId != NULL)
 			_connId = connId;
@@ -124,7 +124,7 @@ private:
 	void OnCloseAsync();
 
 public:
-	ZQ::common::Log&		_Logger;
+	ZQ::common::Log&		_logger;
 
 protected:
 	TCPServer*				_tcpServer;
@@ -137,7 +137,6 @@ protected:
 	std::list<std::string> _sendMsgList;
 	AsyncTCPSender* _async;
 };
-
 
 // ---------------------------------------
 // class TCPServer
@@ -184,7 +183,7 @@ public:
 
 public:
 	TCPServer(const ServerConfig& conf, ZQ::common::Log& logger)
-	: _Config(conf), _Logger(logger),_isStart(false)
+	: _config(conf), _logger(logger),_isStart(false)
 	{
 #ifdef ZQ_OS_LINUX
 		//Ignore SIGPIPE signal
@@ -204,19 +203,19 @@ public:
 
 	int64 keepAliveTimeout() const
 	{
-		return _Config.keepalive_timeout;
+		return _config.keepalive_timeout;
 	}
 
 	void single();
 	virtual TCPConnection* createPassiveConn();
 
-	ServerConfig		_Config;
-	ZQ::common::Log&	_Logger;
+	ServerConfig		_config;
+	ZQ::common::Log&	_logger;
 
 private:
 	typedef std::map<std::string, TCPConnection*>	ConnMAP;
 
-	ConnMAP					_PassiveConn;
+	ConnMAP					_connMap;
 	ZQ::common::Mutex		_connCountLock;
 	SYS::SingleObject		_sysWakeUp;
 	ITCPEngine*				_engine;

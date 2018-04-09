@@ -1,5 +1,6 @@
 #ifndef __HTTP_MESSAGE_h__
 #define __HTTP_MESSAGE_h__
+
 #include "ZQ_common_conf.h"
 
 #include <Locks.h>

@@ -93,9 +93,9 @@ public:
 	int SendBody(char *buf, size_t length);
 	int endSend();
 
-	virtual void onRespHeader() {_RespState = RESP_HEADERS;}
-	virtual void onRespBody() {_RespState = RESP_BODY;}
-	virtual void onRespComplete() {_RespState = RESP_COMPLETE;}	
+	virtual void onRespHeader() {_respState = RESP_HEADERS;}
+	virtual void onRespBody() {_respState = RESP_BODY;}
+	virtual void onRespComplete() {_respState = RESP_COMPLETE;}	
 
 protected:
 	HttpConnection(bool clientSide,ZQ::common::Log& logger,const char* connId = NULL,TCPServer* tcpServer = NULL);
@@ -132,21 +132,21 @@ protected: // implementation of IHttpParseSink that also present the message rec
 	virtual void onError( int error,const char* errorDescription ) {}
 	
 private:
-	http_parser*             _Parser; // its type can be determined by clientSide
-	http_parser_settings*    _ParserSettings;
-	HttpMessage::Ptr         _CurrentParseMsg;
+	http_parser*             _parser; // its type can be determined by clientSide
+	http_parser_settings*    _parserSettings;
+	HttpMessage::Ptr         _msgBeingParsed;
 	HttpMessage::MessgeType  _Type;
-	IHttpParseSink*			 _Callback;
+	IHttpParseSink*			 _cbParse;
 
 	//To achieve keepAlive and pipeline
 	typedef std::list<AsyncBuf::Ptr> ListPipe;
 	ListPipe					_listpipe;
-	EnResponState				_RespState;
+	EnResponState				_respState;
 
-	std::string			_HeaderField;
+	std::string			_headerName;
 	std::string*		_HeaderValue;
 
-	HttpMessage::Ptr         _RespMsg;
+	HttpMessage::Ptr         _respMsg;
 
 private:
 	enum ParseState {

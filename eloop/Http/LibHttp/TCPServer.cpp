@@ -47,7 +47,7 @@ public:
 	ITCPEngine(const std::string& ip,int port,ZQ::common::Log& logger,TCPServer& server)
 		:_ip(ip),
 		_port(port),
-		_Logger(logger),
+		_logger(logger),
 		_server(server)
 	{}
 
@@ -57,7 +57,7 @@ public:
 	virtual bool startAt() = 0;
 	virtual void stop() = 0;
 
-	ZQ::common::Log&		_Logger;
+	ZQ::common::Log&		_logger;
 	const std::string&		_ip;
 	int						_port;
 	TCPServer&				_server;
@@ -81,7 +81,7 @@ public:
 	~SingleLoopTCPEngine()
 	{
 		_watchDog.unwatch(this);
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(SingleLoopTCPEngine, "SingleLoopTCPEngine destructor!"));
+		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(SingleLoopTCPEngine, "SingleLoopTCPEngine destructor!"));
 	}
 
 	// ---------------------------------------
@@ -113,7 +113,7 @@ public:
 
 	virtual void stop()
 	{
-		if (_server._Config.watchDogInterval > 0)
+		if (_server._config.watchDogInterval > 0)
 			_watchDog.close();
 		else
 			_async.send();
@@ -121,14 +121,14 @@ public:
 
 	virtual int run(void)
 	{
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(SingleLoopTCPEngine,"SingleLoopTCPEngine start"));
+		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(SingleLoopTCPEngine,"SingleLoopTCPEngine start"));
 		ZQ::eloop::TCP::init(_loop);
 		_async.data = this;
 		_async.init(_loop);
-		if (_server._Config.watchDogInterval > 0)
+		if (_server._config.watchDogInterval > 0)
 		{
 			_watchDog.init(_loop);
-			_watchDog.start(0, _server._Config.watchDogInterval);
+			_watchDog.start(0, _server._config.watchDogInterval);
 		}
 
 		if (bind4(_ip.c_str(),_port) < 0)
@@ -139,7 +139,7 @@ public:
 
 		_server.onStart(_loop);
 		int r=_loop.run(ZQ::eloop::Loop::Default);
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(SingleLoopTCPEngine,"SingleLoopTCPEngine quit!"));
+		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(SingleLoopTCPEngine,"SingleLoopTCPEngine quit!"));
 		return r;
 	}
 
@@ -147,13 +147,13 @@ public:
 	{
 		if (status != elpeSuccess)
 		{
-			_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(SingleLoopTCPEngine, "doAccept() error code[%d] desc[%s]"),status,errDesc(status));
+			_logger(ZQ::common::Log::L_ERROR, CLOGFMT(SingleLoopTCPEngine, "doAccept() error code[%d] desc[%s]"),status,errDesc(status));
 			return;
 		}
 
 		TCPConnection* client = _server.createPassiveConn();
 		client->init(get_loop());
-		if (_server._Config.watchDogInterval > 0)
+		if (_server._config.watchDogInterval > 0)
 			client->setWatchDog(&_watchDog);
 
 		if (accept((Stream*)client) == 0)
@@ -190,13 +190,13 @@ public:
 
 		for (int i = 0;i < _threadCount;i++)
 		{
-			LoopThread *pthread = new LoopThread(_server, *this,_Logger);
+			LoopThread *pthread = new LoopThread(_server, *this,_logger);
 
 			pthread->setCPUAffinity(i);
 
 			pthread->start();
 			_vecThread.push_back(pthread);
-			_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(MultipleLoopTCPEngine,"cpuId:%d,cpuCount:%d,mask:%d"),i,_threadCount,1<<i);
+			_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(MultipleLoopTCPEngine,"cpuId:%d,cpuCount:%d,mask:%d"),i,_threadCount,1<<i);
 		}
 	}
 
@@ -211,7 +211,7 @@ public:
 		}
 
 		_vecThread.clear();
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(MultipleLoopTCPEngine,"MultipleLoopTCPEngine destructor!"));
+		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(MultipleLoopTCPEngine,"MultipleLoopTCPEngine destructor!"));
 	}
 
 	// ---------------------------------------
@@ -221,7 +221,7 @@ public:
 	{
 	public:
 		LoopThread(TCPServer& server, MultipleLoopTCPEngine& engine, ZQ::common::Log& logger)
-			:_Logger(logger), _engine(engine), Loop(false), _quit(false), _server(server)
+			:_logger(logger), _engine(engine), Loop(false), _quit(false), _server(server)
 		{
 			_watchDog.watch(this);
 		}
@@ -229,22 +229,22 @@ public:
 		~LoopThread()
 		{
 			_watchDog.unwatch(this);
-			_Logger(ZQ::common::Log::L_INFO, CLOGFMT(LoopThread,"LoopThread destructor!"));
+			_logger(ZQ::common::Log::L_INFO, CLOGFMT(LoopThread,"LoopThread destructor!"));
 		}
 
 		virtual int run(void)
 		{
 			Async::init(*this);
-			if (_server._Config.watchDogInterval > 0)
+			if (_server._config.watchDogInterval > 0)
 			{
 				_watchDog.init(*this);
-				_watchDog.start(0,_server._Config.watchDogInterval);
+				_watchDog.start(0,_server._config.watchDogInterval);
 			}
 
 			_server.onStart(*this);
-			_Logger(ZQ::common::Log::L_INFO, CLOGFMT(LoopThread, "LoopThread start run!"));
+			_logger(ZQ::common::Log::L_INFO, CLOGFMT(LoopThread, "LoopThread start run!"));
 			int r = Loop::run(Loop::Default);
-			_Logger(ZQ::common::Log::L_INFO, CLOGFMT(LoopThread, "LoopThread quit!"));
+			_logger(ZQ::common::Log::L_INFO, CLOGFMT(LoopThread, "LoopThread quit!"));
 			return r;
 		}
 
@@ -262,7 +262,7 @@ public:
 			ZQ::common::MutexGuard gd(_LockSocket);
 			if (_quit)
 			{
-				if (_server._Config.watchDogInterval > 0)
+				if (_server._config.watchDogInterval > 0)
 					_watchDog.close();
 				else
 					Handle::close();
@@ -273,16 +273,16 @@ public:
 			{
 				int sock = _ListSocket.front();
 				_ListSocket.pop_front();
-				_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(LoopThread,"OnAsync recv sock = %d"),sock);
+				_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(LoopThread,"OnAsync recv sock = %d"),sock);
 
 				TCPConnection* client = _server.createPassiveConn();
 				int r = client->init(get_loop());
-				if (_server._Config.watchDogInterval > 0)
+				if (_server._config.watchDogInterval > 0)
 					client->setWatchDog(&_watchDog);
 				if (r != 0)
 				{
 					//printf("tcp init error:%s,name :%s\n", uv_strerror(r), uv_err_name(r));
-					_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(LoopThread,"OnAsync tcp init errorcode[%d] describe[%s]"),r,Handle::errDesc(r));
+					_logger(ZQ::common::Log::L_ERROR, CLOGFMT(LoopThread,"OnAsync tcp init errorcode[%d] describe[%s]"),r,Handle::errDesc(r));
 					delete client;
 					continue;
 				}
@@ -290,7 +290,7 @@ public:
 				r = client->connected_open(sock);
 				if (r != 0)
 				{
-					_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(LoopThread,"OnAsync open socke errorcode[%d] describe[%s]"),r,Handle::errDesc(r));
+					_logger(ZQ::common::Log::L_ERROR, CLOGFMT(LoopThread,"OnAsync open socke errorcode[%d] describe[%s]"),r,Handle::errDesc(r));
 					client->stop();
 					continue;
 				}
@@ -313,7 +313,7 @@ public:
 
 	private:
 
-		ZQ::common::Log&			_Logger;
+		ZQ::common::Log&			_logger;
 		MultipleLoopTCPEngine&		_engine;
 		TCPServer&					_server;
 		std::list<int>				_ListSocket;
@@ -348,13 +348,13 @@ public:
 		serv.sin_addr.s_addr=inet_addr(_ip.c_str());
 		if(bind(_socket,(struct sockaddr*)&serv,sizeof(serv)) == -1)
 		{
-			_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(MultipleLoopTCPEngine,"socket bind error hint[%s:%d]"),_ip.c_str(),_port);
+			_logger(ZQ::common::Log::L_ERROR, CLOGFMT(MultipleLoopTCPEngine,"socket bind error hint[%s:%d]"),_ip.c_str(),_port);
 			return false;
 		}
 
 		if (0 != listen(_socket,10000))
 		{
-			_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(MultipleLoopTCPEngine,"socket listen error hint[%s:%d]"),_ip.c_str(),_port);
+			_logger(ZQ::common::Log::L_ERROR, CLOGFMT(MultipleLoopTCPEngine,"socket listen error hint[%s:%d]"),_ip.c_str(),_port);
 			return false;
 		}
 
@@ -385,7 +385,7 @@ public:
 
 	virtual int run(void)
 	{
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(MultipleLoopTCPEngine,"MultipleLoopHttpEngine start"));
+		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(MultipleLoopTCPEngine,"MultipleLoopHttpEngine start"));
 		struct sockaddr_storage addr;
 		while( _bRunning )
 		{
@@ -413,7 +413,7 @@ public:
 			_roundCount = (++_roundCount) % _threadCount;
 		}
 
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(MultipleLoopTCPEngine,"MultipleLoopHttpEngine quit"));
+		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(MultipleLoopTCPEngine,"MultipleLoopHttpEngine quit"));
 		return 0;
 	}
 
@@ -480,7 +480,7 @@ bool TCPConnection::start()
 	initHint();
 	if (_tcpServer)
 	{
-		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"new connection connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
+		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"new connection connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
 		_tcpServer->addConn(this);
 	}
 
@@ -497,7 +497,7 @@ bool TCPConnection::stop()
 		_async->close();
 		return true;
 	}
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"connId[%s] stop from [%s]"),_connId.c_str(), _Hint.c_str());
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"connId[%s] stop from [%s]"),_connId.c_str(), _Hint.c_str());
 	_isConnected = false;
 	shutdown();
 	return onStop();
@@ -530,16 +530,16 @@ void TCPConnection::OnClose()
 
 	if (_watchDog)
 		_watchDog->unwatch(this);
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnClose connection connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnClose connection connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
 	delete this;
 }
 
 void TCPConnection::OnShutdown(ElpeError status)
 {
 	if (status != elpeSuccess)
-		_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(TCPConnection,"shutdown error code[%d] Description[%s]"),status,errDesc(status));
+		_logger(ZQ::common::Log::L_ERROR, CLOGFMT(TCPConnection,"shutdown error code[%d] Description[%s]"),status,errDesc(status));
 
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnShutdown connection connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnShutdown connection connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
 	close();
 }
 
@@ -597,10 +597,10 @@ bool TCPServer::start()
 	if (_isStart)
 		return true;
 
-	if (_Config.mode == MULTIPE_LOOP_MODE)
-		_engine = new MultipleLoopTCPEngine(_Config.host, _Config.port, _Logger, *this);
+	if (_config.mode == MULTIPE_LOOP_MODE)
+		_engine = new MultipleLoopTCPEngine(_config.host, _config.port, _logger, *this);
 	else
-		_engine = new SingleLoopTCPEngine(_Config.host,_Config.port,_Logger,*this);
+		_engine = new SingleLoopTCPEngine(_config.host,_config.port,_logger,*this);
 
 	_isStart = true;
 	_engine->startAt();
@@ -616,14 +616,14 @@ bool TCPServer::stop()
 	onStop();
 	{
 		ZQ::common::MutexGuard gd(_connCountLock);
-		if (_PassiveConn.empty())
+		if (_connMap.empty())
 		{
 			_engine->stop();
 		}
 		else
 		{
 			ConnMAP::iterator itconn;
-			for(itconn = _PassiveConn.begin();itconn != _PassiveConn.end();itconn++)
+			for(itconn = _connMap.begin();itconn != _connMap.end();itconn++)
 				itconn->second->shutdown();
 		}
 	}
@@ -640,29 +640,29 @@ bool TCPServer::stop()
 void TCPServer::addConn( TCPConnection* servant )
 {
 	ZQ::common::MutexGuard gd(_connCountLock);
-	_PassiveConn[servant->connId()] = servant;
+	_connMap[servant->connId()] = servant;
 }
 
 void TCPServer::delConn( TCPConnection* servant )
 {
 	ZQ::common::MutexGuard gd(_connCountLock);
-	_PassiveConn.erase(servant->connId());
-	if (!_isStart&&_PassiveConn.empty())
+	_connMap.erase(servant->connId());
+	if (!_isStart&&_connMap.empty())
 		_engine->stop();
 }
 
 TCPConnection* TCPServer::findConn( const std::string& connId)
 {
 	ZQ::common::MutexGuard gd(_connCountLock);
-	ConnMAP::iterator it = _PassiveConn.find(connId);
-	if (it != _PassiveConn.end())
+	ConnMAP::iterator it = _connMap.find(connId);
+	if (it != _connMap.end())
 		return it->second;
 	return NULL;
 }
 
 TCPConnection* TCPServer::createPassiveConn()
 {
-	return new TCPConnection(_Logger,NULL,this);
+	return new TCPConnection(_logger,NULL,this);
 }
 
 void TCPServer::single()

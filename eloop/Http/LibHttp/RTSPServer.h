@@ -47,7 +47,7 @@ public:
 		TCPConnection* conn = _sev->findConn(_connId);
 		if (conn == NULL)
 		{
-			_sev->_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(RTSPResponse, "post() conn[%s] already closed"),_connId.c_str());
+			_sev->_logger(ZQ::common::Log::L_ERROR, CLOGFMT(RTSPResponse, "post() conn[%s] already closed"),_connId.c_str());
 			return;
 		}
 		int ret = conn->AsyncSend(respMsg);
@@ -56,7 +56,7 @@ public:
 			conn->onError(ret,ZQ::eloop::Handle::errDesc(ret));
 			return;
 		}
-		_sev->_Logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), conn->hint().c_str(),true);
+		_sev->_logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), conn->hint().c_str(),true);
 	}
 
 	TCPConnection* getConn()

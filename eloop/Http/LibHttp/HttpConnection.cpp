@@ -11,20 +11,20 @@ namespace eloop {
 HttpConnection::HttpConnection(bool clientSide,ZQ::common::Log& logger,const char* connId,TCPServer* tcpServer)
 		:TCPConnection(logger, connId, tcpServer),
 		_Type(clientSide?HttpMessage::MSG_RESPONSE:HttpMessage::MSG_REQUEST),
-		_Parser(NULL), _RespState(RESP_COMPLETE), _ParserSettings(NULL)
+		_parser(NULL), _respState(RESP_COMPLETE), _parserSettings(NULL)
 {
-	_Parser = (http_parser*)malloc(sizeof(http_parser));
-	_ParserSettings = (http_parser_settings*)malloc(sizeof(http_parser_settings));
-	_ParserSettings->on_body				= HttpConnection::on_body;
-	_ParserSettings->on_header_field		= HttpConnection::on_header_field;
-	_ParserSettings->on_header_value		= HttpConnection::on_header_value;
-	_ParserSettings->on_headers_complete	= HttpConnection::on_headers_complete;
-	_ParserSettings->on_message_begin		= HttpConnection::on_message_begin;
-	_ParserSettings->on_message_complete	= HttpConnection::on_message_complete;
-	_ParserSettings->on_status				= HttpConnection::on_status;
-	_ParserSettings->on_url					= HttpConnection::on_uri;
-	_ParserSettings->on_chunk_header		= HttpConnection::on_chunk_header;
-	_ParserSettings->on_chunk_complete		= HttpConnection::on_chunk_complete;
+	_parser = (http_parser*)malloc(sizeof(http_parser));
+	_parserSettings = (http_parser_settings*)malloc(sizeof(http_parser_settings));
+	_parserSettings->on_body				= HttpConnection::on_body;
+	_parserSettings->on_header_field		= HttpConnection::on_header_field;
+	_parserSettings->on_header_value		= HttpConnection::on_header_value;
+	_parserSettings->on_headers_complete	= HttpConnection::on_headers_complete;
+	_parserSettings->on_message_begin		= HttpConnection::on_message_begin;
+	_parserSettings->on_message_complete	= HttpConnection::on_message_complete;
+	_parserSettings->on_status				= HttpConnection::on_status;
+	_parserSettings->on_url					= HttpConnection::on_uri;
+	_parserSettings->on_chunk_header		= HttpConnection::on_chunk_header;
+	_parserSettings->on_chunk_complete		= HttpConnection::on_chunk_complete;
 
 	reset();
 }
@@ -32,8 +32,8 @@ HttpConnection::HttpConnection(bool clientSide,ZQ::common::Log& logger,const cha
 
 HttpConnection::~HttpConnection()
 {
-	free(_Parser);
-	free(_ParserSettings);
+	free(_parser);
+	free(_parserSettings);
 }
 
 void HttpConnection::reset(IHttpParseSink* p)
@@ -41,16 +41,16 @@ void HttpConnection::reset(IHttpParseSink* p)
 	if(!p)
 		p = dynamic_cast<IHttpParseSink*>(this);
 
-	_Callback	= p;
+	_cbParse	= p;
 
-	http_parser_init(_Parser,(http_parser_type)_Type);
+	http_parser_init(_parser,(http_parser_type)_Type);
 
-	_Parser->data = reinterpret_cast<void*>(this);
-	_HeaderField.clear();
+	_parser->data = reinterpret_cast<void*>(this);
+	_headerName.clear();
 	_HeaderValue = NULL;
 	_ParserState = STATE_INIT;
 
-	_CurrentParseMsg = new HttpMessage(_Type);
+	_msgBeingParsed = new HttpMessage(_Type);
 }
 
 void HttpConnection::OnRead(ssize_t nread, const char *buf)
@@ -83,7 +83,7 @@ void HttpConnection::OnWrote(int status)
 	
 	onHttpDataSent(status);
 
-	if ((_RespState == RESP_COMPLETE) && (!_listpipe.empty()))
+	if ((_respState == RESP_COMPLETE) && (!_listpipe.empty()))
 	{
 		AsyncBuf::Ptr bufptr = _listpipe.front();
 		_listpipe.pop_front();
@@ -99,7 +99,7 @@ void HttpConnection::OnWrote(int status)
 // void HttpConnection::OnShutdown(ElpeError status)
 // {
 // 	if (status != elpeSuccess)
-// 		_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpConnection,"shutdown error code[%d] Description[%s]"),status,errDesc(status));
+// 		_logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpConnection,"shutdown error code[%d] Description[%s]"),status,errDesc(status));
 // 
 // 	close();
 // }
@@ -107,7 +107,7 @@ void HttpConnection::OnWrote(int status)
 void HttpConnection::parse( const char* data, size_t size)
 {
 
-	if (_RespState != RESP_COMPLETE)
+	if (_respState != RESP_COMPLETE)
 	{
 		AsyncBuf::Ptr inflowPtr = new AsyncBuf(data,size);
 		_listpipe.push_back(inflowPtr);
@@ -116,13 +116,13 @@ void HttpConnection::parse( const char* data, size_t size)
 
 	if( _ParserState >= STATE_COMPLETE) {
 		reset();
-		//_Logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"reset,state = %d"),_ParserState);
+		//_logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"reset,state = %d"),_ParserState);
 	}
-//	_Logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"parse data [%d][%s]"),size,data);
+//	_logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"parse data [%d][%s]"),size,data);
 
-	size_t nparsed = http_parser_execute(_Parser, _ParserSettings, data, size);
+	size_t nparsed = http_parser_execute(_parser, _parserSettings, data, size);
 
-//	_Logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"parsed = %d,size = %d"),nparsed,size);
+//	_logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"parsed = %d,size = %d"),nparsed,size);
 
 	if (nparsed == size)
 		return;
@@ -136,15 +136,15 @@ void HttpConnection::parse( const char* data, size_t size)
 	}
 
 	std::string parsedesc = "parse error:";
-	parsedesc.append(http_errno_description((http_errno)_Parser->http_errno));
-	onError((int)_Parser->http_errno,parsedesc.c_str());
+	parsedesc.append(http_errno_description((http_errno)_parser->http_errno));
+	onError((int)_parser->http_errno,parsedesc.c_str());
 }
 
 int HttpConnection::beginSend(HttpMessage::Ptr resp)
 {
 	assert(resp != NULL && "msg can not be NULL");
-	_RespMsg = resp;
-	std::string head = _RespMsg->toRaw();
+	_respMsg = resp;
+	std::string head = _respMsg->toRaw();
 	
 	int ret = write(head.c_str(),head.length());
 	onRespHeader();
@@ -153,14 +153,14 @@ int HttpConnection::beginSend(HttpMessage::Ptr resp)
 
 int HttpConnection::SendBody(char *buf, size_t length)
 {
-	if(!_RespMsg->hasContentBody() ) 
+	if(!_respMsg->hasContentBody() ) 
 	{
 		assert( false && "http message do not have a content body");
 		return -1;
 	}
 
 	int ret = 0;
-	if(!_RespMsg->chunked() )
+	if(!_respMsg->chunked() )
 		ret = write(buf,length);
 	else
 	{
@@ -184,7 +184,7 @@ int HttpConnection::SendBody(char *buf, size_t length)
 int HttpConnection::endSend()
 {
 	int ret = 0;
-	if(_RespMsg->chunked())
+	if(_respMsg->chunked())
 	{
 		char* chunkEnd = "0\r\n\r\n";
 		ret = write(chunkEnd,strlen(chunkEnd));
@@ -202,26 +202,26 @@ int	HttpConnection::onMessageBegin( )
 
 int	HttpConnection::onHeadersComplete()
 {
-	assert(_Callback != NULL);
-	_CurrentParseMsg->contentLength((int64)_Parser->content_length);
-	_CurrentParseMsg->keepAlive((_Parser->flags & F_CONNECTION_KEEP_ALIVE) != 0);
-	_CurrentParseMsg->chunked((_Parser->flags & F_CHUNKED) != 0 );
-	_CurrentParseMsg->code((int)_Parser->status_code);
-	_CurrentParseMsg->method((HttpMessage::HttpMethod)_Parser->method);
-	_CurrentParseMsg->setVersion(_Parser->http_major, _Parser->http_minor);
+	assert(_cbParse != NULL);
+	_msgBeingParsed->contentLength((int64)_parser->content_length);
+	_msgBeingParsed->keepAlive((_parser->flags & F_CONNECTION_KEEP_ALIVE) != 0);
+	_msgBeingParsed->chunked((_parser->flags & F_CHUNKED) != 0 );
+	_msgBeingParsed->code((int)_parser->status_code);
+	_msgBeingParsed->method((HttpMessage::HttpMethod)_parser->method);
+	_msgBeingParsed->setVersion(_parser->http_major, _parser->http_minor);
 
-	int r = _CurrentParseMsg->onHeadersComplete();
+	int r = _msgBeingParsed->onHeadersComplete();
 	if (r != 0)
 	{
-		_Callback->onError(r,_CurrentParseMsg->errorCode2Desc(r));
+		_cbParse->onError(r,_msgBeingParsed->errorCode2Desc(r));
 		return -2;
 	}
 
 	_ParserState = STATE_BODY;
-	if(_Parser->http_errno == 0)
+	if(_parser->http_errno == 0)
 	{
-		assert(_Callback != NULL);
-		if(!_Callback->onHeadersEnd(_CurrentParseMsg))
+		assert(_cbParse != NULL);
+		if(!_cbParse->onHeadersEnd(_msgBeingParsed))
 			return -1;//user cancel parsing procedure
 
 		return 0;
@@ -232,18 +232,18 @@ int	HttpConnection::onHeadersComplete()
 
 int	HttpConnection::onMessageComplete()
 {
-	assert(_Callback != NULL);
+	assert(_cbParse != NULL);
 
-	int r = _CurrentParseMsg->onMessageComplete();
+	int r = _msgBeingParsed->onMessageComplete();
 	if (r != 0)
 	{
-		_Callback->onError(r,_CurrentParseMsg->errorCode2Desc(r));
+		_cbParse->onError(r,_msgBeingParsed->errorCode2Desc(r));
 		return -1;
 	}
 	
-	_Callback->onMessageCompleted();
+	_cbParse->onMessageCompleted();
 	_ParserState = STATE_COMPLETE;
-	_CurrentParseMsg = NULL;
+	_msgBeingParsed = NULL;
 
 	return -1;//cancel parsing procedure
 //	return 0;
@@ -251,20 +251,20 @@ int	HttpConnection::onMessageComplete()
 
 int	HttpConnection::onUri(const char* at, size_t size)
 {
-	_CurrentParseMsg->_Uri.append(at, size);
+	_msgBeingParsed->_Uri.append(at, size);
 	return 0;
 }
 
 int	HttpConnection::onStatus(const char* at, size_t size)
 {
-	_CurrentParseMsg->_Status.append(at, size);
+	_msgBeingParsed->_Status.append(at, size);
 	return 0;
 }
 
 int	HttpConnection::onHeaderField(const char* at, size_t size)
 {
 	_HeaderValue = NULL;
-	_HeaderField.append(at,size);
+	_headerName.append(at,size);
 	return 0;
 }
 
@@ -274,16 +274,16 @@ int	HttpConnection::onHeaderValue(const char* at, size_t size)
 		_HeaderValue->append(at, size);
 	else
 	{
-		std::pair<HttpMessage::Headers::iterator,bool> ret = _CurrentParseMsg->_Headers.insert(HttpMessage::Headers::value_type(_HeaderField, std::string(at,size)));
+		std::pair<HttpMessage::Headers::iterator,bool> ret = _msgBeingParsed->_Headers.insert(HttpMessage::Headers::value_type(_headerName, std::string(at,size)));
 		if(!ret.second)
 		{
-			_CurrentParseMsg->_Headers.erase(_HeaderField);
-			ret = _CurrentParseMsg->_Headers.insert(HttpMessage::Headers::value_type(_HeaderField, std::string(at,size)));
+			_msgBeingParsed->_Headers.erase(_headerName);
+			ret = _msgBeingParsed->_Headers.insert(HttpMessage::Headers::value_type(_headerName, std::string(at,size)));
 			assert(ret.second);
 		}
 
 		_HeaderValue = &ret.first->second;
-		_HeaderField.clear();
+		_headerName.clear();
 	} 
 
 	return 0;
@@ -291,11 +291,11 @@ int	HttpConnection::onHeaderValue(const char* at, size_t size)
 
 int	HttpConnection::onBody(const char* at, size_t size)
 {
-	if (0 == _CurrentParseMsg->onBody(at,size))
+	if (0 == _msgBeingParsed->onBody(at,size))
 		return 0;
 
-	assert(_Callback!=NULL);
-	if(!_Callback->onBodyData(at, size))
+	assert(_cbParse!=NULL);
+	if(!_cbParse->onBodyData(at, size))
 		return -1; //user cancel parsing procedure
 
 	return 0;

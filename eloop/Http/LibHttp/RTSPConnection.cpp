@@ -45,7 +45,7 @@ void RTSPConnection::doAllocate(eloop_buf_t* buf, size_t suggested_size)
 
 		if ((_recvBuf.len - _byteSeen) <=0)
 		{
-			_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPConnection, "doAllocate() conn[%s] last incomplete message exceed bufsz[%d] from offset[%d], give it up"), hint(), _recvBuf.len, _byteSeen);
+			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPConnection, "doAllocate() conn[%s] last incomplete message exceed bufsz[%d] from offset[%d], give it up"), hint(), _recvBuf.len, _byteSeen);
 			_byteSeen =0;
 			memset(_recvBuf.base,0,_recvBuf.len);
 		}
@@ -68,7 +68,7 @@ void RTSPConnection::OnRead(ssize_t nread, const char *buf)
 	if (nread == 0)
 		return;
 
-	_Logger.hexDump(ZQ::common::Log::L_DEBUG, _recvBuf.base+_byteSeen, nread, hint().c_str(),true);
+	_logger.hexDump(ZQ::common::Log::L_DEBUG, _recvBuf.base+_byteSeen, nread, hint().c_str(),true);
 
 
 	onDataReceived(nread);
@@ -109,7 +109,7 @@ int RTSPConnection::sendRequest(RTSPMessage::Ptr req, int64 timeout, bool expect
 	OnRequestPrepared(req);
 	std::string reqStr = req->toRaw();
 	int ret = write(reqStr.c_str(), reqStr.size());
-	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPConnection, "sendRequest() conn[%s] msg[%s]"), hint().c_str(),reqStr.c_str());
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPConnection, "sendRequest() conn[%s] msg[%s]"), hint().c_str(),reqStr.c_str());
 
 	if (ret < 0)
 	{
@@ -171,7 +171,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 
 			if (_currentParseMsg.contentBodyRead < _currentParseMsg.pMsg->contentLength())
 			{
-				_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPConnection, "parse() conn[%s] incompleted message left, appended[%lld], Content-Length[%lld/%lld]"), hint().c_str(), len, _currentParseMsg.contentBodyRead, _currentParseMsg.pMsg->contentLength());
+				_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPConnection, "parse() conn[%s] incompleted message left, appended[%lld], Content-Length[%lld/%lld]"), hint().c_str(), len, _currentParseMsg.contentBodyRead, _currentParseMsg.pMsg->contentLength());
 				continue;
 			}
 
@@ -180,7 +180,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 			// check the header CSeq
 			if (_currentParseMsg.pMsg->cSeq() <= 0)
 			{
-				_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPConnection, "parse() conn[%s] ignore illegal response withno CSeq"), hint().c_str());
+				_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPConnection, "parse() conn[%s] ignore illegal response withno CSeq"), hint().c_str());
 				_currentParseMsg.reset();
 				continue;
 			}
@@ -321,7 +321,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 			RTSPMessage::Ptr resp = (*itResp);
 			if (!resp)
 			{
-				_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPConnection, "resp is NULL"));
+				_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPConnection, "resp is NULL"));
 				continue;
 			}
 
@@ -330,7 +330,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 			AwaitRequestMap::iterator itW = _awaits.find(cseq);
 			if (_awaits.end() == itW) // unknown request or it has been previously expired
 			{
-				_Logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPConnection, "unknown request or it has been previously expired. cseq(%d)"),cseq);
+				_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPConnection, "unknown request or it has been previously expired. cseq(%d)"),cseq);
 				continue;
 			}
 
@@ -341,7 +341,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 			if (resp)
 				err = resp->code();
 
-			_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPConnection, "OnResponse() %s(%d) ret(%d) took %dmsec triggered, cleaning from await list"), resp->method().c_str(), cseq, err, elapsed);
+			_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPConnection, "OnResponse() %s(%d) ret(%d) took %dmsec triggered, cleaning from await list"), resp->method().c_str(), cseq, err, elapsed);
 
 			OnRequestDone(cseq, err);
 			_awaits.erase(cseq);
