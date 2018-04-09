@@ -267,7 +267,6 @@ public:
 protected:
 	std::string		_id;
 	Properties  	_props;
-	// std::string		_sessGroup;
 };
 
 //-------------------------------------
@@ -292,8 +291,8 @@ public:
 	int sendRequest(RTSPMessage::Ptr req, int64 timeout = 500,bool expectResp = true);
 
 protected:
-	RTSPConnection(ZQ::common::Log& log, const char* connId = NULL,TCPServer* tcpServer = NULL)
-		:TCPConnection(log,connId,tcpServer),_byteSeen(0)
+	RTSPConnection(ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL)
+		:TCPConnection(log,connId,tcpServer), _byteSeen(0)
 	{
 		_lastCSeq.set(1);
 	}

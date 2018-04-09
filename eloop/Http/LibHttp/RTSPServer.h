@@ -18,56 +18,28 @@ class ZQ_ELOOP_HTTP_API RTSPPassiveConn;
 #define DEFAULT_SITE "."
 
 // ---------------------------------------
-// class RTSPResponse
+// class RTSPServerResponse
 // ---------------------------------------
-class RTSPResponse : public RTSPMessage
+class RTSPServerResponse : public RTSPMessage
 {
 public:
-	typedef ZQ::common::Pointer<RTSPResponse> Ptr;
+	typedef ZQ::common::Pointer<RTSPServerResponse> Ptr;
 
-	RTSPResponse(TCPServer* sev, const std::string& connId, const RTSPMessage::Ptr& req)
-		: _sev(sev), _connId(connId), RTSPMessage(RTSPMessage::RTSP_MSG_RESPONSE)
+	RTSPServerResponse(RTSPServer& server, const std::string& connId, const RTSPMessage::Ptr& req)
+		: _server(server), _connId(connId), RTSPMessage(RTSPMessage::RTSP_MSG_RESPONSE)
 	{
 		header(Header_MethodCode, req->method());
 		cSeq(req->cSeq());
 	}
 
-	~RTSPResponse(){}
+	~RTSPServerResponse() {}
 
-	void post(int statusCode, const char* desc = NULL) 
-	{
-		if (statusCode>100)
-			code(statusCode);
-		if (desc != NULL)
-			status(desc);
-
-		std::string respMsg = toRaw();
-		// TODO: _conn._logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), _conn.hint().c_str(),true);
-
-		TCPConnection* conn = _sev->findConn(_connId);
-		if (conn == NULL)
-		{
-			_sev->_logger(ZQ::common::Log::L_ERROR, CLOGFMT(RTSPResponse, "post() conn[%s] already closed"),_connId.c_str());
-			return;
-		}
-		int ret = conn->AsyncSend(respMsg);
-		if (ret < 0)
-		{
-			conn->onError(ret,ZQ::eloop::Handle::errDesc(ret));
-			return;
-		}
-		_sev->_logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), conn->hint().c_str(),true);
-	}
-
-	TCPConnection* getConn()
-	{
-		return _sev->findConn(_connId);
-	}
-
+	void post(int statusCode, const char* desc = NULL); 
+	TCPConnection* getConn();
 
 private:
 	std::string _connId; // TODO: what if the connection is lost piror to response sending
-	TCPServer* _sev;
+	RTSPServer& _server;
 };
 
 
@@ -124,19 +96,19 @@ protected: // hatched by HttpApplication
 
 	// non session-based requests
 	//@return RTSP status code
-	virtual RTSPMessage::ExtendedErrCode onOptions(const RTSPMessage::Ptr& req, RTSPResponse::Ptr& resp);
-	virtual RTSPMessage::ExtendedErrCode onDescribe(const RTSPMessage::Ptr& req, RTSPResponse::Ptr& resp);
-	virtual RTSPMessage::ExtendedErrCode onAnnounce(const RTSPMessage::Ptr& req, RTSPResponse::Ptr& resp);
+	virtual RTSPMessage::ExtendedErrCode onOptions(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp);
+	virtual RTSPMessage::ExtendedErrCode onDescribe(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp);
+	virtual RTSPMessage::ExtendedErrCode onAnnounce(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp);
 
 	// session-based requests
 	//@return RTSP status code
-	virtual RTSPMessage::ExtendedErrCode procSessionSetup(const RTSPMessage::Ptr& req, RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionPlay(const RTSPMessage::Ptr& req, RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionPause(const RTSPMessage::Ptr& req, RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionTeardown(const RTSPMessage::Ptr& req, RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionAnnounce(const RTSPMessage::Ptr& req, RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionDescribe(const RTSPMessage::Ptr& req, RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionGetParameter(const RTSPMessage::Ptr& req, RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionSetup(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionPlay(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionPause(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionTeardown(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionAnnounce(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionDescribe(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionGetParameter(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
 
 	virtual std::string mediaSDP(const std::string& mid) {return "";}
 
@@ -193,7 +165,7 @@ public: // about the session management
 		typedef std::map<std::string, Ptr> Map;
 
 	public:
-		Session(RTSPServer& sev, const std::string& id): _sev(sev),RTSPSession(id) {}
+		Session(RTSPServer& server, const std::string& id): _server(server), RTSPSession(id) {}
 		virtual ~Session() {}
 
 		//virtual bool	setup()    { return false; }
@@ -201,7 +173,7 @@ public: // about the session management
 		//virtual bool	pause()    { return false; }
 		//virtual bool	teardown() { return false; }
 	protected:
-		RTSPServer&		_sev;
+		RTSPServer&		_server;
 	};
 
 	virtual Session::Ptr createSession(const char* sessId = NULL) 
@@ -210,6 +182,7 @@ public: // about the session management
 			sessId = generateSessionID().c_str();
 		return new Session(*this, sessId); 
 	}
+
 	std::string	generateSessionID();
 
 	Session::Ptr findSession(const std::string& sessId);
@@ -243,5 +216,5 @@ private:
 	uint32						_maxSession;
 };
 
-} }//namespace ZQ::eloop
+} } //namespace ZQ::eloop
 #endif

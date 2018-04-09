@@ -417,7 +417,7 @@ public:
 		return 0;
 	}
 
-	void QuitNotify(LoopThread* sev)
+	void QuitNotify(LoopThread* server)
 	{
 		ZQ::common::MutexGuard gd(_Lock);
 		_quitCount++;
