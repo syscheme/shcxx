@@ -140,7 +140,7 @@ private:
 	bool						_keepAlive;
 	int64						_keepAlive_Timeout;
 	int64						_startTime;
-	HttpMonitorTimer			_timer;
+	HttpMonitorTimer			_watchDog;
 
 //	std::string					_Hint;
 // 	int64						_lastRespTime;

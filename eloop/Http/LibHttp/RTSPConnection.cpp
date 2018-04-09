@@ -402,7 +402,7 @@ void RTSPConnection::OnWrote(int status)
 	onDataSent(status);
 }
 
-void RTSPConnection::OnWatchDog()
+void RTSPConnection::OnTimer()
 {
 	std::vector<uint> expiredList;
 

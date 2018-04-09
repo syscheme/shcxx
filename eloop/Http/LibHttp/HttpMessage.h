@@ -15,18 +15,22 @@
 
 #ifdef ZQ_OS_MSWIN
 #  ifdef LIBHTTP_EXPORTS
-#    define ZQ_HTTP_API __EXPORT
+#    define ZQ_ELOOP_HTTP_API __EXPORT
 #  else
-#    define ZQ_HTTP_API __DLLRTL
+#    define ZQ_ELOOP_HTTP_API __DLLRTL
 #  endif
+#  ifdef _LIB
+#    undef  ZQ_ELOOP_HTTP_API
+#    define ZQ_ELOOP_HTTP_API
+#  endif // _LIB
 #else
-#  define ZQ_HTTP_API
+#  define ZQ_ELOOP_HTTP_API
 #endif // OS
 
 namespace ZQ {
 namespace eloop {
 
-class ZQ_HTTP_API HttpMessage;
+class ZQ_ELOOP_HTTP_API HttpMessage;
 
 #define CRLF "\r\n"
 #define ChunkTail "0\r\n\r\n"

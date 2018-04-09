@@ -40,18 +40,18 @@ bool HttpPassiveConn::onStart()
 {
 	if (_keepAlive_Timeout > 0)
 	{
-		_timer.init(this->get_loop());
-		_timer.data = this;
+		_watchDog.init(this->get_loop());
+		_watchDog.data = this;
 	}
 	return true;
 }
 
 bool HttpPassiveConn::onStop()
 {
-	if (_keepAlive_Timeout>0 && _timer.is_active()!=0)
+	if (_keepAlive_Timeout>0 && _watchDog.is_active()!=0)
 	{
-		_timer.stop();
-		_timer.close();
+		_watchDog.stop();
+		_watchDog.close();
 	}
 }
 
@@ -133,7 +133,7 @@ void HttpPassiveConn::onRespComplete()
 		_startTime = ZQ::common::now();
 
 	int took = (int) (ZQ::common::now() - _startTime);
-	_timer.start(_keepAlive_Timeout+took,0);
+	_watchDog.start(_keepAlive_Timeout+took,0);
 }
 
 

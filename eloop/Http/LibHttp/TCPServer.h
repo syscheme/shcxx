@@ -14,59 +14,65 @@
 
 #ifdef ZQ_OS_MSWIN
 #  ifdef LIBHTTP_EXPORTS
-#    define ZQ_HTTP_API __EXPORT
+#    define ZQ_ELOOP_HTTP_API __EXPORT
 #  else
-#    define ZQ_HTTP_API __DLLRTL
+#    define ZQ_ELOOP_HTTP_API __DLLRTL
 #  endif
+#  ifdef _LIB
+#    undef  ZQ_ELOOP_HTTP_API
+#    define ZQ_ELOOP_HTTP_API
+#  endif // _LIB
 #else
-#  define ZQ_HTTP_API
+#  define ZQ_ELOOP_HTTP_API
 #endif // OS
 
 namespace ZQ {
 namespace eloop {
 
-class ZQ_HTTP_API TCPServer;
-class ZQ_HTTP_API TCPConnection;
+class ZQ_ELOOP_HTTP_API TCPServer;
+class ZQ_ELOOP_HTTP_API TCPConnection;
 
 //-------------------------------------
-//	class watchDog
+//	class WatchDog
 //-------------------------------------
-class IWatchDog
-{
-	friend class watchDogTimer;
-protected:
-	virtual void OnWatchDog() = 0;
-	virtual void OnWatchDogClose() = 0;
-};
-
-//-------------------------------------
-//	class watchDogTimer
-//-------------------------------------
-class watchDogTimer : public ZQ::eloop::Timer
+class WatchDog : public ZQ::eloop::Timer
 {
 public:
-	watchDogTimer(IWatchDog* dog) {_watchDogVec.push_back(dog);}
+	//-------------------------------------
+	//	interface Osbervee
+	//-------------------------------------
+	class IObservee
+	{
+	public:
+		virtual void OnTimer() = 0;
+		virtual void OnUnwatch() = 0;
+	};
 
+public:
+	WatchDog() {}
+	// WatchDog(IObservee* dog) { _observeeList.push_back(dog); }
+
+	void watch(IObservee* observee);
+	void unwatch(IObservee* observee);
+
+protected: // impl of ZQ::eloop::Timer to redirect the OnTimer to _observeeList
 	virtual void OnTimer();
 	virtual void OnClose();
-	void addWatchDog(IWatchDog* whDog);
-	void delWatchDog(IWatchDog* whDog);
 
 private:
-	std::vector<IWatchDog*>	_watchDogVec;
-	ZQ::common::Mutex		_watchDogLock;
+	std::vector<IObservee*>	_observeeList;
+	ZQ::common::Mutex		_observeeLock;
 };
 
-
 class ITCPEngine;
-class TCPServer;
 class AsyncTCPSender;
 // ---------------------------------------
 // class TCPConnection
 // ---------------------------------------
-class TCPConnection : public TCP, public IWatchDog 
+class TCPConnection : public TCP, public WatchDog::IObservee 
 {
 	friend class AsyncTCPSender;
+
 public:
 	TCPConnection(ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL)
 		:_Logger(log), _isConnected(false), _async(NULL), _tcpServer(tcpServer), _watchDog(NULL)
@@ -93,13 +99,13 @@ public:
 
 	virtual void onError( int error,const char* errorDescription ) {}
 
-	void setWatchDog(watchDogTimer* watchDog)	{ _watchDog = watchDog; }
-	virtual void OnWatchDog() {}
-	virtual void OnWatchDogClose() {}
+	void setWatchDog(WatchDog* watchDog)	{ _watchDog = watchDog; }
+	virtual void OnTimer() {}
+	virtual void OnUnwatch() {}
 
 protected:
-	virtual bool onStart(){return true;}
-	virtual bool onStop(){return true;}
+	virtual bool onStart() {return true;}
+	virtual bool onStop()  {return true;}
 
 	// called after buffer has been written into the stream
 	virtual void OnWrote(int status) {}
@@ -119,10 +125,10 @@ private:
 
 public:
 	ZQ::common::Log&		_Logger;
-	TCPServer*				_tcpServer;
 
 protected:
-	watchDogTimer*			_watchDog;
+	TCPServer*				_tcpServer;
+	WatchDog*			    _watchDog;
 	std::string				_Hint;
 	bool					_isConnected;
 	std::string				_connId;
@@ -136,7 +142,7 @@ protected:
 // ---------------------------------------
 // class TCPServer
 // ---------------------------------------
-class TCPServer//, public IWatchDog
+class TCPServer
 {
 public:
 	enum ServerMode
@@ -177,10 +183,8 @@ public:
 	};
 
 public:
-	TCPServer( const ServerConfig& conf,ZQ::common::Log& logger)
-	:_Config(conf),
-	_Logger(logger),
-	_isStart(false)
+	TCPServer(const ServerConfig& conf, ZQ::common::Log& logger)
+	: _Config(conf), _Logger(logger),_isStart(false)
 	{
 #ifdef ZQ_OS_LINUX
 		//Ignore SIGPIPE signal
@@ -193,7 +197,6 @@ public:
 
 	virtual bool onStart(ZQ::eloop::Loop& loop){ return true; }
 	virtual bool onStop(){ return true; }
-
 
 	void	addConn( TCPConnection* servant );
 	void	delConn( TCPConnection* servant );
@@ -221,4 +224,5 @@ private:
 };
 
 } }//namespace ZQ::eloop
+
 #endif
