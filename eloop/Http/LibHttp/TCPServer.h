@@ -12,6 +12,10 @@
 #include <set>
 #include <string>
 
+#ifdef ZQ_OS_LINUX
+#include <signal.h>
+#endif
+
 #ifdef ZQ_OS_MSWIN
 #  ifdef LIBHTTP_EXPORTS
 #    define ZQ_ELOOP_HTTP_API __EXPORT
@@ -188,7 +192,7 @@ public:
 	{
 #ifdef ZQ_OS_LINUX
 		//Ignore SIGPIPE signal
-		signal(SIGPIPE, SIG_IGN);
+		::signal(SIGPIPE, SIG_IGN);
 #endif
 	}
 
