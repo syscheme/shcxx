@@ -1,6 +1,9 @@
 #ifndef __TCP_SERVER_H__
 #define __TCP_SERVER_H__
 
+#include "ZQ_common_conf.h"
+#include "Guid.h"
+
 #include "FileLog.h"
 #include "eloop_net.h"
 #include <NativeThread.h>
@@ -8,9 +11,6 @@
 #include <boost/regex.hpp>
 #include <set>
 #include <string>
-
-#include "ZQ_common_conf.h"
-#include "Guid.h"
 
 #ifdef ZQ_OS_MSWIN
 #  ifdef LIBHTTP_EXPORTS
@@ -94,6 +94,7 @@ public:
 	bool stop();
 	const std::string& connId() const { return _connId; }
 	const std::string& hint() const { return _Hint; }
+	virtual bool isPassive() const { return NULL != _tcpServer; }
 
 	int AsyncSend(const std::string& msg);
 
@@ -206,7 +207,7 @@ public:
 		return _config.keepalive_timeout;
 	}
 
-	void single();
+	void signal();
 	virtual TCPConnection* createPassiveConn();
 
 	ServerConfig		_config;

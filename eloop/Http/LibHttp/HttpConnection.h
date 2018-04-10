@@ -98,7 +98,7 @@ public:
 	virtual void onRespComplete() {_respState = RESP_COMPLETE;}	
 
 protected:
-	HttpConnection(bool clientSide,ZQ::common::Log& logger,const char* connId = NULL,TCPServer* tcpServer = NULL);
+	HttpConnection(ZQ::common::Log& logger,const char* connId = NULL, TCPServer* tcpServer = NULL);
 	void reset( IHttpParseSink* callback = NULL);
 	
 	virtual void OnRead(ssize_t nread, const char *buf);
@@ -135,7 +135,7 @@ private:
 	http_parser*             _parser; // its type can be determined by clientSide
 	http_parser_settings*    _parserSettings;
 	HttpMessage::Ptr         _msgBeingParsed;
-	HttpMessage::MessgeType  _Type;
+	// HttpMessage::MessgeType  _Type;
 	IHttpParseSink*			 _cbParse;
 
 	//To achieve keepAlive and pipeline

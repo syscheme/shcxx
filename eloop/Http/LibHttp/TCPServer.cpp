@@ -165,7 +165,7 @@ public:
 	{
 		_watchDog.unwatch(this);
 		_loop.close();
-		_server.single();
+		_server.signal();
 	}
 
 private:
@@ -422,7 +422,7 @@ public:
 		ZQ::common::MutexGuard gd(_Lock);
 		_quitCount++;
 		if (_quitCount == _threadCount)
-			_server.single();
+			_server.signal();
 	}
 
 private:
@@ -665,7 +665,7 @@ TCPConnection* TCPServer::createPassiveConn()
 	return new TCPConnection(_logger,NULL,this);
 }
 
-void TCPServer::single()
+void TCPServer::signal()
 {
 	_sysWakeUp.signal();
 }

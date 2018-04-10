@@ -23,25 +23,60 @@ namespace eloop {
 // ---------------------------------------
 // class HttpPassiveConn
 // ---------------------------------------
-HttpPassiveConn::HttpPassiveConn(ZQ::common::Log& logger,TCPServer* tcpServer)
-		:HttpConnection(false,logger, NULL,tcpServer),
-		_handler(NULL),
-		_keepAlive_Timeout(tcpServer->keepAliveTimeout()),
-		_startTime(0),
-		_keepAlive(false)
+// ---------------------------------------
+// class HttpPassiveConn
+// ---------------------------------------
+// present an accepted incomming connection
+class HttpPassiveConn : public HttpConnection
 {
-}
+public:
+	HttpPassiveConn(HttpServer& server)
+	: HttpConnection(server._logger, NULL, &server), _server(server),
+		_handler(NULL), _keepAlive_Timeout(server.keepAliveTimeout()),
+		_startTime(0), _keepAlive(false)
+	{
+	}
 
-HttpPassiveConn::~HttpPassiveConn()
-{
-	_handler = NULL;
-}
+	~HttpPassiveConn()
+	{
+		_handler = NULL;
+	}
 
-void HttpPassiveConn::OnTimer()
-{
-	if (_keepAlive_Timeout>0 && _startTime>0 &&(ZQ::common::now() - _startTime > _keepAlive_Timeout))
-		stop();
-}
+
+	bool			keepAlive() const { return _keepAlive_Timeout>0; }
+	void 			errorResponse( int code );
+	virtual void    onRespComplete();
+
+protected:
+
+	// implementation of HttpConnection
+	virtual void	onError( int error,const char* errorDescription );
+	virtual void	onHttpDataSent(size_t size);
+	virtual void	onHttpDataReceived( size_t size );
+	virtual bool	onHeadersEnd( const HttpMessage::Ptr msg);
+	virtual bool	onBodyData( const char* data, size_t size);
+	virtual void	onMessageCompleted();
+	//virtual void	OnClose();
+
+	virtual void OnTimer()
+	{
+		if (_keepAlive_Timeout>0 && _startTime>0 &&(ZQ::common::now() - _startTime > _keepAlive_Timeout))
+			stop();
+	}
+
+
+private:
+	// NOTE: DO NOT INVOKE THIS METHOD unless you known what you are doing
+	void initHint();
+
+protected:
+	HttpHandler::Ptr			_handler;
+	HttpServer&					_server;
+
+	bool						_keepAlive;
+	int64						_keepAlive_Timeout;
+	int64						_startTime;
+};
 
 void HttpPassiveConn::errorResponse( int code ) 
 {
@@ -121,7 +156,6 @@ void HttpPassiveConn::onRespComplete()
 		_startTime = ZQ::common::now();
 }
 
-
 void HttpPassiveConn::onHttpDataReceived( size_t size )
 {
 	// NOTE something here
@@ -152,7 +186,7 @@ bool HttpPassiveConn::onHeadersEnd( const HttpMessage::Ptr msg)
 		 return false;
 	 }
 
-	_handler = pSev->createHandler( msg->url(), *this);
+	_handler = _server.createHandler( msg->url(), *this);
 
 	if(!_handler)
 	{
@@ -205,17 +239,18 @@ void HttpPassiveConn::OnClose()
 {
 	HttpServer* pSev = dynamic_cast<HttpServer*>(_tcpServer);
 	if (pSev != NULL)
-		pSev->delConn(this);
+		_server.delConn(this);
 	_handler = NULL;
 	delete this;
 }
 */
+
 // ---------------------------------------
 // class HttpServer
 // ---------------------------------------
 TCPConnection* HttpServer::createPassiveConn()
 {
-	return new HttpPassiveConn(_logger,this);
+	return new HttpPassiveConn(*this);
 }
 
 /*

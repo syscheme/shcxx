@@ -8,16 +8,12 @@ namespace eloop {
 // class HttpClient
 // ---------------------------------------
 HttpClient::HttpClient(ZQ::common::Log& logger)
-	:HttpConnection(true,logger),
-	_logger(logger),
-	_req(NULL)
+	: HttpConnection(logger), _logger(logger), _req(NULL)
 {
-
 }
 
 HttpClient::~HttpClient()
 {
-
 }
 
 void HttpClient::OnConnected(ElpeError status)

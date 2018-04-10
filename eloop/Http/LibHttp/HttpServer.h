@@ -102,46 +102,6 @@ public:
 //};
 //
 // ---------------------------------------
-// class HttpPassiveConn
-// ---------------------------------------
-// present an accepted incomming connection
-class HttpPassiveConn : public HttpConnection
-{
-public:
-	HttpPassiveConn(ZQ::common::Log& logger,TCPServer* tcpServer);
-	~HttpPassiveConn();
-
-	bool			keepAlive(){return _keepAlive_Timeout>0;}
-	virtual void onRespComplete();
-	void 			errorResponse( int code );
-
-protected:
-
-	// implementation of HttpConnection
-	virtual void	onError( int error,const char* errorDescription );
-	virtual void	onHttpDataSent(size_t size);
-	virtual void	onHttpDataReceived( size_t size );
-	virtual bool	onHeadersEnd( const HttpMessage::Ptr msg);
-	virtual bool	onBodyData( const char* data, size_t size);
-	virtual void	onMessageCompleted();
-	//virtual void	OnClose();
-
-	virtual void OnTimer();
-
-private:
-	// NOTE: DO NOT INVOKE THIS METHOD unless you known what you are doing
-	void initHint();
-
-private:
-	HttpHandler::Ptr			_handler;
-
-	bool						_keepAlive;
-	int64						_keepAlive_Timeout;
-	int64						_startTime;
-//	HttpMonitorTimer			_watchDog;
-};
-
-// ---------------------------------------
 // class HttpServer
 // ---------------------------------------
 class IHttpEngine;
