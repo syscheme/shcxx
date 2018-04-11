@@ -130,9 +130,9 @@ private:
 
 public:
 	ZQ::common::Log&		_logger;
+	TCPServer*				_tcpServer;
 
 protected:
-	TCPServer*				_tcpServer;
 	WatchDog*			    _watchDog;
 	std::string				_Hint;
 	bool					_isConnected;
