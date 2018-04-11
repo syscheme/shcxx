@@ -23,6 +23,18 @@ namespace eloop {
 // ---------------------------------------
 // class HttpPassiveConn
 // ---------------------------------------
+HttpPassiveConn::HttpPassiveConn(HttpServer& server)
+	: HttpConnection(server._logger, NULL, &server), _server(server),
+	_handler(NULL), _keepAlive_Timeout(server.keepAliveTimeout()),
+	_startTime(0), _keepAlive(false)
+{
+}
+
+HttpPassiveConn::~HttpPassiveConn()
+{
+	_handler = NULL;
+}
+
 void HttpPassiveConn::errorResponse( int code ) 
 {
 	_logger(ZQ::common::Log::L_DEBUG,CLOGFMT(HttpPassiveConn,"errorResponse, code %d"), code);

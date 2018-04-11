@@ -109,18 +109,8 @@ public:
 class HttpPassiveConn : public HttpConnection
 {
 public:
-	HttpPassiveConn(HttpServer& server)
-		: HttpConnection(server._logger, NULL, &server), _server(server),
-		_handler(NULL), _keepAlive_Timeout(server.keepAliveTimeout()),
-		_startTime(0), _keepAlive(false)
-	{
-	}
-
-	~HttpPassiveConn()
-	{
-		_handler = NULL;
-	}
-
+	HttpPassiveConn(HttpServer& server);
+	~HttpPassiveConn();
 
 	bool			keepAlive() const { return _keepAlive_Timeout>0; }
 	void 			errorResponse( int code );
