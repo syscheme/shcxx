@@ -127,11 +127,7 @@ protected:
 	virtual void	onMessageCompleted();
 	//virtual void	OnClose();
 
-	virtual void OnTimer()
-	{
-		if (_keepAlive_Timeout>0 && _startTime>0 &&(ZQ::common::now() - _startTime > _keepAlive_Timeout))
-			stop();
-	}
+	virtual void OnTimer();
 
 
 private:

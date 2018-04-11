@@ -113,6 +113,12 @@ void HttpPassiveConn::onRespComplete()
 		_startTime = ZQ::common::now();
 }
 
+void HttpPassiveConn::OnTimer()
+{
+	if (_keepAlive_Timeout>0 && _startTime>0 &&(ZQ::common::now() - _startTime > _keepAlive_Timeout))
+		stop();
+}
+
 void HttpPassiveConn::onHttpDataReceived( size_t size )
 {
 	// NOTE something here
