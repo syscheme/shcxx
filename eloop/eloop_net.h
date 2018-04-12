@@ -74,7 +74,7 @@ protected:
 	virtual void doAccept(ElpeError status) {}
 	
 	// called after buffer has been written into the stream
-	virtual void OnWrote(ElpeError status) {}
+	virtual void OnWrote(int status) {}
 	// called after buffer has been read from the stream
 	virtual void OnRead(ssize_t nread, const char *buf) {} // TODO: uv_buf_t is unacceptable to appear here, must take a new manner known in this C++ wrapper level
 

@@ -222,7 +222,7 @@ namespace ZQ {
 			uv_stream_t *stream = elReq->_req.handle;
 			Stream* self = static_cast<Stream *>(stream->data);
 			if (self != NULL) {
-				self->OnWrote((ElpeError)status);
+				self->OnWrote(status);
 			}
 			delete elReq;
 			elReq = NULL;
