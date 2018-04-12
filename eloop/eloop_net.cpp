@@ -9,34 +9,48 @@ namespace ZQ {
 			uv_write_t _req;
 			Handle::eloop_buf_t* _bufs;
 			unsigned int _nbufs;
-			_eloop_write_req(const Handle::eloop_buf_t* bufs, unsigned int nbufs):_nbufs(nbufs)
+			_eloop_write_req(const Handle::eloop_buf_t* bufs, unsigned int nbufs):_bufs(NULL),_nbufs(nbufs)
 			{
 				_bufs = (Handle::eloop_buf_t*)malloc(nbufs*sizeof(Handle::eloop_buf_t));
-				for (int i=0; i<nbufs; i++)
+				if (_bufs != NULL)
 				{
-					_bufs[i].len = bufs[i].len;
-					_bufs[i].base = (char*)malloc(_bufs[i].len);
-					memcpy(_bufs[i].base, bufs[i].base, _bufs[i].len);
+					for (int i=0; i<nbufs; i++)
+					{
+						_bufs[i].len = bufs[i].len;
+						_bufs[i].base = (char*)malloc(_bufs[i].len);
+						if (_bufs[i].base != NULL)
+							memcpy(_bufs[i].base, bufs[i].base, _bufs[i].len);
+					}
 				}
 			}
 
-			_eloop_write_req(const char *buf, size_t length):_nbufs(1)
+			_eloop_write_req(const char *buf, size_t length):_bufs(NULL),_nbufs(1)
 			{
 				_bufs = (Handle::eloop_buf_t*)malloc(sizeof(Handle::eloop_buf_t));
-				_bufs[0].len = length;
-				_bufs[0].base = (char*)malloc(_bufs[0].len);
-				memcpy(_bufs[0].base, buf, _bufs[0].len);
+				if (_bufs != NULL)
+				{
+					_bufs[0].len = length;
+					_bufs[0].base = (char*)malloc(_bufs[0].len);
+					if (_bufs[0].base != NULL)
+						memcpy(_bufs[0].base, buf, _bufs[0].len);
+				}
 			}
 
 			~_eloop_write_req()
 			{
-				for(int i=0; i<_nbufs; i++)
+				if (_bufs != NULL)
 				{
-					free(_bufs[i].base);
-					_bufs[i].base = NULL;
+					for(int i=0; i<_nbufs; i++)
+					{
+						if (_bufs[i].base != NULL)
+						{
+							free(_bufs[i].base);
+							_bufs[i].base = NULL;
+						}
+					}
+					free(_bufs);
+					_bufs = NULL;
 				}
-				free(_bufs);
-				_bufs = NULL;
 			}
 
 		} eloop_write_req;
@@ -90,7 +104,7 @@ namespace ZQ {
 		int Stream::write(const eloop_buf_t bufs[],unsigned int nbufs,Handle *send_handle)
 		{
 			eloop_write_req* elReq = new eloop_write_req(bufs, nbufs);
-			if (elReq == NULL)
+			if (elReq == NULL || elReq->_bufs == NULL)
 				return -1;
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
 			if (send_handle != NULL)
@@ -112,7 +126,7 @@ namespace ZQ {
 				return elpuEPIPE;
 			
 			eloop_write_req* elReq = new eloop_write_req(bufs, nbufs);
-			if (elReq == NULL)
+			if (elReq == NULL || elReq->_bufs == NULL)
 				return -1;
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
 
@@ -123,7 +137,7 @@ namespace ZQ {
 
 			eloop_write_req* elReq = new eloop_write_req(buf, length);
 
-			if (elReq == NULL)
+			if (elReq == NULL || elReq->_bufs == NULL)
 				return -1;
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
 			if (send_handle != NULL)
