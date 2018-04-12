@@ -237,6 +237,7 @@ public: // Redis commands
 	RedisCommand::Ptr sendSREM(const char *key, const char *member, int vlen=-1, RedisSink::Ptr reply=NULL);
 	RedisCommand::Ptr sendSMEMBERS(const char *key, RedisSink::Ptr reply=NULL);
 
+    RedisCommand::Ptr sendEXPIRE(const char *key, int seconds, RedisSink::Ptr reply=NULL);
 	// sync commands with result parsed
 	RedisSink::Error PING();
 	RedisSink::Error INFO(PropertyMap& props);

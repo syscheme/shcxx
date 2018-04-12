@@ -1116,6 +1116,14 @@ RedisCommand::Ptr RedisClient::sendSMEMBERS(const char *key, RedisSink::Ptr repl
 	return sendMultikeyBulkCmd("SMEMBERS", keys, reply);
 }
 
+RedisCommand::Ptr RedisClient::sendEXPIRE( const char *key, int seconds, RedisSink::Ptr reply/*=NULL*/ )
+{
+    char ttls[32];
+    snprintf(ttls, sizeof(ttls) - 1, " %d", seconds);
+    std::string cmdstr = std::string("EXPIRE ") + key + ttls;
+    return sendCommand(cmdstr.c_str(), REDIS_LEADINGCH_INLINE, reply);
+}
+
 RedisCommand::Ptr RedisClient::sendKEYS(const char *pattern, RedisSink::Ptr reply)
 {
 	std::vector<std::string> keys;
