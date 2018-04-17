@@ -190,8 +190,12 @@ public:
     
 	void post(int statusCode = 0) 
 	{
-		if (statusCode>100)
+		if (statusCode > 100)
+		{
 			code(statusCode);
+			if(status().empty())
+				status(ZQ::eloop::HttpMessage::statusString(statusCode));
+		}
 
 		std::string respMsg = toRaw();
 		// TODO: _conn._logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), _conn.hint().c_str(),true);
