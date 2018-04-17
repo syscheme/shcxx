@@ -1,6 +1,5 @@
 #ifndef __HTTP_MESSAGE_h__
 #define __HTTP_MESSAGE_h__
-
 #include "ZQ_common_conf.h"
 
 #include <Locks.h>
@@ -14,24 +13,8 @@
 #include <vector>
 #include <functional>
 
-#ifdef ZQ_OS_MSWIN
-#  ifdef LIBHTTP_EXPORTS
-#    define ZQ_ELOOP_HTTP_API __EXPORT
-#  else
-#    define ZQ_ELOOP_HTTP_API __DLLRTL
-#  endif
-#  ifdef _LIB
-#    undef  ZQ_ELOOP_HTTP_API
-#    define ZQ_ELOOP_HTTP_API
-#  endif // _LIB
-#else
-#  define ZQ_ELOOP_HTTP_API
-#endif // OS
-
 namespace ZQ {
 namespace eloop {
-
-class ZQ_ELOOP_HTTP_API HttpMessage;
 
 #define CRLF "\r\n"
 #define ChunkTail "0\r\n\r\n"
@@ -260,7 +243,7 @@ public:
 			return stricmp(lhr.c_str(),rhs.c_str()) < 0;
 		}
 	};
-	typedef std::map<std::string,std::string,caseInsensativeCmp> Headers;
+	typedef std::map<std::string,std::string,caseInsensativeCmp> HEADERS;
 
 	inline unsigned int versionMajor() const { return _VerMajor; }
 	inline unsigned int versionMinor() const { return _VerMinor; }
@@ -288,7 +271,7 @@ private:
 
 	unsigned int		_VerMajor;
 	unsigned int		_VerMinor;
-	Headers				_Headers;
+	HEADERS				_Headers;
 	std::map<std::string, std::string> _argument;
 	std::string			_DummyHeaderValue;
 	int64				_BodyLength;//only valid if _bChunked == false
