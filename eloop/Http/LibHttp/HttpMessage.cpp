@@ -313,7 +313,7 @@ int HttpMessage::onHeadersComplete()
 		_Uri = _Uri.substr(0, pos);
 
 	_encoding = None;
-	Headers::iterator it = _Headers.begin();
+	HEADERS::iterator it = _Headers.begin();
 	for(;it!=_Headers.end();it++)
 	{
 		if (strcmp(it->first.c_str(),"Content-Type") == 0)
@@ -471,7 +471,7 @@ int HttpMessage::onMessageComplete()
 
 const std::string& HttpMessage::header( const std::string& key) const {
 	ZQ::common::MutexGuard gd(_Locker);
-	Headers::const_iterator it = _Headers.find(key);
+	HEADERS::const_iterator it = _Headers.find(key);
 	if( it == _Headers.end())
 		return _DummyHeaderValue;
 	return it->second;
@@ -542,7 +542,7 @@ std::string HttpMessage::toRaw()
 	} else {
 		_Headers["Connection"] = "close";
 	}
-	Headers::const_iterator it = _Headers.begin();
+	HEADERS::const_iterator it = _Headers.begin();
 	for( ; it != _Headers.end() ; it ++ ) {
 		oss<<it->first<<": "<<it->second<<line_term;
 	}
