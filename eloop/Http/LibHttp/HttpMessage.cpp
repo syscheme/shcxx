@@ -3,6 +3,7 @@
 #include "http_parser.h"
 #include "HttpMessage.h"
 #include "urlstr.h"
+#include <boost/algorithm/string/trim.hpp>
 
 namespace ZQ {
 namespace eloop {

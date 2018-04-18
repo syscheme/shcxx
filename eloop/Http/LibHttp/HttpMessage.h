@@ -9,7 +9,6 @@
 #include <map>
 #include "eloop_lock.h"
 #include "http_parser.h"
-#include <boost/algorithm/string/trim.hpp>
 #include <vector>
 #include <functional>
 
