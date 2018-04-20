@@ -42,14 +42,14 @@ void HttpConnection::reset(IHttpParseSink* p)
 
 	_cbParse = p;
 
-	http_parser_init(_parser, (isPassive() ? HTTP_RESPONSE : HTTP_REQUEST));
+	http_parser_init(_parser, (isPassive() ? HTTP_REQUEST : HTTP_RESPONSE));
 
 	_parser->data = reinterpret_cast<void*>(this);
 	_headerName.clear();
 	_HeaderValue = NULL;
 	_ParserState = STATE_INIT;
 
-	_msgBeingParsed = new HttpMessage(isPassive() ? HttpMessage::MSG_RESPONSE : HttpMessage::MSG_REQUEST);
+	_msgBeingParsed = new HttpMessage(isPassive() ? HttpMessage::MSG_REQUEST : HttpMessage::MSG_RESPONSE);
 }
 
 void HttpConnection::OnRead(ssize_t nread, const char *buf)
@@ -120,6 +120,9 @@ void HttpConnection::parse( const char* data, size_t size)
 //	_logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"parse data [%d][%s]"),size,data);
 
 	size_t nparsed = http_parser_execute(_parser, _parserSettings, data, size);
+
+	_logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"nparsed[%d] size[%d] parseMsg[%s]"), nparsed, size, data);
+
 
 //	_logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"parsed = %d,size = %d"),nparsed,size);
 

@@ -31,10 +31,12 @@ void WatchDog::watch(IObservee* observee)
 void WatchDog::unwatch(IObservee* observee)
 {
 	ZQ::common::MutexGuard gd(_observeeLock);
-	for (std::vector<IObservee*>::iterator it= _observeeList.begin(); it != _observeeList.end(); it++)
+	for (std::vector<IObservee*>::iterator it= _observeeList.begin(); it != _observeeList.end(); )
 	{
 		if ((*it) == observee)
-			_observeeList.erase(it);
+			it = _observeeList.erase(it);
+		else
+			it++;
 	}
 }
 
