@@ -121,7 +121,7 @@ void HttpConnection::parse( const char* data, size_t size)
 
 	size_t nparsed = http_parser_execute(_parser, _parserSettings, data, size);
 
-	_logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"nparsed[%d] size[%d] parseMsg[%s]"), nparsed, size, data);
+//	_logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"nparsed[%d] size[%d] parseMsg[%s]"), nparsed, size, data);
 
 
 //	_logger(ZQ::common::Log::L_INFO,CLOGFMT(HttpConnection,"parsed = %d,size = %d"),nparsed,size);
