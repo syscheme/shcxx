@@ -26,7 +26,7 @@ public:
 	typedef ZQ::common::Pointer<RTSPServerResponse> Ptr;
 
 	RTSPServerResponse(RTSPServer& server, const std::string& connId, const RTSPMessage::Ptr& req)
-		: _server(server), _connId(connId), RTSPMessage(RTSPMessage::RTSP_MSG_RESPONSE)
+		: _server(server), _connId(connId), RTSPMessage(RTSPMessage::RTSP_MSG_RESPONSE),_req(req)
 	{
 		header(Header_MethodCode, req->method());
 		cSeq(req->cSeq());
@@ -40,6 +40,7 @@ public:
 private:
 	std::string _connId; // TODO: what if the connection is lost piror to response sending
 	RTSPServer& _server;
+	RTSPMessage::Ptr _req;
 };
 
 

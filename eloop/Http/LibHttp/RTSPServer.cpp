@@ -192,6 +192,11 @@ void RTSPServerResponse::post(int statusCode, const char* desc)
 		conn->onError(ret,ZQ::eloop::Handle::errDesc(ret));
 		return;
 	}
+
+	int64 elapsed = ZQ::eloop::usStampNow() - _req->_stampCreated;
+
+	_server._logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPServerResponse, "post() %s(%d) ret(%d) took %lldus"), _req->method().c_str(), _req->cSeq(), statusCode, elapsed);
+
 	_server._logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), conn->hint().c_str(),true);
 }
 
@@ -220,8 +225,6 @@ void RTSPPassiveConn::OnResponse(RTSPMessage::Ptr resp)
 
 void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 {
-	int64 stampStart = ZQ::eloop::usStampNow();
-
 	RTSPServerResponse::Ptr resp = new RTSPServerResponse(_server, _connId, req);
 
 	int respCode =500;
@@ -315,7 +318,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 	write(respMsg.c_str(), respMsg.size());
 
 	_logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), hint().c_str(),true);
-	int64 elapsed = ZQ::eloop::usStampNow() - stampStart;
+	int64 elapsed = ZQ::eloop::usStampNow() - req->_stampCreated;
 	if (_tcpServer)
 		_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() %s(%d) ret(%d) took %lldus"), req->method().c_str(), req->cSeq(), respCode, elapsed);
 	

@@ -135,7 +135,7 @@ public:
 	typedef std::vector<StrPair>	StrPairVec;
 
 public:
-	RTSPMessage(RTSPMessgeType type = RTSP_MSG_REQUEST):_msgType(type),_cSeq(-1),_bodyLen(0),_stampCreated(ZQ::common::now())
+	RTSPMessage(RTSPMessgeType type = RTSP_MSG_REQUEST):_msgType(type),_cSeq(-1),_bodyLen(0),_stampCreated(ZQ::eloop::usStampNow())
 	{
 	}
 
@@ -189,6 +189,7 @@ public:
 
 	std::string toRaw();
 
+	int64				_stampCreated;
 private:
 
 	ZQ::common::Mutex	_lockHeaders;
@@ -199,7 +200,6 @@ private:
 	std::string			_contentBody;
 	uint32				_cSeq;
 	RTSPMessgeType		_msgType;
-	int64				_stampCreated;
 	std::string 		_RawMessage;
 
 	std::string			_statusDesc;
