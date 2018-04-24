@@ -219,6 +219,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 
 			if (_currentParseMsg.startLine.empty())
 			{
+				_currentParseMsg.pMsg->_stampCreated = ZQ::eloop::usStampNow();
 				_currentParseMsg.startLine = line;
 				//				_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] received data [%s]"), connDescription(), _pCurrentMsg->startLine.c_str());
 
@@ -345,11 +346,8 @@ void RTSPConnection::parse(ssize_t bytesRead)
 		}
 	}
 
-	if (receivedReqs.size() >0)
-	{
-		for (RTSPMessage::MsgVec::iterator itReq = receivedReqs.begin(); itReq != receivedReqs.end(); itReq++)
-			OnRequest(*itReq);
-	}
+	for (int i=0; i< receivedReqs.size(); i++)
+		OnRequest(receivedReqs[i]);
 }
 
 std::string RTSPConnection::trim(char const* str)
