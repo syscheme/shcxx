@@ -55,7 +55,12 @@ void UnixSocket::OnRead(ssize_t nread, const char *buf)
 	}
 	
 	if(TRACE_LEVEL_FLAG)
-		_lipcLog(ZQ::common::Log::L_DEBUG,CLOGFMT(UnixSocket, "OnRead() received %dB: %s"), nread, buf);
+	{
+		char hint[40];
+		snprintf(hint, sizeof(hint)-2, "UnixSocket() received %dB", nread);
+		_lipcLog.hexDump(ZQ::common::Log::L_DEBUG, buf, nread, hint, true);
+	}
+
 //	processMessage2(nread,buf);
 	processMessage(nread,buf);
 }
@@ -131,7 +136,12 @@ int UnixSocket::send(const std::string& msg, int fd)
 	encode(msg, dest);
 
 	if(TRACE_LEVEL_FLAG)
-		_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "send() sent %dB: %s"), dest.length(), dest.c_str());
+	{
+		char hint[40];
+		snprintf(hint, sizeof(hint)-2, "UnixSocket() sent %dBfd(%d)", dest.length(), fd);
+		_lipcLog.hexDump(ZQ::common::Log::L_DEBUG, dest.c_str(), dest.length(), hint, true);
+	}
+
 	if (fd > 0)
 	{
 #ifdef ZQ_OS_LINUX
