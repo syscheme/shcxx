@@ -180,7 +180,7 @@ public:
 	void postException(int code,std::string errMsg = "",bool bAsync = true);
 
 private:
-	const std::string& _connId;
+	std::string _connId;
 	LIPCService* _server;
 };
 

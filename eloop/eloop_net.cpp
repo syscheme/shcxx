@@ -1,8 +1,59 @@
 #include "eloop_net.h"
+#include <assert.h>
 namespace ZQ {
 	namespace eloop {
 
 		#define RECV_BUF_SIZE (32*1024)
+
+		typedef struct _eloop_write_req{
+			uv_write_t _req;
+			Handle::eloop_buf_t* _bufs;
+			unsigned int _nbufs;
+			_eloop_write_req(const Handle::eloop_buf_t* bufs, unsigned int nbufs):_bufs(NULL),_nbufs(nbufs)
+			{
+				_bufs = (Handle::eloop_buf_t*)malloc(nbufs*sizeof(Handle::eloop_buf_t));
+				if (_bufs != NULL)
+				{
+					for (int i=0; i<nbufs; i++)
+					{
+						_bufs[i].len = bufs[i].len;
+						_bufs[i].base = (char*)malloc(_bufs[i].len);
+						if (_bufs[i].base != NULL)
+							memcpy(_bufs[i].base, bufs[i].base, _bufs[i].len);
+					}
+				}
+			}
+
+			_eloop_write_req(const char *buf, size_t length):_bufs(NULL),_nbufs(1)
+			{
+				_bufs = (Handle::eloop_buf_t*)malloc(sizeof(Handle::eloop_buf_t));
+				if (_bufs != NULL)
+				{
+					_bufs[0].len = length;
+					_bufs[0].base = (char*)malloc(_bufs[0].len);
+					if (_bufs[0].base != NULL)
+						memcpy(_bufs[0].base, buf, _bufs[0].len);
+				}
+			}
+
+			~_eloop_write_req()
+			{
+				if (_bufs != NULL)
+				{
+					for(int i=0; i<_nbufs; i++)
+					{
+						if (_bufs[i].base != NULL)
+						{
+							free(_bufs[i].base);
+							_bufs[i].base = NULL;
+						}
+					}
+					free(_bufs);
+					_bufs = NULL;
+				}
+			}
+
+		} eloop_write_req;
 
 		// -----------------------------
 		// class Stream
@@ -52,13 +103,13 @@ namespace ZQ {
 
 		int Stream::write(const eloop_buf_t bufs[],unsigned int nbufs,Handle *send_handle)
 		{
-			uv_write_t*	req = new uv_write_t;
-			if (req == NULL)
+			eloop_write_req* elReq = new eloop_write_req(bufs, nbufs);
+			if (elReq == NULL || elReq->_bufs == NULL)
 				return -1;
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
 			if (send_handle != NULL)
-				return uv_write2(req, stream, bufs,nbufs,(uv_stream_t *)send_handle->context_ptr(), _cbWrote);
-			return uv_write(req, stream, bufs,nbufs, _cbWrote);
+				return uv_write2(&elReq->_req, stream, elReq->_bufs, elReq->_nbufs,(uv_stream_t *)send_handle->context_ptr(), _cbWrote);
+			return uv_write(&elReq->_req, stream, elReq->_bufs, elReq->_nbufs, _cbWrote);
 		}
 /*
 		int Stream::write(const char *buf, size_t length) {
@@ -74,24 +125,24 @@ namespace ZQ {
 			if (NULL == send_handle)
 				return elpuEPIPE;
 			
-			uv_write_t*  req = new uv_write_t;
-			if (req == NULL)
+			eloop_write_req* elReq = new eloop_write_req(bufs, nbufs);
+			if (elReq == NULL || elReq->_bufs == NULL)
 				return -1;
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
 
-			return uv_write2(req, stream, bufs, nbufs, send_handle, _cbWrote);
+			return uv_write2(&elReq->_req, stream, elReq->_bufs, elReq->_nbufs, send_handle, _cbWrote);
 		}
 
 		int Stream::write(const char *buf, size_t length, Handle *send_handle) {
 
-			uv_buf_t wbuf = uv_buf_init((char *)buf, length);
-			uv_write_t *req = new uv_write_t;
-			if (req == NULL)
+			eloop_write_req* elReq = new eloop_write_req(buf, length);
+
+			if (elReq == NULL || elReq->_bufs == NULL)
 				return -1;
 			uv_stream_t* stream = (uv_stream_t *)context_ptr();
 			if (send_handle != NULL)
-				return uv_write2(req, stream, &wbuf, 1, (uv_stream_t *)send_handle->context_ptr(), _cbWrote);
-			return uv_write(req, stream, &wbuf, 1, _cbWrote);
+				return uv_write2(&elReq->_req, stream, elReq->_bufs, elReq->_nbufs, (uv_stream_t *)send_handle->context_ptr(), _cbWrote);
+			return uv_write(&elReq->_req, stream,  elReq->_bufs, elReq->_nbufs, _cbWrote);
 		}
 
 		int Stream::try_write(const char *buf, size_t length) {
@@ -164,13 +215,17 @@ namespace ZQ {
 
 		void Stream::_cbWrote(uv_write_t *req, int status) {
 
-			uv_stream_t *stream = req->handle;
+			eloop_write_req* elReq = (eloop_write_req*)req;
+			if (elReq == NULL)
+				assert(false);
+
+			uv_stream_t *stream = elReq->_req.handle;
 			Stream* self = static_cast<Stream *>(stream->data);
 			if (self != NULL) {
 				self->OnWrote(status);
 			}
-			delete req;
-			req = NULL;
+			delete elReq;
+			elReq = NULL;
 		}
 
 		void Stream::doAllocate(eloop_buf_t* buf, size_t suggested_size)

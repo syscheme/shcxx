@@ -265,6 +265,7 @@ void HttpServer::stop()
 	if (!_isStart)
 		return;
 
+    OnStop();
 	_isStart = false;
 	if (_PassiveConn.empty())
 	{
@@ -459,6 +460,7 @@ int SingleLoopHttpEngine::run(void)
 	if (listen() < 0)
 		return false;
 
+    _server.OnStart(_loop);
 	int r=_loop.run(ZQ::eloop::Loop::Default);
 	_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(SingleLoopHttpEngine,"SingleLoopHttpEngine quit!"));
 	return r;

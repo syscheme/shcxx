@@ -139,8 +139,10 @@ private:
 	// NOTE: DO NOT INVOKE THIS METHOD unless you known what you are doing
 	void initHint();
 
+public:
+    HttpServer&					_server;
+
 private:
-	HttpServer&					_server;
 	HttpHandler::Ptr			_Handler;
 
 //	typedef std::map<std::string,HttpHandler::Ptr> MapHandler;
@@ -266,9 +268,12 @@ public:
 	bool startAt();
 	void stop();
 
+    virtual bool OnStart(ZQ::eloop::Loop& loop){return true;}
+    virtual bool OnStop(){return true;}
+
 	// register an application to uri
 	//@param uriEx - the regular expression of uri
-	bool mount(const std::string& uriEx, HttpHandler::AppPtr app, const HttpHandler::Properties& props=HttpHandler::Properties(), const char* virtualSite =DEFAULT_SITE);
+	bool mount(const std::string& ruleStr, HttpHandler::AppPtr app, const HttpHandler::Properties& props=HttpHandler::Properties(), const char* virtualSite =DEFAULT_SITE);
 
 	HttpHandler::Ptr createHandler( const std::string& uri, HttpPassiveConn& conn, const std::string& virtualSite = std::string(DEFAULT_SITE));
 
@@ -280,10 +285,9 @@ public:
 	int64    keepAliveTimeout() const;
 
 	void single();
-
-	const HttpServerConfig& config() { return _Config; }
-
-private:
+    
+    const HttpServerConfig& config() { return _Config; }
+protected:
 	HttpServerConfig		_Config;
 	ZQ::common::Log&		_Logger;
 

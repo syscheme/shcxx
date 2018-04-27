@@ -50,7 +50,6 @@
 #include "Log.h"
 #include "Pointer.h"
 #include "eloop_net.h"
-#include "NativeThreadPool.h"
 #include "TimeUtil.h"
 #include "Pointer.h"
 #include "Evictor.h"
@@ -88,7 +87,7 @@ class ZQ_COMMON_API RedisClient;
 class ZQ_COMMON_API RedisCommand;
 class ZQ_COMMON_API RedisEvictor;
 
-#define DEFAULT_ERRORKEY_TTL        (10000)
+#define DEFAULT_ERRORKEY_TTL        (10)   // 10sec
 #define DEFAULT_CLIENT_TIMEOUT      (5000) // 5sec
 #define DEFAULT_CONNECT_TIMEOUT     (3000) // 3sec
 #define MAX_SEND_ERROR_COUNT        (10)
@@ -181,7 +180,7 @@ protected:
 
 	RedisCommand(RedisClient& client, const std::string& cmdstr, char replyType, RedisSink::Ptr cbRedirect=NULL);
 
-	virtual void OnRequestError(RedisClient& client, RedisCommand& cmd, Error errCode, const char* errDesc=NULL);
+    virtual void OnRequestError(RedisClient& client, RedisCommand& cmd, RedisSink::Error errCode, const char* errDesc=NULL);
 	virtual void OnReply(RedisClient& client, RedisCommand& cmd, Data& data);
 
 	RedisClient& _client;
@@ -210,8 +209,6 @@ protected:
 class RedisClient : public ZQ::eloop::TCP, virtual public ZQ::common::SharedObject
 {
 	friend class RedisCommand;
-	friend class RequestErrCmd;
-	friend class ReplyDispatcher;
     friend class RedisEvictor;
 public:
 	typedef ZQ::common::Pointer < RedisClient > Ptr;
@@ -223,7 +220,7 @@ public:
         Connected,
     };
 
-    RedisClient(ZQ::eloop::Loop& loop, ZQ::common::Log& log, ZQ::common::NativeThreadPool& thrdpool, const std::string& server="localhost", unsigned short serverPort=REDIS_DEFAULT_PORT, ZQ::common::Log::loglevel_t verbosityLevel =ZQ::common::Log::L_DEBUG);
+    RedisClient(ZQ::eloop::Loop& loop, ZQ::common::Log& log, const std::string& server="localhost", unsigned short serverPort=REDIS_DEFAULT_PORT, ZQ::common::Log::loglevel_t verbosityLevel =ZQ::common::Log::L_DEBUG);
     virtual ~RedisClient();
 
 	uint16	getVerbosity() { return (ZQ::common::Log::loglevel_t)_log.getVerbosity() | (_verboseFlags<<8); }
@@ -244,7 +241,6 @@ protected:
 	virtual void OnError();
 	virtual void OnRead(ssize_t nread, const char *buf);
     virtual void OnWrote(int status);
-	virtual void OnTimeout();
     virtual void OnClose(){}
 
 	// new  callbacks
@@ -293,7 +289,6 @@ private:
 	RedisCommand::Ptr sendMultikeyBulkCmd(const char *cmd, std::vector<std::string>& keys, RedisSink::Ptr reply);
 
 protected:
-	ZQ::common::NativeThreadPool&  _thrdpool;
 	ZQ::common::LogWrapper		  _log;
 
 	RedisSink::Error  _lastErr;
@@ -335,16 +330,17 @@ private:
 // -----------------------------
 // class RedisEvictor
 // -----------------------------
-class RedisEvictor : public ZQ::common::Evictor, public ZQ::eloop::Async
+class RedisEvictor : public ZQ::common::Evictor, public RedisSink
 {
 public:
-    class ZQ_COMMON_API Sink
+    class Sink
     {
     public:
-        virtual void OnClose() = 0;
+        virtual void OnError(const Evictor::Ident& ident, int errCode, const char* errDesc) = 0;
+        virtual void OnDataResponse(const Evictor::Ident& ident, ZQ::common::Pointer<ZQ::common::SharedObject> data) = 0;
     };
 
-    RedisEvictor(Sink* cbPtr, ZQ::common::Log& log, RedisClient::Ptr client, const std::string& name, const ZQ::common::Evictor::Properties& props = Properties());
+    RedisEvictor(Sink* sink, ZQ::common::Log& log, RedisClient::Ptr client, const std::string& name, const ZQ::common::Evictor::Properties& props = Properties());
 	virtual ~RedisEvictor();
 
 	RedisClient::Ptr getClient() { return _client; }    
@@ -353,18 +349,19 @@ protected: // overwrite of Evictor
 	// save a batch of streamed object to the target object store
 	int saveBatchToStore(ZQ::common::Evictor::StreamedList& batch);
 
-	// load a specified object from the object store
-	//@ return IOError, NotFound, OK
-	Evictor::Error loadFromStore(const std::string& key, ZQ::common::Evictor::StreamedObject& data);
-
-    virtual void OnAsync();
-    virtual void OnClose();
 public: // the child class inherited from this evictor should implement the folloing method
     //don't check exist. now StreamEngine only use add.
     virtual ZQ::common::Evictor::Item::Ptr add(const ZQ::common::Evictor::Item::ObjectPtr& obj, const ZQ::common::Evictor::Ident& ident);
+
+    virtual Item::ObjectPtr locate(const Ident& ident);
 protected:
-    virtual ZQ::common::Evictor::Item::Ptr pin(const ZQ::common::Evictor::Ident& ident, ZQ::common::Evictor::Item::Ptr item = NULL);
+
+    virtual void OnRequestError(RedisClient& client, RedisCommand& cmd, RedisSink::Error errCode, const char* errDesc=NULL);
+    virtual void OnReply(RedisClient& client, RedisCommand& cmd, RedisSink::Data& data);
+
+    void cmdStrToIdent(ZQ::common::Evictor::Ident& ident, const std::string& cmd);
 protected:
+    Sink*                           _sink;
 	RedisClient::Ptr                _client;
 	size_t                          _maxValueLen;
     uint8*                          _recvBuf;       //$ only single string;
@@ -372,8 +369,6 @@ protected:
 
     std::queue<RedisCommand::Ptr>   _cmdQueue;
     ZQ::common::Mutex               _lockLocateQueue;
-
-    Sink*                           _cbPtr;
 };
 
 }}//endof namespace
