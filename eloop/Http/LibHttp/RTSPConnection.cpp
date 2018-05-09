@@ -304,6 +304,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 				continue;
 			}
 
+			resp->setConnId(_connId);
 			int cseq = resp->cSeq();
 			ZQ::common::MutexGuard g(_lkAwaits);
 			AwaitRequestMap::iterator itW = _awaits.find(cseq);
@@ -328,7 +329,10 @@ void RTSPConnection::parse(ssize_t bytesRead)
 	}
 
 	for (int i=0; i< receivedReqs.size(); i++)
+	{
+		receivedReqs[i]->setConnId(_connId);
 		OnRequest(receivedReqs[i]);
+	}
 }
 
 std::string RTSPConnection::trim(char const* str)

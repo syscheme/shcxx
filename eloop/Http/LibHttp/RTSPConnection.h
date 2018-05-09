@@ -137,7 +137,7 @@ public:
 	typedef std::vector<StrPair>	StrPairVec;
 
 public:
-	RTSPMessage(RTSPMessgeType type = RTSP_MSG_REQUEST):_msgType(type),_cSeq(-1),_bodyLen(0),_stampCreated(ZQ::eloop::usStampNow())
+	RTSPMessage(const std::string& connId="", RTSPMessgeType type = RTSP_MSG_REQUEST):_msgType(type),_cSeq(-1),_bodyLen(0),_stampCreated(ZQ::eloop::usStampNow()),_connId(connId)
 	{
 	}
 
@@ -190,10 +190,12 @@ public:
 	void setMsgType(RTSPMessgeType type) { _msgType = type; }
 
 	std::string toRaw();
+	std::string getConnId(){ return _connId; }
+	void setConnId(const std::string& connId){ _connId = connId; }
 
 	int64				_stampCreated;
 private:
-
+	std::string			_connId; // TODO: what if the connection is lost piror to response sending
 	ZQ::common::Mutex	_lockHeaders;
 	Headers				_headers;
 	std::string			_dummyVal;
