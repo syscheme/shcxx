@@ -9,7 +9,7 @@ INCDIR += $(_uv_dir)/include $(TOPDIR)/Common $(TOPDIR)/Common/eloop $(TOPDIR)/C
 
 
 
-LDFLAGS += -lHttp -leloop $(snmplink) -lZQCommon -lboost_regex
+LDFLAGS += -lHttp -leloop $(LDOPTS_snmp) $(LDOPTS_zqcomm) -lboost_regex
 
 #LINKDIR += $(TOPDIR)/Common/eloop $(TOPDIR)/Common/eloop/Http/LibHttp 
 
