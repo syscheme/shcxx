@@ -6,7 +6,6 @@ namespace ZQ {
 namespace eloop {
 
 #define  RTSP_RECV_BUF_SIZE (8*1024)
-#define RTSP_MAX_CSEQ    0x0fffffff
 //-------------------------------------
 //	class RTSPConnection
 //-------------------------------------
@@ -115,24 +114,6 @@ int RTSPConnection::sendRequest(RTSPMessage::Ptr req, int64 timeout, bool expect
 	}
 
 	return cseq;
-}
-
-uint RTSPConnection::lastCSeq()
-{
-	int v = _lastCSeq.add(1);
-	if (v>0 && v < RTSP_MAX_CSEQ)
-		return (uint) v;
-
-	static ZQ::common::Mutex lock;
-	ZQ::common::MutexGuard g(lock);
-	v = _lastCSeq.add(1);
-	if (v >0 && v < RTSP_MAX_CSEQ)
-		return (uint) v;
-
-	_lastCSeq.set(1);
-	v = _lastCSeq.add(1);
-
-	return (uint) v;
 }
 
 void RTSPConnection::parse(ssize_t bytesRead)

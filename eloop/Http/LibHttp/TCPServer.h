@@ -81,6 +81,7 @@ public:
 	TCPConnection(ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL)
 		:_logger(log), _isConnected(false), _async(NULL), _tcpServer(tcpServer), _watchDog(NULL)
 	{
+		_lastCSeq.set(1);
 		if (connId != NULL)
 			_connId = connId;
 		else
@@ -99,6 +100,7 @@ public:
 	const std::string& connId() const { return _connId; }
 	const std::string& hint() const { return _Hint; }
 	virtual bool isPassive() const { return NULL != _tcpServer; }
+	uint lastCSeq();
 
 	int AsyncSend(const std::string& msg);
 
@@ -137,6 +139,7 @@ protected:
 	std::string				_Hint;
 	bool					_isConnected;
 	std::string				_connId;
+	ZQ::common::AtomicInt _lastCSeq;
 
 	ZQ::common::Mutex _lkSendMsgList;
 	std::list<std::string> _sendMsgList;

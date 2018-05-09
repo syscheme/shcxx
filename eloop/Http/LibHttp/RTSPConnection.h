@@ -26,6 +26,8 @@ namespace eloop {
 #define Header_UserAgent			"User-Agent"
 #define Header_ContentType			"Content-Type"
 #define Header_ContentLength		"Content-Length"
+#define Header_Notice				"Notice"
+#define Header_Date					"Date"
 
 
 #define Method_OPTIONS				"OPTIONS"
@@ -292,10 +294,7 @@ public:
 
 protected:
 	RTSPConnection(ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL)
-		:TCPConnection(log,connId,tcpServer), _byteSeen(0)
-	{
-		_lastCSeq.set(1);
-	}
+		:TCPConnection(log,connId,tcpServer), _byteSeen(0){}
 
 	virtual void OnConnected(ElpeError status);
 
@@ -337,9 +336,6 @@ private:
 		}
 
 	} RTSP_PARSER_MSG;
-
-	uint lastCSeq();
-	ZQ::common::AtomicInt _lastCSeq;
 
 	typedef struct
 	{

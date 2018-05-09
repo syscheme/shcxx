@@ -4,7 +4,7 @@
 namespace ZQ {
 namespace eloop {
 
-
+#define MAX_CSEQ    0x0fffffff
 //-------------------------------------
 //	class WatchDog
 //-------------------------------------
@@ -543,6 +543,24 @@ void TCPConnection::OnShutdown(ElpeError status)
 
 	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnShutdown connection connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
 	close();
+}
+
+uint TCPConnection::lastCSeq()
+{
+	int v = _lastCSeq.add(1);
+	if (v>0 && v < MAX_CSEQ)
+		return (uint) v;
+
+	static ZQ::common::Mutex lock;
+	ZQ::common::MutexGuard g(lock);
+	v = _lastCSeq.add(1);
+	if (v >0 && v < MAX_CSEQ)
+		return (uint) v;
+
+	_lastCSeq.set(1);
+	v = _lastCSeq.add(1);
+
+	return (uint) v;
 }
 
 int TCPConnection::AsyncSend(const std::string& msg)
