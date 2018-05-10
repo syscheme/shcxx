@@ -93,6 +93,7 @@ protected: // hatched by HttpApplication
 
 	virtual void	onDataSent(size_t size){}
 	virtual void	onDataReceived( size_t size ){}
+	virtual void	onError( int error,const char* errorDescription ){}
 
 	// non session-based requests
 	//@return RTSP status code
