@@ -209,6 +209,8 @@ void RTSPServerResponse::post(int statusCode, const char* desc)
 // ---------------------------------------
 void RTSPPassiveConn::onError( int error,const char* errorDescription )
 {
+	if(_rtspHandler)
+		_rtspHandler->onError(error,errorDescription);
 }
 
 void RTSPPassiveConn::onDataSent(size_t size)
