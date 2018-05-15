@@ -516,12 +516,19 @@ void TCPConnection::initHint()
 	getlocaleIpPort(localIp, localPort);
 
 
-	std::ostringstream oss;
+	std::ostringstream oss, reverseOss;
 	if (_tcpServer == NULL)
+	{
 		oss<<"["<<localIp<<":"<<localPort<<"==>"<<peerIp<<":"<<peerPort<<"]";
+		reverseOss<<"["<<peerIp<<":"<<peerPort<<"==>"<<localIp<<":"<<localPort<<"]";
+	}
 	else
+	{
 		oss<<"["<<peerIp<<":"<<peerPort<<"==>"<<localIp<<":"<<localPort<<"]";
+		reverseOss<<"["<<localIp<<":"<<localPort<<"==>"<<peerIp<<":"<<peerPort<<"]";
+	}
 	_Hint = oss.str();
+	_reverseHint = reverseOss.str();
 }
 
 
@@ -594,6 +601,11 @@ void TCPConnection::OnAsyncSend()
 			desc.append(errDesc(ret));
 			onError(ret,desc.c_str());
 		}
+		std::string hint = _Hint;
+		if (_tcpServer)
+			hint = _reverseHint;
+
+		log.hexDump(ZQ::common::Log::L_DEBUG, asyncMsg.c_str(), asyncMsg.size(), hint.c_str(),true);
 		i--;
 	}
 }

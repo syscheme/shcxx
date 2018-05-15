@@ -137,6 +137,7 @@ public:
 protected:
 	WatchDog*			    _watchDog;
 	std::string				_Hint;
+	std::string				_reverseHint;
 	bool					_isConnected;
 	std::string				_connId;
 	ZQ::common::AtomicInt _lastCSeq;
