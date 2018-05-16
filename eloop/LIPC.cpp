@@ -725,6 +725,7 @@ int LIPCClient::sendRequest(const std::string& methodName, LIPCRequest::Ptr req,
 		ret = _conn->AsyncSend(req->toString(), req->getFd());
 	else
 		ret = _conn->send(req->toString(), req->getFd());
+
 	if (ret < 0)
 	{
 		OnRequestDone(req->_cSeq, LIPCMessage::LIPC_CLIENT_ERROR);
