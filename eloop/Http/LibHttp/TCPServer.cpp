@@ -605,7 +605,7 @@ void TCPConnection::OnAsyncSend()
 		if (_tcpServer)
 			hint = _reverseHint;
 
-		log.hexDump(ZQ::common::Log::L_DEBUG, asyncMsg.c_str(), asyncMsg.size(), hint.c_str(),true);
+		_logger.hexDump(ZQ::common::Log::L_DEBUG, asyncMsg.c_str(), asyncMsg.size(), hint.c_str(),true);
 		i--;
 	}
 }
