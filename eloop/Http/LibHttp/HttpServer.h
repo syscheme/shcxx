@@ -29,7 +29,13 @@ class HttpHandler: public IHttpParseSink, public virtual ZQ::common::SharedObjec
 public:
 	typedef std::map<std::string, std::string> Properties;
 	typedef ZQ::common::Pointer<HttpHandler> Ptr;
-	virtual ~HttpHandler() {}
+	virtual ~HttpHandler() {
+
+		(_app.log())(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpHandler, "~HttpHandler"));
+
+	}
+
+	HttpPassiveConn& conn() { return _conn; }
 
 	// ---------------------------------------
 	// interface IBaseApplication
@@ -58,14 +64,13 @@ public:
 
 	typedef ZQ::common::Pointer<IBaseApplication> AppPtr;
 
-
 protected: // hatched by HttpApplication
 	HttpHandler(IBaseApplication& app, HttpPassiveConn& conn, const HttpHandler::Properties& dirProps = HttpHandler::Properties())
 		: _conn(conn), _app(app), _dirProps(dirProps)
 	{}
 
-	virtual void	onHttpDataSent(size_t size){}
-	virtual void	onHttpDataReceived( size_t size ){}
+	virtual void	onHttpDataSent(size_t size) {}
+	virtual void	onHttpDataReceived( size_t size ) {}
 
 	HttpPassiveConn& _conn;
 	IBaseApplication& _app;
@@ -89,7 +94,6 @@ public:
 		return new HandlerT(*this, conn, dirProps);
 	}
 };
-
 
 //---------------------------------------
 //class HttpMonitorTimer
@@ -117,8 +121,8 @@ public:
 	void			stop();
 
 	bool			keepAlive(){return _keepAlive_Timeout>0;}
-	virtual void onRespComplete();
 	void 			errorResponse( int code );
+	virtual void    onRespComplete();
 
 protected:
 
@@ -155,6 +159,64 @@ private:
 
 	std::string					_Hint;
 // 	int64						_lastRespTime;
+};
+
+// ---------------------------------------
+// class HTTPResponse
+// ---------------------------------------
+class HTTPResponse : public HttpMessage
+{
+public:
+	typedef ZQ::common::Pointer<HTTPResponse> Ptr;
+
+	HTTPResponse(HttpHandler::Ptr handler)
+		: _handler(handler), HttpMessage(HttpMessage::MSG_RESPONSE)
+	{
+	}
+
+	virtual ~HTTPResponse() {}
+
+	void setResponseBody(char* buf, uint len){
+		_respMsg.clear();
+		_respMsg.append(buf, len);
+		contentLength(len);
+	}
+
+	void setStatus(int statusCode, const std::string& strStatus = ""){
+
+		if (statusCode>100)
+			code(statusCode);
+
+		status(strStatus);
+	}
+    
+	void post(int statusCode = 0) 
+	{
+		if (statusCode > 100)
+		{
+			code(statusCode);
+			if(status().empty())
+				status(ZQ::eloop::HttpMessage::statusString(statusCode));
+		}
+
+		std::string respMsg = toRaw();
+		// TODO: _conn._logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), _conn.hint().c_str(),true);
+
+//		printf("resp: %s\n", respMsg.c_str());
+
+		if (_handler)
+		{
+			_handler->conn().write(respMsg.c_str(), respMsg.size());
+
+			if(!_respMsg.empty())
+				_handler->conn().write(_respMsg.c_str(), _respMsg.size());
+		}
+	}
+
+private:
+	HttpHandler::Ptr _handler;
+
+	std::string      _respMsg;
 };
 
 // ---------------------------------------
@@ -223,7 +285,8 @@ public:
 	int64    keepAliveTimeout() const;
 
 	void single();
-
+    
+    const HttpServerConfig& config() { return _Config; }
 protected:
 	HttpServerConfig		_Config;
 	ZQ::common::Log&		_Logger;

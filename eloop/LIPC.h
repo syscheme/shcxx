@@ -102,7 +102,7 @@ public:
 		LIPC_TCP, 
 		LIPC_FILE, 
 		LIPC_NONE,
-
+		LIPC_HTTP, 
 	} FdType;
 
 	LIPCMessage(int cseq =0, Json::Value msg = Json::Value::null);

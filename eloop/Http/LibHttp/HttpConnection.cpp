@@ -273,11 +273,11 @@ int	HttpConnection::onHeaderValue(const char* at, size_t size)
 		_HeaderValue->append(at, size);
 	else
 	{
-		std::pair<HttpMessage::HEADERS::iterator,bool> ret = _CurrentParseMsg->_Headers.insert(HttpMessage::HEADERS::value_type(_HeaderField, std::string(at,size)));
+		std::pair<HttpMessage::Headers::iterator,bool> ret = _CurrentParseMsg->_Headers.insert(HttpMessage::Headers::value_type(_HeaderField, std::string(at,size)));
 		if(!ret.second)
 		{
 			_CurrentParseMsg->_Headers.erase(_HeaderField);
-			ret = _CurrentParseMsg->_Headers.insert(HttpMessage::HEADERS::value_type(_HeaderField, std::string(at,size)));
+			ret = _CurrentParseMsg->_Headers.insert(HttpMessage::Headers::value_type(_HeaderField, std::string(at,size)));
 			assert(ret.second);
 		}
 
