@@ -58,14 +58,13 @@ public:
 
 	typedef ZQ::common::Pointer<IBaseApplication> AppPtr;
 
-
 protected: // hatched by HttpApplication
 	HttpHandler(IBaseApplication& app, HttpPassiveConn& conn, const HttpHandler::Properties& dirProps = HttpHandler::Properties())
 		: _conn(conn), _app(app), _dirProps(dirProps)
 	{}
 
-	virtual void	onHttpDataSent(size_t size){}
-	virtual void	onHttpDataReceived( size_t size ){}
+	virtual void	onHttpDataSent(size_t size) {}
+	virtual void	onHttpDataReceived( size_t size ) {}
 
 	HttpPassiveConn& _conn;
 	IBaseApplication& _app;
