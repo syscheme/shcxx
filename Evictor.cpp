@@ -198,6 +198,14 @@ Evictor::Item::Ptr Evictor::add(const Evictor::Item::ObjectPtr& obj, const Ident
 		case Evictor::Item::created:
 		case Evictor::Item::modified:
 			alreadyThere = true;
+            item->_data.servant = obj;
+            item->_data.stampLastSave = now();
+            bNeedRequeue = true;
+
+            {
+                MutexGuard g(_lkEvictor);
+                _queueModified(item); // this is only be called while item is locked
+            }
 			break;
 
 		case Evictor::Item::destroyed:
@@ -236,7 +244,8 @@ Evictor::Item::Ptr Evictor::add(const Evictor::Item::ObjectPtr& obj, const Ident
 	}
 
 	if (alreadyThere)
-        throw EvictorException(409, "add() existing object");
+        _log(Log::L_DEBUG, CLOGFMT(Evictor, "object[%s](%s) alreadyThere old will be cover"), ident_cstr(ident), Item::stateToString(item->_data.status));
+        //throw EvictorException(409, "add() existing object");
 
 	if (TRACE)
 		_log(Log::L_DEBUG, CLOGFMT(Evictor, "added object[%s](%s)"), ident_cstr(ident), Item::stateToString(item->_data.status));
