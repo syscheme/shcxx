@@ -179,15 +179,17 @@ Evictor::Item::Ptr Evictor::add(const Evictor::Item::ObjectPtr& obj, const Ident
 	// DeactivateController::Guard deactivateGuard(_deactivateController);
 	bool alreadyThere = false;
 	Evictor::Item::Ptr item = NULL;
-
-	// Create a new entry
-	item = new Item(*this, ident);
-	item->_data.status = Evictor::Item::dead;
-
 	Evictor::Item::Ptr oldElt = pin(ident, item); // load the item if exist, otherwise add this new item into
 
-	if (!oldElt)
+	if (oldElt)
 		item = oldElt;
+
+    if (!item)
+    {
+        // Create a new entry
+        item = new Item(*this, ident);
+        item->_data.status = Evictor::Item::dead;
+    }
 
 	bool bNeedRequeue =false;
 	{
@@ -198,6 +200,7 @@ Evictor::Item::Ptr Evictor::add(const Evictor::Item::ObjectPtr& obj, const Ident
 		case Evictor::Item::created:
 		case Evictor::Item::modified:
 			alreadyThere = true;
+            item->_data.status = Item::modified;
             item->_data.servant = obj;
             item->_data.stampLastSave = now();
             bNeedRequeue = true;
