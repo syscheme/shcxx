@@ -29,7 +29,13 @@ class HttpHandler: public IHttpParseSink, public virtual ZQ::common::SharedObjec
 public:
 	typedef std::map<std::string, std::string> Properties;
 	typedef ZQ::common::Pointer<HttpHandler> Ptr;
-	virtual ~HttpHandler() {}
+	virtual ~HttpHandler() {
+
+		(_app.log())(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpHandler, "~HttpHandler"));
+
+	}
+
+	HttpPassiveConn& conn() { return _conn; }
 
 	// ---------------------------------------
 	// interface IBaseApplication
