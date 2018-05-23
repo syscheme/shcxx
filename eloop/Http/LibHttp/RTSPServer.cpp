@@ -201,7 +201,7 @@ void RTSPServerResponse::post(int statusCode, const char* desc)
 
 	_server._logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPServerResponse, "post() %s(%d) ret(%d) took %lldus"), _req->method().c_str(), _req->cSeq(), statusCode, elapsed);
 
-	_server._logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), conn->hint().c_str(),true);
+	//_server._logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), conn->hint().c_str(),true);
 }
 
 // ---------------------------------------
