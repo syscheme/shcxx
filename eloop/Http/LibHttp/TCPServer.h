@@ -192,7 +192,7 @@ public:
 
 public:
 	TCPServer(const ServerConfig& conf, ZQ::common::Log& logger)
-	: _config(conf), _logger(logger),_isStart(false)
+	: _config(conf), _logger(logger),_isStart(false),_isOnStart(false)
 	{
 #ifdef ZQ_OS_LINUX
 		//Ignore SIGPIPE signal
@@ -215,6 +215,7 @@ public:
 		return _config.keepalive_timeout;
 	}
 
+	void onLoopThreadStart(ZQ::eloop::Loop& loop);
 	void signal();
 	virtual TCPConnection* createPassiveConn();
 
@@ -229,6 +230,8 @@ private:
 	SYS::SingleObject		_sysWakeUp;
 	ITCPEngine*				_engine;
 	bool					_isStart;
+	bool					_isOnStart;
+	ZQ::common::Mutex		_onStartLock;
 };
 
 } }//namespace ZQ::eloop

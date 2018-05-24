@@ -139,7 +139,7 @@ public:
 		if (listen() < 0)
 			return false;
 
-		_server.onStart(_loop);
+		_server.onLoopThreadStart(_loop);
 		int r=_loop.run(ZQ::eloop::Loop::Default);
 		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(SingleLoopTCPEngine,"SingleLoopTCPEngine quit!"));
 		return r;
@@ -243,7 +243,7 @@ public:
 				_watchDog.start(0,_server._config.watchDogInterval);
 			}
 
-			_server.onStart(*this);
+			_server.onLoopThreadStart(*this);
 			_logger(ZQ::common::Log::L_INFO, CLOGFMT(LoopThread, "LoopThread start run!"));
 			int r = Loop::run(Loop::Default);
 			_logger(ZQ::common::Log::L_INFO, CLOGFMT(LoopThread, "LoopThread quit!"));
@@ -700,6 +700,18 @@ TCPConnection* TCPServer::createPassiveConn()
 void TCPServer::signal()
 {
 	_sysWakeUp.signal();
+}
+
+void TCPServer::onLoopThreadStart(ZQ::eloop::Loop& loop)
+{
+	{
+		ZQ::common::MutexGuard gd(_onStartLock);
+		if (_isOnStart)
+			return;
+		else
+			_isOnStart = true;
+	}
+	onStart(loop);
 }
 
 } }//namespace ZQ::eloop
