@@ -96,7 +96,7 @@ public:
 
 	int init(Loop &loop);
 	bool start();
-	bool stop();
+	bool stop(bool isShutdown = true);
 	const std::string& connId() const { return _connId; }
 	const std::string& hint() const { return _Hint; }
 	virtual bool isPassive() const { return NULL != _tcpServer; }

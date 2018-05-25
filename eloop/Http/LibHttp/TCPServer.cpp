@@ -492,7 +492,7 @@ bool TCPConnection::start()
 	return onStart();
 }
 
-bool TCPConnection::stop()
+bool TCPConnection::stop(bool isShutdown)
 {
 	if (_async != NULL)
 	{
@@ -501,7 +501,10 @@ bool TCPConnection::stop()
 	}
 	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"connId[%s] stop from [%s]"),_connId.c_str(), _Hint.c_str());
 	_isConnected = false;
-	shutdown();
+	if (isShutdown)
+		shutdown();
+	else
+		close();
 	return onStop();
 }
 
