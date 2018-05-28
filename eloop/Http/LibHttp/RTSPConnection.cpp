@@ -43,7 +43,7 @@ void RTSPConnection::doAllocate(eloop_buf_t* buf, size_t suggested_size)
 
 		if ((_recvBuf.len - _byteSeen) <=0)
 		{
-			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPConnection, "doAllocate() conn[%s] last incomplete message exceed bufsz[%d] from offset[%d], give it up"), hint(), _recvBuf.len, _byteSeen);
+			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPConnection, "doAllocate() conn[%s] last incomplete message exceed bufsz[%d] from offset[%d], give it up"), hint().c_str(), _recvBuf.len, _byteSeen);
 			_byteSeen =0;
 			memset(_recvBuf.base,0,_recvBuf.len);
 		}

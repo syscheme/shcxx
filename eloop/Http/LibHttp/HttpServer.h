@@ -119,7 +119,7 @@ public:
 
 	bool			keepAlive() const { return _keepAlive_Timeout>0; }
 	void 			errorResponse( int code );
-	virtual void    onRespComplete();
+	virtual void    onRespComplete(bool isShutdown = false);
 
 protected:
 

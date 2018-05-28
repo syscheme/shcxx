@@ -99,13 +99,13 @@ void HttpPassiveConn::onHttpDataSent(size_t size)
 	_handler->onHttpDataSent(size);
 }
 
-void HttpPassiveConn::onRespComplete()
+void HttpPassiveConn::onRespComplete(bool isShutdown)
 {
 	HttpConnection::onRespComplete();
 	if (!_keepAlive || _keepAlive_Timeout <= 0)
 	{
 		_listpipe.clear();
-		stop();
+		stop(isShutdown);
 		return;
 	}
 
