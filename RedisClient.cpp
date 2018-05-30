@@ -1120,8 +1120,8 @@ RedisCommand::Ptr RedisClient::sendEXPIRE( const char *key, int seconds, RedisSi
 {
     char ttls[32];
     snprintf(ttls, sizeof(ttls) - 1, " %d", seconds);
-    std::string cmdstr = std::string("EXPIRE ") + key + ttls;
-    return sendCommand(cmdstr.c_str(), REDIS_LEADINGCH_INLINE, reply);
+    std::string cmdstr = std::string("PEXPIRE ") + key + ttls;
+    return sendCommand(cmdstr.c_str(), REDIS_LEADINGCH_INT, reply);
 }
 
 RedisCommand::Ptr RedisClient::sendKEYS(const char *pattern, RedisSink::Ptr reply)
