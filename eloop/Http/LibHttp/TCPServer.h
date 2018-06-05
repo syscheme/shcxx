@@ -79,7 +79,7 @@ class TCPConnection : public TCP, public WatchDog::IObservee
 
 public:
 	TCPConnection(ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL)
-		:_logger(log), _isConnected(false), _async(NULL), _tcpServer(tcpServer), _watchDog(NULL)
+		:_logger(log), _isConnected(false), _async(NULL), _tcpServer(tcpServer), _watchDog(NULL),_isShutdown(false)
 	{
 		_lastCSeq.set(1);
 		if (connId != NULL)
@@ -139,6 +139,7 @@ protected:
 	std::string				_Hint;
 	std::string				_reverseHint;
 	bool					_isConnected;
+	bool				_isShutdown;
 	std::string				_connId;
 	ZQ::common::AtomicInt _lastCSeq;
 

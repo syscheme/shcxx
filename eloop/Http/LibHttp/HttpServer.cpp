@@ -32,7 +32,7 @@ HttpPassiveConn::HttpPassiveConn(HttpServer& server)
 
 HttpPassiveConn::~HttpPassiveConn()
 {
-	_handler = NULL;
+	//_handler = NULL;
 }
 
 void HttpPassiveConn::errorResponse( int code ) 
@@ -50,7 +50,7 @@ void HttpPassiveConn::errorResponse( int code )
 	write(response.c_str(), response.length());
 
 	_keepAlive = false;
-	stop();
+	stop(true);
 }
 
 void HttpPassiveConn::onError(int error,const char* errorDescription)
@@ -78,7 +78,7 @@ void HttpPassiveConn::onError(int error,const char* errorDescription)
 	if(_handler)
 		_handler->onError(error,errorDescription);
 
-	stop();
+	stop(true);
 }
 
 void HttpPassiveConn::onHttpDataSent(size_t size) 
@@ -116,7 +116,7 @@ void HttpPassiveConn::onRespComplete(bool isShutdown)
 void HttpPassiveConn::OnTimer()
 {
 	if (_keepAlive_Timeout>0 && _startTime>0 &&(ZQ::common::now() - _startTime > _keepAlive_Timeout))
-		stop();
+		stop(false);
 }
 
 void HttpPassiveConn::onHttpDataReceived( size_t size )
@@ -154,7 +154,7 @@ bool HttpPassiveConn::onHeadersEnd( const HttpMessage::Ptr msg)
 	if(!_handler)
 	{
 		//should make a 404 response
-		_logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"onHeadersEnd failed to find a suitable handle to process url: %s"), msg->url().c_str() );
+		_logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"onHeadersEnd failed to find a suitable handle to process url:[%s], msg[%s]"), msg->url().c_str(), msg->toRaw().c_str() );
 		errorResponse(404);
 		return false;
 	}

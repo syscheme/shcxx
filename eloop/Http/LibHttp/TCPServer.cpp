@@ -494,17 +494,25 @@ bool TCPConnection::start()
 
 bool TCPConnection::stop(bool isShutdown)
 {
+	_isShutdown = isShutdown;
 	if (_async != NULL)
 	{
 		_async->close();
 		return true;
 	}
-	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"connId[%s] stop from [%s]"),_connId.c_str(), _Hint.c_str());
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"connId[%s] stop from [%s] isShutdown[%s]"),_connId.c_str(), _Hint.c_str(), isShutdown?"true":"false");
 	_isConnected = false;
-	if (isShutdown)
+	
+	if (_isShutdown)
+	{
+		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"shutdown stop connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
 		shutdown();
+	}
 	else
+	{
+		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"close stop connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
 		close();
+	}
 	return onStop();
 }
 
@@ -621,7 +629,7 @@ void TCPConnection::OnCloseAsync()
 		delete _async;
 		_async = NULL;
 	}
-	stop();
+	stop(_isShutdown);
 }
 
 // ---------------------------------------
