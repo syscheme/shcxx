@@ -450,7 +450,7 @@ void RTSPSession::updateIndex(RTSPSession* sess)
 }
 
 RTSPSession::RTSPSession(Log& log, NativeThreadPool& thrdpool, const char* streamDestUrl, const char* filePath, Log::loglevel_t verbosityLevel, int timeout, const char* sessGuid)
-: _thrdpool(thrdpool), _tpType(tpt_UNKNOWN), _log(log, verbosityLevel), _stampSetup(0), _stampLastMessage(0), _filePath(trim(filePath)), _sessTimeout(timeout)
+: _thrdpool(thrdpool), _tpType(tpt_UNKNOWN), _log(log, verbosityLevel), _stampSetup(0), _stampLastMessage(0), _filePath(RTSPParser::trim(filePath)), _sessTimeout(timeout)
 {
 	if (NULL != sessGuid && strlen(sessGuid) >0)
 		_sessGuid = sessGuid;

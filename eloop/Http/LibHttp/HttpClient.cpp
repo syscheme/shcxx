@@ -8,16 +8,12 @@ namespace eloop {
 // class HttpClient
 // ---------------------------------------
 HttpClient::HttpClient(ZQ::common::Log& logger)
-	:HttpConnection(true,logger),
-	_Logger(logger),
-	_req(NULL)
+	: HttpConnection(logger), _logger(logger), _req(NULL)
 {
-
 }
 
 HttpClient::~HttpClient()
 {
-
 }
 
 void HttpClient::OnConnected(ElpeError status)
@@ -70,7 +66,7 @@ void HttpClient::onError( int error,const char* errorDescription )
 	int  peerport = 0;
 	getpeerIpPort(peerip,peerport);
 
-	_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient, "onError [%p] [%s:%d => %s:%d], errorCode[%d],Description[%s]"), 
+	_logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient, "onError [%p] [%s:%d => %s:%d], errorCode[%d],Description[%s]"), 
 		this, locip, locport, peerip, peerport,error,errorDescription);
 
 	shutdown();

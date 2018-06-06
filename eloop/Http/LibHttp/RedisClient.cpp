@@ -815,8 +815,8 @@ ZQ::eloop::RedisCommand::Ptr RedisClient::sendEXPIRE( const char *key, int secon
 {
     char ttls[32];
     snprintf(ttls, sizeof(ttls) - 1, " %d", seconds);
-    std::string cmdstr = std::string("EXPIRE ") + key + ttls;
-    return sendCommand(cmdstr.c_str(), REDIS_LEADINGCH_INLINE, reply);
+    std::string cmdstr = std::string("PEXPIRE ") + key + ttls;
+    return sendCommand(cmdstr.c_str(), REDIS_LEADINGCH_INT, reply);
 }
 
 RedisCommand::Ptr RedisClient::sendGETSET(const char *key, const uint8* val, int vlen, RedisSink::Ptr reply)

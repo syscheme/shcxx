@@ -3,6 +3,7 @@
 #include "http_parser.h"
 #include "HttpMessage.h"
 #include "urlstr.h"
+#include <boost/algorithm/string/trim.hpp>
 
 namespace ZQ {
 namespace eloop {
@@ -67,6 +68,66 @@ static void kmpPreprocess(const std::vector<char>& x, std::vector<int>& kmpNext)
 	}
 }
 
+class DataStreamHelper
+{
+public:
+	struct Data
+	{
+		const char* data;
+		size_t size;
+		Data():data(NULL), size(0){}
+		void clear()
+		{
+			data = NULL;
+			size = 0;
+		}
+	};
+	struct SearchResult
+	{
+		Data released;
+		Data prefix;
+		Data locked;
+		Data suffix;
+
+		void clear()
+		{
+			released.clear();
+			prefix.clear();
+			locked.clear();
+			suffix.clear();
+		}
+	};
+public:
+	void setTarget(const std::string& target);
+	// reset the search state
+	void reset();
+	// the search result won't include null pointer unless the input data is null.
+	// return true for reach the target
+	bool search(const char* data, size_t len, SearchResult& result);
+private:
+	std::string _target;
+	std::vector<int> _kmpNext;
+	size_t _nLocked;
+};
+
+#define Append_Search_Result(d, sr) {\
+	d.append(sr.released.data, sr.released.size);\
+	d.append(sr.prefix.data, sr.prefix.size);\
+}
+
+class LineCache
+{
+public:
+	LineCache();
+	const char* getLine(const char* &data, size_t &len);
+
+	void clear();
+private:
+	std::string _line;
+	bool _got;
+	DataStreamHelper _dsh;
+};
+
 void DataStreamHelper::setTarget(const std::string& target)
 {
 	_nLocked = 0;
@@ -84,8 +145,8 @@ void DataStreamHelper::reset()
 // return true for reach the target
 bool DataStreamHelper::search(const char* data, size_t len, SearchResult& result)
 {
-	int m = _target.size();
-	int i = _nLocked;
+	size_t m = _target.size();
+	size_t i = _nLocked;
 	size_t j = 0;
 	// kmp algorithm
 	while(j < len)
@@ -102,7 +163,7 @@ bool DataStreamHelper::search(const char* data, size_t len, SearchResult& result
 	}
 
 	// not found
-	int vPos = _nLocked + j - i;
+	size_t vPos = _nLocked + j - i;
 	if(vPos > (int)_nLocked)
 	{ // all locked part released
 		result.released.data = _target.data();
@@ -141,6 +202,7 @@ LineCache::LineCache()
 {
 	_dsh.setTarget("\r\n");
 }
+
 const char* LineCache::getLine(const char* &data, size_t &len)
 {
 	if(_got)
@@ -160,10 +222,10 @@ void LineCache::clear()
 	_got = false;
 	_dsh.reset();
 }
+
 // -----------------------------------------------------
 // class HttpMessage
 // -----------------------------------------------------
-Code2StatusMapInitializer c2smapinitializer;
 HttpMessage::HttpMessage(MessgeType type)
 :_Type((http_parser_type) type), _Method(GET), _Code(0), _bChunked(false),
 _bKeepAlive(false), _VerMajor(0), _VerMinor(0), _BodyLength(0)
@@ -173,6 +235,69 @@ _bKeepAlive(false), _VerMajor(0), _VerMinor(0), _BodyLength(0)
 HttpMessage::~HttpMessage(){
 
 }
+
+struct HttpCode2Str {
+	int 			code;
+	const char*		status;
+};
+
+const char* HttpMessage::statusString(int statusCode)
+{
+	switch(statusCode)
+	{
+	case scContinue                       : return "Continue";
+	case scSwitchingProtocols             : return "Switching Protocols";
+	case scOK                             : return "OK";
+	case scCreated                        : return "Created";
+	case scAccepted                       : return "Accepted";
+	case scNonAuthoritativeInformation    : return "Non-Authoritative Information";
+	case scNoContent                      : return "No Content";
+	case scResetContent                   : return "Reset Content";
+	case scPartialContent                 : return "Partial Content";
+	case scMultipleChoices                : return "Multiple Choices";
+	case scMovedPermanently               : return "Moved Permanently";
+	case scFound                          : return "Found";
+	case scSeeOther                       : return "See Other";
+	case scNotModified                    : return "Not Modified";
+	case scUseProxy                       : return "Use Proxy";
+	case scTemporaryRedirect              : return "Temporary Redirect";
+	case scBadRequest                     : return "Bad Request";
+	case scUnauthorized                   : return "Unauthorized";
+	case scPaymentRequired                : return "Payment Required";
+	case scForbidden                      : return "Forbidden";
+	case scNotFound                       : return "Not Found";
+	case scMethodNotAllowed               : return "Method Not Allowed";
+	case scNotAcceptable                  : return "Not Acceptable";
+	case scProxyAuthenticationRequired    : return "Proxy Authentication Required";
+	case scRequestTimeout                 : return "Request Timeout";
+	case scConflict                       : return "Conflict";
+	case scGone                           : return "Gone";
+	case scLengthRequired                 : return "Length Required";
+	case scPreconditionFailed             : return "Precondition Failed";
+	case scRequestEntityTooLarge          : return "Request Entity Too Large";
+	case scRequestURITooLong              : return "Request-URI Too Long";
+	case scUnsupportedMediaType           : return "Unsupported Media Type";
+	case scRequestedRangeNotSatisfiable   : return "Requested Range Not Satisfiable";
+	case scExpectationFailed              : return "Expectation Failed";
+	case scInternalServerError            : return "Internal Server Error";
+	case scNotImplemented                 : return "Not Implemented";
+	case scBadGateway                     : return "Bad Gateway";
+	case scServiceUnavailable             : return "Service Unavailable";
+	case scGatewayTimeout                 : return "Gateway Timeout";
+	case scHTTPVersionNotSupported        : return "HTTP Version Not Supported";
+	}
+
+	return "Unknown";
+}
+
+static const char* httpDateStrWeekDay[] = {"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
+static const char* httpDateStrMonth[] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
+
+static std::map<int, std::string> code2statusmap;
+static std::string 				unknownstatus = "unkown";
+
+#define CRLF "\r\n"
+#define ChunkTail "0\r\n\r\n"
 
 std::string HttpMessage::httpdate( int delta ) {
 	char buffer[64] = {0};
@@ -313,7 +438,7 @@ int HttpMessage::onHeadersComplete()
 		_Uri = _Uri.substr(0, pos);
 
 	_encoding = None;
-	HEADERS::iterator it = _Headers.begin();
+	Headers::iterator it = _Headers.begin();
 	for(;it!=_Headers.end();it++)
 	{
 		if (strcmp(it->first.c_str(),"Content-Type") == 0)
@@ -471,7 +596,7 @@ int HttpMessage::onMessageComplete()
 
 const std::string& HttpMessage::header( const std::string& key) const {
 	ZQ::common::MutexGuard gd(_Locker);
-	HEADERS::const_iterator it = _Headers.find(key);
+	Headers::const_iterator it = _Headers.find(key);
 	if( it == _Headers.end())
 		return _DummyHeaderValue;
 	return it->second;
@@ -542,7 +667,7 @@ std::string HttpMessage::toRaw()
 	} else {
 		_Headers["Connection"] = "close";
 	}
-	HEADERS::const_iterator it = _Headers.begin();
+	Headers::const_iterator it = _Headers.begin();
 	for( ; it != _Headers.end() ; it ++ ) {
 		oss<<it->first<<": "<<it->second<<line_term;
 	}

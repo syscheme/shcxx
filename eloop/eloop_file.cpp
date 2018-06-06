@@ -147,12 +147,16 @@ void File::_cbFileOpen(uv_fs_t* req)
 void File::_cbFileClose(uv_fs_t* req)
 {
 	File *h = static_cast<File *>(req->data);
-	uv_fs_req_cleanup(req);
-	delete req;
 	if (NULL != h)
 	{
 		h->clean();
 		h->OnClose(req->result);
+	}
+	if (req != NULL)
+	{
+		uv_fs_req_cleanup(req);
+		delete req;
+		req = NULL;
 	}
 }
 
