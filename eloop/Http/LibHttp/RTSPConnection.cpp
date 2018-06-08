@@ -266,8 +266,13 @@ void RTSPConnection::parse(ssize_t bytesRead)
 			_currentParseMsg.pMsg->header(header,value);
 
 
+			_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPConnection, "header[%s] value[%s] "), header.c_str(), value.c_str());
 			if (0 == header.compare(Header_ContentLength))
+			{
+				int64 len = atol(value.c_str());
+				_logger(ZQ::common::Log::L_ERROR, CLOGFMT(RTSPConnection, "---ContentLength strVal[%s] intVal[%lld]"), value.c_str(), len);
 				_currentParseMsg.pMsg->contentLength(atol(value.c_str()));
+			}
 
 			if (0 == header.compare(Header_CSeq))
 				_currentParseMsg.pMsg->cSeq(atol(value.c_str()));

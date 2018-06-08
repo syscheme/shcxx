@@ -325,7 +325,7 @@ private:
 	{
 		std::string startLine;
 		bool		headerCompleted;
-		uint        contentBodyRead;
+		int64       contentBodyRead;
 		RTSPMessage::Ptr pMsg;
 
 		rtsp_parser_msg() { reset(); }

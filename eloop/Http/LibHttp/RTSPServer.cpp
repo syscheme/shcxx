@@ -249,7 +249,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 
 		// check if the request is session-based or not
 		std::string sid =  req->header(Header_Session);
-		RTSPSession::Ptr pSess; // should be server-side session
+		RTSPSession::Ptr pSess = NULL; // should be server-side session
 
 		if (!sid.empty())
 		{
@@ -296,6 +296,8 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 			if (0 == req->method().compare(Method_OPTIONS))	{ respCode = _rtspHandler->onOptions(req, resp);   if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
 			if (0 == req->method().compare(Method_ANNOUNCE)) { respCode = _rtspHandler->onAnnounce(req, resp); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
 			if (0 == req->method().compare(Method_DESCRIBE)) { respCode = _rtspHandler->onDescribe(req, resp); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
+
+			respCode =405; break;
 		}
 
 		// session-based requests and session has been addressed

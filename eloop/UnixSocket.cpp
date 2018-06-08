@@ -244,7 +244,16 @@ void UnixSocket::processMessage(ssize_t nread, const char *buf)
 		return;
 	}
 
-	_buf.append(buf);
+	if (nread <= 0)
+	{
+		std::string desc = "processMessage error:";
+		desc.append(errDesc(nread));
+		onError(nread,desc.c_str());
+		return;
+	}
+
+
+	_buf.append(buf, nread);
 	size_t len = 0;
 	size_t index = 0; /* position of ":" */
 	size_t i = 0;
