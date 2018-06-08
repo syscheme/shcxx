@@ -325,7 +325,8 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 	std::string respMsg = resp->toRaw();
 	write(respMsg.c_str(), respMsg.size());
 
-	_logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), hint().c_str(),true);
+	if (TCPConnection::_enableHexDump > 0)
+		_logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), hint().c_str(),true);
 	int64 elapsed = ZQ::eloop::usStampNow() - req->_stampCreated;
 	if (_tcpServer)
 		_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() %s(%d) ret(%d) took %lldus"), req->method().c_str(), req->cSeq(), respCode, elapsed);

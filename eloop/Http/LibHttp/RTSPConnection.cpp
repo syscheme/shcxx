@@ -66,7 +66,8 @@ void RTSPConnection::OnRead(ssize_t nread, const char *buf)
 	if (nread == 0)
 		return;
 
-	_logger.hexDump(ZQ::common::Log::L_DEBUG, _recvBuf.base+_byteSeen, nread, hint().c_str(),true);
+	if (TCPConnection::_enableHexDump > 0)
+		_logger.hexDump(ZQ::common::Log::L_DEBUG, _recvBuf.base+_byteSeen, nread, hint().c_str(),true);
 
 
 	onDataReceived(nread);

@@ -133,6 +133,7 @@ private:
 public:
 	ZQ::common::Log&		_logger;
 	TCPServer*				_tcpServer;
+	static	uint			_enableHexDump;
 
 protected:
 	WatchDog*			    _watchDog;

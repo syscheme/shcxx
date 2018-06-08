@@ -464,6 +464,7 @@ private:
 // ---------------------------------------
 // class TCPConnection
 // ---------------------------------------
+uint TCPConnection::_enableHexDump = 0;
 int TCPConnection::init(Loop &loop)
 {
 	if (_async == NULL)
@@ -616,7 +617,8 @@ void TCPConnection::OnAsyncSend()
 		if (_tcpServer)
 			hint = _reverseHint;
 
-		_logger.hexDump(ZQ::common::Log::L_DEBUG, asyncMsg.c_str(), asyncMsg.size(), hint.c_str(),true);
+		if (TCPConnection::_enableHexDump > 0)
+			_logger.hexDump(ZQ::common::Log::L_DEBUG, asyncMsg.c_str(), asyncMsg.size(), hint.c_str(),true);
 		i--;
 	}
 }
