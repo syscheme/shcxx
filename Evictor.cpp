@@ -482,6 +482,7 @@ bool Evictor::poll(bool flushAll)
 	int64 stampNow = now();
 	if (TRACE)
 	{
+        MutexGuard sync(_lkEvictor);
 		_log((size != cToStream +deadObjects.size())?Log::L_WARNING : Log::L_DEBUG, CLOGFMT(Evictor, "streamed %d to %d modified +%d dead, pending %d streamed, took %dmsec"), 
 			size, cToStream, deadObjects.size(), _streamedList.size(), (int) (stampNow - stampStart));
 	}

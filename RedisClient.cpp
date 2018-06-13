@@ -150,12 +150,12 @@ std::string RedisCommand::desc()
 }
 
 // -----------------------------
-// class RequestErrCmd
+// class RedisErrCmd
 // -----------------------------
-class RequestErrCmd : public ThreadRequest
+class RedisErrCmd : public ThreadRequest
 {
 public:
-	RequestErrCmd(RedisClient& client, const RedisCommand::Ptr& pCmd, RedisSink::Error errCode)
+	RedisErrCmd(RedisClient& client, const RedisCommand::Ptr& pCmd, RedisSink::Error errCode)
 		: ThreadRequest(client._thrdpool), _client(client), _pCmd(pCmd), _errCode(errCode)
 	{
 	}
@@ -348,6 +348,7 @@ _inCommingByteSeen(0)
 		sendPING();
 
 	} while(0);
+    _receivesCmd = _completeCmd = 0;
 }
 
 RedisClient::~RedisClient()
@@ -435,7 +436,7 @@ RedisCommand::Ptr RedisClient::sendCommand(RedisCommand::Ptr pCmd)
 						continue;
 
 					try {
-						(new RequestErrCmd(*this, pCmd, RedisSink::rdeConnectError))->start();
+						(new RedisErrCmd(*this, pCmd, RedisSink::rdeConnectError))->start();
 					}
 					catch(...) {}
 				}
@@ -471,6 +472,7 @@ RedisCommand::Ptr RedisClient::sendCommand(RedisCommand::Ptr pCmd)
 			_log(Log::L_WARNING, CLOGFMT(RedisClient, "sendCommand() %s took %ldmsec, too long until sent"), cmddesc.c_str(), sendLatency);
 
 		_commandQueueToReceive.push(pCmd);
+        ++_receivesCmd;
 		awaitsize = _commandQueueToReceive.size();
 		
 		_lastErr = RedisSink::rdeOK; // now up to OnReply() to update the _lastErr
@@ -482,7 +484,7 @@ RedisCommand::Ptr RedisClient::sendCommand(RedisCommand::Ptr pCmd)
 	} while(0);
 
 	// An error occurred, so call the response handler immediately (indicating the error)
-	(new RequestErrCmd(*this, pCmd, _lastErr))->start();
+	(new RedisErrCmd(*this, pCmd, _lastErr))->start();
 	return NULL;
 }
 
@@ -675,7 +677,7 @@ void RedisClient::_cancelCommands()
 		_commandQueueToSend.pop();
 
 		try {
-			(new RequestErrCmd(*this, pCmd, RedisSink::rdeClientCanceled))->start();
+			(new RedisErrCmd(*this, pCmd, RedisSink::rdeClientCanceled))->start();
 		}
 		catch(...) {}
 	}
@@ -686,7 +688,7 @@ void RedisClient::_cancelCommands()
 		_commandQueueToReceive.pop();
 
 		try {
-			(new RequestErrCmd(*this, pCmd, RedisSink::rdeClientCanceled))->start();
+			(new RedisErrCmd(*this, pCmd, RedisSink::rdeClientCanceled))->start();
 		}
 		catch(...) {}
 	}
@@ -705,7 +707,7 @@ void RedisClient::OnConnected()
 	_log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnConnected() connected to the peer, new conn: %s"), connDescription());
 	TCPSocket::setTimeout(_messageTimeout >>1); // half of _messageTimeout to wake up the socket sleep()
 	_inCommingByteSeen =0;
-
+    setBlock(NONBLOCK);
 	{
 		CommandQueue tmpQueue;
 		ZQ::common::MutexGuard g(_lockCommandQueue);
@@ -725,7 +727,7 @@ void RedisClient::OnConnected()
 			try {
 				if (pCmd->_stampCreated + _timeout < stampNow)
 				{
-					(new RequestErrCmd(*this, pCmd, RedisSink::rdeRequestTimeout))->start();
+					(new RedisErrCmd(*this, pCmd, RedisSink::rdeRequestTimeout))->start();
 					cExpired++;
 					continue;
 				}
@@ -812,7 +814,7 @@ void RedisClient::OnDataArrived()
 #ifdef ZQ_OS_MSWIN
 			if (WSAEWOULDBLOCK == err || WSAEINPROGRESS == err || WSAEALREADY == err)
 #else
-			if (EINPROGRESS == err)
+			if (EINPROGRESS == err || EAGAIN == err)
 #endif // ZQ_OS_MSWIN
 				_log(Log::L_WARNING, CLOGFMT(RedisClient, "OnDataArrived() conn[%s] recv() temporary fail[%d/%d], errno[%d]"), connDescription(), bytesRead, bytesToRead, err);
 			else
@@ -925,6 +927,7 @@ void RedisClient::OnDataArrived()
 
 				// move to next await command
 				_commandQueueToReceive.pop();
+                ++_completeCmd;
 				pCmd = NULL;
 				if(!_commandQueueToReceive.empty())
 					pCmd = _commandQueueToReceive.front();
@@ -996,7 +999,11 @@ void RedisClient::OnDataArrived()
 		} // end of current buffer reading
 
 		if (pCmd && 0 != pCmd->_replyCtx.data.type && pCmd->_replyCtx.nBulksLeft <= 0)
+        {
 			completedCmds.push(pCmd);
+            _commandQueueToReceive.pop();
+            ++_completeCmd;
+        }
 
 		// shift the unhandled buffer to the beginning, process with next OnData()
 		_log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnDataArrived() conn[%s] received %d bytes, appending to buf[%d], chopped out %d replies, %d incompleted bytes left"), connDescription(), bytesRead, _inCommingByteSeen, completedCmds.size(), (int)(pEnd - pProcessed));
@@ -1021,13 +1028,14 @@ void RedisClient::OnDataArrived()
 
 		try {
 			pCmd->_stampReceived = stampNow;
-			(new ReplyDispatcher(*this, pCmd))->start();
+            pCmd->OnReply(*this, *pCmd.get(), pCmd->_replyCtx.data);
+			//(new ReplyDispatcher(*this, pCmd))->start();
 			cReply++;
 		}
 		catch(...) {}
 	}
 
-	_log(cReply ? Log::L_INFO: Log::L_DEBUG, CLOGFMT(RedisClient, "OnDataArrived() conn[%s] dispatched, took %dmsec: %d Replies"), connDescription(), (int)(TimeUtil::now() -stampNow), cReply);
+	_log(cReply ? Log::L_INFO: Log::L_DEBUG, CLOGFMT(RedisClient, "OnDataArrived() conn[%s] dispatched, took %dmsec: %d Replies receiveCmd[%d] completeCmd[%d]"), connDescription(), (int)(TimeUtil::now() -stampNow), cReply, _receivesCmd, _completeCmd);
 }
 
 // async sending RedisCommands

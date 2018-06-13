@@ -152,7 +152,7 @@ public:
 
 protected:
 	friend class RedisClient;
-	friend class RequestErrCmd;
+	friend class RedisErrCmd;
 	friend class ReplyDispatcher;
 
 	RedisCommand(RedisClient& client, const std::string& cmdstr, char replyType, RedisSink::Ptr cbRedirect=NULL);
@@ -186,7 +186,7 @@ protected:
 class RedisClient : public TCPClient, virtual public SharedObject
 {
 	friend class RedisCommand;
-	friend class RequestErrCmd;
+	friend class RedisErrCmd;
 	friend class ReplyDispatcher;
 
 public:
@@ -277,6 +277,7 @@ protected:
 	typedef std::queue <RedisCommand::Ptr> CommandQueue;
 	CommandQueue _commandQueueToSend, _commandQueueToReceive;
 	ZQ::common::Mutex _lockCommandQueue;
+    int _receivesCmd; int _completeCmd;
 
 	// send a request thru the connection
 	//@return CSeq num in [1, MAX_CLIENT_CSEQ) if succeeded, or negative if failed
