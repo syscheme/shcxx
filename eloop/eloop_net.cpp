@@ -3,8 +3,6 @@
 namespace ZQ {
 	namespace eloop {
 
-		#define RECV_BUF_SIZE (32*1024)
-
 		typedef struct _eloop_write_req{
 			uv_write_t _req;
 			Handle::eloop_buf_t* _bufs;

@@ -80,6 +80,12 @@ void UnixSocket::OnWrote(int status)
 
 int UnixSocket::AsyncSend(const std::string& msg, int fd)
 {
+	if (msg.size() >= RECV_BUF_SIZE)
+	{
+		_lipcLog(ZQ::common::Log::L_WARNING,CLOGFMT(UnixSocket, "send() msg size[%d]too big,limit[%d]"), msg.size(), RECV_BUF_SIZE);
+		return -1;
+	}
+
 	AsyncMessage asyncMsg;
 	asyncMsg.msg = msg;
 	asyncMsg.fd = fd;
@@ -132,6 +138,11 @@ void UnixSocket::OnCloseAsync()
 
 int UnixSocket::send(const std::string& msg, int fd)
 {
+	if (msg.size() >= RECV_BUF_SIZE)
+	{
+		_lipcLog(ZQ::common::Log::L_WARNING,CLOGFMT(UnixSocket, "send() msg size[%d]too big,limit[%d]"), msg.size(), RECV_BUF_SIZE);
+		return -1;
+	}
 	std::string dest;
 	encode(msg, dest);
 
@@ -160,11 +171,11 @@ int UnixSocket::send(const std::string& msg, int fd)
 
 void UnixSocket::encode(const std::string& src,std::string& dest)
 {
-	unsigned long len = src.length();
+	int len = src.length();
     char strLen[32];
 
     // format of a netstring is [len]:[string]
-    sprintf(strLen, "~%lu:", len);
+    sprintf(strLen, "~%d:", len);
     dest.append(strLen);
     dest.append(src);
     dest.append(",");
@@ -252,10 +263,111 @@ void UnixSocket::processMessage(ssize_t nread, const char *buf)
 		return;
 	}
 
+	const char* tempBuf = buf;
+	if (!_buf.empty())
+	{
+		tempBuf = strchr(tempBuf, '~');
+		if (tempBuf == NULL)
+		{
+			char errDesc[10240];
+			snprintf(errDesc,sizeof(errDesc),"parse error:The index head is not '~',nread[%d],buf[%s]",nread,buf);
+			onError(lipcParseError,errDesc);
+			_buf.clear();
+			return;
+		}
+		
+		_buf.append(buf, tempBuf - buf);
+		const char* data = _buf.data();
+		int len = 0;
+		if (sscanf(data, "~%d:", &len) != 1)
+		{
+			char errDesc[10240];
+			snprintf(errDesc,sizeof(errDesc),"parse error:The index is not digital,nread[%d],buf[%s]",nread,_buf.c_str());
+			onError(lipcParseError,errDesc);
+			_buf.clear();
+		}
 
+		int index = _buf.find_first_of(":");
+		if(index == std::string::npos)
+		{
+			char errDesc[10240];
+			snprintf(errDesc,sizeof(errDesc),"parse error: missing leading-':',bufSize[%d],buf[%s]",_buf.size(),_buf.c_str());
+			onError(lipcParseError,errDesc);
+			_buf.clear();
+		}
+		else
+		{
+			if(len == _buf.length()-index-2)
+			{
+				std::string onlyMsg = _buf.substr(index+1,len);
+
+				if(TRACE_LEVEL_FLAG)
+					_lipcLog(ZQ::common::Log::L_DEBUG, CLOGFMT(UnixSocket, "single packet, onlyMsg[%s]"), onlyMsg.c_str());
+				OnMessage(onlyMsg);
+				_buf.clear();
+			}
+			else
+			{
+				char errDesc[10240];
+				snprintf(errDesc,sizeof(errDesc),"parse error:len[%d] is not equal to bufSize[%d],buf[%s]",len, _buf.size(),_buf.c_str());
+				onError(lipcParseError,errDesc);
+				_buf.clear();
+			}
+		}
+	}
+
+	while(tempBuf != NULL && *tempBuf)
+	{
+		if (tempBuf[0] != '~')
+		{
+			char errDesc[10240];
+			snprintf(errDesc,sizeof(errDesc),"parse error:The index head is not '~',nread[%d],buf[%s]",nread,tempBuf);
+			onError(lipcParseError,errDesc);
+			tempBuf = strchr(tempBuf, '~');
+			continue;
+		}
+
+		const char* onlyBuf = strchr(tempBuf, ':');
+		if (onlyBuf == NULL)
+		{
+			_buf = tempBuf;
+			break;
+		}
+
+		int len = 0;
+		if (sscanf(tempBuf, "~%d:", &len) != 1)
+		{
+			char errDesc[10240];
+			snprintf(errDesc,sizeof(errDesc),"parse error:The index is not digital,nread[%d],buf[%s]",nread,tempBuf);
+			onError(lipcParseError,errDesc);
+			tempBuf = strchr(onlyBuf, '~');
+			continue;
+			//parse error
+		}
+
+		if (onlyBuf+1+len > buf + nread)
+		{
+			if (strchr(onlyBuf, '~') != NULL)
+			{
+				char errDesc[10240];
+				snprintf(errDesc,sizeof(errDesc),"parse error:out of range,len[%d],nread[%d],buf[%s]",len, nread,onlyBuf);
+				onError(lipcParseError,errDesc);
+				tempBuf = strchr(onlyBuf, '~');
+				continue;
+			}
+			_buf = tempBuf;
+			break;
+		}
+
+		tempBuf = onlyBuf+1+len;
+		std::string onlyMsg(onlyBuf+1, len);
+		OnMessage(onlyMsg);
+	}
+
+/*
 	_buf.append(buf, nread);
 	size_t len = 0;
-	size_t index = 0; /* position of ":" */
+	size_t index = 0; // position of ":" 
 	size_t i = 0;
 	std::string temp;  
 	while(!_buf.empty())
@@ -317,6 +429,7 @@ void UnixSocket::processMessage(ssize_t nread, const char *buf)
 		else					//len > _buf.size()-index-2
 			break;
 	}
+*/
 }
 /*
 void UnixSocket::parseMessage(ssize_t nread, const char *buf)
