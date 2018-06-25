@@ -359,7 +359,7 @@ void UnixSocket::processMessage(ssize_t nread, const char *buf)
 			break;
 		}
 
-		tempBuf = onlyBuf+1+len;
+		tempBuf = onlyBuf+1+len+1;
 		std::string onlyMsg(onlyBuf+1, len);
 		OnMessage(onlyMsg);
 	}
