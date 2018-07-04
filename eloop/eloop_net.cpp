@@ -101,6 +101,9 @@ namespace ZQ {
 
 		int Stream::write(const eloop_buf_t bufs[],unsigned int nbufs,Handle *send_handle)
 		{
+			if (nbufs <=0 || bufs == NULL)
+				return -1;
+
 			eloop_write_req* elReq = new eloop_write_req(bufs, nbufs);
 			if (elReq == NULL || elReq->_bufs == NULL)
 				return -1;
@@ -122,7 +125,10 @@ namespace ZQ {
 		{  
 			if (NULL == send_handle)
 				return elpuEPIPE;
-			
+
+			if (nbufs <=0 || bufs == NULL)
+				return -1;
+
 			eloop_write_req* elReq = new eloop_write_req(bufs, nbufs);
 			if (elReq == NULL || elReq->_bufs == NULL)
 				return -1;
@@ -132,6 +138,9 @@ namespace ZQ {
 		}
 
 		int Stream::write(const char *buf, size_t length, Handle *send_handle) {
+
+			if (nbufs <=0 || bufs == NULL)
+				return -1;
 
 			eloop_write_req* elReq = new eloop_write_req(buf, length);
 
