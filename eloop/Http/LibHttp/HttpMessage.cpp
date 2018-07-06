@@ -236,12 +236,7 @@ HttpMessage::~HttpMessage(){
 
 }
 
-struct HttpCode2Str {
-	int 			code;
-	const char*		status;
-};
-
-const char* HttpMessage::statusString(int statusCode)
+const char* HttpMessage::code2status(int statusCode)
 {
 	switch(statusCode)
 	{
@@ -292,9 +287,6 @@ const char* HttpMessage::statusString(int statusCode)
 
 static const char* httpDateStrWeekDay[] = {"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
 static const char* httpDateStrMonth[] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
-
-static std::map<int, std::string> code2statusmap;
-static std::string 				unknownstatus = "unkown";
 
 #define CRLF "\r\n"
 #define ChunkTail "0\r\n\r\n"
@@ -347,13 +339,6 @@ std::string HttpMessage::uint2hex(unsigned long u, size_t alignLen, char padding
 		ret.insert(ret.begin(), paddingChar);
 
 	return ret;
-}
-
-const std::string& HttpMessage::code2status( int code ) {
-	std::map<int,std::string>::const_iterator it = code2statusmap.find(code);
-	if( it != code2statusmap.end())
-		return it->second;
-	return unknownstatus;
 }
 
 const char* HttpMessage::errorCode2Desc(int err)

@@ -86,8 +86,6 @@ public:
 		scHTTPVersionNotSupported        =505,
 	};
 
-	static const char* statusString(int statusCode);
-
 	typedef enum _errorCode{
 
 		BoundaryisNULL = 1000,
@@ -101,7 +99,7 @@ public:
 	HttpMessage(MessgeType type);
 	virtual ~HttpMessage();
 
-	static const std::string& code2status(int code);
+	static const char* code2status(int statusCode);
 	static const char* errorCode2Desc(int err);
 	static std::string httpdate( int deltaInSecond = 0 );
 	static std::string uint2hex(unsigned long u, size_t alignLen = 0, char paddingChar = '0');

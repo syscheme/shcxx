@@ -264,7 +264,8 @@ void RTSPConnection::parse(ssize_t bytesRead)
 			*pos = '\0';
 			header = RTSPConnection::trim(line);
 			value = RTSPConnection::trim(pos+1);
-			_currentParseMsg.pMsg->header(header,value);
+			if (!header.empty() && !value.empty())
+				_currentParseMsg.pMsg->header(header,value);
 
 			if (0 == header.compare(Header_ContentLength))
 				_currentParseMsg.pMsg->contentLength(atol(value.c_str()));
