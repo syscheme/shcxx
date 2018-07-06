@@ -346,6 +346,9 @@ std::string RTSPConnection::trim(char const* str)
 	for (; *str == ' ' || *str == '\t'; str++);
 	for (; *(t-1) == ' ' || *(t-1) == '\t'; t--);
 
+	if (t <= str)
+		return "";
+
 	return std::string(str, t-str);
 }
 
