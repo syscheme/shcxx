@@ -237,6 +237,8 @@ public:
 	std::string streamsInfo()   { return _props[SYS_PROP(streamKey)]; }
 	Properties properities() const { return _props; }
 
+	virtual void destroy() {}
+
 /* TODO: decalare the common part of both server-side and client-side session
 	// destroy would withdraw this session from background session manager, further leaving of Ptr would lead the deletion of this session
 	virtual void destroy();

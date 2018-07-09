@@ -169,6 +169,11 @@ public: // about the session management
 		Session(RTSPServer& server, const std::string& id): _server(server), RTSPSession(id) {}
 		virtual ~Session() {}
 
+		virtual void destroy() 
+		{
+			_server.removeSession(_id);
+		}
+
 		//virtual bool	setup()    { return false; }
 		//virtual bool	play()     { return false; }
 		//virtual bool	pause()    { return false; }
