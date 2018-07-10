@@ -239,17 +239,12 @@ protected:
 //};
 
 RedisEvictor::RedisEvictor(Log& log, RedisClient::Ptr client, const std::string& name, const Properties& props)
-: _client(client), Evictor(log, name, props), _maxValueLen(REDIS_RECV_BUF_SIZE), _recvBuf(NULL)
+: _client(client), Evictor(log, name, props), _maxValueLen(REDIS_RECV_BUF_SIZE)
 { 
-	_recvBuf = new uint8[_maxValueLen];
 }
 
 RedisEvictor::~RedisEvictor()
 {
-	if (_recvBuf)
-		delete[] _recvBuf;
-
-	_recvBuf = NULL;
 }
 
 // save a batch of streamed object to the target object store
@@ -296,10 +291,11 @@ Evictor::Error RedisEvictor::loadFromStore(const std::string& key, StreamedObjec
 		return eeConnectErr;
 
 	uint vlen = _maxValueLen;
-	if (NULL == _recvBuf || vlen <=0)
+	if (vlen <=0)
 		return eeNoMemory;
 
-	 RedisSink::Error rcerr = _client->GET(key, _recvBuf, vlen);
+    uint8* recvBuf = new uint8[vlen];
+	 RedisSink::Error rcerr = _client->GET(key, recvBuf, vlen);
      switch (rcerr)
      {
      case RedisSink::rdeOK:
@@ -320,9 +316,10 @@ Evictor::Error RedisEvictor::loadFromStore(const std::string& key, StreamedObjec
          return eeTimeout;
      }
 
-	data.data.assign(_recvBuf, _recvBuf + vlen);
+	data.data.assign(recvBuf, recvBuf + vlen);
 	data.stampAsOf = ZQ::common::now();
 
+    delete[] recvBuf;
 	Evictor::_log(Log::L_DEBUG, CLOGFMT(RedisEvictor, "loadFromStore() loaded obj[%s] datasize[%d]"), key.c_str(), vlen);
 	return eeOK;
 }

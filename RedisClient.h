@@ -329,7 +329,6 @@ protected: // the child class inherited from this evictor should implement the f
 protected:
 	RedisClient::Ptr  _client;
 	size_t            _maxValueLen;
-	uint8*            _recvBuf;
 };
 
 }}//endof namespace
