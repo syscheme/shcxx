@@ -214,7 +214,9 @@ void RTSPConnection::parse(ssize_t bytesRead)
 					token = strtok(NULL, delim);
 					if (token == NULL)
 					{
-						onError(ParseStartLineError,"parse start line error");
+						std::string desc = "parse start line error:";
+						desc +=line;
+						onError(ParseStartLineError, desc.c_str());
 						continue;
 					}
 
@@ -222,7 +224,9 @@ void RTSPConnection::parse(ssize_t bytesRead)
 					token = strtok(NULL, delim);
 					if (token == NULL)
 					{
-						onError(ParseStartLineError,"parse start line error");
+						std::string desc = "parse start line error:";
+						desc +=line;
+						onError(ParseStartLineError, desc.c_str());
 						continue;
 					}
 
@@ -233,7 +237,9 @@ void RTSPConnection::parse(ssize_t bytesRead)
 				{
 					if (token == NULL)
 					{
-						onError(ParseStartLineError,"parse start line error");
+						std::string desc = "parse start line error:";
+						desc +=line;
+						onError(ParseStartLineError, desc.c_str());
 						continue;
 					}
 					_currentParseMsg.pMsg->setMsgType(RTSPMessage::RTSP_MSG_REQUEST);
@@ -241,14 +247,18 @@ void RTSPConnection::parse(ssize_t bytesRead)
 					token = strtok(NULL, delim);
 					if (token == NULL)
 					{
-						onError(ParseStartLineError,"parse start line error");
+						std::string desc = "parse start line error:";
+						desc +=line;
+						onError(ParseStartLineError, desc.c_str());
 						continue;
 					}
 					_currentParseMsg.pMsg->url(token);
 					token = strtok(NULL, delim);
 					if (token == NULL)
 					{
-						onError(ParseStartLineError,"parse start line error");
+						std::string desc = "parse start line error:";
+						desc +=line;
+						onError(ParseStartLineError, desc.c_str());
 						continue;
 					}
 					_currentParseMsg.pMsg->version(token);
