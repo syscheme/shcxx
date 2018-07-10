@@ -276,7 +276,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 				}
 
 				if (_tcpServer && TCPConnection::_enableHexDump > 0)
-					_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() create new session[%s] hint:%s reqMsg[%s]"), sessId.c_str(), hint().c_str(), req->toRaw().c_str());
+					_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() create new session[%s] hint:%s reqMsg[%s]"), sess->id().c_str(), hint().c_str(), req->toRaw().c_str());
 
 				respCode = _rtspHandler->procSessionSetup(req, resp, pSess);
 				if (RTSPMessage::Err_AsyncHandling == respCode)
