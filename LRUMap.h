@@ -101,6 +101,14 @@ public:
 		return _realData.find(k);
 	}
 
+	iterator begin() {
+		return _realData.begin();
+	}
+
+	const_iterator begin() const {
+		return _realData.begin();
+	}
+
 	iterator end() {
 		return _realData.end();
 	}
