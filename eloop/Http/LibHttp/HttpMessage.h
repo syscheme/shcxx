@@ -32,7 +32,8 @@ public:
 		HTTPDELETE	= HTTP_DELETE,
 		GET			= HTTP_GET,
 		POST		= HTTP_POST,
-		PUT			= HTTP_PUT
+		PUT			= HTTP_PUT,
+		OPTIONS			= HTTP_OPTIONS
 	} HttpMethod;
 
 	enum Encoding
