@@ -299,7 +299,7 @@ public:
 
 protected:
 	RTSPConnection(ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL)
-		:TCPConnection(log,connId,tcpServer), _byteSeen(0){}
+		:TCPConnection(log,connId,tcpServer){}
 
 	virtual void OnConnected(ElpeError status);
 
@@ -360,10 +360,10 @@ private:
 
 	static std::string trim(char const* str);
 	static char* nextLine(char* startOfLine, int maxByte); // this func may change the input chars of startOfLine
+	static bool parseStartLine(const std::string& startLine, RTSPMessage::Ptr& pMsg);
 
 private:
 	RTSP_PARSER_MSG	 _currentParseMsg;
-	int				 _byteSeen;
 };
 
 } }//namespace ZQ::eloop

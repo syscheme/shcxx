@@ -235,6 +235,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 	RTSPServerResponse::Ptr resp = new RTSPServerResponse(_server, req);
 
 	int respCode =500;
+	std::string sessId;
 
 	do {
 		_rtspHandler = _server.createHandler(req->url(), *this);
@@ -249,12 +250,12 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 		resp->header(Header_Server, _server._config.serverName);
 
 		// check if the request is session-based or not
-		std::string sid =  req->header(Header_Session);
+		sessId =  req->header(Header_Session);
 		RTSPSession::Ptr pSess = NULL; // should be server-side session
 
-		if (!sid.empty())
+		if (!sessId.empty())
 		{
-			pSess = _server.findSession(sid);//RTSPServer::Session::Ptr::dynamicCast(_server.findSession(sid));
+			pSess = _server.findSession(sessId);//RTSPServer::Session::Ptr::dynamicCast(_server.findSession(sid));
 			if (NULL == pSess)
 			{
 				respCode =454;
@@ -267,16 +268,29 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 			// handle if it is a SETUP
 			if (0 == req->method().compare(Method_SETUP)) 
 			{ 
-				RTSPServer::Session::Ptr sess = _server.createSession();
+				sessId = _server.generateSessionID();
+				RTSPServer::Session::Ptr sess = _server.createSession(sessId.c_str());
+				if (sess == NULL)
+				{
+					if (_tcpServer)
+						_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() create session failed sessId[%s] hint%s cseq[%d]"), sessId.c_str(), hint().c_str(), req->cSeq());
+
+					respCode =500;
+					break;
+				}
+				
 				pSess = RTSPSession::Ptr::dynamicCast(sess);
 				if (NULL == pSess)
 				{
+					if (_tcpServer)
+						_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() create session failed sessId[%s] hint%s cseq[%d]"), sessId.c_str(), hint().c_str(), req->cSeq());
+
 					respCode =500;
 					break;
 				}
 
 				if (_tcpServer)
-					_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() create new session[%s] hint%s cseq[%d]"), sess->id().c_str(), hint().c_str(), req->cSeq());
+					_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() create new session[%s] hint%s cseq[%d]"), sessId.c_str(), hint().c_str(), req->cSeq());
 
 				respCode = _rtspHandler->procSessionSetup(req, resp, pSess);
 				if (RTSPMessage::Err_AsyncHandling == respCode)
@@ -311,12 +325,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 		if (0 == req->method().compare(Method_PAUSE))    { respCode = _rtspHandler->procSessionPause(req, resp, pSess);    if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
 		if (0 == req->method().compare(Method_ANNOUNCE)) { respCode = _rtspHandler->procSessionAnnounce(req, resp, pSess); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
 		if (0 == req->method().compare(Method_DESCRIBE)) { respCode = _rtspHandler->procSessionDescribe(req, resp, pSess); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
-		if (0 == req->method().compare(Method_TEARDOWN)) 
-		{ 
-			respCode = _rtspHandler->procSessionTeardown(req, resp, pSess); 
-			_server.removeSession(pSess->id());
-			break; 
-		}
+		if (0 == req->method().compare(Method_TEARDOWN)) { respCode = _rtspHandler->procSessionTeardown(req, resp, pSess); _server.removeSession(pSess->id()); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
 
 		respCode =405;
 
@@ -332,7 +341,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 	if (TCPConnection::_enableHexDump > 0)
 		_logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), hint().c_str(),true);
 	int64 elapsed = ZQ::eloop::usStampNow() - req->_stampCreated;
-	std::string sessId = resp->header(Header_Session);
+	
 	if (_tcpServer)
 		_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() sessId[%s] %s(%d) ret(%d) took %lldus"), sessId.c_str(), req->method().c_str(), req->cSeq(), respCode, elapsed);
 }

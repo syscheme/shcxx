@@ -98,7 +98,12 @@ public:
 	bool start();
 	bool stop(bool isShutdown = false);
 	const std::string& connId() const { return _connId; }
-	const std::string& hint() const { return _Hint; }
+	const std::string& hint() const 
+	{
+		if (_tcpServer)
+			return _reverseHint;
+		return _Hint; 
+	}
 	virtual bool isPassive() const { return NULL != _tcpServer; }
 	uint lastCSeq();
 

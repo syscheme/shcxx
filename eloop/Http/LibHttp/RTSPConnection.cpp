@@ -164,6 +164,15 @@ void RTSPConnection::parse(ssize_t bytesRead)
 				continue;
 			}
 
+			if (!parseStartLine(_currentParseMsg.startLine, _currentParseMsg.pMsg))
+			{
+				std::string desc = "parse start line error:";
+				desc +=_currentParseMsg.startLine;
+				onError(ParseStartLineError, desc.c_str());
+				_currentParseMsg.reset();
+				continue;
+			}
+
 			if (_currentParseMsg.pMsg->getMsgType() == RTSPMessage::RTSP_MSG_REQUEST)
 				receivedReqs.push_back(_currentParseMsg.pMsg);
 			else
@@ -203,7 +212,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 			{
 				_currentParseMsg.pMsg->_stampCreated = ZQ::eloop::usStampNow();
 				_currentParseMsg.startLine = line;
-				//				_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] received data [%s]"), connDescription(), _pCurrentMsg->startLine.c_str());
+/*				//				_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] received data [%s]"), connDescription(), _pCurrentMsg->startLine.c_str());
 
 				char* delim = " \r\n";
 				char* token = strtok(line, delim);
@@ -214,8 +223,8 @@ void RTSPConnection::parse(ssize_t bytesRead)
 					token = strtok(NULL, delim);
 					if (token == NULL)
 					{
-						std::string desc = "parse start line error:";
-						desc +=line;
+						std::string desc = "parse start line step1 error:";
+						desc +=_currentParseMsg.startLine;
 						onError(ParseStartLineError, desc.c_str());
 						continue;
 					}
@@ -224,8 +233,8 @@ void RTSPConnection::parse(ssize_t bytesRead)
 					token = strtok(NULL, delim);
 					if (token == NULL)
 					{
-						std::string desc = "parse start line error:";
-						desc +=line;
+						std::string desc = "parse start line step2 error:";
+						desc +=_currentParseMsg.startLine;
 						onError(ParseStartLineError, desc.c_str());
 						continue;
 					}
@@ -237,8 +246,8 @@ void RTSPConnection::parse(ssize_t bytesRead)
 				{
 					if (token == NULL)
 					{
-						std::string desc = "parse start line error:";
-						desc +=line;
+						std::string desc = "parse start line step3 error:";
+						desc +=_currentParseMsg.startLine;
 						onError(ParseStartLineError, desc.c_str());
 						continue;
 					}
@@ -247,8 +256,8 @@ void RTSPConnection::parse(ssize_t bytesRead)
 					token = strtok(NULL, delim);
 					if (token == NULL)
 					{
-						std::string desc = "parse start line error:";
-						desc +=line;
+						std::string desc = "parse start line step4 error:";
+						desc +=_currentParseMsg.startLine;
 						onError(ParseStartLineError, desc.c_str());
 						continue;
 					}
@@ -256,13 +265,14 @@ void RTSPConnection::parse(ssize_t bytesRead)
 					token = strtok(NULL, delim);
 					if (token == NULL)
 					{
-						std::string desc = "parse start line error:";
-						desc +=line;
+						std::string desc = "parse start line step5 error:";
+						desc +=_currentParseMsg.startLine;
 						onError(ParseStartLineError, desc.c_str());
 						continue;
 					}
 					_currentParseMsg.pMsg->version(token);
 				}
+*/
 				continue;
 			}
 
@@ -288,7 +298,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 			// 				_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] received data [Method-Code: %s]"), connDescription(), _pCurrentMsg->headers["Method-Code"].c_str());
 			// 			else if(0 == header.compare("Session"))
 			// 				_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] received data [Session: %s]"), connDescription(), _pCurrentMsg->headers["Session"].c_str());
-		}; // end of header reading;
+		}// end of header reading;
 	}
 
 	if (pEnd > pProcessed)
@@ -345,6 +355,46 @@ void RTSPConnection::parse(ssize_t bytesRead)
 		OnRequest(receivedReqs[i]);
 	}
 }
+
+bool RTSPConnection::parseStartLine(const std::string& startLine, RTSPMessage::Ptr& pMsg)
+{
+	char* delim = " \r\n";
+	char* token = strtok((char*)startLine.c_str(), delim);
+	if (token == NULL)
+		return false;
+	if (strncmp(token, "RTSP", 4) == 0)
+	{
+		pMsg->setMsgType(RTSPMessage::RTSP_MSG_RESPONSE);
+		pMsg->version(token);
+		token = strtok(NULL, delim);
+		if (token == NULL)
+			return false;
+
+		pMsg->code(atoi(token));
+		token = strtok(NULL, delim);
+		if (token == NULL)
+			return false;
+
+		pMsg->status(token);
+
+	}
+	else
+	{
+		pMsg->setMsgType(RTSPMessage::RTSP_MSG_REQUEST);
+		pMsg->method(token);
+		token = strtok(NULL, delim);
+		if (token == NULL)
+			return false;
+		
+		pMsg->url(token);
+		token = strtok(NULL, delim);
+		if (token == NULL)
+			return false;
+		pMsg->version(token);
+	}
+	return true;
+}
+
 
 std::string RTSPConnection::trim(char const* str)
 {
