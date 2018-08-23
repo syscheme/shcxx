@@ -181,8 +181,8 @@ public:
 	int  	contentLength() const { return _bodyLen; }
 	void	contentLength(uint length) { _bodyLen = length; } //set content-length
 
-	void appendBody(const char* body, size_t len) {  _contentBody.append(body,len); }
-	void setBody(const std::string& body) { _contentBody = body; }
+	void appendBody(const char* body, size_t len) {  _contentBody.append(body,len);  _bodyLen = _contentBody.size(); }
+	void setBody(const std::string& body) { _contentBody = body; _bodyLen = _contentBody.size(); }
 	const std::string& body() { return _contentBody; }
 
 	uint32	cSeq() const { return _cSeq; }
