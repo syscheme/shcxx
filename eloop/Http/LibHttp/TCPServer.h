@@ -181,9 +181,11 @@ public:
 			maxConns 				= 100 * 1000;
 			mode					= DEFAULT_MODE;
 			threadCount				= 4;
+			cpuIds					="1";
 			watchDogInterval		= 0;		//ms;
 		}
 
+		std::string cpuIds;
 		std::string serverName;
 		std::string	host;
 		int		    port;

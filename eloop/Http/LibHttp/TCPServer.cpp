@@ -184,21 +184,23 @@ private:
 class MultipleLoopTCPEngine : public ZQ::common::NativeThread, public ITCPEngine
 {
 public:
-	MultipleLoopTCPEngine(const std::string& ip,int port,ZQ::common::Log& logger,TCPServer& server)
+	MultipleLoopTCPEngine(const std::string& ip,int port,ZQ::common::Log& logger,TCPServer& server,const std::string& cpuIds)
 		: ITCPEngine(ip,port,logger,server), _bRunning(false), _roundCount(0), _quitCount(0), _socket(0)
 	{
-		CpuInfo cpu;
-		_threadCount = cpu.getCpuCount();
-
-		for (int i = 0;i < _threadCount;i++)
-		{
+		_threadCount = 0;
+		std::stringstream sstr(cpuIds);
+		std::string token;   
+		while(getline(sstr, token, ','))  
+		{  
+			int cpuId = atoi(token.c_str());
+			_threadCount++;
 			LoopThread *pthread = new LoopThread(_server, *this,_logger);
 
-			pthread->setCPUAffinity(i);
+			pthread->setCPUAffinity(cpuId);
 
 			pthread->start();
 			_vecThread.push_back(pthread);
-			_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(MultipleLoopTCPEngine,"cpuId:%d,cpuCount:%d,mask:%d"),i,_threadCount,1<<i);
+			_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(MultipleLoopTCPEngine,"cpuIds[%s] start loopThread cpuId:%d"),cpuIds.c_str(), cpuId);
 		}
 	}
 
@@ -643,7 +645,7 @@ bool TCPServer::start()
 		return true;
 
 	if (_config.mode == MULTIPE_LOOP_MODE)
-		_engine = new MultipleLoopTCPEngine(_config.host, _config.port, _logger, *this);
+		_engine = new MultipleLoopTCPEngine(_config.host, _config.port, _logger, *this, _config.cpuIds);
 	else
 		_engine = new SingleLoopTCPEngine(_config.host,_config.port,_logger,*this);
 

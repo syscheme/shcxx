@@ -132,6 +132,11 @@ void UnixSocket::OnCloseAsync()
 		delete _async;
 		_async = NULL;
 	}
+
+	{
+		ZQ::common::MutexGuard gd(_lkSendMsgList);
+		_SendMsgList.clear();
+	}
 	shutdown();
 }
 
