@@ -519,7 +519,7 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 	// ����ļ���
 	if (NULL == filename || strlen(filename) == 0)
 	{
-		SYSTEMFILELOG(Log::L_EMERG,"file name is empty!");
+		SYSTEMFILELOG(Log::L_ERROR, "file name is empty!");
 		throw FileLogException("file name is empty!");
 	}
 	snprintf(m_FileName, sizeof(m_FileName) - 1, "%s", filename);
@@ -597,7 +597,7 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 		_pNest->m_FileStream = new std::ofstream();
 	if (NULL ==_pNest->m_FileStream)
 	{
-		SYSTEMFILELOG(Log::L_EMERG,"failed to create fstream obj");
+		SYSTEMFILELOG(Log::L_ERROR, "failed to create fstream obj");
 		throw FileLogException("failed to create fstream obj");
 	}
 
@@ -610,7 +610,7 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 			delete _pNest->m_FileStream;
 			_pNest->m_FileStream = NULL;
 
-			SYSTEMFILELOG(Log::L_EMERG,"Open file [%s] fail!",m_FileName);
+			SYSTEMFILELOG(Log::L_ERROR,"failed to open file [%s]", m_FileName);
 			throw FileLogException("Open file fail!");
 		}
 	}
@@ -623,7 +623,7 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 			delete _pNest->m_FileStream;
 			_pNest->m_FileStream = NULL;
 
-			SYSTEMFILELOG(Log::L_EMERG,"Create file [%s] fail!",m_FileName);
+			SYSTEMFILELOG(Log::L_ERROR,"failed to create file [%s]",m_FileName);
 			throw FileLogException("Create file fail!");
 		}
 		m_nCurrentFileSize = 0;
@@ -639,14 +639,14 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 				m_staticThread->start();
 			else 
 			{
-			SYSTEMFILELOG(Log::L_EMERG,"alloc static thread failed");
+			SYSTEMFILELOG(Log::L_ERROR, "failed to instantize thread");
 			throw FileLogException("alloc static thread failed");
 			}
 		}
 		// ��ʱm_staticThread���벻ΪNULL
 		if (NULL == m_staticThread)
 		{
-			SYSTEMFILELOG(Log::L_EMERG,"Create static thread failed");
+			SYSTEMFILELOG(Log::L_ERROR, "failed to instanize thread");
 			throw FileLogException("Create static thread failed");
 		}
 		m_instIdent = ++ m_lastInstIdent;
@@ -846,7 +846,7 @@ void FileLog::flushData()
 			{	
 	 			delete _pNest->m_FileStream;
 				_pNest->m_FileStream = NULL;
-				SYSTEMFILELOG(Log::L_EMERG,"Create file [%s] fail!", m_FileName);
+				SYSTEMFILELOG(Log::L_ERROR,"failed to create file [%s]", m_FileName);
 				return;
 			}
 		}
@@ -888,7 +888,7 @@ void FileLog::flushData()
 		{	
 			delete _pNest->m_FileStream;
 			_pNest->m_FileStream = NULL;
-			SYSTEMFILELOG(Log::L_EMERG, "failed to open logfile[%s]", m_FileName);
+			SYSTEMFILELOG(Log::L_ERROR, "failed to open logfile[%s]", m_FileName);
 			return;
 		}
 	}
@@ -1074,7 +1074,7 @@ void FileLog::roll()
 			{
 				if (bReportFailureToSystem)
 				{
-					SYSTEMFILELOG(Log::L_EMERG, "quit log rolling per delete file[%s] failed, errno[%d]: %s", strdel, errno, ::strerror(errno));
+					SYSTEMFILELOG(Log::L_ERROR, "quit log rolling per failed to delete file[%s], errno[%d]: %s", strdel, errno, ::strerror(errno));
 					m_stampLastReportedFailure = now();
 				}
 
@@ -1117,7 +1117,7 @@ void FileLog::roll()
 	bool bRenameSuccess = true;
 	if (0 != rename(m_FileName, newName))
 	{
-		SYSTEMFILELOG(Log::L_EMERG, "failed to rename file(%s=>%s) failed: errno[%d]: %s, or someone keep file open", m_FileName, newName, errno, ::strerror(errno));
+		SYSTEMFILELOG(Log::L_ERROR, "failed to rename file(%s=>%s): errno[%d]: %s, or someone keep the file open", m_FileName, newName, errno, ::strerror(errno));
 		bRenameSuccess = false;
 	}
 
@@ -1146,7 +1146,7 @@ void FileLog::roll()
 		delete _pNest->m_FileStream;
 		_pNest->m_FileStream = NULL;
 
-		SYSTEMFILELOG(Log::L_EMERG,"failed to create file[%s]", m_FileName);
+		SYSTEMFILELOG(Log::L_ERROR,"failed to create file[%s]", m_FileName);
 		throw FileLogException("failed to create file");
 	}
 }
