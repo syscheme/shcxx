@@ -261,6 +261,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 
 		if (!sessId.empty())
 		{
+			 resp->header(Header_Session,  pSess->id());
 			pSess = _server.findSession(sessId);//RTSPServer::Session::Ptr::dynamicCast(_server.findSession(sid));
 			if (NULL == pSess)
 			{

@@ -15,6 +15,7 @@ void RTSPConnection::OnConnected(ElpeError status)
 	{
 		std::string desc = "connect error:";
 		desc.append(ZQ::eloop::Handle::errDesc(status));
+		desc = hint() + desc;
 		onError(status,desc.c_str());
 		return;
 	}
@@ -59,6 +60,7 @@ void RTSPConnection::OnRead(ssize_t nread, const char *buf)
 	{
 		std::string desc = "Read error:";
 		desc.append(errDesc(nread));
+		desc = hint() + desc;
 		onError(nread, desc.c_str());
 		return;
 	}
@@ -168,6 +170,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 			{
 				std::string desc = "parse start line error:";
 				desc +=_currentParseMsg.startLine;
+				desc = hint() + desc;
 				onError(ParseStartLineError, desc.c_str());
 				_currentParseMsg.reset();
 				continue;
@@ -439,6 +442,7 @@ void RTSPConnection::OnWrote(int status)
 	{
 		std::string desc = "send error:";
 		desc.append(errDesc(status));
+		desc = hint() + desc;
 		onError(status,desc.c_str());
 		return;
 	}

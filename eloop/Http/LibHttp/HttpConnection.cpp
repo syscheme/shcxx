@@ -51,7 +51,34 @@ void HttpConnection::reset(IHttpParseSink* p)
 
 	_msgBeingParsed = new HttpMessage(isPassive() ? HttpMessage::MSG_REQUEST : HttpMessage::MSG_RESPONSE);
 }
+/*
+const char* HttpConnection::httpError(int& err)
+{
+	// step 1. fixup some uv errors
+	switch(err)
+	{
+	case elpuEOF:
+			if (in chunked-mode)
+			{
+				if (!last chunk size=0)
+				{
+					err = http_connection_lost;
+					break;
+				}
+			}
 
+			break;
+	}
+
+	// step 2. the desc string the error after fix-up
+	switch(err)
+	{
+		case http_connection_lost: return "connect lost";
+		default: // others forward to uv error
+			return errDesc(nread)
+	}
+}
+*/
 void HttpConnection::OnRead(ssize_t nread, const char *buf)
 {
 	if (nread < 0)
