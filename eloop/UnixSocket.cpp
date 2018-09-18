@@ -250,7 +250,12 @@ void UnixSocket::encode(const std::string& src,std::string& dest)
 
 void UnixSocket::processMessage(ssize_t nread, const char *buf)
 {
-	int buflen = strlen(buf);
+//	int buflen = strlen(buf);
+	int buflen = 0;
+	while(*(buf+buflen) != '\0' && buflen <= nread) 
+		buflen++;
+
+
 	if (nread != buflen)
 	{
 		char errDesc[10240];
