@@ -237,7 +237,7 @@ namespace ZQ {
 			if (_recvBuf.base == NULL)
 			{
 				_recvBuf.len = RECV_BUF_SIZE;
-				_recvBuf.base = (char*)malloc(_recvBuf.len);
+				_recvBuf.base = (char*)malloc(_recvBuf.len+5);
 			}
 			
 			if (_recvBuf.base)
