@@ -100,7 +100,7 @@ public:
 	const std::string& connId() const { return _connId; }
 	const std::string& hint() const 
 	{
-		if (_tcpServer)
+		if (!_tcpServer)
 			return _reverseHint;
 		return _Hint; 
 	}
