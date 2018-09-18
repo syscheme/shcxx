@@ -170,7 +170,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 			{
 				std::string desc = "parse start line error:";
 				if (_currentParseMsg.startLine.empty())
-					desc = "start line is null:"
+					desc = "start line is null:";
 				
 				desc +=_currentParseMsg.startLine;
 				desc = hint() + desc;
