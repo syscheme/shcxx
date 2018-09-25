@@ -620,7 +620,7 @@ void TCPConnection::OnAsyncSend()
 			hint = _reverseHint;
 
 		if (TCPConnection::_enableHexDump > 0)
-			_logger.hexDump(ZQ::common::Log::L_DEBUG, asyncMsg.c_str(), asyncMsg.size(), hint.c_str(),true);
+			_logger.hexDump(ZQ::common::Log::L_INFO, asyncMsg.c_str(), asyncMsg.size(), hint.c_str(),true);
 		i--;
 	}
 }

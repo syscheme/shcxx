@@ -28,6 +28,7 @@ namespace eloop {
 #define Header_ContentLength		"Content-Length"
 #define Header_Notice				"Notice"
 #define Header_Date					"Date"
+#define Header_Reason				"x-reason"
 
 
 #define Method_OPTIONS				"OPTIONS"

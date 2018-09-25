@@ -187,7 +187,7 @@ void RTSPServerResponse::post(int statusCode, const char* desc)
 		status(desc);
 
 	std::string respMsg = toRaw();
-	// TODO: _conn._logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), _conn.hint().c_str(),true);
+	// TODO: _conn._logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), _conn.hint().c_str(),true);
 
 	TCPConnection* conn = _server.findConn(getConnId());
 	if (conn == NULL)
@@ -208,7 +208,7 @@ void RTSPServerResponse::post(int statusCode, const char* desc)
 
 	_server._logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPServerResponse, "post() sessId[%s] %s(%d) ret(%d) took %lldus"), sessId.c_str(), _req->method().c_str(), _req->cSeq(), statusCode, elapsed);
 
-	//_server._logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), conn->hint().c_str(),true);
+	//_server._logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), conn->hint().c_str(),true);
 }
 
 // ---------------------------------------
@@ -348,7 +348,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 	write(respMsg.c_str(), respMsg.size());
 
 	if (TCPConnection::_enableHexDump > 0)
-		_logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), hint().c_str(),true);
+		_logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), hint().c_str(),true);
 	int64 elapsed = ZQ::eloop::usStampNow() - req->_stampCreated;
 	
 	if (_tcpServer)
