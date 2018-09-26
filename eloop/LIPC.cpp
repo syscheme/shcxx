@@ -295,7 +295,7 @@ public:
 
 		if (methodName.empty())
 		{
-			resp->postException(LIPCMessage::LIPC_METHOD_NOT_FOUND);
+			resp->postException(LIPCMessage::LIPC_METHOD_NOT_FOUND, LIPCMessage::errDesc(LIPCMessage::LIPC_METHOD_NOT_FOUND),false);
 			return;
 		}
 
