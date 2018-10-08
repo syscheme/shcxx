@@ -171,10 +171,19 @@ void RTSPConnection::parse(ssize_t bytesRead)
 				std::string desc = "parse start line error:";
 				if (_currentParseMsg.startLine.empty())
 					desc = "start line is null:";
-				
-				desc +=_currentParseMsg.startLine;
-				desc = hint() + desc;
-				onError(ParseStartLineError, desc.c_str());
+
+				char descBuf[4096];
+				unsigned char* data = (unsigned char* )_recvBuf.base;
+				int bufPos = 0;
+				bufPos += sprintf(&descBuf[bufPos], "%s %s startLine:%s msg:",hint().c_str(), desc.c_str(), _currentParseMsg.startLine.c_str());
+
+				int bufLeft = sizeof(descBuf) - bufPos - 8;
+
+				for (int i = 0; i <size	&& i < bufLeft; i++)
+					descBuf[bufPos ++] = (' '==data[i] || isgraph(data[i])) ? data[i] : '.';
+				descBuf[bufPos++] = '\0';
+
+				onError(ParseStartLineError, descBuf);
 				_currentParseMsg.reset();
 				continue;
 			}
@@ -367,6 +376,56 @@ bool RTSPConnection::parseStartLine(const std::string& startLine, RTSPMessage::P
 	if (startLine.empty())
 		return false;
 
+	char* buf = new char[startLine.length()+2];
+	strcpy(buf, startLine.c_str());
+	bool bSucc =true;
+
+	do 
+	{
+		char* p = buf, *q=p;
+		while (*p == ' ' || *p == '\t')	p++; // skip the leading white spaces
+		for (q=p; *q && *q!= ' ' && *q != '\t'; q++); // find the next white spaces
+
+		if (*q)
+			*q++ = '\0';
+
+		std::string cmdName = trim(p);
+		if (NULL == (p = strstr(q, "RTSP/")))	//resp
+		{
+			if (cmdName.find("RTSP/") <= 0)
+			{
+				bSucc = false;
+				break;
+			}
+
+			for (p=q; *p && *p!= ' ' && *p != '\t'; p++); // find the next white spaces
+			std::string temp(q, p-q);
+			uint resultCode=atoi(temp.c_str());
+			std::string resultStr = trim(p);
+
+			pMsg->setMsgType(RTSPMessage::RTSP_MSG_RESPONSE);
+			pMsg->status(resultStr);
+			pMsg->code(resultCode);
+			pMsg->version(cmdName);
+		}
+		else		//req
+		{
+			*(p-1) = '\0';
+
+			std::string url = trim(q);
+			std::string proto = trim(p);
+
+			pMsg->setMsgType(RTSPMessage::RTSP_MSG_REQUEST);
+			pMsg->method(cmdName);
+			pMsg->url(url);
+			pMsg->version(proto);
+		}
+	} while ();
+
+	delete [] buf;
+	return bSucc;
+
+/*
 	char* delim = " \r\n";
 	char* token = strtok((char*)startLine.c_str(), delim);
 	if (token == NULL)
@@ -402,6 +461,7 @@ bool RTSPConnection::parseStartLine(const std::string& startLine, RTSPMessage::P
 		pMsg->version(token);
 	}
 	return true;
+*/
 }
 
 
@@ -436,7 +496,7 @@ char* RTSPConnection::nextLine(char* startOfLine, int maxByte)
 		return NULL;
 
 	// change the "\r\n" as the string NULL
-	if (*ptr == '\r')
+	if (*ptr == '\r' || *ptr == '\n')
 		*ptr = '\0';
 
 	return startOfLine;
