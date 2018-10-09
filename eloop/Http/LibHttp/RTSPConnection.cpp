@@ -421,7 +421,7 @@ bool RTSPConnection::parseStartLine(const std::string& startLine, RTSPMessage::P
 			pMsg->url(url);
 			pMsg->version(proto);
 		}
-	} while ();
+	} while (0);
 
 	delete [] buf;
 	return bSucc;
