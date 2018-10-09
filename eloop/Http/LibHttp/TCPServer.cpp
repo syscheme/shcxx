@@ -25,6 +25,9 @@ void WatchDog::OnClose()
 void WatchDog::watch(IObservee* observee)
 {
 	ZQ::common::MutexGuard gd(_observeeLock);
+	if (std::find(_observeeList.begin(),_observeeList.end(), observee) != _observeeList.end())
+		return;
+
 	_observeeList.push_back(observee);
 }
 
@@ -78,11 +81,13 @@ public:
 		: ITCPEngine(ip, port, logger, server), _loop(false)
 	{
 		_watchDog.watch(this);
+		_watchDog.watch(&server);
 	}
 
 	~SingleLoopTCPEngine()
 	{
 		_watchDog.unwatch(this);
+		_watchDog.unwatch(&_server);
 		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(SingleLoopTCPEngine, "SingleLoopTCPEngine destructor!"));
 	}
 
@@ -228,11 +233,13 @@ public:
 			:_logger(logger), _engine(engine), Loop(false), _quit(false), _server(server)
 		{
 			_watchDog.watch(this);
+			_watchDog.watch(&_server);
 		}
 
 		~LoopThread()
 		{
 			_watchDog.unwatch(this);
+			_watchDog.unwatch(&_server);
 			_logger(ZQ::common::Log::L_INFO, CLOGFMT(LoopThread,"LoopThread destructor!"));
 		}
 
@@ -620,7 +627,7 @@ void TCPConnection::OnAsyncSend()
 			hint = _reverseHint;
 
 		if (TCPConnection::_enableHexDump > 0)
-			_logger.hexDump(ZQ::common::Log::L_DEBUG, asyncMsg.c_str(), asyncMsg.size(), hint.c_str(),true);
+			_logger.hexDump(ZQ::common::Log::L_INFO, asyncMsg.c_str(), asyncMsg.size(), hint.c_str(),true);
 		i--;
 	}
 }

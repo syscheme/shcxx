@@ -226,7 +226,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 
 			if (_currentParseMsg.startLine.empty())
 			{
-				_currentParseMsg.pMsg->_stampCreated = ZQ::eloop::usStampNow();
+				_currentParseMsg.pMsg->_stampCreated = ZQ::common::now();
 				_currentParseMsg.startLine = line;
 /*				//				_log(Log::L_DEBUG, CLOGFMT(RTSPClient, "OnDataArrived() conn[%s] received data [%s]"), connDescription(), _pCurrentMsg->startLine.c_str());
 

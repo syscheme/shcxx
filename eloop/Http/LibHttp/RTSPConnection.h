@@ -138,7 +138,7 @@ public:
 	typedef std::vector<StrPair>	StrPairVec;
 
 public:
-	RTSPMessage(const std::string& connId="", RTSPMessgeType type = RTSP_MSG_REQUEST):_msgType(type),_cSeq(-1),_bodyLen(0),_stampCreated(ZQ::eloop::usStampNow()),_connId(connId)
+	RTSPMessage(const std::string& connId="", RTSPMessgeType type = RTSP_MSG_REQUEST):_msgType(type),_cSeq(-1),_bodyLen(0),_stampCreated(ZQ::common::now()),_connId(connId)
 	{
 	}
 

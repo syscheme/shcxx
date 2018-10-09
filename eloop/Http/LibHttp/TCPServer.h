@@ -157,7 +157,7 @@ protected:
 // ---------------------------------------
 // class TCPServer
 // ---------------------------------------
-class TCPServer
+class TCPServer : public WatchDog::IObservee
 {
 public:
 	enum ServerMode
@@ -174,7 +174,8 @@ public:
 			serverName		= "Eloop TCP Server";
 			host			= "127.0.0.1";
 			port			= 8888;
-			httpHeaderAvailbleTimeout = 5* 60 * 1000;
+			reqTimeOut				= 5000;
+			maxReqLimit				= 10000;
 			keepalive_timeout		= -1;		//ms
 			keepAliveIdleMin		= 5 * 60 * 1000;
 			keepAliveIdleMax		= 10 * 60 *1000;
@@ -182,7 +183,7 @@ public:
 			mode					= DEFAULT_MODE;
 			threadCount				= 4;
 			cpuIds					="1";
-			watchDogInterval		= 0;		//ms;
+			watchDogInterval		= 2;		//ms;
 		}
 
 		std::string cpuIds;
@@ -191,7 +192,8 @@ public:
 		int		    port;
 		ServerMode	mode;
 		int			threadCount;
-		uint64		httpHeaderAvailbleTimeout;
+		uint64		reqTimeOut;
+		uint64		maxReqLimit;
 		uint64		keepalive_timeout;
 		uint64		keepAliveIdleMin;
 		uint64		keepAliveIdleMax;
@@ -211,6 +213,9 @@ public:
 
 	bool start();
 	bool stop();
+
+	virtual void OnTimer() {}
+	virtual void OnUnwatch() {}
 
 	virtual bool onStart(ZQ::eloop::Loop& loop){ return true; }
 	virtual bool onStop(){ return true; }

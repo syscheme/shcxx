@@ -37,6 +37,7 @@ static struct RtspCode2Desc RtspCode2Str[] = {
 	{ 406, "Not Acceptable" },
 	{ 407, "Proxy Authentication Required" },
 	{ 408, "Request Time-out" },
+	{ 409, "Request Over Limit" },
 	{ 410, "Gone" },
 	{ 411, "Length Required" },
 	{ 412, "Precondition Failed" },
