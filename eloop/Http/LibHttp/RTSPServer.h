@@ -25,13 +25,7 @@ class RTSPServerResponse : public RTSPMessage
 public:
 	typedef ZQ::common::Pointer<RTSPServerResponse> Ptr;
 
-	RTSPServerResponse(RTSPServer& server,const RTSPMessage::Ptr& req)
-		: _server(server), RTSPMessage(req->getConnId(), RTSPMessage::RTSP_MSG_RESPONSE),_req(req)
-	{
-		header(Header_MethodCode, req->method());
-		cSeq(req->cSeq());
-		_server.addReq(this);
-	}
+	RTSPServerResponse(RTSPServer& server,const RTSPMessage::Ptr& req);
 
 	~RTSPServerResponse() {}
 
@@ -229,14 +223,14 @@ private:
 
 	VSites _vsites;
 
-	typedef std::list<RTSPServerResponse::Ptr>	ReqList;
+	typedef std::list<RTSPServerResponse::Ptr>	WaitRespList;
 
 private:
 	ZQ::common::Mutex			_lkSessMap;
 	ZQ::common::Mutex			_lkReqList;
 	Session::Map     			_sessMap;
 	uint32						_maxSession;
-	ReqList						_reqList;
+	WaitRespList				_waitRespList;
 };
 
 } } //namespace ZQ::eloop

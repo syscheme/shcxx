@@ -176,6 +176,14 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetParameter(const RTSPMess
 // ---------------------------------------
 // class RTSPServerResponse
 // ---------------------------------------
+RTSPServerResponse::RTSPServerResponse(RTSPServer& server,const RTSPMessage::Ptr& req)
+: _server(server), RTSPMessage(req->getConnId(), RTSPMessage::RTSP_MSG_RESPONSE),_req(req)
+{
+	header(Header_MethodCode, req->method());
+	cSeq(req->cSeq());
+	_server.addReq(this);
+}
+
 int64 RTSPServerResponse::getRemainTime()
 {
 	int64 remainTime = _server._config.reqTimeOut + _req->_stampCreated - ZQ::common::now();
@@ -212,7 +220,7 @@ void RTSPServerResponse::post(int statusCode, bool bAsync)
 	else
 	{
 		if (TCPConnection::_enableHexDump > 0)
-			_server._logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), hint().c_str(),true);
+			_server._logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), conn->hint().c_str(),true);
 		ret = conn->write(respMsg.c_str(), respMsg.size());
 	}
 	 
@@ -529,7 +537,7 @@ void RTSPServer::OnTimer()
 
 void RTSPServer::checkReqStatus()
 {
-	for(ReqList::iterator it= _reqList.begin(); it != _reqList.end(); it++)
+	for(WaitRespList::iterator it= _waitRespList.begin(); it != _waitRespList.end(); it++)
 	{
 		if ((*it)->getRemainTime() <= 0)	//timeout
 			(*it)->post(408);
@@ -539,18 +547,18 @@ void RTSPServer::checkReqStatus()
 void RTSPServer::addReq(RTSPServerResponse::Ptr resp)
 {
 	ZQ::common::MutexGuard g(_lkReqList);
-	if (std::find(_reqList.begin(),_reqList.end(), resp) != _reqList.end())
+	if (std::find(_waitRespList.begin(),_waitRespList.end(), resp) != _waitRespList.end())
 		return;
-	_reqList.push_back(resp);
+	_waitRespList.push_back(resp);
 }
 
 void RTSPServer::removeReq(RTSPServerResponse::Ptr resp)
 {
 	ZQ::common::MutexGuard g(_lkReqList);
-	for(ReqList::iterator it= _reqList.begin(); it != _reqList.end();)
+	for(WaitRespList::iterator it= _waitRespList.begin(); it != _waitRespList.end();)
 	{
 		if (*it == resp)
-			it= _reqList.erase(it);
+			it= _waitRespList.erase(it);
 		else
 			it++;
 	}
