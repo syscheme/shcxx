@@ -177,7 +177,7 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetParameter(const RTSPMess
 // class RTSPServerResponse
 // ---------------------------------------
 RTSPServerResponse::RTSPServerResponse(RTSPServer& server,const RTSPMessage::Ptr& req)
-: _server(server), RTSPMessage(req->getConnId(), RTSPMessage::RTSP_MSG_RESPONSE),_req(req)
+: _server(server), RTSPMessage(req->getConnId(), RTSPMessage::RTSP_MSG_RESPONSE),_req(req),_isResp(false)
 {
 	header(Header_MethodCode, req->method());
 	cSeq(req->cSeq());
@@ -199,7 +199,17 @@ TCPConnection* RTSPServerResponse::getConn()
 
 void RTSPServerResponse::post(int statusCode, bool bAsync) 
 {
+	{
+		ZQ::common::MutexGuard g(_lkIsResp);
+		if (_isResp)
+			return;
+		_isResp = true;
+	}
+
 	_server.removeReq(this);
+
+	if (statusCode != 408 && getRemainTime() <= 0)
+		statusCode = 408;
 
 	if (statusCode>100)
 		code(statusCode);

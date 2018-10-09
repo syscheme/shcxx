@@ -37,6 +37,8 @@ public:
 private:
 	RTSPServer& _server;
 	RTSPMessage::Ptr _req;
+	ZQ::common::Mutex _lkIsResp;
+	bool		_isResp;
 };
 
 
