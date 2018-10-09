@@ -126,6 +126,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 	char* pProcessed = _recvBuf.base, *pEnd = _recvBuf.base + _byteSeen + bytesRead;
 	bool bFinishedThisDataChuck = false;
 	int64 stampNow = ZQ::common::now();
+	int64 size = _byteSeen + bytesRead;
 
 	while ((pProcessed < pEnd && !bFinishedThisDataChuck) || (_currentParseMsg.headerCompleted && _currentParseMsg.pMsg->contentLength()==0))
 	{
