@@ -275,7 +275,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 		resp->header(Header_Server, _server._config.serverName);
 		resp->header(Header_Session,  sessId);
 
-		if (_reqList.size() >= _server._config.maxReqLimit)
+		if (_server.getWaitRespCount() >= _server._config.maxReqLimit)
 		{
 			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn, "OnRequests maxReqLimit[%d] request over max limit"), _server._config.maxReqLimit);
 			respCode =409;
@@ -562,6 +562,12 @@ void RTSPServer::removeReq(RTSPServerResponse::Ptr resp)
 		else
 			it++;
 	}
+}
+
+uint64 RTSPServer::getWaitRespCount()
+{
+	ZQ::common::MutexGuard g(_lkReqList);
+	return _waitRespList.size();
 }
 
 size_t RTSPServer::getSessionCount() const

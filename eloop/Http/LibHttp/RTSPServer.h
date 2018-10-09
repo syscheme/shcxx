@@ -208,6 +208,8 @@ public: // about the session management
 	void checkReqStatus();
 	void addReq(RTSPServerResponse::Ptr resp);
 	void removeReq(RTSPServerResponse::Ptr resp);
+	uint64 getWaitRespCount();
+
 private:
 
 	typedef struct _MountDir
