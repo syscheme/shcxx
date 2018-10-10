@@ -25,21 +25,20 @@ class RTSPServerResponse : public RTSPMessage
 public:
 	typedef ZQ::common::Pointer<RTSPServerResponse> Ptr;
 
-	RTSPServerResponse(RTSPServer& server,const RTSPMessage::Ptr& req)
-		: _server(server), RTSPMessage(req->getConnId(), RTSPMessage::RTSP_MSG_RESPONSE),_req(req)
-	{
-		header(Header_MethodCode, req->method());
-		cSeq(req->cSeq());
-	}
+	RTSPServerResponse(RTSPServer& server,const RTSPMessage::Ptr& req);
 
 	~RTSPServerResponse() {}
 
-	void post(int statusCode, const char* desc = NULL); 
+	void post(int statusCode, bool bAsync = true); 
 	TCPConnection* getConn();
+
+	int64 getRemainTime();
 
 private:
 	RTSPServer& _server;
 	RTSPMessage::Ptr _req;
+	ZQ::common::Mutex _lkIsResp;
+	bool		_isResp;
 };
 
 
@@ -190,6 +189,8 @@ public: // about the session management
 		return new Session(*this, sessId); 
 	}
 
+
+
 	std::string	generateSessionID();
 
 	Session::Ptr findSession(const std::string& sessId);
@@ -202,6 +203,15 @@ public: // about the session management
 
 	void setMaxSession(uint32 maxSession);
 	uint32 getMaxSession() const;
+
+
+	virtual void OnTimer();
+
+	void checkReqStatus();
+	void addReq(RTSPServerResponse::Ptr resp);
+	void removeReq(RTSPServerResponse::Ptr resp);
+	uint64 getWaitRespCount();
+
 private:
 
 	typedef struct _MountDir
@@ -217,10 +227,14 @@ private:
 
 	VSites _vsites;
 
+	typedef std::list<RTSPServerResponse::Ptr>	WaitRespList;
+
 private:
 	ZQ::common::Mutex			_lkSessMap;
+	ZQ::common::Mutex			_lkReqList;
 	Session::Map     			_sessMap;
 	uint32						_maxSession;
+	WaitRespList				_waitRespList;
 };
 
 } } //namespace ZQ::eloop
