@@ -41,6 +41,23 @@ private:
 // ---------------------------------------
 // class RTSPHandler
 // ---------------------------------------
+RTSPHandler::RTSPHandler(IBaseApplication& app, RTSPServer& server, const RTSPHandler::Properties& dirProps)
+: _app(app), _server(server), _dirProps(dirProps)
+{
+}
+
+RTSPHandler::~RTSPHandler() {}
+
+void RTSPHandler::onDataSent(size_t size)
+{
+}
+
+void RTSPHandler::onDataReceived( size_t size )
+{
+}
+
+std::string RTSPHandler::mediaSDP(const std::string& mid) { return "";}
+
 RTSPMessage::ExtendedErrCode RTSPHandler::onOptions(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp)
 {
 	resp->header("Public","OPTIONS, DESCRIBE, ANNOUNCE, SETUP, TEARDOWN, PLAY, PAUSE");
@@ -419,6 +436,12 @@ void RTSPPassiveConn::simpleResponse(int code,uint32 cseq,RTSPConnection* conn)
 // ---------------------------------------
 // class RTSPServer
 // ---------------------------------------
+RTSPServer::RTSPServer( const TCPServer::ServerConfig& conf, ZQ::common::Log& logger, uint32 maxSess)
+:TCPServer(conf, logger), _maxSession(maxSess)
+{}
+
+RTSPServer::~RTSPServer(){}
+
 TCPConnection* RTSPServer::createPassiveConn()
 {
 	return new RTSPPassiveConn(*this);
@@ -538,6 +561,12 @@ void RTSPServer::removeSession(const std::string& sessId)
 		sessSize = _sessMap.size();
 	}
 	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPServer, "removeSession() sessId[%s],sessSize[%d]"), sessId.c_str(), sessSize);
+}
+
+const RTSPServer::Session::Map& RTSPServer::getSessList() 
+{ 
+	ZQ::common::MutexGuard g(_lkSessMap);
+	return _sessMap; 
 }
 
 void RTSPServer::OnTimer()
