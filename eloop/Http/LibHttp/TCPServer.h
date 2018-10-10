@@ -35,6 +35,7 @@ namespace eloop {
 
 class ZQ_ELOOP_HTTP_API TCPServer;
 class ZQ_ELOOP_HTTP_API TCPConnection;
+class ZQ_ELOOP_HTTP_API WatchDog;
 
 //-------------------------------------
 //	class WatchDog
