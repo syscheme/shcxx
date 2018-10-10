@@ -83,6 +83,8 @@ const char* LIPCMessage::errDesc(Error code)
 	case LIPC_SERVER_ERROR     : 
 	default                    : return "server error";
 	}
+
+	return "server error";
 }
 
 void LIPCMessage::setErrorCode(int code,std::string errMsg)
