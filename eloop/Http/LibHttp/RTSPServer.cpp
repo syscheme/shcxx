@@ -203,7 +203,7 @@ RTSPServerResponse::RTSPServerResponse(RTSPServer& server,const RTSPMessage::Ptr
 
 int64 RTSPServerResponse::getRemainTime()
 {
-	int64 remainTime = _server._config.reqTimeOut + _req->_stampCreated - ZQ::common::now();
+	int64 remainTime = (int64)(_server._config.reqTimeOut) + _req->_stampCreated - ZQ::common::now();
 	if(remainTime < 0)
 		return 0;
 	return remainTime;
@@ -576,11 +576,23 @@ void RTSPServer::OnTimer()
 
 void RTSPServer::checkReqStatus()
 {
-	for(WaitRespList::iterator it= _waitRespList.begin(); it != _waitRespList.end(); it++)
+	WaitRespList	respList;
 	{
-		if ((*it)->getRemainTime() <= 0)	//timeout
-			(*it)->post(408);
+		ZQ::common::MutexGuard g(_lkReqList);
+		for(WaitRespList::iterator it= _waitRespList.begin(); it != _waitRespList.end();)
+		{
+			if ((*it)->getRemainTime() <= 0)	//timeout
+			{
+				respList.push_back(*it);
+				it= _waitRespList.erase(it);
+			}
+			else
+				it++;
+		}
 	}
+
+	for(WaitRespList::iterator itIndex= respList.begin(); itIndex != respList.end(); itIndex++)
+		(*itIndex)->post(408);
 }
 
 void RTSPServer::addReq(RTSPServerResponse::Ptr resp)

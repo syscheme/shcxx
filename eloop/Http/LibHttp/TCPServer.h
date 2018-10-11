@@ -184,7 +184,7 @@ public:
 			mode					= DEFAULT_MODE;
 			threadCount				= 4;
 			cpuIds					="1";
-			watchDogInterval		= 2;		//ms;
+			watchDogInterval		= 500;		//ms;
 		}
 
 		std::string cpuIds;
