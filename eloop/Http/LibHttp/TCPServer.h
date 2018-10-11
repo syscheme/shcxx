@@ -35,6 +35,7 @@ namespace eloop {
 
 class ZQ_ELOOP_HTTP_API TCPServer;
 class ZQ_ELOOP_HTTP_API TCPConnection;
+class ZQ_ELOOP_HTTP_API WatchDog;
 
 //-------------------------------------
 //	class WatchDog
@@ -183,7 +184,7 @@ public:
 			mode					= DEFAULT_MODE;
 			threadCount				= 4;
 			cpuIds					="1";
-			watchDogInterval		= 2;		//ms;
+			watchDogInterval		= 500;		//ms;
 		}
 
 		std::string cpuIds;

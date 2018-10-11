@@ -176,6 +176,17 @@ const std::string& RTSPMessage::header( const std::string& key) const
 	return it->second;
 }
 
+void RTSPMessage::setBody(const std::string& body) 
+{ 
+	_contentBody = body; 
+	_bodyLen = _contentBody.size(); 
+}
+
+const std::string& RTSPMessage::body() 
+{ 
+	return _contentBody; 
+}
+
 std::string RTSPMessage::toRaw() 
 {
 	std::ostringstream oss;

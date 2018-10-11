@@ -41,6 +41,23 @@ private:
 // ---------------------------------------
 // class RTSPHandler
 // ---------------------------------------
+RTSPHandler::RTSPHandler(IBaseApplication& app, RTSPServer& server, const RTSPHandler::Properties& dirProps)
+: _app(app), _server(server), _dirProps(dirProps)
+{
+}
+
+RTSPHandler::~RTSPHandler() {}
+
+void RTSPHandler::onDataSent(size_t size)
+{
+}
+
+void RTSPHandler::onDataReceived( size_t size )
+{
+}
+
+std::string RTSPHandler::mediaSDP(const std::string& mid) { return "";}
+
 RTSPMessage::ExtendedErrCode RTSPHandler::onOptions(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp)
 {
 	resp->header("Public","OPTIONS, DESCRIBE, ANNOUNCE, SETUP, TEARDOWN, PLAY, PAUSE");
@@ -186,7 +203,7 @@ RTSPServerResponse::RTSPServerResponse(RTSPServer& server,const RTSPMessage::Ptr
 
 int64 RTSPServerResponse::getRemainTime()
 {
-	int64 remainTime = _server._config.reqTimeOut + _req->_stampCreated - ZQ::common::now();
+	int64 remainTime = (int64)(_server._config.reqTimeOut) + _req->_stampCreated - ZQ::common::now();
 	if(remainTime < 0)
 		return 0;
 	return remainTime;
@@ -419,6 +436,12 @@ void RTSPPassiveConn::simpleResponse(int code,uint32 cseq,RTSPConnection* conn)
 // ---------------------------------------
 // class RTSPServer
 // ---------------------------------------
+RTSPServer::RTSPServer( const TCPServer::ServerConfig& conf, ZQ::common::Log& logger, uint32 maxSess)
+:TCPServer(conf, logger), _maxSession(maxSess)
+{}
+
+RTSPServer::~RTSPServer(){}
+
 TCPConnection* RTSPServer::createPassiveConn()
 {
 	return new RTSPPassiveConn(*this);
@@ -540,6 +563,12 @@ void RTSPServer::removeSession(const std::string& sessId)
 	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPServer, "removeSession() sessId[%s],sessSize[%d]"), sessId.c_str(), sessSize);
 }
 
+const RTSPServer::Session::Map& RTSPServer::getSessList() 
+{ 
+	ZQ::common::MutexGuard g(_lkSessMap);
+	return _sessMap; 
+}
+
 void RTSPServer::OnTimer()
 {
 	checkReqStatus();
@@ -547,11 +576,23 @@ void RTSPServer::OnTimer()
 
 void RTSPServer::checkReqStatus()
 {
-	for(WaitRespList::iterator it= _waitRespList.begin(); it != _waitRespList.end(); it++)
+	WaitRespList	respList;
 	{
-		if ((*it)->getRemainTime() <= 0)	//timeout
-			(*it)->post(408);
+		ZQ::common::MutexGuard g(_lkReqList);
+		for(WaitRespList::iterator it= _waitRespList.begin(); it != _waitRespList.end();)
+		{
+			if ((*it)->getRemainTime() <= 0)	//timeout
+			{
+				respList.push_back(*it);
+				it= _waitRespList.erase(it);
+			}
+			else
+				it++;
+		}
 	}
+
+	for(WaitRespList::iterator itIndex= respList.begin(); itIndex != respList.end(); itIndex++)
+		(*itIndex)->post(408);
 }
 
 void RTSPServer::addReq(RTSPServerResponse::Ptr resp)

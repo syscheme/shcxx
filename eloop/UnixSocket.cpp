@@ -181,6 +181,7 @@ void UnixSocket::encode(const std::string& src,std::string& dest)
 
     // format of a netstring is [len]:[string]
     sprintf(strLen, "~%d:", len);
+	dest.reserve(len + strlen(strLen) + 10);
     dest.append(strLen);
     dest.append(src);
     dest.append(",");

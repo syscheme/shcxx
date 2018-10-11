@@ -41,6 +41,9 @@ namespace eloop {
 #define Method_PAUSE				"PAUSE"
 #define Method_TEARDOWN				"TEARDOWN"
 
+class ZQ_ELOOP_HTTP_API RTSPMessage;
+class ZQ_ELOOP_HTTP_API RTSPSession;
+class ZQ_ELOOP_HTTP_API RTSPConnection;
 //-------------------------------------
 //	class RTSPMessage
 //-------------------------------------
@@ -183,8 +186,8 @@ public:
 	void	contentLength(uint length) { _bodyLen = length; } //set content-length
 
 	void appendBody(const char* body, size_t len) {  _contentBody.append(body,len);  _bodyLen = _contentBody.size(); }
-	void setBody(const std::string& body) { _contentBody = body; _bodyLen = _contentBody.size(); }
-	const std::string& body() { return _contentBody; }
+	void setBody(const std::string& body);
+	const std::string& body();
 
 	uint32	cSeq() const { return _cSeq; }
 	void	cSeq(uint32 cSeq) { _cSeq = cSeq; }
