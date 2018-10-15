@@ -79,7 +79,7 @@ class TCPConnection : public TCP, public WatchDog::IObservee
 
 public:
 	TCPConnection(ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL)
-		:_logger(log), _isConnected(false), _async(NULL), _tcpServer(tcpServer), _watchDog(NULL),_isShutdown(false)
+		:_logger(log), _isConnected(false), _async(NULL), _tcpServer(tcpServer), _watchDog(NULL),_isShutdown(false),_isStop(false)
 	{
 		_lastCSeq.set(1);
 		if (connId != NULL)
@@ -117,7 +117,7 @@ public:
 
 protected:
 	virtual bool onStart() {return true;}
-	virtual bool onStop()  {return true;}
+	virtual bool onStop()  { delete this; return true;}
 
 	// called after buffer has been written into the stream
 	virtual void OnWrote(int status) {}
@@ -145,7 +145,8 @@ protected:
 	std::string				_Hint;
 	std::string				_reverseHint;
 	bool					_isConnected;
-	bool				_isShutdown;
+	bool					_isShutdown;
+	bool					_isStop;
 	std::string				_connId;
 	ZQ::common::AtomicInt _lastCSeq;
 

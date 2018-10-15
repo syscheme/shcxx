@@ -497,6 +497,10 @@ bool TCPConnection::start()
 
 bool TCPConnection::stop(bool isShutdown)
 {
+	if (_isStop)
+		return true;
+
+	_isStop = true;
 	_isShutdown = isShutdown;
 	if (_async != NULL)
 	{
@@ -516,7 +520,6 @@ bool TCPConnection::stop(bool isShutdown)
 		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"close stop connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
 		close();
 	}
-	return onStop();
 }
 
 void TCPConnection::initHint()
@@ -545,7 +548,6 @@ void TCPConnection::initHint()
 	_reverseHint = reverseOss.str();
 }
 
-
 void TCPConnection::OnClose()
 {
 	if (_tcpServer)
@@ -554,7 +556,7 @@ void TCPConnection::OnClose()
 	if (_watchDog)
 		_watchDog->unwatch(this);
 	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnClose connection connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
-	delete this;
+	onStop();
 }
 
 void TCPConnection::OnShutdown(ElpeError status)
