@@ -512,6 +512,7 @@ bool TCPConnection::stop(bool isShutdown)
 	if (_async != NULL)
 	{
 		_async->close();
+		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"connId[%s] stop async close from [%s] isShutdown[%s]"),_connId.c_str(), _Hint.c_str(), isShutdown?"true":"false");
 		return true;
 	}
 	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"connId[%s] stop from [%s] isShutdown[%s]"),_connId.c_str(), _Hint.c_str(), isShutdown?"true":"false");
@@ -636,6 +637,7 @@ void TCPConnection::OnAsyncSend()
 
 void TCPConnection::OnCloseAsync()
 {
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnCloseAsync connId[%s] from [%s] isShutdown[%s]"),_connId.c_str(), _Hint.c_str(), isShutdown?"true":"false");
 	OnAsyncSend();
 	if (_async != NULL)
 	{
