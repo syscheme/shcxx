@@ -637,7 +637,7 @@ void TCPConnection::OnAsyncSend()
 
 void TCPConnection::OnCloseAsync()
 {
-	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnCloseAsync connId[%s] from [%s] isShutdown[%s]"),_connId.c_str(), _Hint.c_str(), isShutdown?"true":"false");
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnCloseAsync connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
 	OnAsyncSend();
 	if (_async != NULL)
 	{
