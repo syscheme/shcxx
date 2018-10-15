@@ -37,6 +37,7 @@ static struct RtspCode2Desc RtspCode2Str[] = {
 	{ 406, "Not Acceptable" },
 	{ 407, "Proxy Authentication Required" },
 	{ 408, "Request Time-out" },
+	{ 409, "Request Over Limit" },
 	{ 410, "Gone" },
 	{ 411, "Length Required" },
 	{ 412, "Precondition Failed" },
@@ -173,6 +174,17 @@ const std::string& RTSPMessage::header( const std::string& key) const
 	if( it == _headers.end())
 		return _dummyVal;
 	return it->second;
+}
+
+void RTSPMessage::setBody(const std::string& body) 
+{ 
+	_contentBody = body; 
+	_bodyLen = _contentBody.size(); 
+}
+
+const std::string& RTSPMessage::body() 
+{ 
+	return _contentBody; 
 }
 
 std::string RTSPMessage::toRaw() 

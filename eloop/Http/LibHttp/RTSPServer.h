@@ -13,7 +13,7 @@ namespace eloop {
 class ZQ_ELOOP_HTTP_API RTSPServer;
 class ZQ_ELOOP_HTTP_API RTSPHandler;
 class ZQ_ELOOP_HTTP_API RTSPPassiveConn;
-//class ZQ_ELOOP_HTTP_API RTSPApplication;
+class ZQ_ELOOP_HTTP_API RTSPServerResponse;
 
 #define DEFAULT_SITE "."
 
@@ -25,21 +25,20 @@ class RTSPServerResponse : public RTSPMessage
 public:
 	typedef ZQ::common::Pointer<RTSPServerResponse> Ptr;
 
-	RTSPServerResponse(RTSPServer& server,const RTSPMessage::Ptr& req)
-		: _server(server), RTSPMessage(req->getConnId(), RTSPMessage::RTSP_MSG_RESPONSE),_req(req)
-	{
-		header(Header_MethodCode, req->method());
-		cSeq(req->cSeq());
-	}
+	RTSPServerResponse(RTSPServer& server,const RTSPMessage::Ptr& req);
 
 	~RTSPServerResponse() {}
 
-	void post(int statusCode, const char* desc = NULL); 
+	void post(int statusCode, bool bAsync = true); 
 	TCPConnection* getConn();
+
+	int64 getRemainTime();
 
 private:
 	RTSPServer& _server;
 	RTSPMessage::Ptr _req;
+	ZQ::common::Mutex _lkIsResp;
+	bool		_isResp;
 };
 
 
@@ -55,8 +54,6 @@ public:
 	typedef std::map<std::string, std::string> Properties;
 	typedef ZQ::common::Pointer<RTSPHandler> Ptr;
 	typedef std::map<std::string, Ptr> Map;
-
-	virtual ~RTSPHandler() {}
 
 	// ---------------------------------------
 	// interface IBaseApplication
@@ -86,13 +83,12 @@ public:
 	typedef ZQ::common::Pointer<IBaseApplication> AppPtr;
 
 protected: // hatched by HttpApplication
-	RTSPHandler(IBaseApplication& app, RTSPServer& server, const RTSPHandler::Properties& dirProps = RTSPHandler::Properties())
-		: _app(app), _server(server), _dirProps(dirProps)
-	{
-	}
+	RTSPHandler(IBaseApplication& app, RTSPServer& server, const RTSPHandler::Properties& dirProps = RTSPHandler::Properties());
 
-	virtual void	onDataSent(size_t size){}
-	virtual void	onDataReceived( size_t size ){}
+	virtual ~RTSPHandler();
+
+	virtual void	onDataSent(size_t size);
+	virtual void	onDataReceived( size_t size );
 	virtual void	onError( int error,const char* errorDescription ){}
 
 	// non session-based requests
@@ -112,7 +108,7 @@ protected: // hatched by HttpApplication
 	virtual RTSPMessage::ExtendedErrCode procSessionGetParameter(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
 	virtual RTSPMessage::ExtendedErrCode procSessionSetParameter(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
 
-	virtual std::string mediaSDP(const std::string& mid) {return "";}
+	virtual std::string mediaSDP(const std::string& mid);
 
 	IBaseApplication&       _app;
 	RTSPHandler::Properties _dirProps;
@@ -143,12 +139,8 @@ public:
 class RTSPServer : public TCPServer
 {
 public:
-	RTSPServer( const TCPServer::ServerConfig& conf, ZQ::common::Log& logger, uint32 maxSess = 10000)
-		:TCPServer(conf, logger), _maxSession(maxSess)
-	{}
-
-	virtual ~RTSPServer()
-	{}
+	RTSPServer( const TCPServer::ServerConfig& conf, ZQ::common::Log& logger, uint32 maxSess = 10000);
+	virtual ~RTSPServer();
 
  	bool mount(const std::string& uriEx, RTSPHandler::AppPtr app, const RTSPHandler::Properties& props=RTSPHandler::Properties(), const char* virtualSite =DEFAULT_SITE);
 	RTSPHandler::Ptr createHandler(const std::string& uri, RTSPPassiveConn& conn, const std::string& virtualSite = std::string(DEFAULT_SITE));
@@ -190,18 +182,29 @@ public: // about the session management
 		return new Session(*this, sessId); 
 	}
 
+
+
 	std::string	generateSessionID();
 
 	Session::Ptr findSession(const std::string& sessId);
 	void addSession(Session::Ptr sess);
 	void removeSession(const std::string& sessId);
 
-	const Session::Map& getSessList() const { return _sessMap; }
+	const Session::Map& getSessList();
 
 	size_t getSessionCount() const;
 
 	void setMaxSession(uint32 maxSession);
 	uint32 getMaxSession() const;
+
+
+	virtual void OnTimer();
+
+	void checkReqStatus();
+	void addReq(RTSPServerResponse::Ptr resp);
+	void removeReq(RTSPServerResponse::Ptr resp);
+	uint64 getWaitRespCount();
+
 private:
 
 	typedef struct _MountDir
@@ -217,10 +220,14 @@ private:
 
 	VSites _vsites;
 
+	typedef std::list<RTSPServerResponse::Ptr>	WaitRespList;
+
 private:
 	ZQ::common::Mutex			_lkSessMap;
+	ZQ::common::Mutex			_lkReqList;
 	Session::Map     			_sessMap;
 	uint32						_maxSession;
+	WaitRespList				_waitRespList;
 };
 
 } } //namespace ZQ::eloop

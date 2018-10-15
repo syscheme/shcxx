@@ -19,6 +19,8 @@ public:
 
 	~RTSPPassiveConn(){}
 
+	virtual void OnTimer(){}
+
 	virtual void onError( int error,const char* errorDescription );
 
 	virtual void	onDataSent(size_t size);
@@ -39,6 +41,23 @@ private:
 // ---------------------------------------
 // class RTSPHandler
 // ---------------------------------------
+RTSPHandler::RTSPHandler(IBaseApplication& app, RTSPServer& server, const RTSPHandler::Properties& dirProps)
+: _app(app), _server(server), _dirProps(dirProps)
+{
+}
+
+RTSPHandler::~RTSPHandler() {}
+
+void RTSPHandler::onDataSent(size_t size)
+{
+}
+
+void RTSPHandler::onDataReceived( size_t size )
+{
+}
+
+std::string RTSPHandler::mediaSDP(const std::string& mid) { return "";}
+
 RTSPMessage::ExtendedErrCode RTSPHandler::onOptions(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp)
 {
 	resp->header("Public","OPTIONS, DESCRIBE, ANNOUNCE, SETUP, TEARDOWN, PLAY, PAUSE");
@@ -174,17 +193,43 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetParameter(const RTSPMess
 // ---------------------------------------
 // class RTSPServerResponse
 // ---------------------------------------
+RTSPServerResponse::RTSPServerResponse(RTSPServer& server,const RTSPMessage::Ptr& req)
+: _server(server), RTSPMessage(req->getConnId(), RTSPMessage::RTSP_MSG_RESPONSE),_req(req),_isResp(false)
+{
+	header(Header_MethodCode, req->method());
+	cSeq(req->cSeq());
+	_server.addReq(this);
+}
+
+int64 RTSPServerResponse::getRemainTime()
+{
+	int64 remainTime = (int64)(_server._config.reqTimeOut) + _req->_stampCreated - ZQ::common::now();
+	if(remainTime < 0)
+		return 0;
+	return remainTime;
+}
+
 TCPConnection* RTSPServerResponse::getConn() 
 {	
 	return _server.findConn(getConnId()); 
 }
 
-void RTSPServerResponse::post(int statusCode, const char* desc) 
+void RTSPServerResponse::post(int statusCode, bool bAsync) 
 {
+	{
+		ZQ::common::MutexGuard g(_lkIsResp);
+		if (_isResp)
+			return;
+		_isResp = true;
+	}
+
+	_server.removeReq(this);
+
+	if (statusCode != 408 && getRemainTime() <= 0)
+		statusCode = 408;
+
 	if (statusCode>100)
 		code(statusCode);
-	if (desc != NULL)
-		status(desc);
 
 	std::string respMsg = toRaw();
 	// TODO: _conn._logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), _conn.hint().c_str(),true);
@@ -196,17 +241,26 @@ void RTSPServerResponse::post(int statusCode, const char* desc)
 		return;
 	}
 
-	int ret = conn->AsyncSend(respMsg);
+	int ret = 0;
+	if (bAsync)
+		ret = conn->AsyncSend(respMsg);
+	else
+	{
+		if (TCPConnection::_enableHexDump > 0)
+			_server._logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), conn->hint().c_str(),true);
+		ret = conn->write(respMsg.c_str(), respMsg.size());
+	}
+	 
 	if (ret < 0)
 	{
 		conn->onError(ret,ZQ::eloop::Handle::errDesc(ret));
 		return;
 	}
 
-	int64 elapsed = ZQ::eloop::usStampNow() - _req->_stampCreated;
+	int64 elapsed = ZQ::common::now() - _req->_stampCreated;
 	std::string sessId = header(Header_Session);
 
-	_server._logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPServerResponse, "post() sessId[%s] %s(%d) ret(%d) took %lldus"), sessId.c_str(), _req->method().c_str(), _req->cSeq(), statusCode, elapsed);
+	_server._logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPServerResponse, "post() sessId[%s] %s(%d) ret(%d) took %lldms"), sessId.c_str(), _req->method().c_str(), _req->cSeq(), statusCode, elapsed);
 
 	//_server._logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), conn->hint().c_str(),true);
 }
@@ -244,6 +298,17 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 	std::string sessId;
 
 	do {
+		sessId =  req->header(Header_Session);
+		resp->header(Header_Server, _server._config.serverName);
+		resp->header(Header_Session,  sessId);
+
+		if (_server.getWaitRespCount() >= _server._config.maxReqLimit)
+		{
+			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn, "OnRequests maxReqLimit[%d] request over max limit"), _server._config.maxReqLimit);
+			respCode =409;
+			break;
+		}
+
 		_rtspHandler = _server.createHandler(req->url(), *this);
 		if(!_rtspHandler)
 		{
@@ -253,15 +318,12 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 			break;
 		}
 
-		resp->header(Header_Server, _server._config.serverName);
-
 		// check if the request is session-based or not
-		sessId =  req->header(Header_Session);
 		RTSPSession::Ptr pSess = NULL; // should be server-side session
 
 		if (!sessId.empty())
 		{
-			 resp->header(Header_Session,  sessId);
+			resp->header(Header_Session,  sessId);
 			pSess = _server.findSession(sessId);//RTSPServer::Session::Ptr::dynamicCast(_server.findSession(sid));
 			if (NULL == pSess)
 			{
@@ -276,6 +338,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 			if (0 == req->method().compare(Method_SETUP)) 
 			{ 
 				sessId = _server.generateSessionID();
+				resp->header(Header_Session,  sessId);
 				RTSPServer::Session::Ptr sess = _server.createSession(sessId.c_str());
 				if (sess == NULL)
 				{
@@ -343,16 +406,20 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 	if (respCode < 100)
 		respCode = 500;
 
-	resp->code(respCode);
-	std::string respMsg = resp->toRaw();
-	write(respMsg.c_str(), respMsg.size());
+	resp->post(respCode, false);
 
-	if (TCPConnection::_enableHexDump > 0)
-		_logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), hint().c_str(),true);
-	int64 elapsed = ZQ::eloop::usStampNow() - req->_stampCreated;
-	
-	if (_tcpServer)
-		_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() sessId[%s] %s(%d) ret(%d) took %lldus"), sessId.c_str(), req->method().c_str(), req->cSeq(), respCode, elapsed);
+// 	resp->code(respCode);
+// 	std::string respMsg = resp->toRaw();
+// 	write(respMsg.c_str(), respMsg.size());
+// 
+// 	if (TCPConnection::_enableHexDump > 0)
+// 		_logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), hint().c_str(),true);
+// 	int64 elapsed = ZQ::common::now() - req->_stampCreated;
+// 	
+// 	if (_tcpServer)
+// 		_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() sessId[%s] %s(%d) ret(%d) took %lldms"), sessId.c_str(), req->method().c_str(), req->cSeq(), respCode, elapsed);
+// 
+// 	_server.removeReq(resp->get());
 }
 
 void RTSPPassiveConn::simpleResponse(int code,uint32 cseq,RTSPConnection* conn)
@@ -369,6 +436,12 @@ void RTSPPassiveConn::simpleResponse(int code,uint32 cseq,RTSPConnection* conn)
 // ---------------------------------------
 // class RTSPServer
 // ---------------------------------------
+RTSPServer::RTSPServer( const TCPServer::ServerConfig& conf, ZQ::common::Log& logger, uint32 maxSess)
+:TCPServer(conf, logger), _maxSession(maxSess)
+{}
+
+RTSPServer::~RTSPServer(){}
+
 TCPConnection* RTSPServer::createPassiveConn()
 {
 	return new RTSPPassiveConn(*this);
@@ -488,6 +561,64 @@ void RTSPServer::removeSession(const std::string& sessId)
 		sessSize = _sessMap.size();
 	}
 	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPServer, "removeSession() sessId[%s],sessSize[%d]"), sessId.c_str(), sessSize);
+}
+
+const RTSPServer::Session::Map& RTSPServer::getSessList() 
+{ 
+	ZQ::common::MutexGuard g(_lkSessMap);
+	return _sessMap; 
+}
+
+void RTSPServer::OnTimer()
+{
+	checkReqStatus();
+}
+
+void RTSPServer::checkReqStatus()
+{
+	WaitRespList	respList;
+	{
+		ZQ::common::MutexGuard g(_lkReqList);
+		for(WaitRespList::iterator it= _waitRespList.begin(); it != _waitRespList.end();)
+		{
+			if ((*it)->getRemainTime() <= 0)	//timeout
+			{
+				respList.push_back(*it);
+				it= _waitRespList.erase(it);
+			}
+			else
+				it++;
+		}
+	}
+
+	for(WaitRespList::iterator itIndex= respList.begin(); itIndex != respList.end(); itIndex++)
+		(*itIndex)->post(408);
+}
+
+void RTSPServer::addReq(RTSPServerResponse::Ptr resp)
+{
+	ZQ::common::MutexGuard g(_lkReqList);
+	if (std::find(_waitRespList.begin(),_waitRespList.end(), resp) != _waitRespList.end())
+		return;
+	_waitRespList.push_back(resp);
+}
+
+void RTSPServer::removeReq(RTSPServerResponse::Ptr resp)
+{
+	ZQ::common::MutexGuard g(_lkReqList);
+	for(WaitRespList::iterator it= _waitRespList.begin(); it != _waitRespList.end();)
+	{
+		if (*it == resp)
+			it= _waitRespList.erase(it);
+		else
+			it++;
+	}
+}
+
+uint64 RTSPServer::getWaitRespCount()
+{
+	ZQ::common::MutexGuard g(_lkReqList);
+	return _waitRespList.size();
 }
 
 size_t RTSPServer::getSessionCount() const
