@@ -644,6 +644,7 @@ void TCPConnection::OnCloseAsync()
 		delete _async;
 		_async = NULL;
 	}
+	_isStop = false;
 	stop(_isShutdown);
 }
 
