@@ -309,7 +309,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 
 		if (pendingReq >= _server._config.maxPended)
 		{
-			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn, "OnRequests() too many pendingRequest[] maxPendingSize[%d]"), pendingReq, _server._config.maxPended);
+			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn, "OnRequests() too many pendingRequest[%d] maxPendingSize[%d]"), pendingReq, _server._config.maxPended);
 			respCode =409;
 			break;
 		}
