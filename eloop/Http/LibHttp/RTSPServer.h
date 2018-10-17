@@ -220,14 +220,14 @@ private:
 
 	VSites _vsites;
 
-	typedef std::list<RTSPServerResponse::Ptr>	WaitRespList;
+	typedef std::list<RTSPServerResponse::Ptr>	PendingRequstList;
 
 private:
 	ZQ::common::Mutex			_lkSessMap;
-	ZQ::common::Mutex			_lkReqList;
 	Session::Map     			_sessMap;
 	uint32						_maxSession;
-	WaitRespList				_waitRespList;
+	PendingRequstList			_pendingReqList;
+	ZQ::common::Mutex			_lkReqList;
 };
 
 } } //namespace ZQ::eloop
