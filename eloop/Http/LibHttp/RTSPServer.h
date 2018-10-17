@@ -29,7 +29,7 @@ public:
 
 	~RTSPServerResponse() {}
 
-	void post(int statusCode, bool bAsync = true); 
+	void post(int statusCode, char* errMsg = NULL, bool bAsync = true); 
 	TCPConnection* getConn();
 
 	int64 getRemainTime();
@@ -203,7 +203,7 @@ public: // about the session management
 	void checkReqStatus();
 	void addReq(RTSPServerResponse::Ptr resp);
 	void removeReq(RTSPServerResponse::Ptr resp);
-	uint64 getWaitRespCount();
+	int getPendingRequest();
 
 private:
 

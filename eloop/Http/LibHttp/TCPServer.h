@@ -176,7 +176,7 @@ public:
 			host			= "127.0.0.1";
 			port			= 8888;
 			reqTimeOut				= 5000;
-			maxReqLimit				= 10000;
+			maxPended				= 1000;
 			keepalive_timeout		= -1;		//ms
 			keepAliveIdleMin		= 5 * 60 * 1000;
 			keepAliveIdleMax		= 10 * 60 *1000;
@@ -194,7 +194,7 @@ public:
 		ServerMode	mode;
 		int			threadCount;
 		uint64		reqTimeOut;
-		uint64		maxReqLimit;
+		uint64		maxPended;
 		uint64		keepalive_timeout;
 		uint64		keepAliveIdleMin;
 		uint64		keepAliveIdleMax;

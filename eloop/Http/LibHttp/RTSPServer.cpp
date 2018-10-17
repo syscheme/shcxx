@@ -214,7 +214,7 @@ TCPConnection* RTSPServerResponse::getConn()
 	return _server.findConn(getConnId()); 
 }
 
-void RTSPServerResponse::post(int statusCode, bool bAsync) 
+void RTSPServerResponse::post(int statusCode, char* errMsg, bool bAsync) 
 {
 	{
 		ZQ::common::MutexGuard g(_lkIsResp);
@@ -228,8 +228,10 @@ void RTSPServerResponse::post(int statusCode, bool bAsync)
 	if (statusCode != 408 && getRemainTime() <= 0)
 		statusCode = 408;
 
-	if (statusCode>100)
-		code(statusCode);
+	code(statusCode);
+
+	if (errMsg != NULL)
+		status(errMsg);
 
 	std::string respMsg = toRaw();
 	// TODO: _conn._logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), _conn.hint().c_str(),true);
@@ -302,9 +304,12 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 		resp->header(Header_Server, _server._config.serverName);
 		resp->header(Header_Session,  sessId);
 
-		if (_server.getWaitRespCount() >= _server._config.maxReqLimit)
+		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequests() new Request pendingRequest[] maxPendingSize[%d]"), pendingReq, _server._config.maxPended);
+
+		int pendingReq =  _server.getPendingRequest();
+		if (pendingReq >= _server._config.maxPended)
 		{
-			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn, "OnRequests maxReqLimit[%d] request over max limit"), _server._config.maxReqLimit);
+			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn, "OnRequests() too many pendingRequest[] maxPendingSize[%d]"), pendingReq, _server._config.maxPended);
 			respCode =409;
 			break;
 		}
@@ -406,7 +411,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 	if (respCode < 100)
 		respCode = 500;
 
-	resp->post(respCode, false);
+	resp->post(respCode, NULL, false);
 
 // 	resp->code(respCode);
 // 	std::string respMsg = resp->toRaw();
@@ -615,7 +620,7 @@ void RTSPServer::removeReq(RTSPServerResponse::Ptr resp)
 	}
 }
 
-uint64 RTSPServer::getWaitRespCount()
+int RTSPServer::getPendingRequest()
 {
 	ZQ::common::MutexGuard g(_lkReqList);
 	return _waitRespList.size();
