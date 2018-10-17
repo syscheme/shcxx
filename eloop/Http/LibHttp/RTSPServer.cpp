@@ -304,9 +304,9 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 		resp->header(Header_Server, _server._config.serverName);
 		resp->header(Header_Session,  sessId);
 
+		int pendingReq =  _server.getPendingRequest();
 		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequests() new Request pendingRequest[] maxPendingSize[%d]"), pendingReq, _server._config.maxPended);
 
-		int pendingReq =  _server.getPendingRequest();
 		if (pendingReq >= _server._config.maxPended)
 		{
 			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn, "OnRequests() too many pendingRequest[] maxPendingSize[%d]"), pendingReq, _server._config.maxPended);
