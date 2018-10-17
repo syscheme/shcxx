@@ -29,7 +29,7 @@ public:
 
 	~RTSPServerResponse() {}
 
-	void post(int statusCode, char* errMsg = NULL, bool bAsync = true); 
+	void post(int statusCode, const char* errMsg = NULL, bool bAsync = true); 
 	TCPConnection* getConn();
 
 	int64 getRemainTime();

@@ -214,7 +214,7 @@ TCPConnection* RTSPServerResponse::getConn()
 	return _server.findConn(getConnId()); 
 }
 
-void RTSPServerResponse::post(int statusCode, char* errMsg, bool bAsync) 
+void RTSPServerResponse::post(int statusCode, const char* errMsg, bool bAsync) 
 {
 	{
 		ZQ::common::MutexGuard g(_lkIsResp);
