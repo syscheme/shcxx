@@ -203,7 +203,7 @@ RTSPServerResponse::RTSPServerResponse(RTSPServer& server,const RTSPMessage::Ptr
 
 int64 RTSPServerResponse::getRemainTime()
 {
-	int64 remainTime = (int64)(_server._config.reqTimeOut) + _req->_stampCreated - ZQ::common::now();
+	int64 remainTime = (int64)(_server._config.procTimeout) + _req->_stampCreated - ZQ::common::now();
 	if(remainTime < 0)
 		return 0;
 	return remainTime;
@@ -214,7 +214,7 @@ TCPConnection* RTSPServerResponse::getConn()
 	return _server.findConn(getConnId()); 
 }
 
-void RTSPServerResponse::post(int statusCode, bool bAsync) 
+void RTSPServerResponse::post(int statusCode, const char* errMsg, bool bAsync) 
 {
 	{
 		ZQ::common::MutexGuard g(_lkIsResp);
@@ -228,8 +228,10 @@ void RTSPServerResponse::post(int statusCode, bool bAsync)
 	if (statusCode != 408 && getRemainTime() <= 0)
 		statusCode = 408;
 
-	if (statusCode>100)
-		code(statusCode);
+	code(statusCode);
+
+	if (errMsg != NULL)
+		status(errMsg);
 
 	std::string respMsg = toRaw();
 	// TODO: _conn._logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), _conn.hint().c_str(),true);
@@ -302,10 +304,13 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 		resp->header(Header_Server, _server._config.serverName);
 		resp->header(Header_Session,  sessId);
 
-		if (_server.getWaitRespCount() >= _server._config.maxReqLimit)
+		int pendingReq =  _server.getPendingRequest();
+		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequests() new Request pendingRequest[%d] maxPendingSize[%d]"), pendingReq, _server._config.maxPendings);
+
+		if (pendingReq >= _server._config.maxPendings)
 		{
-			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn, "OnRequests maxReqLimit[%d] request over max limit"), _server._config.maxReqLimit);
-			respCode =409;
+			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn, "OnRequests() too many pendingRequest[%d] maxPendingSize[%d]"), pendingReq, _server._config.maxPendings);
+			respCode =503;
 			break;
 		}
 
@@ -406,7 +411,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 	if (respCode < 100)
 		respCode = 500;
 
-	resp->post(respCode, false);
+	resp->post(respCode, NULL, false);
 
 // 	resp->code(respCode);
 // 	std::string respMsg = resp->toRaw();
@@ -576,49 +581,49 @@ void RTSPServer::OnTimer()
 
 void RTSPServer::checkReqStatus()
 {
-	WaitRespList	respList;
+	PendingRequstList	respList;
 	{
 		ZQ::common::MutexGuard g(_lkReqList);
-		for(WaitRespList::iterator it= _waitRespList.begin(); it != _waitRespList.end();)
+		for(PendingRequstList::iterator it= _pendingReqList.begin(); it != _pendingReqList.end();)
 		{
 			if ((*it)->getRemainTime() <= 0)	//timeout
 			{
 				respList.push_back(*it);
-				it= _waitRespList.erase(it);
+				it= _pendingReqList.erase(it);
 			}
 			else
 				it++;
 		}
 	}
 
-	for(WaitRespList::iterator itIndex= respList.begin(); itIndex != respList.end(); itIndex++)
+	for(PendingRequstList::iterator itIndex= respList.begin(); itIndex != respList.end(); itIndex++)
 		(*itIndex)->post(408);
 }
 
 void RTSPServer::addReq(RTSPServerResponse::Ptr resp)
 {
 	ZQ::common::MutexGuard g(_lkReqList);
-	if (std::find(_waitRespList.begin(),_waitRespList.end(), resp) != _waitRespList.end())
+	if (std::find(_pendingReqList.begin(),_pendingReqList.end(), resp) != _pendingReqList.end())
 		return;
-	_waitRespList.push_back(resp);
+	_pendingReqList.push_back(resp);
 }
 
 void RTSPServer::removeReq(RTSPServerResponse::Ptr resp)
 {
 	ZQ::common::MutexGuard g(_lkReqList);
-	for(WaitRespList::iterator it= _waitRespList.begin(); it != _waitRespList.end();)
+	for(PendingRequstList::iterator it= _pendingReqList.begin(); it != _pendingReqList.end();)
 	{
 		if (*it == resp)
-			it= _waitRespList.erase(it);
+			it= _pendingReqList.erase(it);
 		else
 			it++;
 	}
 }
 
-uint64 RTSPServer::getWaitRespCount()
+int RTSPServer::getPendingRequest()
 {
 	ZQ::common::MutexGuard g(_lkReqList);
-	return _waitRespList.size();
+	return _pendingReqList.size();
 }
 
 size_t RTSPServer::getSessionCount() const

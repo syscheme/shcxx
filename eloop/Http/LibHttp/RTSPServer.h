@@ -29,7 +29,7 @@ public:
 
 	~RTSPServerResponse() {}
 
-	void post(int statusCode, bool bAsync = true); 
+	void post(int statusCode, const char* errMsg = NULL, bool bAsync = true); 
 	TCPConnection* getConn();
 
 	int64 getRemainTime();
@@ -203,7 +203,7 @@ public: // about the session management
 	void checkReqStatus();
 	void addReq(RTSPServerResponse::Ptr resp);
 	void removeReq(RTSPServerResponse::Ptr resp);
-	uint64 getWaitRespCount();
+	int getPendingRequest();
 
 private:
 
@@ -220,14 +220,14 @@ private:
 
 	VSites _vsites;
 
-	typedef std::list<RTSPServerResponse::Ptr>	WaitRespList;
+	typedef std::list<RTSPServerResponse::Ptr>	PendingRequstList;
 
 private:
 	ZQ::common::Mutex			_lkSessMap;
-	ZQ::common::Mutex			_lkReqList;
 	Session::Map     			_sessMap;
 	uint32						_maxSession;
-	WaitRespList				_waitRespList;
+	PendingRequstList			_pendingReqList;
+	ZQ::common::Mutex			_lkReqList;
 };
 
 } } //namespace ZQ::eloop
