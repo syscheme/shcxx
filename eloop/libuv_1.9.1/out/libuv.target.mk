@@ -63,7 +63,7 @@ CFLAGS_Release := \
 	-Wextra \
 	-Wno-unused-parameter \
 	-Wstrict-aliasing \
-	-O3 \
+	-O0 \
 	-fstrict-aliasing \
 	-fomit-frame-pointer \
 	-fdata-sections \

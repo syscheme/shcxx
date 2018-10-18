@@ -128,8 +128,9 @@ void RTSPConnection::parse(ssize_t bytesRead)
 	int64 stampNow = ZQ::common::now();
 	int64 size = _byteSeen + bytesRead;
 
-	while ((pProcessed < pEnd && !bFinishedThisDataChuck) || (_currentParseMsg.headerCompleted && _currentParseMsg.pMsg->contentLength()==0))
+	while (((pProcessed < pEnd) && !bFinishedThisDataChuck) || (_currentParseMsg.headerCompleted && _currentParseMsg.pMsg->contentLength()==0))
 	{
+
 		if (_currentParseMsg.headerCompleted)
 		{
 			// read the data as the content body of the current message
@@ -138,7 +139,9 @@ void RTSPConnection::parse(ssize_t bytesRead)
 			if (_currentParseMsg.pMsg->contentLength() >0) 
 				len = _currentParseMsg.pMsg->contentLength() - _currentParseMsg.contentBodyRead;
 
-			if (len > pEnd - pProcessed)
+			if (pEnd <= pProcessed)
+				break;
+			if (len > (pEnd - pProcessed))
 				len = (int)(pEnd - pProcessed);
 
 			//			if (pEnd - pProcessed < len)
