@@ -220,13 +220,13 @@ private:
 
 	VSites _vsites;
 
-	typedef std::list<RTSPServerResponse::Ptr>	PendingRequstList;
+	typedef std::list<RTSPServerResponse::Ptr>	RequestList;
 
 private:
 	ZQ::common::Mutex			_lkSessMap;
 	Session::Map     			_sessMap;
 	uint32						_maxSession;
-	PendingRequstList			_pendingReqList;
+	RequestList			        _awaitRequests;
 	ZQ::common::Mutex			_lkReqList;
 };
 

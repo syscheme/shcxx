@@ -101,8 +101,7 @@ void HttpConnection::OnWrote(int status)
 {
 	if (status != elpeSuccess)
 	{
-		std::string desc = "send error:";
-		desc.append(errDesc(status));
+		std::string desc = std::string("send failed: ") + hint() + " " + errDesc(status);
 		onError(status,desc.c_str());
 		return;
 	}
