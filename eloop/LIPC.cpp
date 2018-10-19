@@ -326,8 +326,7 @@ public:
 	{
 		if (status != elpeSuccess)
 		{
-			std::string desc = "send error:";
-			desc.append(errDesc(status));
+			std::string desc = std::string("send failed: ") + errDesc(status);
 			onError(status, desc.c_str());
 			return;
 		}

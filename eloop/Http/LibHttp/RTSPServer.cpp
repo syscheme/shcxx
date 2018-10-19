@@ -249,7 +249,7 @@ void RTSPServerResponse::post(int statusCode, const char* errMsg, bool bAsync)
 	else
 	{
 		if (TCPConnection::_enableHexDump > 0)
-			_server._logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), conn->hint().c_str(),true);
+			_server._logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), (conn->hint() + " post").c_str(),true);
 		ret = conn->write(respMsg.c_str(), respMsg.size());
 	}
 	 
@@ -304,12 +304,13 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 		resp->header(Header_Server, _server._config.serverName);
 		resp->header(Header_Session,  sessId);
 
-		int pendingReq =  _server.getPendingRequest();
-		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequests() enqueuing into pendings[%d /%d]"), pendingReq, _server._config.maxPendings);
+		int pendings =  _server.getPendingRequest();
+		if (pendings >2)
+			_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequests() enqueuing %s(%d) into pendings[%d /%d]"), req->method().c_str(), req->cSeq(), pendings, _server._config.maxPendings);
 
-		if (_server._config.maxPendings >0 && pendingReq >= _server._config.maxPendings)
+		if (_server._config.maxPendings >0 && pendings >= _server._config.maxPendings)
 		{
-			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn, "OnRequests() too many pendings [%d /%d]"), pendingReq, _server._config.maxPendings);
+			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn, "OnRequests() rejecting %s(%d) per too many pendings [%d /%d]"), req->method().c_str(), req->cSeq(), pendings, _server._config.maxPendings);
 			respCode =503;
 			break;
 		}
@@ -348,7 +349,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 				if (sess == NULL)
 				{
 					if (_tcpServer)
-						_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() create session failed sessId[%s] hint%s cseq[%d]"), sessId.c_str(), hint().c_str(), req->cSeq());
+						_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() create session failed sessId[%s] hint%s SETUP(%d)"), sessId.c_str(), hint().c_str(), req->cSeq());
 
 					respCode =500;
 					break;
@@ -358,14 +359,14 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 				if (NULL == pSess)
 				{
 					if (_tcpServer)
-						_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() create session failed sessId[%s] hint%s cseq[%d]"), sessId.c_str(), hint().c_str(), req->cSeq());
+						_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() create session failed sessId[%s] hint%s SETUP(%d)"), sessId.c_str(), hint().c_str(), req->cSeq());
 
 					respCode =500;
 					break;
 				}
 
 				if (_tcpServer)
-					_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() create new session[%s] hint%s cseq[%d]"), sessId.c_str(), hint().c_str(), req->cSeq());
+					_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() building up new session[%s] hint%s SETUP(%d)"), sessId.c_str(), hint().c_str(), req->cSeq());
 
 				respCode = _rtspHandler->procSessionSetup(req, resp, pSess);
 				if (RTSPMessage::Err_AsyncHandling == respCode)
@@ -586,13 +587,16 @@ void RTSPServer::checkReqStatus()
 		ZQ::common::MutexGuard g(_lkReqList);
 		for(PendingRequstList::iterator it= _pendingReqList.begin(); it != _pendingReqList.end();)
 		{
-			if ((*it)->getRemainTime() <= 0)	//timeout
+			if (!(*it) || (*it)->getRemainTime() > 0)
 			{
-				respList.push_back(*it);
-				it= _pendingReqList.erase(it);
-			}
-			else
 				it++;
+				continue;
+			}
+			
+			//timeout
+			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPServer, "checkReqStatus() req[%s(%d)] timeout per %d, eliminating from pendings"), (*it)->method().c_str(), (*it)->cSeq(), _config.procTimeout);
+			respList.push_back(*it);
+			it= _pendingReqList.erase(it);
 		}
 	}
 

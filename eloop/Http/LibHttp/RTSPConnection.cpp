@@ -69,7 +69,7 @@ void RTSPConnection::OnRead(ssize_t nread, const char *buf)
 		return;
 
 	if (TCPConnection::_enableHexDump > 0)
-		_logger.hexDump(ZQ::common::Log::L_INFO, _recvBuf.base+_byteSeen, nread, hint().c_str(),true);
+		_logger.hexDump(ZQ::common::Log::L_INFO, _recvBuf.base+_byteSeen, nread, (hint()+ " OnRead").c_str(),true);
 
 
 	onDataReceived(nread);
@@ -510,9 +510,7 @@ void RTSPConnection::OnWrote(int status)
 {
 	if (status != elpeSuccess)
 	{
-		std::string desc = "send error:";
-		desc.append(errDesc(status));
-		desc = hint() + desc;
+		std::string desc = std::string("send failed: ") + hint() + " " + errDesc(status);
 		onError(status,desc.c_str());
 		return;
 	}

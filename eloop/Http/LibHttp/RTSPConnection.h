@@ -148,7 +148,6 @@ public:
 
 	virtual ~RTSPMessage() {}
 
-
 	static void splitStrPair(const std::string& strPairData, StrPairVec& outVec,const std::string& delimiter="\r\n");
 
 	static std::string date( int deltaInSecond = 0 );
