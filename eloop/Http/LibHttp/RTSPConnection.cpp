@@ -140,9 +140,12 @@ void RTSPConnection::parse(ssize_t bytesRead)
 				len = _currentParseMsg.pMsg->contentLength() - _currentParseMsg.contentBodyRead;
 
 			if (pEnd <= pProcessed)
-				break;
-			if (len > (pEnd - pProcessed))
-				len = (int)(pEnd - pProcessed);
+				len = 0;
+			else
+			{
+				if (len > (pEnd - pProcessed))
+					len = (int)(pEnd - pProcessed);
+			}
 
 			//			if (pEnd - pProcessed < len)
 			//			{
