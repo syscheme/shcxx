@@ -69,7 +69,7 @@ void RTSPConnection::OnRead(ssize_t nread, const char *buf)
 		return;
 
 	if (TCPConnection::_enableHexDump > 0)
-		_logger.hexDump(ZQ::common::Log::L_DEBUG, _recvBuf.base+_byteSeen, nread, hint().c_str(),true);
+		_logger.hexDump(ZQ::common::Log::L_INFO, _recvBuf.base+_byteSeen, nread, (hint()+ " OnRead").c_str(),true);
 
 
 	onDataReceived(nread);
@@ -128,8 +128,9 @@ void RTSPConnection::parse(ssize_t bytesRead)
 	int64 stampNow = ZQ::common::now();
 	int64 size = _byteSeen + bytesRead;
 
-	while ((pProcessed < pEnd && !bFinishedThisDataChuck) || (_currentParseMsg.headerCompleted && _currentParseMsg.pMsg->contentLength()==0))
+	while (((pProcessed < pEnd) && !bFinishedThisDataChuck) || (_currentParseMsg.headerCompleted && _currentParseMsg.pMsg->contentLength()==0))
 	{
+
 		if (_currentParseMsg.headerCompleted)
 		{
 			// read the data as the content body of the current message
@@ -138,8 +139,13 @@ void RTSPConnection::parse(ssize_t bytesRead)
 			if (_currentParseMsg.pMsg->contentLength() >0) 
 				len = _currentParseMsg.pMsg->contentLength() - _currentParseMsg.contentBodyRead;
 
-			if (len > pEnd - pProcessed)
-				len = (int)(pEnd - pProcessed);
+			if (pEnd <= pProcessed)
+				len = 0;
+			else
+			{
+				if (len > (pEnd - pProcessed))
+					len = (int)(pEnd - pProcessed);
+			}
 
 			//			if (pEnd - pProcessed < len)
 			//			{
@@ -507,9 +513,7 @@ void RTSPConnection::OnWrote(int status)
 {
 	if (status != elpeSuccess)
 	{
-		std::string desc = "send error:";
-		desc.append(errDesc(status));
-		desc = hint() + desc;
+		std::string desc = std::string("send failed: ") + hint() + " " + errDesc(status);
 		onError(status,desc.c_str());
 		return;
 	}

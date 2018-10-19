@@ -83,6 +83,8 @@ const char* LIPCMessage::errDesc(Error code)
 	case LIPC_SERVER_ERROR     : 
 	default                    : return "server error";
 	}
+
+	return "server error";
 }
 
 void LIPCMessage::setErrorCode(int code,std::string errMsg)
@@ -324,8 +326,7 @@ public:
 	{
 		if (status != elpeSuccess)
 		{
-			std::string desc = "send error:";
-			desc.append(errDesc(status));
+			std::string desc = std::string("send failed: ") + errDesc(status);
 			onError(status, desc.c_str());
 			return;
 		}

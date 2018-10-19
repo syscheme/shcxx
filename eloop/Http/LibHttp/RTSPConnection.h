@@ -28,6 +28,7 @@ namespace eloop {
 #define Header_ContentLength		"Content-Length"
 #define Header_Notice				"Notice"
 #define Header_Date					"Date"
+#define Header_Reason				"x-reason"
 
 
 #define Method_OPTIONS				"OPTIONS"
@@ -146,7 +147,6 @@ public:
 	}
 
 	virtual ~RTSPMessage() {}
-
 
 	static void splitStrPair(const std::string& strPairData, StrPairVec& outVec,const std::string& delimiter="\r\n");
 

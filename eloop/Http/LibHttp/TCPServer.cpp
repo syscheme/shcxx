@@ -544,13 +544,13 @@ void TCPConnection::initHint()
 	std::ostringstream oss, reverseOss;
 	if (_tcpServer == NULL)
 	{
-		oss<<"["<<localIp<<":"<<localPort<<"==>"<<peerIp<<":"<<peerPort<<"]";
-		reverseOss<<"["<<peerIp<<":"<<peerPort<<"==>"<<localIp<<":"<<localPort<<"]";
+		oss<<"["<<localIp<<":"<<localPort<<"->"<<peerIp<<":"<<peerPort<<"]";
+		reverseOss<<"["<<peerIp<<":"<<peerPort<<"->"<<localIp<<":"<<localPort<<"]";
 	}
 	else
 	{
-		oss<<"["<<peerIp<<":"<<peerPort<<"==>"<<localIp<<":"<<localPort<<"]";
-		reverseOss<<"["<<localIp<<":"<<localPort<<"==>"<<peerIp<<":"<<peerPort<<"]";
+		oss<<"["<<peerIp<<":"<<peerPort<<"->"<<localIp<<":"<<localPort<<"]";
+		reverseOss<<"["<<localIp<<":"<<localPort<<"->"<<peerIp<<":"<<peerPort<<"]";
 	}
 	_Hint = oss.str();
 	_reverseHint = reverseOss.str();
