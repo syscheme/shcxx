@@ -217,6 +217,7 @@ TCPConnection* RTSPServerResponse::getConn()
 void RTSPServerResponse::post(int statusCode, const char* errMsg, bool bAsync) 
 {
 	{
+		// to avoid double post response
 		ZQ::common::MutexGuard g(_lkIsResp);
 		if (_isResp)
 			return;
@@ -225,9 +226,8 @@ void RTSPServerResponse::post(int statusCode, const char* errMsg, bool bAsync)
 
 	_server.removeReq(this);
 
-	if (statusCode != 408 && getRemainTime() <= 0)
-		statusCode = 408;
-
+	//if (statusCode != 408 && getRemainTime() <= 0)
+	//	statusCode = 408;
 	code(statusCode);
 
 	if (errMsg != NULL)
@@ -582,10 +582,10 @@ void RTSPServer::OnTimer()
 
 void RTSPServer::checkReqStatus()
 {
-	PendingRequstList	respList;
+	RequestList listToCancel;
 	{
 		ZQ::common::MutexGuard g(_lkReqList);
-		for(PendingRequstList::iterator it= _pendingReqList.begin(); it != _pendingReqList.end();)
+		for(RequestList::iterator it= _awaitRequests.begin(); it != _awaitRequests.end();)
 		{
 			if (!(*it) || (*it)->getRemainTime() > 0)
 			{
@@ -594,31 +594,31 @@ void RTSPServer::checkReqStatus()
 			}
 			
 			//timeout
-			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPServer, "checkReqStatus() req[%s(%d)] timeout per %d, eliminating from pendings"), (*it)->method().c_str(), (*it)->cSeq(), _config.procTimeout);
-			respList.push_back(*it);
-			it= _pendingReqList.erase(it);
+			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPServer, "checkReqStatus() req[%s(%d)] timeout per %d, cancelling from pendings"), (*it)->method().c_str(), (*it)->cSeq(), _config.procTimeout);
+			listToCancel.push_back(*it);
+			it= _awaitRequests.erase(it);
 		}
 	}
 
-	for(PendingRequstList::iterator itIndex= respList.begin(); itIndex != respList.end(); itIndex++)
-		(*itIndex)->post(408);
+	for(RequestList::iterator itCancel= listToCancel.begin(); itCancel != listToCancel.end(); itCancel++)
+		(*itCancel)->post(408);
 }
 
 void RTSPServer::addReq(RTSPServerResponse::Ptr resp)
 {
 	ZQ::common::MutexGuard g(_lkReqList);
-	if (std::find(_pendingReqList.begin(),_pendingReqList.end(), resp) != _pendingReqList.end())
+	if (std::find(_awaitRequests.begin(),_awaitRequests.end(), resp) != _awaitRequests.end())
 		return;
-	_pendingReqList.push_back(resp);
+	_awaitRequests.push_back(resp);
 }
 
 void RTSPServer::removeReq(RTSPServerResponse::Ptr resp)
 {
 	ZQ::common::MutexGuard g(_lkReqList);
-	for(PendingRequstList::iterator it= _pendingReqList.begin(); it != _pendingReqList.end();)
+	for(RequestList::iterator it= _awaitRequests.begin(); it != _awaitRequests.end();)
 	{
 		if (*it == resp)
-			it= _pendingReqList.erase(it);
+			it= _awaitRequests.erase(it);
 		else
 			it++;
 	}
@@ -627,7 +627,7 @@ void RTSPServer::removeReq(RTSPServerResponse::Ptr resp)
 int RTSPServer::getPendingRequest()
 {
 	ZQ::common::MutexGuard g(_lkReqList);
-	return _pendingReqList.size();
+	return _awaitRequests.size();
 }
 
 size_t RTSPServer::getSessionCount() const
