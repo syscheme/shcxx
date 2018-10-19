@@ -185,7 +185,14 @@ public:
 	int  	contentLength() const { return _bodyLen; }
 	void	contentLength(uint length) { _bodyLen = length; } //set content-length
 
-	void appendBody(const char* body, size_t len) {  _contentBody.append(body,len);  _bodyLen = _contentBody.size(); }
+	void appendBody(const char* body, size_t len)
+	{
+		if (len > 0)
+		{
+			_contentBody.append(body,len);  
+			_bodyLen = _contentBody.size(); 
+		}
+	}
 	void setBody(const std::string& body);
 	const std::string& body();
 
