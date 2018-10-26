@@ -601,7 +601,7 @@ void RTSPServer::checkReqStatus()
 	}
 
 	for(RequestList::iterator itCancel= listToCancel.begin(); itCancel != listToCancel.end(); itCancel++)
-		(*itCancel)->post(408);
+		(*itCancel)->post(503);
 }
 
 void RTSPServer::addReq(RTSPServerResponse::Ptr resp)
