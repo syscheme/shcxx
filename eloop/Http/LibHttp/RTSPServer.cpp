@@ -206,10 +206,10 @@ RTSPServerResponse::RTSPServerResponse(RTSPServer& server,const RTSPMessage::Ptr
 	_server.addReq(this);
 }
 
-int64 RTSPServerResponse::getRemainTime()
+int RTSPServerResponse::getRemainTime()
 {
-	int64 remainTime = (int64)(_server._config.procTimeout) + _req->_stampCreated - ZQ::common::now();
-	if(remainTime < 0)
+	int remainTime = int ((int64)(_server._config.procTimeout) + _req->_stampCreated - ZQ::common::now());
+	if (remainTime < 0)
 		return 0;
 	return remainTime;
 }
@@ -545,7 +545,8 @@ void RTSPServer::addSession(RTSPServer::Session::Ptr sess)
 		_logger(ZQ::common::Log::L_ERROR, CLOGFMT(RTSPServer, "addSession() session is null"));
 		return;
 	}
-	int sessSize = 0;
+
+	size_t sessSize = 0;
 	{
 		ZQ::common::MutexGuard g(_lkSessMap);
 		Session::Map::iterator it = _sessMap.find(sess->id());
@@ -563,7 +564,7 @@ void RTSPServer::addSession(RTSPServer::Session::Ptr sess)
 
 void RTSPServer::removeSession(const std::string& sessId)
 {
-	int sessSize = 0;
+	size_t sessSize = 0;
 	{
 		ZQ::common::MutexGuard g(_lkSessMap);
 		Session::Map::iterator it = _sessMap.find(sessId);
@@ -632,7 +633,7 @@ void RTSPServer::removeReq(RTSPServerResponse::Ptr resp)
 int RTSPServer::getPendingRequest()
 {
 	ZQ::common::MutexGuard g(_lkReqList);
-	return _awaitRequests.size();
+	return (int)_awaitRequests.size();
 }
 
 size_t RTSPServer::getSessionCount() const
