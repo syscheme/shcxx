@@ -10,6 +10,8 @@
 #include <SystemUtils.h>
 #include <set>
 #include <string>
+
+#undef max
 #include <boost/regex.hpp>
 
 #ifdef ZQ_OS_LINUX

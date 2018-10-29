@@ -101,6 +101,7 @@ public: // about the session management
 
 	protected:
 		RTSPHandler::Properties _appProps;
+
 	public:
 		ZQ::common::Log&        _log;
 	};
