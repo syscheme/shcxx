@@ -55,6 +55,17 @@ public:
 	typedef ZQ::common::Pointer<RTSPHandler> Ptr;
 	typedef std::map<std::string, Ptr> Map;
 
+	enum RequestMethod {
+		mtdUNKNOWN,
+		mtdSETUP,
+		mtdPLAY,
+		mtdPAUSE,
+		mtdTEARDOWN,
+		mtdGET_PARAMETER,
+		mtdDESCRIBE,
+		mtdOPTIONS,
+	};
+
 public: // about the session management
 	// ---------------------------------------
 	// subclass server-side RTSPSession
