@@ -189,7 +189,7 @@ public:
 		if (len > 0)
 		{
 			_contentBody.append(body,len);  
-			_bodyLen = _contentBody.size(); 
+			_bodyLen = (int)_contentBody.size(); 
 		}
 	}
 	void setBody(const std::string& body);

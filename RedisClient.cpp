@@ -397,8 +397,7 @@ RedisCommand::Ptr RedisClient::sendCommand(RedisCommand::Ptr pCmd)
 
 			if (_commandQueueToSend.size() >0 || (Socket::stConnecting == TCPClient::state()))
 			{
-				// a connection is currently pending with at least one queued request.
-				connectionIsPending = true;
+				connectionIsPending = true; // a connection is currently pending with at least one queued request.
 			}
 			else if (_so < 0 || _so == INVALID_SOCKET)
 			{ 
@@ -415,7 +414,7 @@ RedisCommand::Ptr RedisClient::sendCommand(RedisCommand::Ptr pCmd)
 
 			if (connectionIsPending)
 			{
-				_log(Log::L_DEBUG, CLOGFMT(RedisClient, "sendCommand() cmd[%s] connect in progress, wait for next try"), cmddesc.c_str());
+				_log(Log::L_DEBUG, CLOGFMT(RedisClient, "sendCommand() connect in progress, wait for next try, cmd[%s]"), cmddesc.c_str());
 				_commandQueueToSend.push(pCmd);
 
 				// give up those expired requests in the queue and prevent this queue from growing too big

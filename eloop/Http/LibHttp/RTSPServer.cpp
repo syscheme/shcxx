@@ -41,6 +41,11 @@ private:
 // ---------------------------------------
 // class RTSPHandler
 // ---------------------------------------
+void RTSPHandler::Session::destroy() 
+{
+	_server.removeSession(_id);
+}
+
 RTSPHandler::RTSPHandler(IBaseApplication& app, RTSPServer& server, const RTSPHandler::Properties& dirProps)
 : _app(app), _server(server), _dirProps(dirProps)
 {
@@ -345,7 +350,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 			{ 
 				sessId = _server.generateSessionID();
 				resp->header(Header_Session,  sessId);
-				RTSPServer::Session::Ptr sess = _server.createSession(sessId.c_str());
+				RTSPServer::Session::Ptr sess = _rtspHandler->_app.newSession(_server, sessId.c_str());
 				if (sess == NULL)
 				{
 					if (_tcpServer)
@@ -601,7 +606,7 @@ void RTSPServer::checkReqStatus()
 	}
 
 	for(RequestList::iterator itCancel= listToCancel.begin(); itCancel != listToCancel.end(); itCancel++)
-		(*itCancel)->post(503);
+		(*itCancel)->post(408);
 }
 
 void RTSPServer::addReq(RTSPServerResponse::Ptr resp)

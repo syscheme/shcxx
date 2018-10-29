@@ -2,7 +2,6 @@
 #define __RTSP_SERVER_H__
 
 #include "RTSPConnection.h"
-
 #include "TCPServer.h"
 
 #include <set>
@@ -41,19 +40,43 @@ private:
 	bool		_isResp;
 };
 
-
 // ---------------------------------------
 // class RTSPHandler
 // ---------------------------------------
 class RTSPHandler: public virtual ZQ::common::SharedObject
 {
 	friend class RTSPPassiveConn;
-	friend class IBaseApplication;
+	friend class RTSPServer;
+	// friend class IBaseApplication;
+	// friend class RTSPApplication<RTSPHandler>;
 
 public:
 	typedef std::map<std::string, std::string> Properties;
 	typedef ZQ::common::Pointer<RTSPHandler> Ptr;
 	typedef std::map<std::string, Ptr> Map;
+
+public: // about the session management
+	// ---------------------------------------
+	// subclass server-side RTSPSession
+	// ---------------------------------------
+	class Session : public RTSPSession
+	{
+	public:
+		typedef ZQ::common::Pointer<Session> Ptr;
+		typedef std::map<std::string, Ptr> Map;
+
+	public:
+		Session(RTSPServer& server, const std::string& id): _server(server), RTSPSession(id) {}
+		virtual ~Session() {}
+		virtual void destroy();
+
+		//virtual bool	setup()    { return false; }
+		//virtual bool	play()     { return false; }
+		//virtual bool	pause()    { return false; }
+		//virtual bool	teardown() { return false; }
+	protected:
+		RTSPServer&	 _server;
+	};
 
 	// ---------------------------------------
 	// interface IBaseApplication
@@ -74,9 +97,11 @@ public:
 
 		// NOTE: this method may be accessed by multi threads concurrently
 		virtual RTSPHandler::Ptr create(RTSPServer& server, const RTSPHandler::Properties& dirProps) =0;
+		virtual Session::Ptr newSession(RTSPServer& server, const char* sessId = NULL) =0;
 
 	protected:
 		RTSPHandler::Properties _appProps;
+	public:
 		ZQ::common::Log&        _log;
 	};
 
@@ -115,30 +140,13 @@ protected: // hatched by HttpApplication
 	RTSPServer&		        _server;
 };
 
-template <class Handler>
-class RTSPApplication: public RTSPHandler::IBaseApplication
-{
-public:
-	typedef ZQ::common::Pointer<RTSPApplication> Ptr;
-	typedef Handler HandlerT;
-
-public:
-	RTSPApplication(ZQ::common::Log& logger, const RTSPHandler::Properties& appProps = RTSPHandler::Properties())
-		: IBaseApplication(logger, appProps) {}
-	virtual ~RTSPApplication() {}
-
-	virtual RTSPHandler::Ptr create(RTSPServer& server,const RTSPHandler::Properties& dirProps)
-	{ 
-		return new HandlerT(*this, server, dirProps);
-	}
-};
-
 // ---------------------------------------
 // class RTSPServer
 // ---------------------------------------
 class RTSPServer : public TCPServer
 {
 public:
+	typedef RTSPHandler::Session Session;
 	RTSPServer( const TCPServer::ServerConfig& conf, ZQ::common::Log& logger, uint32 maxSess = 10000);
 	virtual ~RTSPServer();
 
@@ -149,41 +157,6 @@ public:
 	virtual TCPConnection* createPassiveConn();
 
 public: // about the session management
-	// ---------------------------------------
-	// subclass server-side RTSPSession
-	// ---------------------------------------
-	class Session : public RTSPSession
-	{
-	public:
-		typedef ZQ::common::Pointer<Session> Ptr;
-		typedef std::map<std::string, Ptr> Map;
-
-	public:
-		Session(RTSPServer& server, const std::string& id): _server(server), RTSPSession(id) {}
-		virtual ~Session() {}
-
-		virtual void destroy() 
-		{
-			_server.removeSession(_id);
-		}
-
-		//virtual bool	setup()    { return false; }
-		//virtual bool	play()     { return false; }
-		//virtual bool	pause()    { return false; }
-		//virtual bool	teardown() { return false; }
-	protected:
-		RTSPServer&		_server;
-	};
-
-	virtual Session::Ptr createSession(const char* sessId = NULL) 
-	{
-		if (sessId == NULL)
-			sessId = generateSessionID().c_str();
-		return new Session(*this, sessId); 
-	}
-
-
-
 	std::string	generateSessionID();
 
 	Session::Ptr findSession(const std::string& sessId);
@@ -197,7 +170,6 @@ public: // about the session management
 	void setMaxSession(uint32 maxSession);
 	uint32 getMaxSession() const;
 
-
 	virtual void OnTimer();
 
 	void checkReqStatus();
@@ -210,7 +182,7 @@ private:
 	typedef struct _MountDir
 	{
 		std::string					uriEx;
-		boost::regex				re;
+		boost::regex			 re;
 		RTSPHandler::AppPtr	app;
 		RTSPHandler::Properties     props;
 	} MountDir;
@@ -229,6 +201,37 @@ private:
 	RequestList			        _awaitRequests;
 	ZQ::common::Mutex			_lkReqList;
 };
+
+// ---------------------------------------
+// class RTSPApplication
+// ---------------------------------------
+template <class Handler>
+class RTSPApplication: public RTSPHandler::IBaseApplication
+{
+public:
+	typedef ZQ::common::Pointer<RTSPApplication> Ptr;
+	typedef Handler HandlerT;
+
+public:
+	RTSPApplication(ZQ::common::Log& logger, const RTSPHandler::Properties& appProps = RTSPHandler::Properties())
+		: IBaseApplication(logger, appProps) {}
+	virtual ~RTSPApplication() {}
+
+	// create the handler instance
+	virtual RTSPHandler::Ptr create(RTSPServer& server, const RTSPHandler::Properties& dirProps)
+	{ 
+		return new HandlerT(*this, server, dirProps);
+	}
+
+	// create the server-side session
+	virtual RTSPHandler::Session::Ptr newSession(RTSPServer& server, const char* sessId = NULL) 
+	{
+		if (sessId == NULL)
+			sessId = server.generateSessionID().c_str();
+		return new RTSPHandler::Session(server, sessId); 
+	}
+};
+
 
 } } //namespace ZQ::eloop
 #endif

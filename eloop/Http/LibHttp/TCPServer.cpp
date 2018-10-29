@@ -11,14 +11,14 @@ namespace eloop {
 void WatchDog::OnTimer() 
 {
 	ZQ::common::MutexGuard gd(_observeeLock);
-	for (int i=0; i<_observeeList.size();i++)
+	for (size_t i=0; i<_observeeList.size();i++)
 		_observeeList[i]->OnTimer();
 }
 
 void WatchDog::OnClose()
 {
 	ZQ::common::MutexGuard gd(_observeeLock);
-	for (int i=0; i<_observeeList.size();i++)
+	for (size_t i=0; i<_observeeList.size();i++)
 		_observeeList[i]->OnUnwatch();
 }
 
@@ -630,7 +630,7 @@ void TCPConnection::OnAsyncSend()
 			hint = _reverseHint;
 
 		if (TCPConnection::_enableHexDump > 0)
-			_logger.hexDump(ZQ::common::Log::L_INFO, asyncMsg.c_str(), asyncMsg.size(), hint.c_str(),true);
+			_logger.hexDump(ZQ::common::Log::L_INFO, asyncMsg.c_str(), (int)asyncMsg.size(), hint.c_str(), true);
 		i--;
 	}
 }

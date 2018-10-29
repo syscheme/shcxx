@@ -8,9 +8,9 @@
 #include "eloop_net.h"
 #include <NativeThread.h>
 #include <SystemUtils.h>
-#include <boost/regex.hpp>
 #include <set>
 #include <string>
+#include <boost/regex.hpp>
 
 #ifdef ZQ_OS_LINUX
 #include <signal.h>

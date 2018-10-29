@@ -163,7 +163,7 @@ const std::string& RTSPMessage::code2status(int code)
 	std::map<int,std::string>::const_iterator it = RtspCode2StatusMap.find(code);
 	if( it != RtspCode2StatusMap.end())
 		return it->second;
-	return "unkown";
+	return "unknown";
 }
 
 const std::string& RTSPMessage::header( const std::string& key) const 
