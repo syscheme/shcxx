@@ -214,8 +214,8 @@ bool BaseZQServiceApplication::init(int argc, char* argv[])
 		return false;
 	}
 
-	//_strVersion = std::string(ZQ_INTERNAL_FILE_NAME) + " v" __STR1__(ZQ_PRODUCT_VER_MAJOR) "." __STR1__(ZQ_PRODUCT_VER_MINOR) "." __STR1__(ZQ_PRODUCT_VER_PATCH) "." __STR1__(ZQ_PRODUCT_VER_BUILD);
-	_strVersion = __STR1__(ZQ_PRODUCT_VER_MAJOR) "." __STR1__(ZQ_PRODUCT_VER_MINOR) "." __STR1__(ZQ_PRODUCT_VER_PATCH) "." __STR1__(ZQ_PRODUCT_VER_BUILD);
+	//_strVersion = std::string(ZQ_INTERNAL_FILE_NAME) + " v" __N2S__(ZQ_PRODUCT_VER_MAJOR) "." __N2S__(ZQ_PRODUCT_VER_MINOR) "." __N2S__(ZQ_PRODUCT_VER_PATCH) "." __N2S__(ZQ_PRODUCT_VER_BUILD);
+	_strVersion = __N2S__(ZQ_PRODUCT_VER_MAJOR) "." __N2S__(ZQ_PRODUCT_VER_MINOR) "." __N2S__(ZQ_PRODUCT_VER_PATCH) "." __N2S__(ZQ_PRODUCT_VER_BUILD);
 
 	(*_logger)(Log::L_INFO, "========================= Service[%s] version[%s] starts =========================",_serviceName.c_str(), _strVersion.c_str());
 	ZQ::common::setGlogger(_logger);

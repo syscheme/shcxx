@@ -327,7 +327,7 @@ HRESULT BaseSchangeServiceApplication::init(void)
 
 	m_pReporter->writeMessage(L"===================== Loading service common interface ======================");
 
-	_strVersion = __STR1__(ZQ_PRODUCT_VER_MAJOR) "." __STR1__(ZQ_PRODUCT_VER_MINOR) "." __STR1__(ZQ_PRODUCT_VER_PATCH) "." __STR1__(ZQ_PRODUCT_VER_BUILD);
+	_strVersion = __N2S__(ZQ_PRODUCT_VER_MAJOR) "." __N2S__(ZQ_PRODUCT_VER_MINOR) "." __N2S__(ZQ_PRODUCT_VER_PATCH) "." __N2S__(ZQ_PRODUCT_VER_BUILD);
 	MyGlog(Log::L_INFO, "========================= Service[%s] starts =========================",_strVersion.c_str());
 
 	getConfigValue(_T("KeepAliveIntervals"),&m_dwKeepAliveInterval_ms,m_dwKeepAliveInterval_ms,true,true);
