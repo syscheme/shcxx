@@ -488,6 +488,29 @@ bool RTSPServer::mount(const std::string& uriEx, RTSPHandler::AppPtr app, const 
 	return true;
 }
 
+bool RTSPServer::unmount(const std::string& uriEx, const char* virtualSite)
+{
+	std::string vsite = (virtualSite && *virtualSite) ? virtualSite :DEFAULT_SITE;
+
+	// address the virtual site
+	bool ret = false;
+	VSites::iterator itSite = _vsites.find(vsite);
+	if (_vsites.end() == itSite)
+		return ret;
+
+	for(MountDirs::iterator it = itSite->second.begin(); it < itSite->second.end();)
+	{
+		if (it->uriEx == uriEx)
+		{
+			it = itSite->second.erase(it);
+			ret = true;
+		}
+		else  it++;
+	}
+
+	return ret;
+}
+
 RTSPHandler::Ptr RTSPServer::createHandler( const std::string& uri, RTSPPassiveConn& conn, const std::string& virtualSite)
 {
 	RTSPHandler::AppPtr app = NULL;
