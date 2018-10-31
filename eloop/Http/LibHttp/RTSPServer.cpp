@@ -311,7 +311,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 
 		int pendings =  _server.getPendingRequest();
 		if (pendings >2)
-			_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequests() enqueuing %s(%d) into pendings[%d /%d]"), req->method().c_str(), req->cSeq(), pendings, _server._config.maxPendings);
+			_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequests() enqueuing %s(%d) into pendings[%d /%d]"), req->method().c_str(), req->cSeq(), pendings, (int)_server._config.maxPendings);
 
 		if (_server._config.maxPendings >0 && pendings >= _server._config.maxPendings)
 		{
@@ -595,7 +595,7 @@ void RTSPServer::removeSession(const std::string& sessId)
 			_sessMap.erase(it);
 		sessSize = _sessMap.size();
 	}
-	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPServer, "removeSession() sessId[%s],sessSize[%d]"), sessId.c_str(), sessSize);
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPServer, "removeSession() sessId[%s],sessSize[%zd]"), sessId.c_str(), sessSize);
 }
 
 const RTSPServer::Session::Map& RTSPServer::getSessList() 
@@ -623,7 +623,7 @@ void RTSPServer::checkReqStatus()
 			}
 			
 			//timeout
-			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPServer, "checkReqStatus() req[%s(%d)] timeout per %d, cancelling from pendings"), (*it)->method().c_str(), (*it)->cSeq(), _config.procTimeout);
+			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPServer, "checkReqStatus() req[%s(%d)] timeout per %d, cancelling from pendings"), (*it)->method().c_str(), (*it)->cSeq(), (int)_config.procTimeout);
 			listToCancel.push_back(*it);
 			it= _awaitRequests.erase(it);
 		}

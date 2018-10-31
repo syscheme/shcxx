@@ -159,7 +159,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 
 			if (_currentParseMsg.contentBodyRead < _currentParseMsg.pMsg->contentLength())
 			{
-				_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPConnection, "parse() conn[%s] incompleted message left, appended[%lld], Content-Length[%lld/%lld]"), hint().c_str(), len, _currentParseMsg.contentBodyRead, _currentParseMsg.pMsg->contentLength());
+				_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPConnection, "parse() conn[%s] incompleted message left, appended[%zd], Content-Length[%d/%d]"), hint().c_str(), len, (int)_currentParseMsg.contentBodyRead, _currentParseMsg.pMsg->contentLength());
 				continue;
 			}
 
