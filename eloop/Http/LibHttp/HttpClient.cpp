@@ -45,7 +45,7 @@ bool HttpClient::beginRequest( HttpMessage::Ptr msg, const std::string& url)
 	msg->header("Host",host);
 
 	_req = msg;
-	_logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient, "beginRequest() conect to[%s:%d]"),host,urlstr.getPort());
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient, "beginRequest() connect to[%s:%d]"),host,urlstr.getPort());
 	connect4(host,urlstr.getPort());
 	return true;
 }
@@ -54,6 +54,7 @@ bool HttpClient::beginRequest( HttpMessage::Ptr msg, const std::string& ip, cons
 {
 	_req = msg;
 	connect4(ip.c_str(),port);
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient, "beginRequest() connect to[%s:%u]"), ip.c_str(), port);
 	return true;
 }
 
