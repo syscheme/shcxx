@@ -9,7 +9,7 @@
 #include <NativeThread.h>
 #include <SystemUtils.h>
 #include <list>
-#include <set>
+#include <map>
 #include <string>
 
 #ifdef ZQ_OS_LINUX

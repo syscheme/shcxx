@@ -533,7 +533,7 @@ RTSPHandler::Ptr RTSPServer::createHandler( const std::string& uri, RTSPPassiveC
 			continue;
 		}
 
-		if (boost::regex_match(uriWithnoParams, it->re))
+		if (boost::regex_match(uriWithnoParams, re))
 		{
 			if (it->app)
 				handler = it->app->create(*this, it->props);
