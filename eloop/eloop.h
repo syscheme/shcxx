@@ -38,7 +38,7 @@ extern "C"{
 #ifdef ZQ_OS_LINUX
 	#include <sys/time.h>
 #endif
-#include "libuv_1.9.1/include/uv.h"
+#include "uv.h"
 };
 
 #include <string>
