@@ -19,9 +19,8 @@ XmlNode toShared(ZQ::common::XMLPreferenceEx* p)
 XmlNodes locate(XmlNode root, const std::string &path)
 {
     if(!root)
-    {
         throwf<NavigationException>(EXFMT(NavigationException, "XMLUtil::locate() bad node object. path [%s]"), path.c_str());
-    }
+
     // step 1: parse the path
     typedef std::vector< std::string > StandardPath;
     StandardPath stdpath;
@@ -40,9 +39,7 @@ XmlNodes locate(XmlNode root, const std::string &path)
     {
         current = toShared(current->firstChild(it_tag->c_str()));
         if(!current)
-        {
-            throwf<NavigationException>(EXFMT(NavigationException, "XMLUtil::locate() can't find node [%s] in path [%s]"), it_tag->c_str(), path.c_str());
-        }
+            throwf<NavigationException>(EXFMT(NavigationException, "XMLUtil::locate() failed to find element[%s] in path[%s]"), it_tag->c_str(), path.c_str());
     }
     
     XmlNodes result;
@@ -60,6 +57,7 @@ XmlNodes locate(XmlNode root, const std::string &path)
         // the case of empty path
         result.push_back(current);
     }
+
     return result;
 }
 
@@ -70,7 +68,9 @@ std::string fullPath(XmlNode node)
     node->getPreferenceName(&buf[0], false, (int)buf.size() - 1);
     return &buf[0];
 }
+
 } // namespace XMLUtil
+
 //////////////////////////////////////////////////////////////////////////
 #define PPLOG if(_pLog) (*_pLog)
 // preprocessor that implement the macro replacement function
@@ -79,9 +79,10 @@ bool Preprocessor::define(const std::string &macroName, const std::string &macro
     // check macro name
     if(macroName.empty() || macroName.find("${") != std::string::npos)
     {
-        PPLOG(Log::L_WARNING, "Bad macro name, [%s]", macroName.c_str());
+        PPLOG(Log::L_WARNING, "bad macro name[%s]", macroName.c_str());
         return false;
     }
+    
     std::string macro = std::string("${") + macroName + "}";
 //    VariableMap::iterator it = _variables.find(macro);
 //     if(it == _variables.end())
@@ -96,11 +97,11 @@ bool Preprocessor::define(const std::string &macroName, const std::string &macro
     if(fixup(macroValue))
     {
         _variables[macro] = macroValue;
-        PPLOG(Log::L_DEBUG, CLOGFMT(Preprocessor, "associated macro[%s]=value[%s]"), macroName.c_str(), macroValue.c_str());
+        PPLOG(Log::L_DEBUG, CLOGFMT(Preprocessor, "associated %s[%s]"), macroName.c_str(), macroValue.c_str());
         return true;
     }
 
-	PPLOG(Log::L_ERROR, CLOGFMT(Preprocessor, "failed to associate macro[%s]=exp[%s]"), macroName.c_str(), macroDef.c_str());
+	PPLOG(Log::L_WARNING, CLOGFMT(Preprocessor, "failed to associate %s[%s]"), macroName.c_str(), macroDef.c_str());
 	return false;
 }
 
@@ -110,7 +111,7 @@ bool Preprocessor::define(const Macros& macros)
     {
         if(!define(it->first, it->second))
         {
-            PPLOG(Log::L_ERROR, CLOGFMT(Preprocessor, "failed to associate macro[%s] with exp[%s]"), it->first.c_str(), it->second.c_str());
+            PPLOG(Log::L_ERROR, CLOGFMT(Preprocessor, "failed to associate %s[%s]"), it->first.c_str(), it->second.c_str());
             return false;
         }
     }
@@ -161,17 +162,13 @@ bool Preprocessor::fixup(std::string &str) const
 	return true;
 }
 
-namespace Config{
+namespace Config {
 //////////////////////////////////////////////////////////////////////////
 
 // getter & setter of the global logger in the config module
 static ZQ::common::Log* gConfLog = NULL;
-Log* getConfLog() {
-    return gConfLog;
-}
-void setConfLog(ZQ::common::Log* logger) {
-    gConfLog = logger;
-}
+Log* getConfLog() { return gConfLog; }
+void setConfLog(ZQ::common::Log* logger) { gConfLog = logger; }
 
 // set/check the flag that if the program set the global logger pointer
 // in the Loader::setLogger(). Pass NULL for check-only.
@@ -181,6 +178,7 @@ bool setConfLogInLoader(bool* pEnabled) {
     if(pEnabled) {
         gSetConfLogInLoader = *pEnabled;
     }
+
     return gSetConfLogInLoader;
 }
 
@@ -206,45 +204,38 @@ static bool isFullPath(const std::string &path)
 std::pair<std::string, std::string> parseFilePath(const std::string &path)
 {
     std::string::size_type pos = path.rfind(FNSEPC); // pos of '/'
-    if(std::string::npos != pos)
-    {
-        std::string::size_type name_start_pos = pos + 1; // one after the '/'
-        std::string filename = path.substr(name_start_pos);
-        std::string folder = path.substr(0, path.size() - filename.size());
-        return std::make_pair(folder, filename);
-    }
-    else // a file name
-    {
+    if(std::string::npos == pos)
         return std::make_pair<std::string>("", path);
-    }
+
+    std::string::size_type name_start_pos = pos + 1; // one after the '/'
+    std::string filename = path.substr(name_start_pos);
+    std::string folder = path.substr(0, path.size() - filename.size());
+    return std::make_pair(folder, filename);
 }
 
 void MacroDefinition::readMacroReference(XMLUtil::XmlNode node, const Preprocessor* hPP)
 {
     // use as post action of got reference file
-    if(!src.empty())
+    if(src.empty())
+        return;
+
+    if(!isFullPath(src))
     {
-        if(!isFullPath(src))
-        {
-            // treat as relative path
-            src = folder + src;
-        }
-
-        Config::Loader<MacroDefinition> loader("");
-        loader.setLogger(pLog); // enable log while loading
-        loader.pLog = pLog; // pass the log object
-        // parse the path
-        loader.folder = parseFilePath(src).first;
-
-        if(loader.load(src.c_str(), false))// disable the macro here
-        {
-            macros.swap(loader.macros);
-        }
-        else
-        {
-            throwf<CfgException>(EXFMT(CfgException, "Failed to load macro definition file [%s]"), src.c_str());
-        }
+        // treat as relative path
+        src = folder + src;
     }
+
+    Config::Loader<MacroDefinition> loader("");
+    loader.setLogger(pLog); // enable log while loading
+    loader.pLog = pLog; // pass the log object
+
+    // parse the path
+    loader.folder = parseFilePath(src).first;
+
+    if(loader.load(src.c_str(), false))// disable the macro here
+        macros.swap(loader.macros);
+    else
+        throwf<CfgException>(EXFMT(CfgException, "failed to load macro definition file [%s]"), src.c_str());
 }
 
 void MacroDefinition::readMacro(XMLUtil::XmlNode node, const Preprocessor* hPP)
@@ -254,6 +245,5 @@ void MacroDefinition::readMacro(XMLUtil::XmlNode node, const Preprocessor* hPP)
     macros.push_back(std::make_pair(nvholder.name, nvholder.value));
 }
 
-} // namespace Config
-} // namespace common
-} // namespace ZQTianShan
+}}} // namespace ZQTianShan::common::Config
+
