@@ -12,7 +12,6 @@
 #include <string>
 
 #undef max
-#include <boost/regex.hpp>
 
 #ifdef ZQ_OS_LINUX
 #include <signal.h>
