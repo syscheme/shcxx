@@ -1,6 +1,6 @@
 #include "TCPServer.h"
 #include <sstream>
-
+#include <algorithm>
 namespace ZQ {
 namespace eloop {
 

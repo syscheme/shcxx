@@ -8,10 +8,9 @@
 #include "eloop_net.h"
 #include <NativeThread.h>
 #include <SystemUtils.h>
+#include <list>
 #include <set>
 #include <string>
-
-#undef max
 
 #ifdef ZQ_OS_LINUX
 #include <signal.h>

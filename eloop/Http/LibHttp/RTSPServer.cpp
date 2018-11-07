@@ -1,6 +1,7 @@
 #include "RTSPServer.h"
 #include "Guid.h"
 #include "SystemUtils.h"
+#include <boost/regex.hpp>
 
 
 namespace ZQ {
@@ -462,14 +463,6 @@ bool RTSPServer::mount(const std::string& uriEx, RTSPHandler::AppPtr app, const 
 	std::string vsite = (virtualSite && *virtualSite) ? virtualSite :DEFAULT_SITE;
 
 	MountDir dir;
-	try {
-		dir.re.assign(uriEx);
-	}
-	catch( const boost::regex_error& )
-	{
-		_logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer, "mount() failed to add [%s:%s] as url uriEx"), vsite.c_str(), uriEx.c_str());
-		return false;
-	}
 
 	dir.uriEx = uriEx;
 	dir.app = app;
@@ -530,6 +523,16 @@ RTSPHandler::Ptr RTSPServer::createHandler( const std::string& uri, RTSPPassiveC
 
 	for( ; it != itSite->second.end(); it++)
 	{
+		boost::regex re;
+		try {
+			re.assign(it->uriEx);
+		}
+		catch( const boost::regex_error& )
+		{
+			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer, "mount() failed to add [%s:%s] as url uriEx"), virtualSite.c_str(), it->uriEx.c_str());
+			continue;
+		}
+
 		if (boost::regex_match(uriWithnoParams, it->re))
 		{
 			if (it->app)

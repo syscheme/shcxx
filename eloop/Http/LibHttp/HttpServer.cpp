@@ -298,7 +298,7 @@ HttpHandler::Ptr HttpServer::createHandler(const std::string& uri, HttpPassiveCo
 		}
 		catch( const boost::regex_error& )
 		{
-			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer, "mount() failed to add [%s:%s] as url uriEx"), vsite.c_str(), uriEx.c_str());
+			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer, "mount() failed to add [%s:%s] as url uriEx"), virtualSite.c_str(), it->uriEx.c_str());
 			continue;
 		}
 
