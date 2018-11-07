@@ -39,6 +39,7 @@ extern "C"{
 	#include <sys/time.h>
 #endif
 #include "uv.h"
+#include "uv-errno.h"
 };
 
 #include <string>
@@ -172,8 +173,8 @@ public:
 		elpuEAI_PROTOCOL        = UV__EAI_PROTOCOL,
 
 
-		elpuEPIPE				= -4047,
-/*		
+		elpuEPIPE				= UV__EPIPE,
+		
 		elpuE2BIG               = UV__E2BIG,
 		elpuEACCES              = UV__EACCES,
 		elpuEADDRINUSE          = UV__EADDRINUSE,
@@ -234,7 +235,7 @@ public:
 		elpuENXIO               = UV__ENXIO,
 		elpuEMLINK              = UV__EMLINK,
 		elpuEHOSTDOWN           = UV__EHOSTDOWN,
-*/
+
 	} ElpeError;
 
 	static const char* errDesc(ElpeError err)  { return errDesc((int)err); }
