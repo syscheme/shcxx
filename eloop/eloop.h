@@ -171,9 +171,6 @@ public:
 		elpuEAI_SOCKTYPE        = UV__EAI_SOCKTYPE,
 		elpuEAI_BADHINTS        = UV__EAI_BADHINTS,
 		elpuEAI_PROTOCOL        = UV__EAI_PROTOCOL,
-
-
-		elpuEPIPE				= UV__EPIPE,
 		
 		elpuE2BIG               = UV__E2BIG,
 		elpuEACCES              = UV__EACCES,
