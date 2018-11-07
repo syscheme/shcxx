@@ -6,7 +6,6 @@
 #include "HttpConnection.h"
 #include <NativeThread.h>
 #include <SystemUtils.h>
-#include <boost/regex.hpp>
 #include <set>
 
 
@@ -173,7 +172,6 @@ private:
 	typedef struct _MountDir
 	{
 		std::string					uriEx;
-		boost::regex				re;
 		HttpHandler::AppPtr	app;
 		HttpHandler::Properties     props;
 	} MountDir;
