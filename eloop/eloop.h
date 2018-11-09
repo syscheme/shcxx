@@ -38,7 +38,8 @@ extern "C"{
 #ifdef ZQ_OS_LINUX
 	#include <sys/time.h>
 #endif
-#include "libuv_1.9.1/include/uv.h"
+#include "uv.h"
+#include "uv-errno.h"
 };
 
 #include <string>
@@ -170,10 +171,7 @@ public:
 		elpuEAI_SOCKTYPE        = UV__EAI_SOCKTYPE,
 		elpuEAI_BADHINTS        = UV__EAI_BADHINTS,
 		elpuEAI_PROTOCOL        = UV__EAI_PROTOCOL,
-
-
-		elpuEPIPE				= -4047,
-/*		
+		
 		elpuE2BIG               = UV__E2BIG,
 		elpuEACCES              = UV__EACCES,
 		elpuEADDRINUSE          = UV__EADDRINUSE,
@@ -234,7 +232,7 @@ public:
 		elpuENXIO               = UV__ENXIO,
 		elpuEMLINK              = UV__EMLINK,
 		elpuEHOSTDOWN           = UV__EHOSTDOWN,
-*/
+
 	} ElpeError;
 
 	static const char* errDesc(ElpeError err)  { return errDesc((int)err); }

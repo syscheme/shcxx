@@ -1,6 +1,8 @@
 #include "RTSPConnection.h"
 #include "TimeUtil.h"
 #include "urlstr.h"
+#include <vector>
+#include <algorithm>
 
 namespace ZQ {
 namespace eloop {

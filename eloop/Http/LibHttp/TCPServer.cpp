@@ -1,6 +1,6 @@
 #include "TCPServer.h"
 #include <sstream>
-
+#include <algorithm>
 namespace ZQ {
 namespace eloop {
 
@@ -492,8 +492,8 @@ bool TCPConnection::start()
 	initHint();
 	if (_tcpServer)
 	{
-		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"new connection connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
 		_tcpServer->addConn(this);
+		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"new conn[%s] %s accepted"),_connId.c_str(), _Hint.c_str());
 	}
 
 	if (_watchDog)
@@ -512,22 +512,16 @@ bool TCPConnection::stop(bool isShutdown)
 	if (_async != NULL)
 	{
 		_async->close();
-		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"connId[%s] stop async close from [%s] isShutdown[%s]"),_connId.c_str(), _Hint.c_str(), isShutdown?"true":"false");
+		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"conn[%s] %s async-closed: isShutdown[%s]"),_connId.c_str(), _Hint.c_str(), isShutdown?"true":"false");
 		return true;
 	}
-	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"connId[%s] stop from [%s] isShutdown[%s]"),_connId.c_str(), _Hint.c_str(), isShutdown?"true":"false");
-	_isConnected = false;
-	
+
 	if (_isShutdown)
-	{
-		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"shutdown stop connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
 		shutdown();
-	}
-	else
-	{
-		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"close stop connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
-		close();
-	}
+	else close();
+
+	_isConnected = false;
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"%s conn[%s] %s"), _isShutdown?"shutdown" :"closed", _connId.c_str(), _Hint.c_str());
 }
 
 void TCPConnection::initHint()
@@ -563,16 +557,14 @@ void TCPConnection::OnClose()
 
 	if (_watchDog)
 		_watchDog->unwatch(this);
-	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnClose connection connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
+
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnClose() conn[%s] %s"),_connId.c_str(), _Hint.c_str());
 	onStop();
 }
 
 void TCPConnection::OnShutdown(ElpeError status)
 {
-	if (status != elpeSuccess)
-		_logger(ZQ::common::Log::L_ERROR, CLOGFMT(TCPConnection,"shutdown error code[%d] Description[%s]"),status,errDesc(status));
-
-	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnShutdown connection connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnShutdown() conn[%s] %s, error(%d): %s"),_connId.c_str(), _Hint.c_str(), status,errDesc(status));
 	close();
 }
 
@@ -637,7 +629,7 @@ void TCPConnection::OnAsyncSend()
 
 void TCPConnection::OnCloseAsync()
 {
-	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnCloseAsync connId[%s] from [%s]"),_connId.c_str(), _Hint.c_str());
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnCloseAsync() conn[%s] %s"),_connId.c_str(), _Hint.c_str());
 	OnAsyncSend();
 	if (_async != NULL)
 	{

@@ -1,4 +1,5 @@
 #include <ZQ_common_conf.h>
+#include <boost/regex.hpp>
 #include "HttpServer.h"
 #include "TimeUtil.h"
 #include <fcntl.h>
@@ -254,14 +255,6 @@ bool HttpServer::mount(const std::string& uriEx, HttpHandler::AppPtr app, const 
 	std::string vsite = (virtualSite && *virtualSite) ? virtualSite :DEFAULT_SITE;
 
 	MountDir dir;
-	try {
-		dir.re.assign(uriEx);
-	}
-	catch( const boost::regex_error& )
-	{
-		_logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer, "mount() failed to add [%s:%s] as url uriEx"), vsite.c_str(), uriEx.c_str());
-		return false;
-	}
 
 	dir.uriEx = uriEx;
 	dir.app = app;
@@ -299,7 +292,17 @@ HttpHandler::Ptr HttpServer::createHandler(const std::string& uri, HttpPassiveCo
 
 	for( ; it != itSite->second.end(); it++)
 	{
-		if (boost::regex_match(uriWithnoParams, it->re))
+		boost::regex re;
+		try {
+			re.assign(it->uriEx);
+		}
+		catch( const boost::regex_error& )
+		{
+			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer, "mount() failed to add [%s:%s] as url uriEx"), virtualSite.c_str(), it->uriEx.c_str());
+			continue;
+		}
+
+		if (boost::regex_match(uriWithnoParams, re))
 		{
 			if (it->app)
 				handler = it->app->create(conn, it->props);

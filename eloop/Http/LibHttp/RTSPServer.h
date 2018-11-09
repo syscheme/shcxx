@@ -196,7 +196,6 @@ private:
 	typedef struct _MountDir
 	{
 		std::string					uriEx;
-		boost::regex			 re;
 		RTSPHandler::AppPtr	app;
 		RTSPHandler::Properties     props;
 	} MountDir;
