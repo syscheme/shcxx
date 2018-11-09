@@ -434,6 +434,66 @@ long ZQ_COMMON_API  str2msec(const char* str)
 }
 
 
+bool keywordReduce(const std::vector< std::string >& texts, std::vector< std::string >& keywords, const char* wordDelimitor, const char* kwDelimitor)
+{
+	keywords.clear();
+	std::vector< std::vector<std::string> > tokens;
+	for (size_t i=0; i < texts.size(); i++)
+	{
+		std::vector<std::string> strtkn;
+		SplitString(texts[i], strtkn, wordDelimitor);
+		tokens.push_back(strtkn);
+	}
+
+	size_t flags =0;
+	std::vector<std::string> filter;
+	for (int i=0; i < tokens.size(); i++)
+	{
+		std::vector<std::string>& st = tokens[i];
+		for (size_t j =0; j < st.size(); j++)
+		{
+			if (filter.size() <=j)
+			{
+				filter.push_back(st[j]);
+				continue;
+			}
+
+			size_t flag = (1<<j);
+			if (0 == (flags & flag) && filter[j].compare(st[j]))
+				flags |= (1<<j);
+		}
+	}
+
+	if (filter.size() <=0 || 0==flags)
+		return false;
+
+	std::vector< std::string > result;
+
+	for (int i=0; i < tokens.size(); i++)
+	{
+		std::vector<std::string>& st = tokens[i];
+		std::string key;
+		for (size_t j =0; j < st.size(); j++)
+		{
+			if (0 == ((1<<j) & flags))
+				continue;
+
+			key += st[j] + kwDelimitor;
+		}
+
+		if (key.length()<2)
+		{
+			char buf[20]; sprintf(buf, "kw%d", i);
+			key = buf;
+		}
+		else key = key.substr(0, key.length() -strlen(kwDelimitor));
+
+		keywords.push_back(key);
+	}
+
+	return true;
+}
+
 }//namespace stringHelper
 }//namespace common
 }//namespace ZQ
