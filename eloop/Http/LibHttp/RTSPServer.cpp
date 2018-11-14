@@ -92,6 +92,16 @@ RTSPMessage::ExtendedErrCode RTSPHandler::onAnnounce(const RTSPMessage::Ptr& req
 	return RTSPMessage::rcOK;
 }
 
+RTSPMessage::ExtendedErrCode onGetParameter(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp)
+{
+	return RTSPMessage::rcMethodNotAllowed;
+}
+
+RTSPMessage::ExtendedErrCode onSetParameter(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp)
+{
+	return RTSPMessage::rcOK;
+}
+
 RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetup(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
 {
 	RTSPServer::Session::Ptr svrsess = RTSPServer::Session::Ptr::dynamicCast(sess);
@@ -267,7 +277,7 @@ void RTSPServerResponse::post(int statusCode, const char* errMsg, bool bAsync)
 	int64 elapsed = ZQ::common::now() - _req->_stampCreated;
 	std::string sessId = header(Header_Session);
 
-	_server._logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPServerResponse, "post() sessId[%s] %s(%d) ret(%d) took %lldms"), sessId.c_str(), _req->method().c_str(), _req->cSeq(), statusCode, elapsed);
+	_server._logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPServerResponse, "post() sessId[%s] %s(%d) ret(%d) took %lldms"), sessId.c_str(), RTSPMessage::methodToStr(_req->method()), _req->cSeq(), statusCode, elapsed);
 
 	//_server._logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), conn->hint().c_str(),true);
 }
@@ -311,11 +321,11 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 
 		int pendings =  _server.getPendingRequest();
 		if (pendings >2)
-			_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequests() enqueuing %s(%d) into pendings[%d /%d]"), req->method().c_str(), req->cSeq(), pendings, (int)_server._config.maxPendings);
+			_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequests() enqueuing %s(%d) into pendings[%d /%d]"), RTSPMessage::methodToStr(req->method()), req->cSeq(), pendings, (int)_server._config.maxPendings);
 
 		if (_server._config.maxPendings >0 && pendings >= _server._config.maxPendings)
 		{
-			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn, "OnRequests() rejecting %s(%d) per too many pendings [%d /%d]"), req->method().c_str(), req->cSeq(), pendings, _server._config.maxPendings);
+			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn, "OnRequests() rejecting %s(%d) per too many pendings [%d /%d]"), RTSPMessage::methodToStr(req->method()), req->cSeq(), pendings, _server._config.maxPendings);
 			respCode =503;
 			break;
 		}
@@ -346,7 +356,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 		if (NULL == pSess)
 		{
 			// handle if it is a SETUP
-			if (0 == req->method().compare(Method_SETUP)) 
+			if (RTSPMessage::mtdSETUP == req->method()) 
 			{ 
 				sessId = _server.generateSessionID();
 				resp->header(Header_Session,  sessId);
@@ -373,7 +383,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 				if (_tcpServer)
 					_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() building up new session[%s] hint%s SETUP(%d)"), sessId.c_str(), hint().c_str(), req->cSeq());
 
-				respCode = _rtspHandler->onSessionRequest(mtdSETUP, req, resp, pSess);
+				respCode = _rtspHandler->onSessionRequest(RTSPMessage::mtdSETUP, req, resp, pSess);
 				if (RTSPMessage::Err_AsyncHandling == respCode)
 				{
 					// the request is current being handled async-ly, add the session and quit the processing
@@ -392,11 +402,22 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 			}
 
 			// non-session based requests
-			if (0 == req->method().compare(Method_OPTIONS))	{ respCode = _rtspHandler->onOptions(req, resp);   if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
-			if (0 == req->method().compare(Method_ANNOUNCE)) { respCode = _rtspHandler->onAnnounce(req, resp); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
-			if (0 == req->method().compare(Method_DESCRIBE)) { respCode = _rtspHandler->onDescribe(req, resp); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
+			respCode =RTSPMessage::rcMethodNotAllowed;
+			switch(req->method())
+			{
+			case RTSPMessage::mtdOPTIONS:       respCode = _rtspHandler->onOptions(req, resp); break;
+			case RTSPMessage::mtdANNOUNCE:      respCode = _rtspHandler->onAnnounce(req, resp); break;
+			case RTSPMessage::mtdDESCRIBE:      respCode = _rtspHandler->onDescribe(req, resp); break;
+			case RTSPMessage::mtdGET_PARAMETER: respCode = _rtspHandler->onGetParameter(req, resp); break;
+			case RTSPMessage::mtdSET_PARAMETER: respCode = _rtspHandler->onSetParameter(req, resp); break;
+			default:
+				break;
+			}
 
-			respCode =405; break;
+			if (RTSPMessage::Err_AsyncHandling == respCode)
+				return;
+			
+			break;
 		}
 
 		// session-based requests and session has been addressed
@@ -412,16 +433,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 
 		// respCode =405;
 
-		RequestMethod method = mtdUNKNOWN;
-		if      (0 == req->method().compare(Method_PLAY))         method = mtdPLAY;
-		else if (0 == req->method().compare(Method_PAUSE))        method = mtdPAUSE;
-		else if (0 == req->method().compare(Method_ANNOUNCE))     method = mtdANNOUNCE;
-		else if (0 == req->method().compare(Method_DESCRIBE))     method = mtdDESCRIBE;
-		else if (0 == req->method().compare(Method_TEARDOWN))     method = mtdTEARDOWN;
-		else if (0 == req->method().compare(Method_GetParameter)) method = mtdGET_PARAMETER;
-		else if (0 == req->method().compare(Method_SetParameter)) method = mtdSET_PARAMETER;
-		
-		respCode = onSessionRequest(method, req, resp, sess);
+		respCode = _rtspHandler->onSessionRequest(req->method(), req, resp, pSess);
 		if (RTSPMessage::Err_AsyncHandling == respCode)
 			return; 
 
@@ -441,7 +453,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 // 	int64 elapsed = ZQ::common::now() - req->_stampCreated;
 // 	
 // 	if (_tcpServer)
-// 		_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() sessId[%s] %s(%d) ret(%d) took %lldms"), sessId.c_str(), req->method().c_str(), req->cSeq(), respCode, elapsed);
+// 		_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() sessId[%s] %s(%d) ret(%d) took %lldms"), sessId.c_str(), RTSPMessage::methodToStr(req->method()), req->cSeq(), respCode, elapsed);
 // 
 // 	_server.removeReq(resp->get());
 }
@@ -638,7 +650,7 @@ void RTSPServer::checkReqStatus()
 			}
 			
 			//timeout
-			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPServer, "checkReqStatus() req[%s(%d)] timeout per %d, cancelling from pendings"), (*it)->method().c_str(), (*it)->cSeq(), (int)_config.procTimeout);
+			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPServer, "checkReqStatus() req[%s(%d)] timeout per %d, cancelling from pendings"), RTSPMessage::methodToStr((*it)->method()), (*it)->cSeq(), (int)_config.procTimeout);
 			listToCancel.push_back(*it);
 			it= _awaitRequests.erase(it);
 		}

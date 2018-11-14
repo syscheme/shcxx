@@ -253,15 +253,6 @@ typedef union {
     CRITICAL_SECTION num_readers_lock_;
     HANDLE write_semaphore_;
   } state_;
-  /* TODO: remove me in v2.x. */
-  struct {
-    SRWLOCK unused_;
-  } unused1_;
-  /* TODO: remove me in v2.x. */
-  struct {
-    uv_mutex_t unused1_;
-    uv_mutex_t unused2_;
-  } unused2_;
 } uv_rwlock_t;
 
 typedef struct {

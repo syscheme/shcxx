@@ -54,19 +54,6 @@ public:
 	typedef ZQ::common::Pointer<RTSPHandler> Ptr;
 	typedef std::map<std::string, Ptr> Map;
 
-	typedef enum _RequestMethod {
-		mtdUNKNOWN,
-		mtdSETUP,
-		mtdPLAY,
-		mtdPAUSE,
-		mtdTEARDOWN,
-		mtdGET_PARAMETER,
-		mtdSET_PARAMETER,
-		mtdDESCRIBE,
-		mtdOPTIONS,
-		mtdANNOUNCE, // this is a mimic
-	} RequestMethod;
-
 public: // about the session management
 	// ---------------------------------------
 	// subclass server-side RTSPSession
@@ -134,24 +121,26 @@ protected: // hatched by HttpApplication
 	virtual RTSPMessage::ExtendedErrCode onOptions(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp);
 	virtual RTSPMessage::ExtendedErrCode onDescribe(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp);
 	virtual RTSPMessage::ExtendedErrCode onAnnounce(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp);
+	virtual RTSPMessage::ExtendedErrCode onGetParameter(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp);
+	virtual RTSPMessage::ExtendedErrCode onSetParameter(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp);
 
 	// session-based requests
 	// the common entry
 	//@return RTSP status code
-	virtual RTSPMessage::ExtendedErrCode onSessionRequest(const RequestMethod method, const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+	virtual RTSPMessage::ExtendedErrCode onSessionRequest(const RTSPMessage::RequestMethod method, const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
 	{
 		switch(method)
 		{
-		case mtdSETUP: return procSessionSetup(req, resp, sess);
-		case mtdPLAY: return procSessionPlay(req, resp, sess);
-		case mtdPAUSE: return procSessionPause(req, resp, sess);
-		case mtdTEARDOWN: return procSessionTeardown(req, resp, sess);
-		case mtdGET_PARAMETER: return procSessionGetParameter(req, resp, sess);
-		case mtdSET_PARAMETER: return procSessionSetParameter(req, resp, sess);
-		case mtdDESCRIBE: return procSessionDescribe(req, resp, sess);
-		case mtdANNOUNCE: return procSessionAnnounce(req, resp, sess);
+		case RTSPMessage::mtdSETUP: return procSessionSetup(req, resp, sess);
+		case RTSPMessage::mtdPLAY: return procSessionPlay(req, resp, sess);
+		case RTSPMessage::mtdPAUSE: return procSessionPause(req, resp, sess);
+		case RTSPMessage::mtdTEARDOWN: return procSessionTeardown(req, resp, sess);
+		case RTSPMessage::mtdGET_PARAMETER: return procSessionGetParameter(req, resp, sess);
+		case RTSPMessage::mtdSET_PARAMETER: return procSessionSetParameter(req, resp, sess);
+		case RTSPMessage::mtdDESCRIBE: return procSessionDescribe(req, resp, sess);
+		case RTSPMessage::mtdANNOUNCE: return procSessionAnnounce(req, resp, sess);
 		
-		case mtdUNKNOWN:
+		case RTSPMessage::mtdUNKNOWN:
 		default: break;
 		}
 
@@ -254,7 +243,7 @@ public:
 	virtual ~RTSPApplication() {}
 
 	// create the handler instance
-	virtual RTSPHandler::Ptr create(RTSPServer& server, const RTSPHandler::Properties& dirProps)
+	virtual RTSPHandler::Ptr create(RTSPServer& server, const RTSPMessage::Ptr& req, const RTSPHandler::Properties& dirProps)
 	{ 
 		return new HandlerT(*this, server, dirProps);
 	}

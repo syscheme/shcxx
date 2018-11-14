@@ -132,6 +132,22 @@ public:
 		RTSP_MSG_RESPONSE = 1
 	} RTSPMessgeType;
 
+	typedef enum _RequestMethod {
+		mtdUNKNOWN,
+		mtdSETUP,
+		mtdPLAY,
+		mtdPAUSE,
+		mtdTEARDOWN,
+		mtdGET_PARAMETER,
+		mtdSET_PARAMETER,
+		mtdDESCRIBE,
+		mtdOPTIONS,
+		mtdANNOUNCE, // this is a mimic
+	} RequestMethod;
+
+	static const char* methodToStr(RequestMethod method);
+	static RequestMethod strToMethod(const char* method);
+
 	typedef std::map<std::string, std::string> Properties;
 	typedef Properties Headers;
 
@@ -139,7 +155,7 @@ public:
 	{
 		std::string		key;
 		std::string		value;
-	}StrPair;
+	} StrPair;
 	typedef std::vector<StrPair>	StrPairVec;
 
 public:
@@ -168,8 +184,8 @@ public:
 	const std::string& version() const { return _protocolVersion; }
 	void version(const std::string& version) { _protocolVersion = version; }
 
-	const std::string&	method() const { return _method; }
-	void method(const std::string& method) { _method = method; }
+	RequestMethod method() const { return _method; }
+	void method(RequestMethod method) { _method = method; }
 
 	const std::string& url() const { return _url; }
 	void url(const std::string& url) { _url = url; }
@@ -222,10 +238,9 @@ private:
 	std::string			_statusDesc;
 	int					_statusCode;//status code
 
-	std::string			_method;
+	RequestMethod   	_method;
 	std::string			_url;
 	std::string			_protocolVersion;
-
 };
 
 #ifndef SYS_PROP

@@ -7,6 +7,42 @@
 namespace ZQ {
 namespace eloop {
 
+const char* RTSPMessage::methodToStr(RequestMethod method)
+{
+	switch(method)
+	{
+	case mtdSETUP: return "SETUP";
+	case mtdPLAY: return "PLAY";
+	case mtdPAUSE: return "PAUSE";
+	case mtdTEARDOWN: return "TEARDOWN";
+	case mtdGET_PARAMETER: return "GET_PARAMETER";
+	case mtdSET_PARAMETER: return "SET_PARAMETER";
+	case mtdDESCRIBE: return "DESCRIBE";
+	case mtdANNOUNCE: return "ANNOUNCE";
+	case mtdOPTIONS: return "OPTIONS";
+
+	case mtdUNKNOWN:
+	default: break;
+	}
+
+	return "UNKNOWN";
+}
+
+RTSPMessage::RequestMethod RTSPMessage::strToMethod(const char* method)
+{
+	if (0 == stricmp(method, "SETUP")) return mtdSETUP;
+	if (0 == stricmp(method, "PLAY")) return mtdPLAY;
+	if (0 == stricmp(method, "PAUSE")) return mtdPAUSE;
+	if (0 == stricmp(method, "TEARDOWN")) return mtdTEARDOWN;
+	if (0 == stricmp(method, "GET_PARAMETER")) return mtdGET_PARAMETER;
+	if (0 == stricmp(method, "SET_PARAMETER")) return mtdSET_PARAMETER;
+	if (0 == stricmp(method, "DESCRIBE")) return mtdDESCRIBE;
+	if (0 == stricmp(method, "ANNOUNCE")) return mtdANNOUNCE;
+	if (0 == stricmp(method, "OPTIONS")) return mtdOPTIONS;
+
+	return mtdUNKNOWN;
+}
+
 #define  RTSP_RECV_BUF_SIZE (8*1024)
 //-------------------------------------
 //	class RTSPConnection
@@ -366,7 +402,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 			if (resp)
 				err = resp->code();
 
-			_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPConnection, "OnResponse() %s(%d) ret(%d) took %dmsec triggered, cleaning from await list"), resp->method().c_str(), cseq, err, elapsed);
+			_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPConnection, "OnResponse() %s(%d) ret(%d) took %dmsec triggered, cleaning from await list"), RTSPMessage::methodToStr(resp->method()), cseq, err, elapsed);
 
 			OnRequestDone(cseq, err);
 			_awaits.erase(cseq);
@@ -425,7 +461,7 @@ bool RTSPConnection::parseStartLine(const std::string& startLine, RTSPMessage::P
 			std::string proto = trim(p);
 
 			pMsg->setMsgType(RTSPMessage::RTSP_MSG_REQUEST);
-			pMsg->method(cmdName);
+			pMsg->method(RTSPMessage::strToMethod(cmdName.c_str()));
 			pMsg->url(url);
 			pMsg->version(proto);
 		}
