@@ -24,9 +24,8 @@ class RTSPServerResponse : public RTSPMessage
 public:
 	typedef ZQ::common::Pointer<RTSPServerResponse> Ptr;
 
-	RTSPServerResponse(RTSPServer& server,const RTSPMessage::Ptr& req);
-
-	~RTSPServerResponse() {}
+	RTSPServerResponse(RTSPServer& server, const RTSPMessage::Ptr& req);
+	virtual ~RTSPServerResponse() {}
 
 	void post(int statusCode, const char* errMsg = NULL, bool bAsync = true); 
 	TCPConnection* getConn();
@@ -55,16 +54,18 @@ public:
 	typedef ZQ::common::Pointer<RTSPHandler> Ptr;
 	typedef std::map<std::string, Ptr> Map;
 
-	enum RequestMethod {
+	typedef enum _RequestMethod {
 		mtdUNKNOWN,
 		mtdSETUP,
 		mtdPLAY,
 		mtdPAUSE,
 		mtdTEARDOWN,
 		mtdGET_PARAMETER,
+		mtdSET_PARAMETER,
 		mtdDESCRIBE,
 		mtdOPTIONS,
-	};
+		mtdANNOUNCE, // this is a mimic
+	} RequestMethod;
 
 public: // about the session management
 	// ---------------------------------------
@@ -135,6 +136,28 @@ protected: // hatched by HttpApplication
 	virtual RTSPMessage::ExtendedErrCode onAnnounce(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp);
 
 	// session-based requests
+	// the common entry
+	//@return RTSP status code
+	virtual RTSPMessage::ExtendedErrCode onSessionRequest(const RequestMethod method, const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+	{
+		switch(method)
+		{
+		case mtdSETUP: return procSessionSetup(req, resp, sess);
+		case mtdPLAY: return procSessionPlay(req, resp, sess);
+		case mtdPAUSE: return procSessionPause(req, resp, sess);
+		case mtdTEARDOWN: return procSessionTeardown(req, resp, sess);
+		case mtdGET_PARAMETER: return procSessionGetParameter(req, resp, sess);
+		case mtdSET_PARAMETER: return procSessionSetParameter(req, resp, sess);
+		case mtdDESCRIBE: return procSessionDescribe(req, resp, sess);
+		case mtdANNOUNCE: return procSessionAnnounce(req, resp, sess);
+		
+		case mtdUNKNOWN:
+		default: break;
+		}
+
+		return RTSPMessage::rcMethodNotAllowed;
+	}
+
 	//@return RTSP status code
 	virtual RTSPMessage::ExtendedErrCode procSessionSetup(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
 	virtual RTSPMessage::ExtendedErrCode procSessionPlay(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);

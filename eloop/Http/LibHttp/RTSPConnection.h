@@ -64,6 +64,7 @@ public:
 		rcUnauthorized          = 401,
 		rcForbidden 		    = 403,
 		rcObjectNotFound        = 404,
+		rcMethodNotAllowed      = 405,
 		rcNotAcceptable  		= 406,
 		rcRequestTimeout        = 408,
 		rcBadParameter          = 451,

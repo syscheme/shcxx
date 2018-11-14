@@ -373,7 +373,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 				if (_tcpServer)
 					_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() building up new session[%s] hint%s SETUP(%d)"), sessId.c_str(), hint().c_str(), req->cSeq());
 
-				respCode = _rtspHandler->procSessionSetup(req, resp, pSess);
+				respCode = _rtspHandler->onSessionRequest(mtdSETUP, req, resp, pSess);
 				if (RTSPMessage::Err_AsyncHandling == respCode)
 				{
 					// the request is current being handled async-ly, add the session and quit the processing
@@ -400,17 +400,30 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 		}
 
 		// session-based requests and session has been addressed
-		 resp->header(Header_Session,  pSess->id());
+		resp->header(Header_Session,  pSess->id());
 
-		if (0 == req->method().compare(Method_PLAY))     { respCode = _rtspHandler->procSessionPlay(req, resp, pSess);     if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
-		if (0 == req->method().compare(Method_PAUSE))    { respCode = _rtspHandler->procSessionPause(req, resp, pSess);    if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
-		if (0 == req->method().compare(Method_ANNOUNCE)) { respCode = _rtspHandler->procSessionAnnounce(req, resp, pSess); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
-		if (0 == req->method().compare(Method_DESCRIBE)) { respCode = _rtspHandler->procSessionDescribe(req, resp, pSess); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
-		if (0 == req->method().compare(Method_TEARDOWN)) { respCode = _rtspHandler->procSessionTeardown(req, resp, pSess); _server.removeSession(pSess->id()); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
-		if (0 == req->method().compare(Method_GetParameter)) { respCode = _rtspHandler->procSessionGetParameter(req, resp, pSess); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
-		if (0 == req->method().compare(Method_SetParameter)) { respCode = _rtspHandler->procSessionSetParameter(req, resp, pSess); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
+		// if (0 == req->method().compare(Method_PLAY))     { respCode = _rtspHandler->procSessionPlay(req, resp, pSess);     if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
+		// if (0 == req->method().compare(Method_PAUSE))    { respCode = _rtspHandler->procSessionPause(req, resp, pSess);    if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
+		// if (0 == req->method().compare(Method_ANNOUNCE)) { respCode = _rtspHandler->procSessionAnnounce(req, resp, pSess); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
+		// if (0 == req->method().compare(Method_DESCRIBE)) { respCode = _rtspHandler->procSessionDescribe(req, resp, pSess); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
+		// if (0 == req->method().compare(Method_TEARDOWN)) { respCode = _rtspHandler->procSessionTeardown(req, resp, pSess); _server.removeSession(pSess->id()); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
+		// if (0 == req->method().compare(Method_GetParameter)) { respCode = _rtspHandler->procSessionGetParameter(req, resp, pSess); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
+		// if (0 == req->method().compare(Method_SetParameter)) { respCode = _rtspHandler->procSessionSetParameter(req, resp, pSess); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
 
-		respCode =405;
+		// respCode =405;
+
+		RequestMethod method = mtdUNKNOWN;
+		if      (0 == req->method().compare(Method_PLAY))         method = mtdPLAY;
+		else if (0 == req->method().compare(Method_PAUSE))        method = mtdPAUSE;
+		else if (0 == req->method().compare(Method_ANNOUNCE))     method = mtdANNOUNCE;
+		else if (0 == req->method().compare(Method_DESCRIBE))     method = mtdDESCRIBE;
+		else if (0 == req->method().compare(Method_TEARDOWN))     method = mtdTEARDOWN;
+		else if (0 == req->method().compare(Method_GetParameter)) method = mtdGET_PARAMETER;
+		else if (0 == req->method().compare(Method_SetParameter)) method = mtdSET_PARAMETER;
+		
+		respCode = onSessionRequest(method, req, resp, sess);
+		if (RTSPMessage::Err_AsyncHandling == respCode)
+			return; 
 
 	} while(0);
 
