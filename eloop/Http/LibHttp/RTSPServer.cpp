@@ -49,9 +49,13 @@ void RTSPHandler::Session::destroy()
 RTSPHandler::RTSPHandler(const RTSPMessage::Ptr& req, IBaseApplication& app, RTSPServer& server, const RTSPHandler::Properties& dirProps)
 : _app(app), _server(server), _dirProps(dirProps), _req(req)
 {
+	_app._cOngoings.inc();
 }
 
-RTSPHandler::~RTSPHandler() {}
+RTSPHandler::~RTSPHandler()
+{
+	_app._cOngoings.dec();
+}
 
 void RTSPHandler::onDataSent(size_t size)
 {
@@ -92,14 +96,14 @@ RTSPMessage::ExtendedErrCode RTSPHandler::onAnnounce(RTSPServerResponse::Ptr& re
 	return RTSPMessage::rcOK;
 }
 
-RTSPMessage::ExtendedErrCode onGetParameter(RTSPServerResponse::Ptr& resp)
+RTSPMessage::ExtendedErrCode RTSPHandler::onGetParameter(RTSPServerResponse::Ptr& resp)
 {
 	return RTSPMessage::rcMethodNotAllowed;
 }
 
-RTSPMessage::ExtendedErrCode onSetParameter(RTSPServerResponse::Ptr& resp)
+RTSPMessage::ExtendedErrCode RTSPHandler::onSetParameter(RTSPServerResponse::Ptr& resp)
 {
-	return RTSPMessage::rcOK;
+	return RTSPMessage::rcOK; // dummy yes
 }
 
 RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetup(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)

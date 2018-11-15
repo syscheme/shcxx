@@ -92,6 +92,7 @@ public: // about the session management
 
 		RTSPHandler::Properties getProps() const { return _appProps; }
 		ZQ::common::Log& log() { return _log; }
+		int OngoingSize() { return _cOngoings.get(); }
 
 		// NOTE: this method may be accessed by multi threads concurrently
 		virtual RTSPHandler::Ptr create(RTSPServer& server, const RTSPHandler::Properties& dirProps) =0;
@@ -102,6 +103,10 @@ public: // about the session management
 
 	public:
 		ZQ::common::Log&        _log;
+
+	private:
+		friend class RTSPHandler;
+		ZQ::common::AtomicInt _cOngoings;
 	};
 
 	typedef ZQ::common::Pointer<IBaseApplication> AppPtr;
