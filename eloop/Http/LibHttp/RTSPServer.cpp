@@ -126,15 +126,12 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetup(RTSPServerResponse::P
 
 	if(strTran.find("TCP") != std::string::npos)
 	{
-
 	}
 	else if(strTran.find("multicast") != std::string::npos)
 	{
-		
 	}
 	else		//UDP
 	{
-		
 	}
 
 	// TODO: the handler impl here: pSess->setup();
