@@ -23,6 +23,13 @@
 
 #ifndef UV_H
 #define UV_H
+
+#if defined(_WIN32)
+# include "uv-win.h"
+#else
+# include "uv-unix.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -54,12 +61,6 @@ extern "C" {
 # include "stdint-msvc2008.h"
 #else
 # include <stdint.h>
-#endif
-
-#if defined(_WIN32)
-# include "uv-win.h"
-#else
-# include "uv-unix.h"
 #endif
 
 /* Expand this list if necessary. */

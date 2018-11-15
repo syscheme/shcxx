@@ -46,8 +46,8 @@ void RTSPHandler::Session::destroy()
 	_server.removeSession(_id);
 }
 
-RTSPHandler::RTSPHandler(IBaseApplication& app, RTSPServer& server, const RTSPHandler::Properties& dirProps)
-: _app(app), _server(server), _dirProps(dirProps)
+RTSPHandler::RTSPHandler(const RTSPMessage::Ptr& req, IBaseApplication& app, RTSPServer& server, const RTSPHandler::Properties& dirProps)
+: _app(app), _server(server), _dirProps(dirProps), _req(req)
 {
 }
 
@@ -63,16 +63,16 @@ void RTSPHandler::onDataReceived( size_t size )
 
 std::string RTSPHandler::mediaSDP(const std::string& mid) { return "";}
 
-RTSPMessage::ExtendedErrCode RTSPHandler::onOptions(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp)
+RTSPMessage::ExtendedErrCode RTSPHandler::onOptions(RTSPServerResponse::Ptr& resp)
 {
 	resp->header("Public","OPTIONS, DESCRIBE, ANNOUNCE, SETUP, TEARDOWN, PLAY, PAUSE");
 	return RTSPMessage::rcOK;
 }
 
-RTSPMessage::ExtendedErrCode RTSPHandler::onDescribe(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp)
+RTSPMessage::ExtendedErrCode RTSPHandler::onDescribe(RTSPServerResponse::Ptr& resp)
 {
 	// URL: rtsp://127.0.0.1:9960/3012
-	std::string url = req->url(); 
+	std::string url = _req->url(); 
 	size_t midStartPos = url.rfind("/");
 	std::string mid = url.substr(midStartPos + 1);
 
@@ -87,29 +87,29 @@ RTSPMessage::ExtendedErrCode RTSPHandler::onDescribe(const RTSPMessage::Ptr& req
 	return RTSPMessage::rcOK;
 }
 
-RTSPMessage::ExtendedErrCode RTSPHandler::onAnnounce(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp)
+RTSPMessage::ExtendedErrCode RTSPHandler::onAnnounce(RTSPServerResponse::Ptr& resp)
 {
 	return RTSPMessage::rcOK;
 }
 
-RTSPMessage::ExtendedErrCode onGetParameter(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp)
+RTSPMessage::ExtendedErrCode onGetParameter(RTSPServerResponse::Ptr& resp)
 {
 	return RTSPMessage::rcMethodNotAllowed;
 }
 
-RTSPMessage::ExtendedErrCode onSetParameter(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp)
+RTSPMessage::ExtendedErrCode onSetParameter(RTSPServerResponse::Ptr& resp)
 {
 	return RTSPMessage::rcOK;
 }
 
-RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetup(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetup(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
 {
 	RTSPServer::Session::Ptr svrsess = RTSPServer::Session::Ptr::dynamicCast(sess);
 	if (NULL == svrsess)
 		return RTSPMessage::rcInternalError;
 
 	// URL: rtsp://127.0.0.1:9960/3201/(rtx/audio/video)
-	std::string url = req->url(); 
+	std::string url = _req->url(); 
 
 	// mid and stream name
 	size_t urlEndPos = url.rfind("/");
@@ -118,7 +118,7 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetup(const RTSPMessage::Pt
 	size_t midStartPos = url.rfind("/");
 	std::string mid = url.substr(midStartPos + 1);
 
-	std::string strTran = req->header( "Transport" );
+	std::string strTran = _req->header( "Transport" );
 
 	if(strTran.find("TCP") != std::string::npos)
 	{
@@ -139,13 +139,13 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetup(const RTSPMessage::Pt
 	return RTSPMessage::rcOK;
 }
 
-RTSPMessage::ExtendedErrCode RTSPHandler::procSessionPlay(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionPlay(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
 {
 	RTSPServer::Session::Ptr svrsess = RTSPServer::Session::Ptr::dynamicCast(sess);
 	if (NULL == svrsess)
 		return RTSPMessage::rcInternalError;
 
-	std::string strTime = req->header("Range");
+	std::string strTime = _req->header("Range");
 
 	// TODO: the handler impl here: pSess->play();
 
@@ -153,7 +153,7 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionPlay(const RTSPMessage::Ptr
 	 return RTSPMessage::rcOK;
 }
 
-RTSPMessage::ExtendedErrCode RTSPHandler::procSessionPause(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionPause(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
 {
 	RTSPServer::Session::Ptr svrsess = RTSPServer::Session::Ptr::dynamicCast(sess);
 	if (NULL == svrsess)
@@ -163,7 +163,7 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionPause(const RTSPMessage::Pt
 	return RTSPMessage::rcNotImplement;
 }
 
-RTSPMessage::ExtendedErrCode RTSPHandler::procSessionTeardown(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionTeardown(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
 {
 	RTSPServer::Session::Ptr svrsess = RTSPServer::Session::Ptr::dynamicCast(sess);
 	if (NULL == svrsess)
@@ -173,7 +173,7 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionTeardown(const RTSPMessage:
 	return RTSPMessage::rcNotImplement;
 }
 
-RTSPMessage::ExtendedErrCode RTSPHandler::procSessionAnnounce(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionAnnounce(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
 {
 	RTSPServer::Session::Ptr svrsess = RTSPServer::Session::Ptr::dynamicCast(sess);
 	if (NULL == svrsess)
@@ -183,7 +183,7 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionAnnounce(const RTSPMessage:
 	return RTSPMessage::rcNotImplement;
 }
 
-RTSPMessage::ExtendedErrCode RTSPHandler::procSessionDescribe(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionDescribe(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
 {
 	RTSPServer::Session::Ptr svrsess = RTSPServer::Session::Ptr::dynamicCast(sess);
 	if (NULL == svrsess)
@@ -193,13 +193,13 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionDescribe(const RTSPMessage:
 	return RTSPMessage::rcNotImplement;
 }
 
-RTSPMessage::ExtendedErrCode RTSPHandler::procSessionGetParameter(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionGetParameter(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
 {
 	// TODO: the handler impl here
 	return RTSPMessage::rcNotImplement;
 }
 
-RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetParameter(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetParameter(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
 {
 	// TODO: the handler impl here
 	return RTSPMessage::rcNotImplement;
@@ -330,7 +330,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 			break;
 		}
 
-		_rtspHandler = _server.createHandler(req->url(), *this);
+		_rtspHandler = _server.createHandler(req, *this);
 		if(!_rtspHandler)
 		{
 			// should make a 404 response
@@ -383,7 +383,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 				if (_tcpServer)
 					_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() building up new session[%s] hint%s SETUP(%d)"), sessId.c_str(), hint().c_str(), req->cSeq());
 
-				respCode = _rtspHandler->onSessionRequest(RTSPMessage::mtdSETUP, req, resp, pSess);
+				respCode = _rtspHandler->procSessionRequest(RTSPMessage::mtdSETUP, resp, pSess);
 				if (RTSPMessage::Err_AsyncHandling == respCode)
 				{
 					// the request is current being handled async-ly, add the session and quit the processing
@@ -405,11 +405,11 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 			respCode =RTSPMessage::rcMethodNotAllowed;
 			switch(req->method())
 			{
-			case RTSPMessage::mtdOPTIONS:       respCode = _rtspHandler->onOptions(req, resp); break;
-			case RTSPMessage::mtdANNOUNCE:      respCode = _rtspHandler->onAnnounce(req, resp); break;
-			case RTSPMessage::mtdDESCRIBE:      respCode = _rtspHandler->onDescribe(req, resp); break;
-			case RTSPMessage::mtdGET_PARAMETER: respCode = _rtspHandler->onGetParameter(req, resp); break;
-			case RTSPMessage::mtdSET_PARAMETER: respCode = _rtspHandler->onSetParameter(req, resp); break;
+			case RTSPMessage::mtdOPTIONS:       respCode = _rtspHandler->onOptions(resp); break;
+			case RTSPMessage::mtdANNOUNCE:      respCode = _rtspHandler->onAnnounce(resp); break;
+			case RTSPMessage::mtdDESCRIBE:      respCode = _rtspHandler->onDescribe(resp); break;
+			case RTSPMessage::mtdGET_PARAMETER: respCode = _rtspHandler->onGetParameter(resp); break;
+			case RTSPMessage::mtdSET_PARAMETER: respCode = _rtspHandler->onSetParameter(resp); break;
 			default:
 				break;
 			}
@@ -433,7 +433,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 
 		// respCode =405;
 
-		respCode = _rtspHandler->onSessionRequest(req->method(), req, resp, pSess);
+		respCode = _rtspHandler->procSessionRequest(req->method(), resp, pSess);
 		if (RTSPMessage::Err_AsyncHandling == respCode)
 			return; 
 
@@ -528,12 +528,12 @@ bool RTSPServer::unmount(const std::string& uriEx, const char* virtualSite)
 	return ret;
 }
 
-RTSPHandler::Ptr RTSPServer::createHandler( const std::string& uri, RTSPPassiveConn& conn, const std::string& virtualSite)
+RTSPHandler::Ptr RTSPServer::createHandler(const RTSPMessage::Ptr& req, RTSPPassiveConn& conn, const std::string& virtualSite)
 {
 	RTSPHandler::AppPtr app = NULL;
 
 	// cut off the paramesters
-	std::string uriWithnoParams = uri;
+	std::string uriWithnoParams = req->url();
 	size_t pos = uriWithnoParams.find_first_of("?#");
 	if (std::string::npos != pos)
 		uriWithnoParams = uriWithnoParams.substr(0, pos);

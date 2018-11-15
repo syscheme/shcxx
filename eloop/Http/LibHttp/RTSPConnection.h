@@ -2,8 +2,9 @@
 #define __RTSP_Connection_H__
 
 #include "Pointer.h"
-#include "TCPServer.h"
 #include "TimeUtil.h"
+
+#include "TCPServer.h"
 
 #include <sstream>
 #include <string>
@@ -44,6 +45,7 @@ namespace eloop {
 class ZQ_ELOOP_HTTP_API RTSPMessage;
 class ZQ_ELOOP_HTTP_API RTSPSession;
 class ZQ_ELOOP_HTTP_API RTSPConnection;
+
 //-------------------------------------
 //	class RTSPMessage
 //-------------------------------------

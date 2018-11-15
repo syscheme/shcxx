@@ -34,12 +34,13 @@
 
 #include "ZQ_common_conf.h"
 
+#include "uv.h"
+#include "uv-errno.h"
+
 extern "C"{
 #ifdef ZQ_OS_LINUX
 	#include <sys/time.h>
 #endif
-#include "uv.h"
-#include "uv-errno.h"
 };
 
 #include <string>
