@@ -222,7 +222,7 @@ public:
 
 	std::string toRaw();
 	std::string getConnId(){ return _connId; }
-	void setConnId(const std::string& connId){ _connId = connId; }
+	void setConnId(const std::string& connId) { _connId = connId; }
 
 	int64				_stampCreated;
 private:

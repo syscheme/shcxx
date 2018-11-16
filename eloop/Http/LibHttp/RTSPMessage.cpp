@@ -193,20 +193,23 @@ std::string RTSPMessage::toRaw()
 	if( !_RawMessage.empty())
 		return _RawMessage;
 
-	if(_msgType != RTSP_MSG_RESPONSE ) {
+	if(_msgType != RTSP_MSG_RESPONSE )
+	{
 		oss<< _method << " " << _url << " " << "RTSP/1.0"<< line_term;
-	} else {
-
+	}
+	else
+	{
 		if (_statusDesc.empty())
 			_statusDesc = code2status(_statusCode);
 		oss<<"RTSP/1.0" <<" " <<_statusCode<<" "<<_statusDesc<<line_term;
 	}
 
-	if(_bodyLen >= 0 ) {
+	if(_bodyLen <= 0 )
+		_headers.erase("Content-Length");
+	else
+	{
 		std::ostringstream ossBL;ossBL<<_bodyLen;
 		_headers["Content-Length"] = ossBL.str();
-	} else {
-		_headers.erase("Content-Length");
 	}
 
 	_headers["Date"] = date();
