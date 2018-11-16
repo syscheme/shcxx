@@ -562,7 +562,7 @@ RTSPHandler::Ptr RTSPServer::createHandler(const RTSPMessage::Ptr& req, RTSPPass
 		if (boost::regex_match(uriWithnoParams, re))
 		{
 			if (it->app)
-				handler = it->app->create(*this, it->props);
+				handler = it->app->create(*this, req, it->props);
 
 			break;
 		}
