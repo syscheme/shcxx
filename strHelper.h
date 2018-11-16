@@ -58,6 +58,8 @@ long ZQ_COMMON_API str2long(const char* str);
 // long ZQ_COMMON_API  str2msec(const std::string& str) { return str2msec(str.c_str()); }
 // long ZQ_COMMON_API str2long(const std::string& str) { return str2long(str.c_str()); }
 
+bool ZQ_COMMON_API keywordReduce(const std::vector< std::string >& texts, std::vector< std::string >& keywords, const char* wordDelimitor=" ", const char* kwDelimitor=" ");
+
 }//stringHelper
 }//namespace common
 }//namespace ZQ
