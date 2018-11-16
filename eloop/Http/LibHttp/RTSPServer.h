@@ -95,7 +95,7 @@ public: // about the session management
 		int OngoingSize() { return _cOngoings.get(); }
 
 		// NOTE: this method may be accessed by multi threads concurrently
-		virtual RTSPHandler::Ptr create(RTSPServer& server, const RTSPHandler::Properties& dirProps) =0;
+		virtual RTSPHandler::Ptr create(ZQ::eloop::RTSPServer& server, const ZQ::eloop::RTSPMessage::Ptr& req, const ZQ::eloop::RTSPHandler::Properties& dirProps) =0;
 		virtual Session::Ptr newSession(RTSPServer& server, const char* sessId = NULL) =0;
 
 	protected:
