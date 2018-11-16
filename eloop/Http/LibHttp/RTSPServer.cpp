@@ -210,7 +210,7 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetParameter(RTSPServerResp
 // class RTSPServerResponse
 // ---------------------------------------
 RTSPServerResponse::RTSPServerResponse(RTSPServer& server,const RTSPMessage::Ptr& req)
-: _server(server), RTSPMessage(req->getR2ConnId(), RTSPMessage::RTSP_MSG_RESPONSE),_req(req),_isResp(false)
+: _server(server), RTSPMessage(req->getConnId(), RTSPMessage::RTSP_MSG_RESPONSE),_req(req),_isResp(false)
 {
 	header(Header_MethodCode, req->method());
 	cSeq(req->cSeq());
@@ -227,7 +227,7 @@ int RTSPServerResponse::getRemainTime()
 
 TCPConnection* RTSPServerResponse::getConn() 
 {	
-	return _server.findConn(getR2ConnId()); 
+	return _server.findConn(getConnId()); 
 }
 
 void RTSPServerResponse::post(int statusCode, const char* errMsg, bool bAsync) 
@@ -252,10 +252,10 @@ void RTSPServerResponse::post(int statusCode, const char* errMsg, bool bAsync)
 	std::string respMsg = toRaw();
 	// TODO: _conn._logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), _conn.hint().c_str(),true);
 
-	TCPConnection* conn = _server.findConn(getR2ConnId());
+	TCPConnection* conn = _server.findConn(getConnId());
 	if (conn == NULL)
 	{
-		_server._logger(ZQ::common::Log::L_ERROR, CLOGFMT(RTSPServerResponse, "post() conn[%s] already closed"),getR2ConnId().c_str());
+		_server._logger(ZQ::common::Log::L_ERROR, CLOGFMT(RTSPServerResponse, "post() conn[%s] already closed"),getConnId().c_str());
 		return;
 	}
 
