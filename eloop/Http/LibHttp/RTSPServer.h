@@ -91,7 +91,6 @@ public: // about the session management
 		virtual ~IBaseApplication() {}
 
 		RTSPHandler::Properties getProps() const { return _appProps; }
-		ZQ::common::Log& log() { return _log; }
 		int OngoingSize() { return _cOngoings.get(); }
 
 		// NOTE: this method may be accessed by multi threads concurrently
