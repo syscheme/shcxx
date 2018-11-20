@@ -100,6 +100,9 @@ public:
 		Err_AsyncHandling  = -200,
 	} ExtendedErrCode;
 
+#define RTSP_SUCC(ErrCode) (ErrCode>=200 && ErrCode < 300)
+#define RTSP_SUCC_PROCESS(ErrCode) (RTSP_SUCC(ErrCode) || (ZQ::eloop::RTSPMessage::Err_AsyncHandling == ErrCode))
+
 	typedef enum _AnnounceCode
 	{
 		// TianShan extensions
