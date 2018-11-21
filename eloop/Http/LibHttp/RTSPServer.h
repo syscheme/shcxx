@@ -11,22 +11,22 @@ namespace eloop {
 class ZQ_ELOOP_HTTP_API RTSPServer;
 class ZQ_ELOOP_HTTP_API RTSPHandler;
 class ZQ_ELOOP_HTTP_API RTSPPassiveConn;
-class ZQ_ELOOP_HTTP_API RTSPServerResponse;
+class ZQ_ELOOP_HTTP_API RTSPResponse;
 
 #define DUMMY_PROCESS_TIMEOUT (60*1000) // 1min a dummy big time
 
 #define DEFAULT_SITE "."
 
 // ---------------------------------------
-// class RTSPServerResponse
+// class RTSPResponse
 // ---------------------------------------
-class RTSPServerResponse : public RTSPMessage
+class RTSPResponse : public RTSPMessage
 {
 public:
-	typedef ZQ::common::Pointer<RTSPServerResponse> Ptr;
+	typedef ZQ::common::Pointer<RTSPResponse> Ptr;
 
-	RTSPServerResponse(RTSPServer& server, const RTSPMessage::Ptr& req);
-	virtual ~RTSPServerResponse() {}
+	RTSPResponse(RTSPServer& server, const RTSPMessage::Ptr& req);
+	virtual ~RTSPResponse() {}
 
 	void post(int statusCode, const char* errMsg = NULL, bool bAsync = true); 
 	TCPConnection* getConn();
@@ -123,16 +123,16 @@ protected: // hatched by HttpApplication
 
 	// non session-based requests
 	//@return RTSP status code
-	virtual RTSPMessage::ExtendedErrCode onOptions(RTSPServerResponse::Ptr& resp);
-	virtual RTSPMessage::ExtendedErrCode onDescribe(RTSPServerResponse::Ptr& resp);
-	virtual RTSPMessage::ExtendedErrCode onAnnounce(RTSPServerResponse::Ptr& resp);
-	virtual RTSPMessage::ExtendedErrCode onGetParameter(RTSPServerResponse::Ptr& resp);
-	virtual RTSPMessage::ExtendedErrCode onSetParameter(RTSPServerResponse::Ptr& resp);
+	virtual RTSPMessage::ExtendedErrCode onOptions(RTSPResponse::Ptr& resp);
+	virtual RTSPMessage::ExtendedErrCode onDescribe(RTSPResponse::Ptr& resp);
+	virtual RTSPMessage::ExtendedErrCode onAnnounce(RTSPResponse::Ptr& resp);
+	virtual RTSPMessage::ExtendedErrCode onGetParameter(RTSPResponse::Ptr& resp);
+	virtual RTSPMessage::ExtendedErrCode onSetParameter(RTSPResponse::Ptr& resp);
 
 	// session-based requests
 	// the common entry
 	//@return RTSP status code
-	virtual RTSPMessage::ExtendedErrCode procSessionRequest(const RTSPMessage::RequestMethod method, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+	virtual RTSPMessage::ExtendedErrCode procSessionRequest(const RTSPMessage::RequestMethod method, RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess)
 	{
 		switch(method)
 		{
@@ -153,14 +153,14 @@ protected: // hatched by HttpApplication
 	}
 
 	//@return RTSP status code
-	virtual RTSPMessage::ExtendedErrCode procSessionSetup(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionPlay(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionPause(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionTeardown(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionAnnounce(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionDescribe(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionGetParameter(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionSetParameter(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionSetup(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionPlay(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionPause(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionTeardown(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionAnnounce(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionDescribe(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionGetParameter(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess);
+	virtual RTSPMessage::ExtendedErrCode procSessionSetParameter(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess);
 
 	virtual std::string mediaSDP(const std::string& mid);
 
@@ -205,8 +205,8 @@ public: // about the session management
 	virtual void OnTimer();
 
 	void checkReqStatus();
-	void addReq(RTSPServerResponse::Ptr resp);
-	void removeReq(RTSPServerResponse::Ptr resp);
+	void addReq(RTSPResponse::Ptr resp);
+	void removeReq(RTSPResponse::Ptr resp);
 	int getPendingRequest();
 
 private:
@@ -223,7 +223,7 @@ private:
 
 	VSites _vsites;
 
-	typedef std::list<RTSPServerResponse::Ptr>	RequestList;
+	typedef std::list<RTSPResponse::Ptr>	RequestList;
 
 private:
 	ZQ::common::Mutex			_lkSessMap;

@@ -1,8 +1,9 @@
 #include "RTSPServer.h"
+#include "TimeUtil.h"
 #include "Guid.h"
 #include "SystemUtils.h"
-#include <boost/regex.hpp>
 
+#include <boost/regex.hpp>
 
 namespace ZQ {
 namespace eloop {
@@ -17,7 +18,7 @@ public:
 		: RTSPConnection(server._logger, NULL, &server), _server(server)
 	{}
 
-	~RTSPPassiveConn(){}
+	virtual ~RTSPPassiveConn(){}
 
 	virtual void OnTimer(){}
 
@@ -67,13 +68,13 @@ void RTSPHandler::onDataReceived( size_t size )
 
 std::string RTSPHandler::mediaSDP(const std::string& mid) { return "";}
 
-RTSPMessage::ExtendedErrCode RTSPHandler::onOptions(RTSPServerResponse::Ptr& resp)
+RTSPMessage::ExtendedErrCode RTSPHandler::onOptions(RTSPResponse::Ptr& resp)
 {
 	resp->header("Public","OPTIONS, DESCRIBE, ANNOUNCE, SETUP, TEARDOWN, PLAY, PAUSE");
 	return RTSPMessage::rcOK;
 }
 
-RTSPMessage::ExtendedErrCode RTSPHandler::onDescribe(RTSPServerResponse::Ptr& resp)
+RTSPMessage::ExtendedErrCode RTSPHandler::onDescribe(RTSPResponse::Ptr& resp)
 {
 	// URL: rtsp://127.0.0.1:9960/3012
 	std::string url = _req->url(); 
@@ -91,22 +92,22 @@ RTSPMessage::ExtendedErrCode RTSPHandler::onDescribe(RTSPServerResponse::Ptr& re
 	return RTSPMessage::rcOK;
 }
 
-RTSPMessage::ExtendedErrCode RTSPHandler::onAnnounce(RTSPServerResponse::Ptr& resp)
+RTSPMessage::ExtendedErrCode RTSPHandler::onAnnounce(RTSPResponse::Ptr& resp)
 {
 	return RTSPMessage::rcOK;
 }
 
-RTSPMessage::ExtendedErrCode RTSPHandler::onGetParameter(RTSPServerResponse::Ptr& resp)
+RTSPMessage::ExtendedErrCode RTSPHandler::onGetParameter(RTSPResponse::Ptr& resp)
 {
 	return RTSPMessage::rcMethodNotAllowed;
 }
 
-RTSPMessage::ExtendedErrCode RTSPHandler::onSetParameter(RTSPServerResponse::Ptr& resp)
+RTSPMessage::ExtendedErrCode RTSPHandler::onSetParameter(RTSPResponse::Ptr& resp)
 {
 	return RTSPMessage::rcOK; // dummy yes
 }
 
-RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetup(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetup(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess)
 {
 	RTSPServer::Session::Ptr svrsess = RTSPServer::Session::Ptr::dynamicCast(sess);
 	if (NULL == svrsess)
@@ -140,7 +141,7 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetup(RTSPServerResponse::P
 	return RTSPMessage::rcOK;
 }
 
-RTSPMessage::ExtendedErrCode RTSPHandler::procSessionPlay(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionPlay(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess)
 {
 	RTSPServer::Session::Ptr svrsess = RTSPServer::Session::Ptr::dynamicCast(sess);
 	if (NULL == svrsess)
@@ -154,7 +155,7 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionPlay(RTSPServerResponse::Pt
 	 return RTSPMessage::rcOK;
 }
 
-RTSPMessage::ExtendedErrCode RTSPHandler::procSessionPause(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionPause(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess)
 {
 	RTSPServer::Session::Ptr svrsess = RTSPServer::Session::Ptr::dynamicCast(sess);
 	if (NULL == svrsess)
@@ -164,7 +165,7 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionPause(RTSPServerResponse::P
 	return RTSPMessage::rcNotImplement;
 }
 
-RTSPMessage::ExtendedErrCode RTSPHandler::procSessionTeardown(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionTeardown(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess)
 {
 	RTSPServer::Session::Ptr svrsess = RTSPServer::Session::Ptr::dynamicCast(sess);
 	if (NULL == svrsess)
@@ -174,7 +175,7 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionTeardown(RTSPServerResponse
 	return RTSPMessage::rcNotImplement;
 }
 
-RTSPMessage::ExtendedErrCode RTSPHandler::procSessionAnnounce(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionAnnounce(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess)
 {
 	RTSPServer::Session::Ptr svrsess = RTSPServer::Session::Ptr::dynamicCast(sess);
 	if (NULL == svrsess)
@@ -184,7 +185,7 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionAnnounce(RTSPServerResponse
 	return RTSPMessage::rcNotImplement;
 }
 
-RTSPMessage::ExtendedErrCode RTSPHandler::procSessionDescribe(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionDescribe(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess)
 {
 	RTSPServer::Session::Ptr svrsess = RTSPServer::Session::Ptr::dynamicCast(sess);
 	if (NULL == svrsess)
@@ -194,22 +195,22 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionDescribe(RTSPServerResponse
 	return RTSPMessage::rcNotImplement;
 }
 
-RTSPMessage::ExtendedErrCode RTSPHandler::procSessionGetParameter(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionGetParameter(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess)
 {
 	// TODO: the handler impl here
 	return RTSPMessage::rcNotImplement;
 }
 
-RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetParameter(RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetParameter(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess)
 {
 	// TODO: the handler impl here
 	return RTSPMessage::rcNotImplement;
 }
 
 // ---------------------------------------
-// class RTSPServerResponse
+// class RTSPResponse
 // ---------------------------------------
-RTSPServerResponse::RTSPServerResponse(RTSPServer& server,const RTSPMessage::Ptr& req)
+RTSPResponse::RTSPResponse(RTSPServer& server,const RTSPMessage::Ptr& req)
 : _server(server), RTSPMessage(req->getConnId(), RTSPMessage::RTSP_MSG_RESPONSE),_req(req),_isResp(false)
 {
 	header(Header_MethodCode, req->method());
@@ -217,7 +218,7 @@ RTSPServerResponse::RTSPServerResponse(RTSPServer& server,const RTSPMessage::Ptr
 	_server.addReq(this);
 }
 
-int RTSPServerResponse::getRemainTime()
+int RTSPResponse::getRemainTime()
 {
 	if (_server._config.procTimeout <=0)
 		return DUMMY_PROCESS_TIMEOUT;
@@ -225,12 +226,12 @@ int RTSPServerResponse::getRemainTime()
 	return (_server._config.procTimeout - _req->elapsed());
 }
 
-TCPConnection* RTSPServerResponse::getConn() 
+TCPConnection* RTSPResponse::getConn() 
 {	
 	return _server.findConn(getConnId()); 
 }
 
-void RTSPServerResponse::post(int statusCode, const char* errMsg, bool bAsync) 
+void RTSPResponse::post(int statusCode, const char* errMsg, bool bAsync) 
 {
 	{
 		// to avoid double post response
@@ -255,7 +256,7 @@ void RTSPServerResponse::post(int statusCode, const char* errMsg, bool bAsync)
 	TCPConnection* conn = _server.findConn(getConnId());
 	if (conn == NULL)
 	{
-		_server._logger(ZQ::common::Log::L_ERROR, CLOGFMT(RTSPServerResponse, "post() conn[%s] already closed"),getConnId().c_str());
+		_server._logger(ZQ::common::Log::L_ERROR, CLOGFMT(RTSPResponse, "post() conn[%s] already closed"),getConnId().c_str());
 		return;
 	}
 
@@ -278,7 +279,7 @@ void RTSPServerResponse::post(int statusCode, const char* errMsg, bool bAsync)
 	int64 elapsed = ZQ::common::now() - _req->_stampCreated;
 	std::string sessId = header(Header_Session);
 
-	_server._logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPServerResponse, "post() sessId[%s] %s(%d) ret(%d) took %lldms"), sessId.c_str(), RTSPMessage::methodToStr(_req->method()), _req->cSeq(), statusCode, elapsed);
+	_server._logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPResponse, "post() sessId[%s] %s(%d) ret(%d) took %lldms"), sessId.c_str(), RTSPMessage::methodToStr(_req->method()), _req->cSeq(), statusCode, elapsed);
 
 	//_server._logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), conn->hint().c_str(),true);
 }
@@ -310,7 +311,7 @@ void RTSPPassiveConn::OnResponse(RTSPMessage::Ptr resp)
 
 void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 {
-	RTSPServerResponse::Ptr resp = new RTSPServerResponse(_server, req);
+	RTSPResponse::Ptr resp = new RTSPResponse(_server, req);
 
 	int respCode =500;
 	std::string sessId;
@@ -661,7 +662,7 @@ void RTSPServer::checkReqStatus()
 		(*itCancel)->post(408);
 }
 
-void RTSPServer::addReq(RTSPServerResponse::Ptr resp)
+void RTSPServer::addReq(RTSPResponse::Ptr resp)
 {
 	ZQ::common::MutexGuard g(_lkReqList);
 	if (std::find(_awaitRequests.begin(),_awaitRequests.end(), resp) != _awaitRequests.end())
@@ -669,7 +670,7 @@ void RTSPServer::addReq(RTSPServerResponse::Ptr resp)
 	_awaitRequests.push_back(resp);
 }
 
-void RTSPServer::removeReq(RTSPServerResponse::Ptr resp)
+void RTSPServer::removeReq(RTSPResponse::Ptr resp)
 {
 	ZQ::common::MutexGuard g(_lkReqList);
 	for(RequestList::iterator it= _awaitRequests.begin(); it != _awaitRequests.end();)
