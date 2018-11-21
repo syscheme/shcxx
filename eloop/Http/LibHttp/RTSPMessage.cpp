@@ -1,10 +1,12 @@
 #include "RTSPConnection.h"
 
+#include "TimeUtil.h"
+#include "strHelper.h"
+
 #include <sstream>
 #include <string>
 #include <map>
 #include <vector>
-#include "strHelper.h"
 
 namespace ZQ {
 namespace eloop {
@@ -81,6 +83,11 @@ RtspCode2StatusMapInit rtspcode2status;
 //-------------------------------------
 //	class RTSPMessage
 //-------------------------------------
+RTSPMessage::RTSPMessage(const std::string& connId, RTSPMessgeType type)
+: _msgType(type),_cSeq(-1),_bodyLen(0),_stampCreated(ZQ::common::now()),_connId(connId)
+{
+}
+
 int RTSPMessage::elapsed() const
 {
 	return (int) (ZQ::common::now() - _stampCreated); 

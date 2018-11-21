@@ -2,8 +2,6 @@
 #define __RTSP_Connection_H__
 
 #include "Pointer.h"
-#include "TimeUtil.h"
-
 #include "TCPServer.h"
 
 #include <sstream>
@@ -164,10 +162,7 @@ public:
 	typedef std::vector<StrPair>	StrPairVec;
 
 public:
-	RTSPMessage(const std::string& connId="", RTSPMessgeType type = RTSP_MSG_REQUEST):_msgType(type),_cSeq(-1),_bodyLen(0),_stampCreated(ZQ::common::now()),_connId(connId)
-	{
-	}
-
+	RTSPMessage(const std::string& connId="", RTSPMessgeType type = RTSP_MSG_REQUEST);
 	virtual ~RTSPMessage() {}
 
 	static void splitStrPair(const std::string& strPairData, StrPairVec& outVec,const std::string& delimiter="\r\n");
@@ -176,7 +171,7 @@ public:
 	static const std::string& code2status(int code);
 
 	const std::string& header( const std::string& key) const;
-	const int elapsed() const { return (int) (ZQ::common::now() - _stampCreated); }
+	int elapsed() const;
 
 	template<typename T>
 	void header( const std::string& key, const T& value)
