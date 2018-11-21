@@ -617,9 +617,12 @@ void TCPConnection::OnAsyncSend()
 			desc.append(errDesc(ret));
 			onError(ret,desc.c_str());
 		}
+
 		std::string hint = _Hint;
 		if (_tcpServer)
 			hint = _reverseHint;
+
+		hint += " sent:";
 
 		if (TCPConnection::_enableHexDump > 0)
 			_logger.hexDump(ZQ::common::Log::L_INFO, asyncMsg.c_str(), (int)asyncMsg.size(), hint.c_str(), true);

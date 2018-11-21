@@ -160,10 +160,12 @@ std::string RTSPMessage::date( int delta ) {
 
 const std::string& RTSPMessage::code2status(int code)
 {
+	static std::string UNKNOWN = "unknown";
 	std::map<int,std::string>::const_iterator it = RtspCode2StatusMap.find(code);
 	if( it != RtspCode2StatusMap.end())
 		return it->second;
-	return "unknown";
+
+	return UNKNOWN;
 }
 
 const std::string& RTSPMessage::header( const std::string& key) const 
@@ -178,7 +180,7 @@ const std::string& RTSPMessage::header( const std::string& key) const
 void RTSPMessage::setBody(const std::string& body) 
 { 
 	_contentBody = body; 
-	_bodyLen = _contentBody.size(); 
+	_bodyLen = (uint)_contentBody.size(); 
 }
 
 const std::string& RTSPMessage::body() 
@@ -195,7 +197,7 @@ std::string RTSPMessage::toRaw()
 
 	if(_msgType != RTSP_MSG_RESPONSE )
 	{
-		oss<< _method << " " << _url << " " << "RTSP/1.0"<< line_term;
+		oss<< methodToStr(_method) << " " << _url << " " << "RTSP/1.0"<< line_term;
 	}
 	else
 	{
