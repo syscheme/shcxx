@@ -13,6 +13,8 @@ class ZQ_ELOOP_HTTP_API RTSPHandler;
 class ZQ_ELOOP_HTTP_API RTSPPassiveConn;
 class ZQ_ELOOP_HTTP_API RTSPServerResponse;
 
+#define DUMMY_PROCESS_TIMEOUT (60*1000) // 1min a dummy big time
+
 #define DEFAULT_SITE "."
 
 // ---------------------------------------

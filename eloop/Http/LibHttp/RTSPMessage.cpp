@@ -81,6 +81,11 @@ RtspCode2StatusMapInit rtspcode2status;
 //-------------------------------------
 //	class RTSPMessage
 //-------------------------------------
+int RTSPMessage::elapsed() const
+{
+	return (int) (ZQ::common::now() - _stampCreated); 
+}
+
 void RTSPMessage::splitStrPair(const std::string& strPairData, StrPairVec& outVec,const std::string& delimiter)
 {
 	if (strPairData.empty())

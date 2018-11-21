@@ -176,6 +176,7 @@ public:
 	static const std::string& code2status(int code);
 
 	const std::string& header( const std::string& key) const;
+	const int elapsed() const { return (int) (ZQ::common::now() - _stampCreated); }
 
 	template<typename T>
 	void header( const std::string& key, const T& value)

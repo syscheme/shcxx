@@ -219,10 +219,10 @@ RTSPServerResponse::RTSPServerResponse(RTSPServer& server,const RTSPMessage::Ptr
 
 int RTSPServerResponse::getRemainTime()
 {
-	int remainTime = int ((int64)(_server._config.procTimeout) + _req->_stampCreated - ZQ::common::now());
-	if (remainTime < 0)
-		return 0;
-	return remainTime;
+	if (_server._config.procTimeout <=0)
+		return DUMMY_PROCESS_TIMEOUT;
+
+	return (_server._config.procTimeout - _req->elapsed());
 }
 
 TCPConnection* RTSPServerResponse::getConn() 
