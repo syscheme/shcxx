@@ -6,6 +6,133 @@ namespace eloop {
 
 #define DEFAULT_THREADPOOL_SIZE 4
 #define ELOOP_THREADPOOL_SIZE  "UV_THREADPOOL_SIZE"
+
+Handle::ElpeError Handle::uvErr2ElpeErr(int errCode)
+{
+	switch(errCode)
+	{
+	case 0								  : return elpeSuccess;
+	case EPERM							  : return elpeNotPermitted;		// operation not permitted
+	case ENOENT							  : return elpeNoFile;				//no such file or directory
+	case ESRCH							  : return elpeNoProcess;			//no such process
+	case EINTR							  : return elpeIntr;				//interrupted system call
+	case EIO							  : return elpeIO;					//i/o error
+	case ENXIO							  : return elpeNotDevOrAddress;		//no such device or address
+	case E2BIG							  : return elpeArgTooLong;			//argument list too long
+	case ENOEXEC						  : return elpeENOEXEC;
+	case EBADF							  : return elpeBadFd;				//bad file descriptor
+
+	case ECHILD							  : return elpeECHILD;				//bad file descriptor
+	case EAGAIN							  : return elpeResUnavailable;		//resource temporarily unavailable
+	case ENOMEM							  : return elpeNotEnoughMemory;		//not enough memory
+	case EACCES							  : return elpePermissionDenied;	//permission denied
+	case EFAULT							  : return elpeBadAddress;			//bad address in system call argument
+	case EBUSY							  : return elpeResBusy;				//resource busy or locked
+	case EEXIST							  : return elpeFileAlreadyExists;	//file already exists
+	case EXDEV							  : return elpeNotPermittedLink;	//cross-device link not permitted
+	case ENODEV							  : return elpeNotDevice;			//no such device
+	case ENOTDIR						  : return elpeNotDirectory;		//not a directory
+	case EISDIR							  : return elpeEISDIR;				//illegal operation on a directory
+	case ENFILE							  : return elpeENFILE;				//file table overflow
+	case EMFILE							  : return elpeTooMany;				//too many open files
+	case ENOTTY							  : return elpeENOTTY;
+	case EFBIG							  : return elpeFileTooLarge;		//file too large
+	case ENOSPC							  : return elpeNoSpace;				//no space left on device
+	case ESPIPE							  : return elpeInvalidSeek;			//invalid seek
+	case EROFS							  : return elpeROFS;				//read-only file system
+	case EMLINK							  : return elpeTooManyLinks;		//too many links
+	case EPIPE							  : return elpeBorkenPipe;			//broken pipe
+	case EDOM							  : return elpeEDOM;
+	case EDEADLK						  : return elpeEDEADLK;
+	case ENAMETOOLONG					  : return elpeNameTooLong;			//name too long
+	case ENOLCK							  : return elpeNOLCK;
+	case ENOSYS							  : return elpeFunNotImpl;			//function not implemented
+	case ENOTEMPTY						  : return elpeDirNotEmpty;			//directory not empty
+
+	case UV__EOF						  : return elpuEOF;
+	case UV__UNKNOWN					  : return elpeUNKNOWN;
+	case UV__EAI_ADDRFAMILY				  : return elpuEAI_ADDRFAMILY;
+	case UV__EAI_AGAIN					  : return elpuEAI_AGAIN;
+	case UV__EAI_BADFLAGS				  : return elpuEAI_BADFLAGS;
+	case UV__EAI_CANCELED				  : return elpuEAI_CANCELED;
+	case UV__EAI_FAIL					  : return elpuEAI_FAIL;
+	case UV__EAI_FAMILY					  : return elpuEAI_FAMILY;
+	case UV__EAI_MEMORY					  : return elpuEAI_MEMORY;
+	case UV__EAI_NODATA					  : return elpuEAI_NODATA;
+	case UV__EAI_NONAME					  : return elpuEAI_NONAME;
+	case UV__EAI_OVERFLOW				  : return elpuEAI_OVERFLOW;
+	case UV__EAI_SERVICE				  : return elpuEAI_SERVICE;
+	case UV__EAI_SOCKTYPE				  : return elpuEAI_SOCKTYPE;
+	case UV__EAI_BADHINTS				  : return elpuEAI_BADHINTS;
+	case UV__EAI_PROTOCOL				  : return elpuEAI_PROTOCOL;
+
+
+	case UV__E2BIG						  : return elpuE2BIG;
+	case UV__EACCES						  : return elpuEACCES;
+	case UV__EADDRINUSE					  : return elpuEADDRINUSE;
+	case UV__EADDRNOTAVAIL				  : return elpuEADDRNOTAVAIL;
+	case UV__EAGAIN						  : return elpuEAGAIN;
+	case UV__EALREADY					  : return elpuEALREADY;
+	case UV__EBADF						  : return elpuEBADF;
+	case UV__EBUSY						  : return elpuEBUSY;
+	case UV__ECANCELED					  : return elpuECANCELED;
+	case UV__ECHARSET					  : return elpuECHARSET;
+	case UV__ECONNABORTED				  : return elpuECONNABORTED;
+	case UV__ECONNREFUSED				  : return elpuECONNREFUSED;
+	case UV__ECONNRESET					  : return elpuECONNRESET;
+	case UV__EDESTADDRREQ				  : return elpuEDESTADDRREQ;
+	case UV__EEXIST						  : return elpuEEXIST;
+	case UV__EFAULT				          : return elpuEFAULT;
+	case UV__EHOSTUNREACH				  : return elpuEHOSTUNREACH;
+	case UV__EINTR						  : return elpuEINTR;
+	case UV__EINVAL						  : return elpuEINVAL;
+	case UV__EIO						  : return elpuEIO;
+	case UV__EISCONN					  : return elpuEISCONN;
+	case UV__EISDIR						  : return elpuEISDIR;
+	case UV__ELOOP						  : return elpuELOOP;
+	case UV__EMFILE						  : return elpuEMFILE;
+	case UV__EMSGSIZE					  : return elpuEMSGSIZE;
+	case UV__ENAMETOOLONG				  : return elpuENAMETOOLONG;
+	case UV__ENETDOWN					  : return elpuENETDOWN;
+	case UV__ENETUNREACH				  : return elpuENETUNREACH;
+	case UV__ENFILE						  : return elpuENFILE;
+	case UV__ENOBUFS					  : return elpuENOBUFS;
+	case UV__ENODEV						  : return elpuENODEV;
+	case UV__ENOENT						  : return elpuENOENT;
+	case UV__ENOMEM						  : return elpuENOMEM;
+	case UV__ENONET						  : return elpuENONET;
+	case UV__ENOSPC						  : return elpuENOSPC;
+	case UV__ENOSYS						  : return elpuENOSYS;
+	case UV__ENOTCONN					  : return elpuENOTCONN;
+	case UV__ENOTDIR					  : return elpuENOTDIR;
+	case UV__ENOTEMPTY					  : return elpuENOTEMPTY;
+	case UV__ENOTSOCK					  : return elpuENOTSOCK;
+	case UV__ENOTSUP					  : return elpuENOTSUP;
+	case UV__EPERM						  : return elpuEPIPE;
+	case UV__EPIPE						  : return elpuEPIPE;
+	case UV__EPROTO						  : return elpuEPROTO;
+	case UV__EPROTONOSUPPORT			  : return elpuEPROTONOSUPPORT;
+	case UV__EPROTOTYPE					  : return elpuEPROTOTYPE;
+	case UV__EROFS						  : return elpuEROFS;
+	case UV__ESHUTDOWN					  : return elpuESHUTDOWN;
+	case UV__ESPIPE						  : return elpuESPIPE;
+	case UV__ESRCH						  : return elpuESRCH;
+	case UV__ETIMEDOUT					  : return elpuETIMEDOUT;
+	case UV__ETXTBSY					  : return elpuETXTBSY;
+	case UV__EXDEV						  : return elpuEXDEV;
+	case UV__EFBIG						  : return elpuEFBIG;
+	case UV__ENOPROTOOPT				  : return elpuENOPROTOOPT;
+	case UV__ERANGE						  : return elpuERANGE;
+	case UV__ENXIO						  : return elpuENXIO;
+	case UV__EMLINK						  : return elpuEMLINK;
+	case UV__EHOSTDOWN					  : return elpuEHOSTDOWN;
+	}
+
+	return elpuUnKnown;
+}
+
+
+
 // -----------------------------
 // class Handle
 // -----------------------------
