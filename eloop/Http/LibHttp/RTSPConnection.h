@@ -26,7 +26,8 @@ namespace eloop {
 #define Header_ContentLength		"Content-Length"
 #define Header_Notice				"Notice"
 #define Header_Date					"Date"
-#define Header_Reason				"X-reason"
+#define Header_Warning				"Warning"
+// #define Header_Reason				"X-reason"
 #define	Header_RequestId			"X-Request-ID"
 
 
@@ -225,6 +226,7 @@ public:
 	void setConnId(const std::string& connId) { _connId = connId; }
 
 	int64				_stampCreated;
+
 private:
 	std::string			_connId; // TODO: what if the connection is lost piror to response sending
 	ZQ::common::Mutex	_lockHeaders;

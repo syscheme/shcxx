@@ -526,14 +526,15 @@ bool TCPConnection::stop(bool isShutdown)
 
 void TCPConnection::initHint()
 {
-	char peerIp[17] = {0};
-	int peerPort = 0;
-	getpeerIpPort(peerIp,peerPort);
+	char ip[32] = {0};
+	_peerPort = 0;
+	getpeerIpPort(ip, _peerPort);
+	_peerIp = ip;
 
-	char localIp[17] = {0};
-	int localPort = 0;
-	getlocaleIpPort(localIp, localPort);
-
+	ip[0] = 0;
+	_localPort = 0;
+	getlocaleIpPort(ip, _localPort);
+	_localIp = ip;
 
 	std::ostringstream oss, reverseOss;
 	if (_tcpServer == NULL)

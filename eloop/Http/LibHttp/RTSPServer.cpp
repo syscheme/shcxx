@@ -213,6 +213,7 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetParameter(RTSPResponse::
 RTSPResponse::RTSPResponse(RTSPServer& server,const RTSPMessage::Ptr& req)
 : _server(server), RTSPMessage(req->getConnId(), RTSPMessage::RTSP_MSG_RESPONSE),_req(req),_isResp(false)
 {
+	header("Method-Code", methodToStr(req->method())); // TODO: to remove
 	cSeq(req->cSeq());
 	_server.addReq(this);
 }

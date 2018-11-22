@@ -81,7 +81,8 @@ class TCPConnection : public TCP, public WatchDog::IObservee
 
 public:
 	TCPConnection(ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL)
-		:_logger(log), _isConnected(false), _async(NULL), _tcpServer(tcpServer), _watchDog(NULL),_isShutdown(false),_isStop(false)
+		:_logger(log), _isConnected(false), _async(NULL), _tcpServer(tcpServer), _watchDog(NULL),_isShutdown(false),_isStop(false),
+		_peerPort(0), _localPort(0)
 	{
 		_lastCSeq.set(1);
 		if (connId != NULL)
@@ -155,6 +156,9 @@ protected:
 	ZQ::common::Mutex _lkSendMsgList;
 	std::list<std::string> _sendMsgList;
 	AsyncTCPSender* _async;
+
+	std::string _peerIp, _localIp;
+	int _peerPort, _localPort;
 };
 
 // ---------------------------------------
