@@ -183,8 +183,8 @@ public:
 		_headers[key] = oss.str();
 	}
 
-	// const std::string& version() const { return _protocolVersion; }
-	// void version(const std::string& version) { _protocolVersion = version; }
+	const std::string& version() const { return _rtspVersion; }
+	void version(const std::string& version) { _rtspVersion = version; }
 
 	RequestMethod method() const { return _method; }
 	void method(RequestMethod method) { _method = method; }
@@ -242,7 +242,7 @@ private:
 
 	RequestMethod   	_method;
 	std::string			_url;
-	// std::string			_protocolVersion;
+	std::string			_rtspVersion; // 1.0 by default
 };
 
 #ifndef SYS_PROP
