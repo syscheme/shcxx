@@ -208,9 +208,7 @@ std::string RTSPMessage::toRaw()
 		return _RawMessage;
 
 	if(_msgType != RTSP_MSG_RESPONSE )
-	{
 		oss<< methodToStr(_method) << " " << _url << " " << "RTSP/1.0"<< line_term;
-	}
 	else
 	{
 		if (_statusDesc.empty())
