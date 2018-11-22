@@ -213,7 +213,9 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetParameter(RTSPResponse::
 RTSPResponse::RTSPResponse(RTSPServer& server,const RTSPMessage::Ptr& req)
 : _server(server), RTSPMessage(req->getConnId(), RTSPMessage::RTSP_MSG_RESPONSE),_req(req),_isResp(false)
 {
-	header(Header_MethodCode, req->method());
+	char tmp[100];
+	snprintf(tmp, sizeof(tmp)-2, "%s(%d)@%s", methodToStr(req->method()), req->cSeq(), req->getConnId().c_str());
+	header(Header_RequestId, tmp);
 	cSeq(req->cSeq());
 	_server.addReq(this);
 }
@@ -660,7 +662,7 @@ void RTSPServer::checkReqStatus()
 	}
 
 	for(RequestList::iterator itCancel= listToCancel.begin(); itCancel != listToCancel.end(); itCancel++)
-		(*itCancel)->post(408);
+		(*itCancel)->post(RTSPMessage::rcProcessTimeout);
 }
 
 void RTSPServer::addReq(RTSPResponse::Ptr resp)

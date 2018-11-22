@@ -21,13 +21,13 @@ namespace eloop {
 #define	Header_Session				"Session"
 #define	Header_Transport			"Transport"
 
-#define	Header_MethodCode			"Method-Code"
 #define Header_UserAgent			"User-Agent"
 #define Header_ContentType			"Content-Type"
 #define Header_ContentLength		"Content-Length"
 #define Header_Notice				"Notice"
 #define Header_Date					"Date"
-#define Header_Reason				"x-reason"
+#define Header_Reason				"X-reason"
+#define	Header_RequestId			"X-Request-ID"
 
 
 #define Method_OPTIONS				"OPTIONS"
@@ -75,6 +75,7 @@ public:
 		rcInternalError			= 500,
 		rcNotImplement			= 501,
 		rcServiceUnavail		= 503,
+		rcProcessTimeout        = 504,
 		rcOptionNotSupport		= 551,
 
 		// NGOD-compatible extensions
@@ -182,8 +183,8 @@ public:
 		_headers[key] = oss.str();
 	}
 
-	const std::string& version() const { return _protocolVersion; }
-	void version(const std::string& version) { _protocolVersion = version; }
+	// const std::string& version() const { return _protocolVersion; }
+	// void version(const std::string& version) { _protocolVersion = version; }
 
 	RequestMethod method() const { return _method; }
 	void method(RequestMethod method) { _method = method; }
@@ -241,7 +242,7 @@ private:
 
 	RequestMethod   	_method;
 	std::string			_url;
-	std::string			_protocolVersion;
+	// std::string			_protocolVersion;
 };
 
 #ifndef SYS_PROP
