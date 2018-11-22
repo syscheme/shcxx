@@ -213,9 +213,6 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetParameter(RTSPResponse::
 RTSPResponse::RTSPResponse(RTSPServer& server,const RTSPMessage::Ptr& req)
 : _server(server), RTSPMessage(req->getConnId(), RTSPMessage::RTSP_MSG_RESPONSE),_req(req),_isResp(false)
 {
-	char tmp[100];
-	snprintf(tmp, sizeof(tmp)-2, "%s(%d)@%s", methodToStr(req->method()), req->cSeq(), req->getConnId().c_str());
-	header(Header_RequestId, tmp);
 	cSeq(req->cSeq());
 	_server.addReq(this);
 }
@@ -244,9 +241,21 @@ void RTSPResponse::post(int statusCode, const char* errMsg, bool bAsync)
 	}
 
 	_server.removeReq(this);
+
+	std::string reqId = header(Header_RequestId);
+	if (reqId.empty())
+	{
+		char tmp[100];
+		snprintf(tmp, sizeof(tmp)-2, "%s(%d)@%s", methodToStr(_req->method()), _req->cSeq(), _req->getConnId().c_str());
+		reqId = tmp;
+		header(Header_RequestId, reqId);
+	}
+
+	std::string txn = std::string("resp-of-req[") + reqId + "]";
+
 	if (statusCode < 100 || statusCode >999)
 	{
-		_server._logger(ZQ::common::Log::L_ERROR, CLOGFMT(RTSPResponse, "post() conn[%s] %s(%d) unallowed statusCode(%d) to post, take 500 ServerError instead"), getConnId().c_str(), RTSPMessage::methodToStr(_req->method()), _req->cSeq(), statusCode);
+		_server._logger(ZQ::common::Log::L_ERROR, CLOGFMT(RTSPResponse, "post() statusCode(%d) in %s, taking '500 ServerError' instead"), statusCode, txn.c_str());
 		statusCode = rcInternalError;
 	}
 
@@ -261,7 +270,7 @@ void RTSPResponse::post(int statusCode, const char* errMsg, bool bAsync)
 	TCPConnection* conn = _server.findConn(getConnId());
 	if (conn == NULL)
 	{
-		_server._logger(ZQ::common::Log::L_ERROR, CLOGFMT(RTSPResponse, "post() conn[%s] already closed"),getConnId().c_str());
+		_server._logger(ZQ::common::Log::L_ERROR, CLOGFMT(RTSPResponse, "post() drop %s per conn[%s] already closed"), txn.c_str(), getConnId().c_str());
 		return;
 	}
 
@@ -271,7 +280,7 @@ void RTSPResponse::post(int statusCode, const char* errMsg, bool bAsync)
 	else
 	{
 		if (TCPConnection::_enableHexDump > 0)
-			_server._logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), (conn->hint() + " post").c_str(),true);
+			_server._logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), txn.c_str() ,true);
 		ret = conn->write(respMsg.c_str(), respMsg.size());
 	}
 	 
@@ -281,10 +290,7 @@ void RTSPResponse::post(int statusCode, const char* errMsg, bool bAsync)
 		return;
 	}
 
-	int elapsed = (int)(ZQ::common::now() - _req->_stampCreated);
-	std::string sessId = header(Header_Session);
-
-	_server._logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPResponse, "post() sessId[%s] %s(%d) ret(%d) took %dms"), sessId.c_str(), RTSPMessage::methodToStr(_req->method()), _req->cSeq(), statusCode, elapsed);
+	_server._logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPResponse, "post() %s ret(%d) took %dms"), txn.c_str(), statusCode, _req->elapsed());
 }
 
 // ---------------------------------------
@@ -316,7 +322,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 {
 	RTSPResponse::Ptr resp = new RTSPResponse(_server, req);
 
-	int respCode =500;
+	int respCode = RTSPMessage::rcInternalError;
 	std::string sessId;
 
 	do {
@@ -326,21 +332,23 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 
 		int pendings =  _server.getPendingRequest();
 		if (pendings >2)
-			_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequests() enqueuing %s(%d) into pendings[%d /%d]"), RTSPMessage::methodToStr(req->method()), req->cSeq(), pendings, (int)_server._config.maxPendings);
-
-		if (_server._config.maxPendings >0 && pendings >= _server._config.maxPendings)
 		{
-			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn, "OnRequests() rejecting %s(%d) per too many pendings [%d /%d]"), RTSPMessage::methodToStr(req->method()), req->cSeq(), pendings, _server._config.maxPendings);
-			respCode =503;
-			break;
+			if (_server._config.maxPendings >2 && pendings >= _server._config.maxPendings)
+			{
+				_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn, "OnRequest() rejecting %s(%d) per too many pendings [%d /%d]"), RTSPMessage::methodToStr(req->method()), req->cSeq(), pendings, _server._config.maxPendings);
+				respCode = RTSPMessage::rcServiceUnavail;
+				break;
+			}
+
+			_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() enqueuing %s(%d) into pendings[%d /%d]"), RTSPMessage::methodToStr(req->method()), req->cSeq(), pendings, (int)_server._config.maxPendings);
 		}
 
 		_rtspHandler = _server.createHandler(req, *this);
 		if(!_rtspHandler)
 		{
 			// should make a 404 response
-			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn, "OnRequests failed to find a suitable handle to process url: %s"), req->url().c_str() );
-			respCode =404;
+			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn, "OnRequest() failed to find a suitable handle to process url: %s"), req->url().c_str() );
+			respCode = RTSPMessage::rcObjectNotFound;
 			break;
 		}
 
@@ -353,7 +361,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 			pSess = _server.findSession(sessId);//RTSPServer::Session::Ptr::dynamicCast(_server.findSession(sid));
 			if (NULL == pSess)
 			{
-				respCode =454;
+				respCode = RTSPMessage::rcSessNotFound;
 				break;
 			}
 		}
@@ -371,7 +379,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 					if (_tcpServer)
 						_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() create session failed sessId[%s] hint%s SETUP(%d)"), sessId.c_str(), hint().c_str(), req->cSeq());
 
-					respCode =500;
+					respCode = RTSPMessage::rcInternalError;
 					break;
 				}
 				
@@ -381,7 +389,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 					if (_tcpServer)
 						_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() create session failed sessId[%s] hint%s SETUP(%d)"), sessId.c_str(), hint().c_str(), req->cSeq());
 
-					respCode =500;
+					respCode = RTSPMessage::rcInternalError;
 					break;
 				}
 
@@ -445,7 +453,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 	} while(0);
 
 	if (respCode < 100)
-		respCode = 500;
+		respCode = RTSPMessage::rcInternalError;
 
 	resp->post(respCode, NULL, false);
 
