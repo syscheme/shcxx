@@ -493,7 +493,7 @@ bool TCPConnection::start()
 	if (_tcpServer)
 	{
 		_tcpServer->addConn(this);
-		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"new conn[%s] %s accepted"),_connId.c_str(), _Hint.c_str());
+		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"new conn[%s] %s accepted"),_connId.c_str(), _desc.c_str());
 	}
 
 	if (_watchDog)
@@ -512,7 +512,7 @@ bool TCPConnection::stop(bool isShutdown)
 	if (_async != NULL)
 	{
 		_async->close();
-		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"conn[%s] %s async-closed: isShutdown[%s]"),_connId.c_str(), _Hint.c_str(), isShutdown?"true":"false");
+		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"conn[%s] %s async-closed: isShutdown[%s]"),_connId.c_str(), _desc.c_str(), isShutdown?"true":"false");
 		return true;
 	}
 
@@ -521,7 +521,7 @@ bool TCPConnection::stop(bool isShutdown)
 	else close();
 
 	_isConnected = false;
-	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"%s conn[%s] %s"), _isShutdown?"shutdown" :"closed", _connId.c_str(), _Hint.c_str());
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"%s conn[%s] %s"), _isShutdown?"shutdown" :"closed", _connId.c_str(), _desc.c_str());
 }
 
 void TCPConnection::initHint()
@@ -539,16 +539,17 @@ void TCPConnection::initHint()
 	std::ostringstream oss, reverseOss;
 	if (_tcpServer == NULL)
 	{
-		oss<<"["<<localIp<<":"<<localPort<<"->"<<peerIp<<":"<<peerPort<<"]";
-		reverseOss<<"["<<peerIp<<":"<<peerPort<<"->"<<localIp<<":"<<localPort<<"]";
+		oss<<"["<<_localIp<<":"<<_localPort<<"->"<<_peerIp<<":"<<_peerPort<<"]";
+		reverseOss<<"["<<_peerIp<<":"<<_peerPort<<"->"<<_localIp<<":"<<_localPort<<"]";
 	}
 	else
 	{
-		oss<<"["<<peerIp<<":"<<peerPort<<"->"<<localIp<<":"<<localPort<<"]";
-		reverseOss<<"["<<localIp<<":"<<localPort<<"->"<<peerIp<<":"<<peerPort<<"]";
+		oss<<"["<<_peerIp<<":"<<_peerPort<<"->"<<_localIp<<":"<<_localPort<<"]";
+		reverseOss<<"["<<_localIp<<":"<<_localPort<<"->"<<_peerIp<<":"<<_peerPort<<"]";
 	}
-	_Hint = oss.str();
-	_reverseHint = reverseOss.str();
+
+	_desc = oss.str();
+	_descReverse = reverseOss.str();
 }
 
 void TCPConnection::OnClose()
@@ -559,13 +560,13 @@ void TCPConnection::OnClose()
 	if (_watchDog)
 		_watchDog->unwatch(this);
 
-	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnClose() conn[%s] %s"),_connId.c_str(), _Hint.c_str());
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnClose() conn[%s] %s"),_connId.c_str(), _desc.c_str());
 	onStop();
 }
 
 void TCPConnection::OnShutdown(ElpeError status)
 {
-	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnShutdown() conn[%s] %s, error(%d): %s"),_connId.c_str(), _Hint.c_str(), status,errDesc(status));
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnShutdown() conn[%s] %s, error(%d): %s"),_connId.c_str(), _desc.c_str(), status,errDesc(status));
 	close();
 }
 
@@ -619,9 +620,9 @@ void TCPConnection::OnAsyncSend()
 			onError(ret,desc.c_str());
 		}
 
-		std::string hint = _Hint;
+		std::string hint = _desc;
 		if (_tcpServer)
-			hint = _reverseHint;
+			hint = _descReverse;
 
 		hint += " sent:";
 
@@ -633,7 +634,7 @@ void TCPConnection::OnAsyncSend()
 
 void TCPConnection::OnCloseAsync()
 {
-	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnCloseAsync() conn[%s] %s"),_connId.c_str(), _Hint.c_str());
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnCloseAsync() conn[%s] %s"),_connId.c_str(), _desc.c_str());
 	OnAsyncSend();
 	if (_async != NULL)
 	{

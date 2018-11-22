@@ -104,8 +104,8 @@ public:
 	const std::string& hint() const 
 	{
 		if (!_tcpServer)
-			return _reverseHint;
-		return _Hint; 
+			return _descReverse;
+		return _desc; 
 	}
 	virtual bool isPassive() const { return NULL != _tcpServer; }
 	uint lastCSeq();
@@ -145,8 +145,8 @@ public:
 
 protected:
 	WatchDog*			    _watchDog;
-	std::string				_Hint;
-	std::string				_reverseHint;
+	std::string				_desc;
+	std::string				_descReverse;
 	bool					_isConnected;
 	bool					_isShutdown;
 	bool					_isStop;
