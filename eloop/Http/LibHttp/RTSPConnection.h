@@ -179,9 +179,12 @@ public:
 	void header( const std::string& key, const T& value)
 	{
 		std::ostringstream oss;
-		oss<<value;
+		oss << value;
+		std::string valstr = oss.str();
 		ZQ::common::MutexGuard gd(_lockHeaders);
-		_headers[key] = oss.str();
+		if (valstr.empty())
+			_headers.erase(key);
+		else _headers[key] = valstr;
 	}
 
 	const std::string& version() const { return _rtspVersion; }

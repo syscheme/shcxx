@@ -493,7 +493,7 @@ bool TCPConnection::start()
 	if (_tcpServer)
 	{
 		_tcpServer->addConn(this);
-		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"new conn[%s] %s accepted"),_connId.c_str(), _desc.c_str());
+		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection, "new conn[%s] %s accepted: %s"),_connId.c_str(), _desc.c_str(), _desc.c_str());
 	}
 
 	if (_watchDog)
@@ -620,7 +620,7 @@ void TCPConnection::OnAsyncSend()
 			onError(ret,desc.c_str());
 		}
 
-		std::string hint = _desc;
+		std::string hint = _connId + _desc;
 		if (_tcpServer)
 			hint = _descReverse;
 
