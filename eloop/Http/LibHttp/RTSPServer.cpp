@@ -218,12 +218,12 @@ RTSPResponse::RTSPResponse(RTSPServer& server,const RTSPMessage::Ptr& req)
 	_server.addReq(this);
 }
 
-int RTSPResponse::getRemainTime()
+int RTSPResponse::getTimeLeft()
 {
 	if (_server._config.procTimeout <=0)
 		return DUMMY_PROCESS_TIMEOUT;
 
-	return (_server._config.procTimeout - _req->elapsed());
+	return (int)(_server._config.procTimeout - _req->elapsed());
 }
 
 TCPConnection* RTSPResponse::getConn() 
@@ -242,9 +242,12 @@ void RTSPResponse::post(int statusCode, const char* errMsg, bool bAsync)
 	}
 
 	_server.removeReq(this);
+	if (statusCode < 100 || statusCode >999)
+	{
+		_server._logger(ZQ::common::Log::L_ERROR, CLOGFMT(RTSPResponse, "post() conn[%s] %s(%d) unallowed statusCode(%d) to post, take 500 ServerError instead"), getConnId().c_str(), RTSPMessage::methodToStr(_req->method()), _req->cSeq(), statusCode);
+		statusCode = rcInternalError;
+	}
 
-	//if (statusCode != 408 && getRemainTime() <= 0)
-	//	statusCode = 408;
 	code(statusCode);
 
 	if (errMsg != NULL)
@@ -276,12 +279,10 @@ void RTSPResponse::post(int statusCode, const char* errMsg, bool bAsync)
 		return;
 	}
 
-	int64 elapsed = ZQ::common::now() - _req->_stampCreated;
+	int elapsed = (int)(ZQ::common::now() - _req->_stampCreated);
 	std::string sessId = header(Header_Session);
 
-	_server._logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPResponse, "post() sessId[%s] %s(%d) ret(%d) took %lldms"), sessId.c_str(), RTSPMessage::methodToStr(_req->method()), _req->cSeq(), statusCode, elapsed);
-
-	//_server._logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), conn->hint().c_str(),true);
+	_server._logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPResponse, "post() sessId[%s] %s(%d) ret(%d) took %dms"), sessId.c_str(), RTSPMessage::methodToStr(_req->method()), _req->cSeq(), statusCode, elapsed);
 }
 
 // ---------------------------------------
@@ -645,7 +646,7 @@ void RTSPServer::checkReqStatus()
 		ZQ::common::MutexGuard g(_lkReqList);
 		for(RequestList::iterator it= _awaitRequests.begin(); it != _awaitRequests.end();)
 		{
-			if (!(*it) || (*it)->getRemainTime() > 0)
+			if (!(*it) || (*it)->getTimeLeft() > 0)
 			{
 				it++;
 				continue;

@@ -31,7 +31,7 @@ public:
 	void post(int statusCode, const char* errMsg = NULL, bool bAsync = true); 
 	TCPConnection* getConn();
 
-	int getRemainTime();
+	int getTimeLeft();
 
 private:
 	RTSPServer& _server;
