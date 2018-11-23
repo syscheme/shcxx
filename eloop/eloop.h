@@ -243,7 +243,6 @@ public:
 
 	static int exepath(char* buf,size_t* size){return uv_exepath(buf,size);}
 
-
 protected:
 	Handle();
 	Handle(Handle &);
@@ -251,7 +250,7 @@ protected:
 	virtual ~Handle();
 
 public:
-	void init(Loop &loop);
+	void init(Loop& loop);
 
 	void* data;
 	void close();
