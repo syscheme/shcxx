@@ -182,6 +182,7 @@ public:
 
  	bool mount(const std::string& uriEx, RTSPHandler::AppPtr app, const RTSPHandler::Properties& props=RTSPHandler::Properties(), const char* virtualSite =DEFAULT_SITE);
 	bool unmount(const std::string& uriEx, const char* virtualSite =DEFAULT_SITE);
+	void clearMounts() { _vsites.clear(); }
 
 	RTSPHandler::Ptr createHandler(const RTSPMessage::Ptr& req, RTSPPassiveConn& conn, const std::string& virtualSite = std::string(DEFAULT_SITE));
 	// RTSPHandler::Ptr findSessionHandler(const std::string& sessId); //TODO: PLAY/PAUSE et operation other than SETUP will give dummy uri, so a RTSPServer should be able to find the proper Handler by session ID

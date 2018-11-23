@@ -218,8 +218,8 @@ public:
 #endif
 	}
 
-	bool start();
-	bool stop();
+	virtual bool start();
+	virtual bool stop();
 
 	virtual void OnTimer() {}
 	virtual void OnUnwatch() {}
