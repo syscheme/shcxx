@@ -233,9 +233,11 @@ public:
 		elpuENXIO               = UV__ENXIO,
 		elpuEMLINK              = UV__EMLINK,
 		elpuEHOSTDOWN           = UV__EHOSTDOWN,
+		elpuUnKnown
 
 	} ElpeError;
 
+	static ElpeError uvErr2ElpeErr(int errCode);
 	static const char* errDesc(ElpeError err)  { return errDesc((int)err); }
 	static const char* errDesc(int err)  { return uv_strerror(err); }
 	static const char* errName(ElpeError err) { return errName((int) err); }
