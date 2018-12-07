@@ -82,6 +82,7 @@ public:
 	virtual ~TCPConnection() {}
 
 	int init(Loop &loop);
+	Loop& get_loop() { return TCP::get_loop(); }
 	// bool start();
 	bool disconnect(bool isShutdown = false); // used named stop()
 	const std::string& connId() const { return _connId; }
