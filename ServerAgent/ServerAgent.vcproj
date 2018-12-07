@@ -116,7 +116,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..;../eloop/libuv_1.9.1/include;../eloop/Http/LibHttp;../eloop;&quot;$(RegExppKit)&quot;;."
+				AdditionalIncludeDirectories="..;../eloop/libuv_1.20.3/include;../eloop/Http/LibHttp;../eloop;&quot;$(RegExppKit)&quot;;."
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
