@@ -9,7 +9,7 @@
 
 #include "eloop_net.h"
 
-#include <list>
+#include <queue>
 #include <map>
 #include <string>
 
@@ -74,45 +74,51 @@ class ITCPEngine;
 // ---------------------------------------
 // class TCPConnection
 // ---------------------------------------
+// extend TCP intend to provide thread-safe send/recv by include bufferring
 class TCPConnection : protected TCP, public WatchDog::IObservee 
 {
 public:
-
 	TCPConnection(ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL);
+	virtual ~TCPConnection() {}
+
 	int init(Loop &loop);
-	bool start();
+	// bool start();
 	bool disconnect(bool isShutdown = false); // used named stop()
 	const std::string& connId() const { return _connId; }
-	const std::string& hint() const { return _tcpServer ? _desc : _descReverse; }
+	const char* linkstr() const { return _linkstr.c_str(); }
 
 	virtual bool isPassive() const { return NULL != _tcpServer; }
 
 	uint lastCSeq();
 
-	int enqueueSend(const std::string& msg);
-
-	virtual void onError( int error,const char* errorDescription ) {}
+	int enqueueSend(const std::string& msg) { return enqueueSend((const uint8*) msg.c_str(), msg.length()); }
+	int enqueueSend(const uint8* data, size_t len);
 
 	void setWatchDog(WatchDog* watchDog)	{ _watchDog = watchDog; }
 	virtual void OnTimer() {}
 	virtual void OnUnwatch() {}
 
-protected:
-	virtual bool onStart() {return true;}
-	virtual bool onStop()  { delete this; return true;}
+public: // tempraorly public // overwrite of TCP
+	virtual void OnConnected(ElpeError status);
 
-	// called after buffer has been written into the stream
-	virtual void OnWrote(int status) {}
+protected: // overwrite of TCP
 	// called after buffer has been read from the stream
-	
 	virtual void OnRead(ssize_t nread, const char *buf) {} // TODO: uv_buf_t is unacceptable to appear here, must take a new manner known in this C++ wrapper level
+
+// new entry points introduced
+// ------------------------------
+public:
+	virtual void OnConnectionError(int error, const char* errorDescription ) {}
 
 private:
 	// NOTE: DO NOT INVOKE THIS METHOD unless you known what you are doing
-	void initHint();
+	void _sendNext(size_t maxlen =16*1024);
+	int _enqueueSend(const uint8* data, size_t len); // thread-unsafe methods
 
-	virtual void OnClose();
-	virtual void OnShutdown(ElpeError status);
+	// called after buffer has been written into the stream
+	void OnWrote(int status);
+	void OnClose();
+	void OnShutdown(ElpeError status);
 
 	// subclass AsyncSender
 	// ------------------------------------------------
@@ -122,12 +128,12 @@ private:
 		WakeUp(TCPConnection& conn):_conn(conn) {}
 
 	protected:
-		virtual void OnAsync() {_conn.OnAsyncSend();}
+		virtual void OnAsync() {_conn.OnSendEnqueued();}
 		// virtual void OnClose() { _conn.OnCloseAsync();}
 		TCPConnection& _conn;
 	};
 
-	void OnAsyncSend();
+	virtual void OnSendEnqueued();
 	// void OnCloseAsync();
 
 public:
@@ -137,17 +143,28 @@ public:
 
 protected:
 	WatchDog*			    _watchDog;
-	std::string				_desc;
-	std::string				_descReverse;
+	std::string				_linkstr;
 	bool					_isConnected;
 	bool					_isShutdown;
 	bool					_isStop;
 	std::string				_connId;
 	ZQ::common::AtomicInt _lastCSeq;
 
-	ZQ::common::Mutex _lkSendMsgList;
-	std::list<std::string> _sendMsgList;
+	class Buffer: public ZQ::common::SharedObject, protected std::string 
+	{
+	public:
+		typedef ZQ::common::Pointer <Buffer> Ptr;
+		typedef std::queue <Ptr> Queue;
+
+		Buffer(const uint8* data, size_t len) : std::string((const char*)data, len) {}
+		const uint8* data() const { return (const uint8*) std::string::c_str(); }
+		size_t len() const { return std::string::size(); }
+	};
+
+	ZQ::common::Mutex      _lkSend;
+	Buffer::Queue          _queSend;
 	WakeUp				   _wakeup;
+	int64                  _stampBusySend;
 
 	std::string _peerIp, _localIp;
 	int _peerPort, _localPort;

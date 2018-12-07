@@ -340,9 +340,8 @@ protected:
 	virtual void doAllocate(eloop_buf_t* buf, size_t suggested_size);
 
 	virtual void OnRead(ssize_t nread, const char *buf);
-	virtual void OnWrote(int status);
 
-	virtual void onError( int error,const char* errorDescription ){}
+	virtual void OnConnectionError( int error,const char* errorDescription ){}
 
 	virtual void	onDataSent(size_t size){}
 	virtual void	onDataReceived( size_t size ){}
@@ -386,9 +385,7 @@ private:
 	typedef std::map<uint, AwaitRequest> AwaitRequestMap;
 	AwaitRequestMap _awaits;
 	ZQ::common::Mutex _lkAwaits; // because sendRequest() is open for other threads out of eloop to call
-
 	RTSPMessage::MsgVec		_reqList;
-
 
 	void parse(ssize_t bytesRead);
 

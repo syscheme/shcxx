@@ -123,7 +123,7 @@ public:
 protected:
 
 	// implementation of HttpConnection
-	virtual void	onError( int error,const char* errorDescription );
+	virtual void	OnConnectionError( int error,const char* errorDescription );
 	virtual void	onHttpDataSent(size_t size);
 	virtual void	onHttpDataReceived( size_t size );
 	virtual bool	onHeadersEnd( const HttpMessage::Ptr msg);

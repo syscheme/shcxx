@@ -35,7 +35,7 @@ public:
 	virtual void onMessageCompleted() = 0;
 
 	/// error occured during data receiving or parsing stage
-	virtual void onError( int error,const char* errorDescription ) = 0;
+	virtual void OnConnectionError( int error,const char* errorDescription ) = 0;
 
 };
 
@@ -129,7 +129,7 @@ protected: // implementation of IHttpParseSink that also present the message rec
 	virtual void onMessageCompleted() {}
 
 	/// error occured during data receiving or parsing stage
-	virtual void onError( int error,const char* errorDescription ) {}
+	virtual void OnConnectionError( int error,const char* errorDescription ) {}
 	
 private:
 	http_parser*             _parser; // its type can be determined by clientSide

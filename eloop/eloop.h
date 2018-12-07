@@ -270,7 +270,7 @@ public:
 	uv_handle_t *context_ptr();
 
 protected:
-	virtual void OnClose(){delete this;}
+	virtual void OnClose() { delete this; }
 //	bool		_isStart;
 	bool		_isClose;
 	

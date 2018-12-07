@@ -18,13 +18,11 @@ HttpClient::~HttpClient()
 
 void HttpClient::OnConnected(ElpeError status)
 {
-	if (status != elpeSuccess) {
-//		fprintf(stderr, "on_connect error %s\n", errDesc(status));
-		std::string desc = "on_connect error:";
-		desc.append(errDesc(status));
-		onError(status,errDesc(status));
+	HttpConnection::OnConnected(status);
+
+	if (status != elpeSuccess)
 		return;
-	}
+
 	read_start();
 	beginSend(_req);
 	endSend();
@@ -58,18 +56,10 @@ bool HttpClient::beginRequest( HttpMessage::Ptr msg, const std::string& ip, cons
 	return true;
 }
 
-void HttpClient::onError( int error,const char* errorDescription )
+void HttpClient::OnConnectionError( int error, const char* errorDescription )
 {
-	char locip[17] = { 0 };
-	int  locport = 0;
-	getlocaleIpPort(locip,locport);
-
-	char peerip[17] = { 0 };
-	int  peerport = 0;
-	getpeerIpPort(peerip,peerport);
-
-	_logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient, "onError [%p] [%s:%d => %s:%d], errorCode[%d],Description[%s]"), 
-		this, locip, locport, peerip, peerport,error,errorDescription);
+	_logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient, "OnConnectionError [%p] %s error(%d) %s"), 
+		this, linkstr(), error,errorDescription);
 
 	shutdown();
 }

@@ -85,7 +85,7 @@ void HttpConnection::OnRead(ssize_t nread, const char *buf)
 	{
 		std::string desc = "Read error:";
 		desc.append(errDesc(nread));
-		onError(nread,desc.c_str());
+		OnConnectionError(nread, desc.c_str());
 		return;
 	}
 
@@ -101,8 +101,8 @@ void HttpConnection::OnWrote(int status)
 {
 	if (status != elpeSuccess)
 	{
-		std::string desc = std::string("send failed: ") + hint() + " " + errDesc(status);
-		onError(status,desc.c_str());
+		std::string desc = std::string("send failed: ") + _linkstr + " " + errDesc(status);
+		OnConnectionError(status,desc.c_str());
 		return;
 	}
 	
@@ -165,7 +165,7 @@ void HttpConnection::parse( const char* data, size_t size)
 
 	std::string parsedesc = "parse error:";
 	parsedesc.append(http_errno_description((http_errno)_parser->http_errno));
-	onError((int)_parser->http_errno,parsedesc.c_str());
+	OnConnectionError((int)_parser->http_errno, parsedesc.c_str());
 }
 
 int HttpConnection::beginSend(HttpMessage::Ptr resp)
@@ -174,7 +174,7 @@ int HttpConnection::beginSend(HttpMessage::Ptr resp)
 	_respMsg = resp;
 	std::string head = _respMsg->toRaw();
 	
-	int ret = write(head.c_str(),head.length());
+	int ret = (head.c_str(),head.length());
 	onRespHeader();
 	return ret;
 }
@@ -189,7 +189,7 @@ int HttpConnection::SendBody(char *buf, size_t length)
 
 	int ret = 0;
 	if(!_respMsg->chunked() )
-		ret = write(buf,length);
+		ret = enqueueSend((const uint8*)buf,length);
 	else
 	{
 		eloop_buf_t chunkbuf[3];
@@ -202,7 +202,7 @@ int HttpConnection::SendBody(char *buf, size_t length)
 		chunkbuf[1].len = length;
 		chunkbuf[2].base = "\r\n";
 		chunkbuf[2].len = 2;
-		ret = write(chunkbuf,3);
+		ret = enqueueSend((const uint8*)chunkbuf,3);
 	}
 
 	onRespBody();
@@ -215,7 +215,7 @@ int HttpConnection::endSend()
 	if(_respMsg->chunked())
 	{
 		char* chunkEnd = "0\r\n\r\n";
-		ret = write(chunkEnd,strlen(chunkEnd));
+		ret = enqueueSend((const uint8*)chunkEnd,strlen(chunkEnd));
 	}
 
 	onRespComplete();
@@ -241,7 +241,7 @@ int	HttpConnection::onHeadersComplete()
 	int r = _msgBeingParsed->onHeadersComplete();
 	if (r != 0)
 	{
-		_cbParse->onError(r,_msgBeingParsed->errorCode2Desc(r));
+		_cbParse->OnConnectionError(r, _msgBeingParsed->errorCode2Desc(r));
 		return -2;
 	}
 
@@ -265,7 +265,7 @@ int	HttpConnection::onMessageComplete()
 	int r = _msgBeingParsed->onMessageComplete();
 	if (r != 0)
 	{
-		_cbParse->onError(r,_msgBeingParsed->errorCode2Desc(r));
+		_cbParse->OnConnectionError(r, _msgBeingParsed->errorCode2Desc(r));
 		return -1;
 	}
 	

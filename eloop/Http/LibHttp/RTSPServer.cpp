@@ -58,10 +58,6 @@ RTSPHandler::~RTSPHandler()
 	_app._cOngoings.dec();
 }
 
-void RTSPHandler::onDataSent(size_t size)
-{
-}
-
 void RTSPHandler::onDataReceived( size_t size )
 {
 }
@@ -266,7 +262,7 @@ void RTSPResponse::post(int statusCode, const char* errMsg, bool bAsync)
 		status(errMsg);
 
 	std::string respMsg = toRaw();
-	// TODO: _conn._logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), _conn.hint().c_str(),true);
+	// TODO: _conn._logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), _conn.linkstr(),true);
 
 	TCPConnection* conn = _server.findConn(getConnId());
 	if (conn == NULL)
@@ -282,12 +278,12 @@ void RTSPResponse::post(int statusCode, const char* errMsg, bool bAsync)
 	{
 		if (TCPConnection::_enableHexDump > 0)
 			_server._logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), txn.c_str() ,true);
-		ret = conn->write(respMsg.c_str(), respMsg.size());
+		ret = conn->enqueueSend((const uint8*) respMsg.c_str(), respMsg.size());
 	}
 	 
 	if (ret < 0)
 	{
-		conn->onError(ret,ZQ::eloop::Handle::errDesc(ret));
+		conn->OnConnectionError(ret, ZQ::eloop::Handle::errDesc(ret));
 		return;
 	}
 
@@ -378,7 +374,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 				if (sess == NULL)
 				{
 					if (_tcpServer)
-						_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() create session failed sessId[%s] hint%s SETUP(%d)"), sessId.c_str(), hint().c_str(), req->cSeq());
+						_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() create session failed sessId[%s] hint%s SETUP(%d)"), sessId.c_str(), linkstr(), req->cSeq());
 
 					respCode = RTSPMessage::rcInternalError;
 					break;
@@ -388,14 +384,14 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 				if (NULL == pSess)
 				{
 					if (_tcpServer)
-						_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() create session failed sessId[%s] hint%s SETUP(%d)"), sessId.c_str(), hint().c_str(), req->cSeq());
+						_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() create session failed sessId[%s] hint%s SETUP(%d)"), sessId.c_str(), linkstr(), req->cSeq());
 
 					respCode = RTSPMessage::rcInternalError;
 					break;
 				}
 
 				if (_tcpServer)
-					_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() building up new session[%s] hint%s SETUP(%d)"), sessId.c_str(), hint().c_str(), req->cSeq());
+					_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() building up new session[%s] hint%s SETUP(%d)"), sessId.c_str(), linkstr(), req->cSeq());
 
 				respCode = _rtspHandler->procSessionRequest(RTSPMessage::mtdSETUP, resp, pSess);
 				if (RTSPMessage::Err_AsyncHandling == respCode)
@@ -463,7 +459,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 // 	write(respMsg.c_str(), respMsg.size());
 // 
 // 	if (TCPConnection::_enableHexDump > 0)
-// 		_logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), hint().c_str(),true);
+// 		_logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), linkstr(),true);
 // 	int64 elapsed = ZQ::common::now() - req->_stampCreated;
 // 	
 // 	if (_tcpServer)
@@ -480,7 +476,7 @@ void RTSPPassiveConn::simpleResponse(int code,uint32 cseq,RTSPConnection* conn)
 	resp->status(RTSPMessage::code2status(code));
 
 	std::string response = resp->toRaw();
-	conn->write(response.c_str(), response.size());
+	conn->enqueueSend((const uint8*)response.c_str(), response.size());
 }
 
 // ---------------------------------------

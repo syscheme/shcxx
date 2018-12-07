@@ -51,10 +51,10 @@ void HttpPassiveConn::errorResponse( int code )
 	write(response.c_str(), response.length());
 
 	_keepAlive = false;
-	stop(true);
+	disconnect(true);
 }
 
-void HttpPassiveConn::onError(int error,const char* errorDescription)
+void HttpPassiveConn::OnConnectionError(int error, const char* errorDescription)
 {
 	if (elpuEOF != error)
 	{
@@ -77,9 +77,9 @@ void HttpPassiveConn::onError(int error,const char* errorDescription)
 	}
 	
 	if(_handler)
-		_handler->onError(error,errorDescription);
+		_handler->OnConnectionError(error, errorDescription);
 
-	stop(true);
+	disconnect(true);
 }
 
 void HttpPassiveConn::onHttpDataSent(size_t size) 
@@ -106,7 +106,7 @@ void HttpPassiveConn::onRespComplete(bool isShutdown)
 	if (!_keepAlive || _keepAlive_Timeout <= 0)
 	{
 		_listpipe.clear();
-		stop(isShutdown);
+		disconnect(isShutdown);
 		return;
 	}
 
@@ -117,7 +117,7 @@ void HttpPassiveConn::onRespComplete(bool isShutdown)
 void HttpPassiveConn::OnTimer()
 {
 	if (_keepAlive_Timeout>0 && _startTime>0 &&(ZQ::common::now() - _startTime > _keepAlive_Timeout))
-		stop(false);
+		disconnect(false);
 }
 
 void HttpPassiveConn::onHttpDataReceived( size_t size )

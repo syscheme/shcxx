@@ -14,6 +14,7 @@ class ZQ_ELOOP_HTTP_API HttpClient;
 class HttpClient : public HttpConnection {
 public:
 	HttpClient(ZQ::common::Log& logger);
+	
 	virtual void OnConnected(ElpeError status);
 	bool beginRequest( HttpMessage::Ptr msg, const std::string& url);
 	bool beginRequest( HttpMessage::Ptr msg, const std::string& ip, const unsigned int& port);
@@ -42,11 +43,13 @@ protected:
 
 	virtual void	onMessageCompleted() { }
 
-	virtual void	onError( int error,const char* errorDescription );
+	virtual void	OnConnectionError( int error,const char* errorDescription );
 
 	HttpMessage::Ptr		_req;
 private:
 	ZQ::common::Log&		_logger;
 };
+
 } }//namespace ZQ::eloop
+
 #endif

@@ -4,6 +4,7 @@
 #include "RTSPConnection.h"
 
 #include <set>
+#include <list>
 
 namespace ZQ {
 namespace eloop {
@@ -119,7 +120,7 @@ protected: // hatched by HttpApplication
 
 	virtual void	onDataSent(size_t size);
 	virtual void	onDataReceived( size_t size );
-	virtual void	onError( int error,const char* errorDescription ){}
+	virtual void	onError( int error,const char* errorDescription ) {}
 
 	// non session-based requests
 	//@return RTSP status code
