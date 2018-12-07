@@ -71,46 +71,25 @@ private:
 };
 
 class ITCPEngine;
-class AsyncTCPSender;
 // ---------------------------------------
 // class TCPConnection
 // ---------------------------------------
-class TCPConnection : public TCP, public WatchDog::IObservee 
+class TCPConnection : protected TCP, public WatchDog::IObservee 
 {
-	friend class AsyncTCPSender;
-
 public:
-	TCPConnection(ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL)
-		:_logger(log), _isConnected(false), _async(NULL), _tcpServer(tcpServer), _watchDog(NULL),_isShutdown(false),_isStop(false),
-		_peerPort(0), _localPort(0)
-	{
-		_lastCSeq.set(1);
-		if (connId != NULL)
-			_connId = connId;
-		else
-		{
-			char buf[80];
-			ZQ::common::Guid guid;
-			guid.create();
-			guid.toCompactIdstr(buf, sizeof(buf) -2);
-			_connId = buf;
-		}
-	}
 
+	TCPConnection(ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL);
 	int init(Loop &loop);
 	bool start();
-	bool stop(bool isShutdown = false);
+	bool disconnect(bool isShutdown = false); // used named stop()
 	const std::string& connId() const { return _connId; }
-	const std::string& hint() const 
-	{
-		if (!_tcpServer)
-			return _descReverse;
-		return _desc; 
-	}
+	const std::string& hint() const { return _tcpServer ? _desc : _descReverse; }
+
 	virtual bool isPassive() const { return NULL != _tcpServer; }
+
 	uint lastCSeq();
 
-	int AsyncSend(const std::string& msg);
+	int enqueueSend(const std::string& msg);
 
 	virtual void onError( int error,const char* errorDescription ) {}
 
@@ -135,8 +114,21 @@ private:
 	virtual void OnClose();
 	virtual void OnShutdown(ElpeError status);
 
+	// subclass AsyncSender
+	// ------------------------------------------------
+	class WakeUp : public ZQ::eloop::Async
+	{
+	public:
+		WakeUp(TCPConnection& conn):_conn(conn) {}
+
+	protected:
+		virtual void OnAsync() {_conn.OnAsyncSend();}
+		// virtual void OnClose() { _conn.OnCloseAsync();}
+		TCPConnection& _conn;
+	};
+
 	void OnAsyncSend();
-	void OnCloseAsync();
+	// void OnCloseAsync();
 
 public:
 	ZQ::common::Log&		_logger;
@@ -155,7 +147,7 @@ protected:
 
 	ZQ::common::Mutex _lkSendMsgList;
 	std::list<std::string> _sendMsgList;
-	AsyncTCPSender* _async;
+	WakeUp				   _wakeup;
 
 	std::string _peerIp, _localIp;
 	int _peerPort, _localPort;

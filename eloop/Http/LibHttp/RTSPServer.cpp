@@ -277,7 +277,7 @@ void RTSPResponse::post(int statusCode, const char* errMsg, bool bAsync)
 
 	int ret = 0;
 	if (bAsync)
-		ret = conn->AsyncSend(respMsg);
+		ret = conn->enqueueSend(respMsg);
 	else
 	{
 		if (TCPConnection::_enableHexDump > 0)
