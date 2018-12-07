@@ -343,9 +343,6 @@ protected:
 
 	virtual void OnConnectionError( int error,const char* errorDescription ){}
 
-	virtual void	onDataSent(size_t size){}
-	virtual void	onDataReceived( size_t size ){}
-
 protected: // impl of RTSPParseSink
 	virtual void OnResponse(RTSPMessage::Ptr resp){}
 	virtual void OnRequest(RTSPMessage::Ptr req){}

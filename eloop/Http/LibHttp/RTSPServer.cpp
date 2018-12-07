@@ -24,9 +24,6 @@ public:
 
 	virtual void onError( int error,const char* errorDescription );
 
-	virtual void	onDataSent(size_t size);
-	virtual void	onDataReceived( size_t size );
-
 protected: // impl of RTSPParseSink
 	virtual void OnResponse(RTSPMessage::Ptr resp);
 	virtual void OnRequest(RTSPMessage::Ptr req);
@@ -56,10 +53,6 @@ RTSPHandler::RTSPHandler(const RTSPMessage::Ptr& req, IBaseApplication& app, RTS
 RTSPHandler::~RTSPHandler()
 {
 	_app._cOngoings.dec();
-}
-
-void RTSPHandler::onDataReceived( size_t size )
-{
 }
 
 std::string RTSPHandler::mediaSDP(const std::string& mid) { return "";}
@@ -297,18 +290,6 @@ void RTSPPassiveConn::onError( int error,const char* errorDescription )
 {
 	if(_rtspHandler)
 		_rtspHandler->onError(error,errorDescription);
-}
-
-void RTSPPassiveConn::onDataSent(size_t size)
-{
-	if(_rtspHandler)
-		_rtspHandler->onDataSent(size);
-}
-
-void RTSPPassiveConn::onDataReceived( size_t size )
-{
-	if(_rtspHandler)
-		_rtspHandler->onDataReceived(size);
 }
 
 void RTSPPassiveConn::OnResponse(RTSPMessage::Ptr resp)

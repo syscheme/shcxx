@@ -92,8 +92,6 @@ void RTSPConnection::OnRead(ssize_t nread, const char *buf)
 	if (TCPConnection::_enableHexDump > 0)
 		_logger.hexDump(ZQ::common::Log::L_INFO, _recvBuf.base+_byteSeen, nread, (_connId + _linkstr + " OnRead").c_str(),true);
 
-	onDataReceived(nread);
-
 	parse(nread);
 }
 
