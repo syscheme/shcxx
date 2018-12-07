@@ -816,6 +816,7 @@ void LIPCClient::OnConnected(ZQ::eloop::Handle::ElpeError status)
 		onError(status,desc.c_str());
 		return;
 	}
+
 	read_start();
 	_isConn = true;
 }

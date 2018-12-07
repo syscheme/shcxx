@@ -58,7 +58,6 @@ public:
 	int listen();
 	int accept(Handle* client);			//windows handle
 
-protected:
 	int read_start();
 	int read_stop();
 	int write(const eloop_buf_t bufs[],unsigned int nbufs,Handle *send_handle = NULL);
