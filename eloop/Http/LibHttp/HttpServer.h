@@ -68,6 +68,8 @@ protected: // hatched by HttpApplication
 		: _conn(conn), _app(app), _dirProps(dirProps)
 	{}
 
+	virtual void OnConnectionError( int error,const char* errorDescription ) {} /// most handlers do not care this event
+
 	virtual void	onHttpDataSent(size_t size) {}
 	virtual void	onHttpDataReceived( size_t size ) {}
 

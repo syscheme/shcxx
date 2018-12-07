@@ -82,7 +82,14 @@ public:
 	virtual ~TCPConnection() {}
 
 	int init(Loop &loop);
+
+	// the access to TCP is mostly protected, but we do need some to export
 	Loop& get_loop() { return TCP::get_loop(); }
+	int fileno(fd_t *fd) { return TCP::fileno(fd); }
+	void getlocaleIpPort(char* ip,int& port) { TCP::getlocaleIpPort(ip, port); }
+	int getpeername(struct sockaddr *name, int *namelen) { return TCP::getpeername(name, namelen); }
+	void getpeerIpPort(char* ip, int& port) { TCP::getpeerIpPort(ip, port); }
+
 	// bool start();
 	bool disconnect(bool isShutdown = false); // used named stop()
 	const std::string& connId() const { return _connId; }
