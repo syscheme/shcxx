@@ -64,8 +64,8 @@ public:
 		outmsg->contentLength(body.length());
 
 		std::string head = outmsg->toRaw();
-		_conn.write(head.c_str(),head.length());
-		_conn.write(body.c_str(),body.length());
+		_conn.enqueueSend((const uint8*)head.c_str(),head.length());
+		_conn.enqueueSend((const uint8*)body.c_str(),body.length());
 		//_conn.setkeepAlive(false);
 		return;
 	}
@@ -124,8 +124,8 @@ bool ServerAgent::onHeadersEnd( const HttpMessage::Ptr msg)
 			outmsg->contentLength(body.length());
 
 			std::string head = outmsg->toRaw();
-			_conn.write(head.c_str(),head.length());
-			_conn.write(body.c_str(),body.length());
+			_conn.enqueueSend((const uint8*)head.c_str(),head.length());
+			_conn.enqueueSend((const uint8*)body.c_str(),body.length());
 
 			//_conn.setkeepAlive(false);
 		}
@@ -260,13 +260,13 @@ bool LoadFile::onHeadersEnd( const HttpMessage::Ptr msg)
 	if(_curfile){
 		outmsg->contentLength(fileSize);
 		std::string head = outmsg->toRaw();
-		_conn.write(head.c_str(),head.length());
+		_conn.enqueueSend((const uint8*)head.c_str(),head.length());
 	} else{
 		outmsg->contentLength(body.length());
 		std::string head = outmsg->toRaw();
-		_conn.write(head.c_str(),head.length());
+		_conn.enqueueSend((const uint8*)head.c_str(),head.length());
 		//sent error body
-		_conn.write(body.c_str(),body.length());
+		_conn.enqueueSend((const uint8*)body.c_str(),body.length());
 	}
 	return true;
 }
@@ -278,7 +278,7 @@ void LoadFile::onHttpDataSent(size_t size)
 		return;
 	size_t ret = fread(_buf,1,MAXLENGTH,_curfile);
 	if (ret > 0){
-		_conn.write(_buf,ret);
+		_conn.enqueueSend((const uint8*)_buf,ret);
 		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(ServerAgent, "send data [%d][%s]"),ret,_buf);
 	}
 	else
