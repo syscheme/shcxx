@@ -6,7 +6,7 @@
 
 #include <NativeThread.h>
 #include <SystemUtils.h>
-#include <set>
+#include <list>
 
 
 namespace ZQ {

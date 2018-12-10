@@ -106,8 +106,8 @@ protected:
 private:
 	typedef std::map<std::string, HttpRequest::Ptr>  RequestMap;
 	typedef std::list<HttpRequest::Ptr>  RequestQueue;
-    RequestMap      _awaits; // map of connId to HttpRequest::Ptr
-	RequestQueue    _outgoings;
+    RequestMap            _awaits; // map of connId to HttpRequest::Ptr
+	RequestQueue          _outgoings;
 	ZQ::common::Mutex     _locker;
 };
 

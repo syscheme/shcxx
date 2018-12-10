@@ -96,6 +96,7 @@ public:
 	const char* linkstr() const { return _linkstr.c_str(); }
 
 	virtual bool isPassive() const { return NULL != _tcpServer; }
+	void suspendReceiving(bool suspend=true) { if (suspend) read_stop(); else read_start(); }
 
 	uint lastCSeq();
 
