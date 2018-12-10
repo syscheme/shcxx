@@ -119,7 +119,7 @@ protected: // overwrite of TCP
 public:
 	virtual void OnConnectionError(int error, const char* errorDescription ) {}
 
-private:
+protected:
 	// NOTE: DO NOT INVOKE THIS METHOD unless you known what you are doing
 	void _sendNext(size_t maxlen =16*1024);
 	int  _enqueueSend(const uint8* data, size_t len); // thread-unsafe methods
@@ -128,6 +128,7 @@ private:
 	void OnClose();
 	void OnShutdown(ElpeError status);
 
+private:
 	// subclass AsyncSender
 	// ------------------------------------------------
 	class WakeUp : public ZQ::eloop::Async
@@ -153,8 +154,7 @@ protected:
 	WatchDog*			    _watchDog;
 	std::string				_linkstr;
 	bool					_isConnected;
-	bool					_isShutdown;
-	bool					_isStop;
+//	bool					_isShutdown;
 	std::string				_connId;
 	ZQ::common::AtomicInt   _lastCSeq;
 
@@ -222,13 +222,13 @@ public:
 		int		    port;
 		ServerMode	mode;
 		int			threadCount;
-		uint64		procTimeout;
-		uint64		maxPendings;
-		uint64		keepalive_timeout;
-		uint64		keepAliveIdleMin;
-		uint64		keepAliveIdleMax;
-		uint64		maxConns;
-		uint64		watchDogInterval;
+		uint		procTimeout;
+		uint		maxPendings;
+		uint		keepalive_timeout;
+		uint		keepAliveIdleMin;
+		uint		keepAliveIdleMax;
+		uint		maxConns;
+		uint		watchDogInterval;
 	};
 
 public:
@@ -254,10 +254,7 @@ public:
 	void	delConn( TCPConnection* servant );
 	TCPConnection*	findConn( const std::string& connId);
 
-	int64 keepAliveTimeout() const
-	{
-		return _config.keepalive_timeout;
-	}
+	int keepAliveTimeout() const { return _config.keepalive_timeout; }
 
 	void onLoopThreadStart(ZQ::eloop::Loop& loop);
 	void signal();

@@ -162,10 +162,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\HttpMessage.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\HttpServer.cpp"
 				>
 			</File>

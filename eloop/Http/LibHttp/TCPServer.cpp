@@ -470,7 +470,7 @@ private:
 uint TCPConnection::_enableHexDump = 0;
 
 TCPConnection::TCPConnection(ZQ::common::Log& log, const char* connId, TCPServer* tcpServer)
-:_logger(log), _wakeup(*this), _isConnected(false), _tcpServer(tcpServer), _watchDog(NULL),_isShutdown(false),_isStop(false),
+:_logger(log), _wakeup(*this), _isConnected(false), _tcpServer(tcpServer), _watchDog(NULL), // _isShutdown(false),_isStop(false),
   _peerPort(0), _localPort(0)
 {
 	_lastCSeq.set(1);
@@ -495,8 +495,8 @@ int TCPConnection::init(Loop &loop)
 void TCPConnection::OnConnected(ElpeError status)
 {
 	TCP::OnConnected(status);
-
 	_isConnected = true;
+
 	char ip[32] = {0};
 	_peerPort = 0;
 	getpeerIpPort(ip, _peerPort);
@@ -525,38 +525,31 @@ void TCPConnection::OnConnected(ElpeError status)
 	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection, "conn[%s] connected: %s"),_connId.c_str(), _linkstr.c_str());
 }
 
-bool TCPConnection::disconnect(bool isShutdown)
+bool TCPConnection::disconnect(bool bShutdown)
 {
-	if (_isStop)
-		return true;
-
-	_isStop = true;
-	_isShutdown = isShutdown;
-	//if (_async != NULL)
-	//{
-	//	_async->close();
-	//	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"conn[%s] %s async-closed: isShutdown[%s]"),_connId.c_str(), _linkstr.c_str(), isShutdown?"true":"false");
-	//	return true;
-	//}
+	ZQ::common::MutexGuard gd(_lkSend);
+	Buffer::Queue NIL;
+	std::swap(_queSend, NIL);
 
 	_wakeup.close();
-	if (_isShutdown)
+	if (bShutdown)
 		shutdown();
 	else close();
 
-	_isConnected = false;
-	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"%s conn[%s] %s"), _isShutdown?"shutdown" :"closed", _connId.c_str(), _linkstr.c_str());
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection, "%s conn[%s] %s"), bShutdown?"shutting down" :"closing", _connId.c_str(), _linkstr.c_str());
 }
 
 void TCPConnection::OnClose()
 {
+	_isConnected = false;
 	if (_tcpServer)
 		_tcpServer->delConn(this);
 
 	if (_watchDog)
 		_watchDog->unwatch(this);
 
-	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnClose() conn[%s] %s"),_connId.c_str(), _linkstr.c_str());
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection, "OnClose() conn[%s] %s"),_connId.c_str(), _linkstr.c_str());
+	_linkstr ="";
 
 	TCP::OnClose();
 }
@@ -577,6 +570,9 @@ int TCPConnection::enqueueSend(const uint8* data, size_t len)
 int TCPConnection::_enqueueSend(const uint8* data, size_t len)
 {
 	if (NULL ==data || len <=0)
+		return 0;
+
+	if (!is_active() || is_closing())
 		return 0;
 
 	_queSend.push(new Buffer(data, len));
@@ -620,7 +616,14 @@ void TCPConnection::_sendNext(size_t maxlen)
 	Buffer::Queue tmpQueue;
 	size_t cEb = 0;
 
-	int stampNow = ZQ::common::now();
+	if (!is_active() || is_closing() || !_isConnected)
+	{
+		Buffer::Queue NIL;
+		std::swap(_queSend, NIL);
+		return;
+	}
+
+	int64 stampNow = ZQ::common::now();
 	if ((stampNow - _stampBusySend) <1000)
 		return; // sounds like the previous send is still going, yield
 
@@ -650,20 +653,6 @@ void TCPConnection::_sendNext(size_t maxlen)
 
 	else _logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection, "sent %dbuf %dbytes"), cEb, bytes2Sent);
 }
-
-
-//void TCPConnection::OnCloseAsync()
-//{
-//	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection,"OnCloseAsync() conn[%s] %s"),_connId.c_str(), _linkstr.c_str());
-//	OnAsyncSend();
-//	if (_async != NULL)
-//	{
-//		delete _async;
-//		_async = NULL;
-//	}
-//	_isStop = false;
-//	stop(_isShutdown);
-//}
 
 // ---------------------------------------
 // class TCPServer
