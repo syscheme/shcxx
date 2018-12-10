@@ -620,7 +620,7 @@ void TCPConnection::_sendNext(size_t maxlen)
 	Buffer::Queue tmpQueue;
 	size_t cEb = 0;
 
-	int stampNow = ZQ::common::now();
+	int64 stampNow = ZQ::common::now();
 	if ((stampNow - _stampBusySend) <1000)
 		return; // sounds like the previous send is still going, yield
 
