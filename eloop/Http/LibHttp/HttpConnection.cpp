@@ -503,7 +503,7 @@ HttpMessage::StatusCodeEx HttpConnection::sendMessage(HttpMessage::Ptr msg)
 		return HttpMessage::errSendConflict;
 
 	_msgOutgoing = msg;
-	return (NULL != _msgOutgoing)?_msgOutgoing->statusCode() : HttpMessage::errSendConflict;
+	return (HttpMessage::StatusCodeEx)((_msgOutgoing) ? _msgOutgoing->statusCode() : HttpMessage::errSendConflict);
 }
 
 #define MAX_CHUNK_PER_SEND (20)
@@ -640,7 +640,7 @@ void HttpConnection::OnConnectionError(int error, const char* errorDescription)
 { 
 	OnMessagingError(error, errorDescription); 
 
-	_server._logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpConnection, "disconnecting due to error(%d): %s"), error, errorDescription);
+	_logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpConnection, "disconnecting due to error(%d): %s"), error, errorDescription);
 	disconnect(false); 
 }
 
