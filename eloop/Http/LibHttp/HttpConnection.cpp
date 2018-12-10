@@ -81,15 +81,9 @@ const char* HttpConnection::httpError(int& err)
 */
 void HttpConnection::OnRead(ssize_t nread, const char *buf)
 {
-	if (nread < 0)
-	{
-		std::string desc = "Read error:";
-		desc.append(errDesc(nread));
-		OnConnectionError(nread, desc.c_str());
-		return;
-	}
+	TCPConnection::OnRead(nread, buf);
 
-	if (nread == 0)
+	if (nread <= 0)
 		return;
 
 	onHttpDataReceived(nread);
@@ -99,13 +93,10 @@ void HttpConnection::OnRead(ssize_t nread, const char *buf)
 
 void HttpConnection::OnWrote(int status)
 {
+	TCPConnection::OnWrote(status);
 	if (status != elpeSuccess)
-	{
-		std::string desc = std::string("send failed: ") + _linkstr + " " + errDesc(status);
-		OnConnectionError(status,desc.c_str());
 		return;
-	}
-	
+
 	onHttpDataSent(status);
 
 	if ((_respState == RESP_COMPLETE) && (!_listpipe.empty()))

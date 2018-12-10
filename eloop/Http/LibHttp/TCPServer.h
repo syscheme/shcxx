@@ -112,6 +112,8 @@ public: // tempraorly public // overwrite of TCP
 protected: // overwrite of TCP
 	// called after buffer has been read from the stream
 	virtual void OnRead(ssize_t nread, const char *buf) {} // TODO: uv_buf_t is unacceptable to appear here, must take a new manner known in this C++ wrapper level
+	// called after buffer has been written into the stream
+	virtual void OnWrote(int status);
 
 // new entry points introduced
 // ------------------------------
@@ -123,8 +125,6 @@ private:
 	void _sendNext(size_t maxlen =16*1024);
 	int _enqueueSend(const uint8* data, size_t len); // thread-unsafe methods
 
-	// called after buffer has been written into the stream
-	void OnWrote(int status);
 	void OnClose();
 	void OnShutdown(ElpeError status);
 
