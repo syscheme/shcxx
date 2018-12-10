@@ -23,7 +23,6 @@ void HttpClient::OnConnected(ElpeError status)
 	if (status != elpeSuccess)
 		return;
 
-	read_start();
 	beginSend(_req);
 	endSend();
 }
@@ -59,7 +58,7 @@ bool HttpClient::beginRequest( HttpMessage::Ptr msg, const std::string& ip, cons
 void HttpClient::OnConnectionError( int error, const char* errorDescription )
 {
 	_logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient, "OnConnectionError [%p] %s error(%d) %s"), 
-		this, linkstr(), error,errorDescription);
+		this, linkstr(), error, errorDescription);
 
 	shutdown();
 }

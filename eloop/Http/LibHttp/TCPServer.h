@@ -75,7 +75,7 @@ class ITCPEngine;
 // class TCPConnection
 // ---------------------------------------
 // extend TCP intend to provide thread-safe send/recv by include bufferring
-class TCPConnection : protected TCP, public WatchDog::IObservee 
+class TCPConnection : public TCP, public WatchDog::IObservee 
 {
 public:
 	TCPConnection(ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL);
@@ -83,12 +83,12 @@ public:
 
 	int init(Loop &loop);
 
-	// the access to TCP is mostly protected, but we do need some to export
-	Loop& get_loop() { return TCP::get_loop(); }
-	int fileno(fd_t *fd) { return TCP::fileno(fd); }
-	void getlocaleIpPort(char* ip,int& port) { TCP::getlocaleIpPort(ip, port); }
-	int getpeername(struct sockaddr *name, int *namelen) { return TCP::getpeername(name, namelen); }
-	void getpeerIpPort(char* ip, int& port) { TCP::getpeerIpPort(ip, port); }
+	//// the access to TCP is mostly protected, but we do need some to export
+	//Loop& get_loop() { return TCP::get_loop(); }
+	//int fileno(fd_t *fd) { return TCP::fileno(fd); }
+	//void getlocaleIpPort(char* ip,int& port) { TCP::getlocaleIpPort(ip, port); }
+	//int getpeername(struct sockaddr *name, int *namelen) { return TCP::getpeername(name, namelen); }
+	//void getpeerIpPort(char* ip, int& port) { TCP::getpeerIpPort(ip, port); }
 
 	// bool start();
 	bool disconnect(bool isShutdown = false); // used named stop()
@@ -112,6 +112,7 @@ public: // tempraorly public // overwrite of TCP
 protected: // overwrite of TCP
 	// called after buffer has been read from the stream
 	virtual void OnRead(ssize_t nread, const char *buf) {} // TODO: uv_buf_t is unacceptable to appear here, must take a new manner known in this C++ wrapper level
+	virtual void OnWrote(int status);
 
 // new entry points introduced
 // ------------------------------
@@ -121,10 +122,9 @@ public:
 private:
 	// NOTE: DO NOT INVOKE THIS METHOD unless you known what you are doing
 	void _sendNext(size_t maxlen =16*1024);
-	int _enqueueSend(const uint8* data, size_t len); // thread-unsafe methods
+	int  _enqueueSend(const uint8* data, size_t len); // thread-unsafe methods
 
 	// called after buffer has been written into the stream
-	void OnWrote(int status);
 	void OnClose();
 	void OnShutdown(ElpeError status);
 
@@ -156,7 +156,7 @@ protected:
 	bool					_isShutdown;
 	bool					_isStop;
 	std::string				_connId;
-	ZQ::common::AtomicInt _lastCSeq;
+	ZQ::common::AtomicInt   _lastCSeq;
 
 	class Buffer: public ZQ::common::SharedObject, protected std::string 
 	{
@@ -176,6 +176,12 @@ protected:
 
 	std::string _peerIp, _localIp;
 	int _peerPort, _localPort;
+
+private: // TCPConnection stop export the following method in order to keep thread safe
+	int write(const eloop_buf_t bufs[],unsigned int nbufs,Handle *send_handle = NULL) { return TCP::write(bufs, nbufs, send_handle); }
+//	int write(const char *buf, size_t length);
+	int write(const char *buf, size_t length,Handle *send_handle = NULL)  { return TCP::write(buf, length, send_handle); }
+	int try_write(const char *buf, size_t length) { return TCP::try_write(buf, length); }
 };
 
 // ---------------------------------------

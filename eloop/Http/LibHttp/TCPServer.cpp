@@ -647,6 +647,7 @@ void TCPConnection::_sendNext(size_t maxlen)
 	int ret = TCPConnection::write(eb, cEb);
 	if (ret < 0)
 		OnConnectionError(ret, "send failed");
+
 	else _logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection, "sent %dbuf %dbytes"), cEb, bytes2Sent);
 }
 

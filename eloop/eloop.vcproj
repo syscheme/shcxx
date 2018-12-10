@@ -547,6 +547,10 @@
 					/>
 				</FileConfiguration>
 			</File>
+			<File
+				RelativePath="..\getopt.cpp"
+				>
+			</File>
 		</Filter>
 		<File
 			RelativePath=".\ReadMe.txt"

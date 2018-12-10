@@ -36,7 +36,7 @@ HttpPassiveConn::~HttpPassiveConn()
 	//_handler = NULL;
 }
 
-void HttpPassiveConn::errorResponse( int code ) 
+void HttpPassiveConn::errorResponse(int code) 
 {
 	_logger(ZQ::common::Log::L_DEBUG,CLOGFMT(HttpPassiveConn,"errorResponse, code %d"), code);
 
@@ -45,10 +45,9 @@ void HttpPassiveConn::errorResponse( int code )
 	msg->status(HttpMessage::code2status(code));
 	if (_tcpServer)
 		msg->header("Server", _tcpServer->_config.serverName );
-	msg->header("Date", HttpMessage::httpdate());
 
-	std::string response = msg->toRaw();
-	write(response.c_str(), response.length());
+	msg->header("Date", HttpMessage::httpdate());
+	enqueueSend(msg->toRaw());
 
 	_keepAlive = false;
 	disconnect(true);
@@ -84,16 +83,6 @@ void HttpPassiveConn::OnConnectionError(int error, const char* errorDescription)
 
 void HttpPassiveConn::onHttpDataSent(size_t size) 
 {
-
-//  char locip[17] = { 0 };
-//	int  locport = 0;
-//	getlocaleIpPort(locip,locport);
-//
-//	char peerip[17] = { 0 };
-//	int  peerport = 0;
-//	getpeerIpPort(peerip,peerport);
-//	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpPassiveConn, "onHttpDataSent [%p] [%s:%d==>%s:%d]."), this, locip, locport, peerip, peerport);
-
 	if(NULL == _handler)
 		return;
 

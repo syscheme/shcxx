@@ -81,19 +81,11 @@ const char* HttpConnection::httpError(int& err)
 */
 void HttpConnection::OnRead(ssize_t nread, const char *buf)
 {
-	if (nread < 0)
-	{
-		std::string desc = "Read error:";
-		desc.append(errDesc(nread));
-		OnConnectionError(nread, desc.c_str());
-		return;
-	}
-
-	if (nread == 0)
+	TCPConnection::OnRead(nread, buf);
+	if (nread <= 0)
 		return;
 
 	onHttpDataReceived(nread);
-	
 	parse(buf, nread);
 }
 
@@ -197,11 +189,11 @@ int HttpConnection::SendBody(char *buf, size_t length)
 		sprintf(chhead, "%x\r\n",length);
 
 		chunkbuf[0].base = chhead;
-		chunkbuf[0].len = strlen(chhead);
+		chunkbuf[0].len  = strlen(chhead);
 		chunkbuf[1].base = buf;
-		chunkbuf[1].len = length;
+		chunkbuf[1].len  = length;
 		chunkbuf[2].base = "\r\n";
-		chunkbuf[2].len = 2;
+		chunkbuf[2].len  = 2;
 		ret = enqueueSend((const uint8*)chunkbuf,3);
 	}
 
