@@ -137,7 +137,7 @@ private:
 
 	protected:
 		virtual void OnAsync() {_conn.OnSendEnqueued();}
-		// virtual void OnClose() { _conn.OnCloseAsync();}
+		virtual void OnClose() {} // to avoid trigger Handle 'delete this'
 		TCPConnection& _conn;
 	};
 
