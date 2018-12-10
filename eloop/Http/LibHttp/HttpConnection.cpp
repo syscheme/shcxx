@@ -174,7 +174,7 @@ int HttpConnection::beginSend(HttpMessage::Ptr resp)
 	_respMsg = resp;
 	std::string head = _respMsg->toRaw();
 	
-	int ret = (head.c_str(),head.length());
+	int ret = enqueueSend((uint8*)head.c_str(),head.length());
 	onRespHeader();
 	return ret;
 }
