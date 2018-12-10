@@ -75,7 +75,7 @@ class ITCPEngine;
 // class TCPConnection
 // ---------------------------------------
 // extend TCP intend to provide thread-safe send/recv by include bufferring
-class TCPConnection : protected TCP, public WatchDog::IObservee 
+class TCPConnection : public TCP, public WatchDog::IObservee 
 {
 public:
 	TCPConnection(ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL);
@@ -83,12 +83,12 @@ public:
 
 	int init(Loop &loop);
 
-	// the access to TCP is mostly protected, but we do need some to export
-	Loop& get_loop() { return TCP::get_loop(); }
-	int fileno(fd_t *fd) { return TCP::fileno(fd); }
-	void getlocaleIpPort(char* ip,int& port) { TCP::getlocaleIpPort(ip, port); }
-	int getpeername(struct sockaddr *name, int *namelen) { return TCP::getpeername(name, namelen); }
-	void getpeerIpPort(char* ip, int& port) { TCP::getpeerIpPort(ip, port); }
+	//// the access to TCP is mostly protected, but we do need some to export
+	//Loop& get_loop() { return TCP::get_loop(); }
+	//int fileno(fd_t *fd) { return TCP::fileno(fd); }
+	//void getlocaleIpPort(char* ip,int& port) { TCP::getlocaleIpPort(ip, port); }
+	//int getpeername(struct sockaddr *name, int *namelen) { return TCP::getpeername(name, namelen); }
+	//void getpeerIpPort(char* ip, int& port) { TCP::getpeerIpPort(ip, port); }
 
 	// bool start();
 	bool disconnect(bool isShutdown = false); // used named stop()
@@ -96,6 +96,7 @@ public:
 	const char* linkstr() const { return _linkstr.c_str(); }
 
 	virtual bool isPassive() const { return NULL != _tcpServer; }
+	void suspendReceiving(bool suspend=true) { if (suspend) read_stop(); else read_start(); }
 
 	uint lastCSeq();
 
@@ -120,14 +121,15 @@ protected: // overwrite of TCP
 public:
 	virtual void OnConnectionError(int error, const char* errorDescription ) {}
 
-private:
+protected:
 	// NOTE: DO NOT INVOKE THIS METHOD unless you known what you are doing
 	void _sendNext(size_t maxlen =16*1024);
-	int _enqueueSend(const uint8* data, size_t len); // thread-unsafe methods
+	int  _enqueueSend(const uint8* data, size_t len); // thread-unsafe methods
 
 	void OnClose();
 	void OnShutdown(ElpeError status);
 
+private:
 	// subclass AsyncSender
 	// ------------------------------------------------
 	class WakeUp : public ZQ::eloop::Async
@@ -153,10 +155,9 @@ protected:
 	WatchDog*			    _watchDog;
 	std::string				_linkstr;
 	bool					_isConnected;
-	bool					_isShutdown;
-	bool					_isStop;
+//	bool					_isShutdown;
 	std::string				_connId;
-	ZQ::common::AtomicInt _lastCSeq;
+	ZQ::common::AtomicInt   _lastCSeq;
 
 	class Buffer: public ZQ::common::SharedObject, protected std::string 
 	{
@@ -176,6 +177,12 @@ protected:
 
 	std::string _peerIp, _localIp;
 	int _peerPort, _localPort;
+
+private: // TCPConnection stop export the following method in order to keep thread safe
+	int write(const eloop_buf_t bufs[],unsigned int nbufs,Handle *send_handle = NULL) { return TCP::write(bufs, nbufs, send_handle); }
+//	int write(const char *buf, size_t length);
+	int write(const char *buf, size_t length,Handle *send_handle = NULL)  { return TCP::write(buf, length, send_handle); }
+	int try_write(const char *buf, size_t length) { return TCP::try_write(buf, length); }
 };
 
 // ---------------------------------------
@@ -216,13 +223,13 @@ public:
 		int		    port;
 		ServerMode	mode;
 		int			threadCount;
-		uint64		procTimeout;
-		uint64		maxPendings;
-		uint64		keepalive_timeout;
-		uint64		keepAliveIdleMin;
-		uint64		keepAliveIdleMax;
-		uint64		maxConns;
-		uint64		watchDogInterval;
+		uint		procTimeout;
+		uint		maxPendings;
+		uint		keepalive_timeout;
+		uint		keepAliveIdleMin;
+		uint		keepAliveIdleMax;
+		uint		maxConns;
+		uint		watchDogInterval;
 	};
 
 public:
@@ -248,10 +255,7 @@ public:
 	void	delConn( TCPConnection* servant );
 	TCPConnection*	findConn( const std::string& connId);
 
-	int64 keepAliveTimeout() const
-	{
-		return _config.keepalive_timeout;
-	}
+	int keepAliveTimeout() const { return _config.keepalive_timeout; }
 
 	void onLoopThreadStart(ZQ::eloop::Loop& loop);
 	void signal();

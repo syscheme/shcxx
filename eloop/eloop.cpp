@@ -66,7 +66,6 @@ Handle::ElpeError Handle::uvErr2ElpeErr(int errCode)
 	case UV__EAI_BADHINTS				  : return elpuEAI_BADHINTS;
 	case UV__EAI_PROTOCOL				  : return elpuEAI_PROTOCOL;
 
-
 	case UV__E2BIG						  : return elpuE2BIG;
 	case UV__EACCES						  : return elpuEACCES;
 	case UV__EADDRINUSE					  : return elpuEADDRINUSE;
@@ -142,18 +141,15 @@ Handle::Handle()
 	_isClose(false),
 	_loop(NULL) 
 {
-
 }
 
 Handle::~Handle() {
 
-	if (context != NULL)
-	{
-		if (is_active()) {
-			close();
-			uv_run(context->handle.loop, UV_RUN_DEFAULT);
-		}
-	}
+	if (context == NULL || !is_active())
+		return;
+
+	close();
+	uv_run(context->handle.loop, UV_RUN_DEFAULT);
 }
 
 Handle::Handle(Handle &other) {
@@ -192,61 +188,78 @@ void Handle::init(Loop &loop) {
 	_loop = &loop;
 	if (context != NULL)
 		return;
+
 	context = new uv_any_handle;
 	context->handle.data = static_cast<void *>(this);
 }
 
-uv_handle_t *Handle::context_ptr() {
+uv_handle_t *Handle::context_ptr()
+{
 	if (context)
 		return &context->handle;
+
 	return NULL;
 }
 
 int Handle::is_active() {
+	if (context == NULL) return 0;
 	return uv_is_active(&context->handle);
 }
 
-int Handle::is_closing() {
+int Handle::is_closing()
+{
+	if (context == NULL) return elpuEAI_NODATA;
 	return uv_is_closing(&context->handle);
 }
 
-void Handle::close() {
-	if (_isClose)
-		return;
+void Handle::close()
+{
+	if (_isClose) return;
 	_isClose = true;
 	uv_close(&context->handle, _cbClose);
 }
 
 void Handle::_deleteContext()
 {
-	if (context != NULL)
-	{
-		delete context;
-		context = NULL;
-	}
+	if (context == NULL) return;
+
+	delete context;
+	context = NULL;
 }
 
-void Handle::ref() {
+void Handle::ref()
+{
+	if (context == NULL) return;
 	uv_ref(&context->handle);
 }
 
-void Handle::unref() {
+void Handle::unref()
+{
+	if (context == NULL) return;
 	uv_unref(&context->handle);
 }
 
-int Handle::has_ref() {
+int Handle::has_ref()
+{
+	if (context == NULL) return elpuEAI_NODATA;
 	return uv_has_ref(&context->handle);
 }
 
-int Handle::send_buffer_size(int *value) {
+int Handle::send_buffer_size(int *value)
+{
+	if (context == NULL) return elpuEAI_NODATA;
 	return uv_send_buffer_size(&context->handle, value);
 }
 
-int Handle::recv_buffer_size(int *value) {
+int Handle::recv_buffer_size(int *value) 
+{
+	if (context == NULL) return elpuEAI_NODATA;
 	return uv_recv_buffer_size(&context->handle, value);
 }
 
-int Handle::fileno(fd_t *fd) {
+int Handle::fileno(fd_t *fd)
+{
+	if (context == NULL) return elpuEAI_NODATA;
 	return uv_fileno(&context->handle, fd);
 }
 
@@ -258,22 +271,25 @@ Loop& Handle::get_loop()
 // -----------------------------
 // class EloopRequest
 // -----------------------------
-EloopRequest::EloopRequest() {
+EloopRequest::EloopRequest()
+{
 	context = new uv_any_req;
 	context->req.data = static_cast<void *>(this);
 }
 
-EloopRequest::~EloopRequest() {
+EloopRequest::~EloopRequest()
+{
+	if (context == NULL)
+		return;
 
-	if (context != NULL) {
-		cancel();
-		delete context;
-		context = NULL;
-	}
+	cancel();
+	delete context;
+	context = NULL;
 }
 
 int EloopRequest::cancel()
 {
+	if (context == NULL) return Handle::elpuEAI_NODATA;
 	return uv_cancel(&context->req);
 }
 
@@ -291,9 +307,8 @@ Loop::Loop(bool defaultLoop)
 :_uvLoop(defaultLoop ? uv_default_loop() : new uv_loop_t)
 {
 	if (!defaultLoop)
-	{
 		uv_loop_init(_uvLoop);
-	}
+
 	_uvLoop->data = this;
 }
 
@@ -329,6 +344,7 @@ int Loop::close()
 		_uvLoop = NULL;
 		return r;
 	}
+
 	return -1;
 }
 
@@ -352,12 +368,14 @@ unsigned int Loop::getThreadPoolSize()
 	const char* val = getenv(ELOOP_THREADPOOL_SIZE);
 	if (val != NULL)
 		return atoi(val);
+
 	return DEFAULT_THREADPOOL_SIZE;
 }
 int Loop::setThreadPoolSize(const unsigned int size)
 {
 	char chSize[8];
 	sprintf(chSize,"%d",size);
+
 #ifdef ZQ_OS_LINUX
 	return setenv(ELOOP_THREADPOOL_SIZE,chSize,1);
 #else	
@@ -462,7 +480,6 @@ uint64_t Timer::get_repeat() {
 	uv_timer_t* timer = (uv_timer_t *)context_ptr();
 	return uv_timer_get_repeat(timer);
 }
-
 
 // -----------------------------
 // class Async
