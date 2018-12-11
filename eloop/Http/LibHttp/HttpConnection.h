@@ -22,6 +22,8 @@ struct http_parser_settings;
 namespace ZQ {
 namespace eloop {
 
+#define CONTENT_LEN_SIMPLEBODY   (-100)
+
 // -----------------------------------------------------
 // class HttpMessage
 // -----------------------------------------------------
@@ -182,26 +184,24 @@ protected:
 	std::string         _connId;
 	MessgeType          _type; //request or response
 	HttpMethod			_method;
-	Headers				_headers;
-	int64				_stampCreated;
-	MessagingPhase		_phase;
 	std::string			_url;
+	std::string         _qstring;
+	Headers				_headers;
+	std::string         _simpleBody;
+	int64				_stampCreated;
+	int64				_declaredBodyLength; // for the incoming message, only valid if _bChunked == false
 
-	// bool				_bChunked;
-	// bool				_bKeepAlive;
-
+	MessagingPhase		_phase;
 	unsigned int		_httpVMajor;
 	unsigned int		_httpVMinor;
-	std::string         _qstring;
-	int64				_declaredBodyLength; // for the incoming message, only valid if _bChunked == false
 
 	int					_statusCode;//status code
 	std::string         _status;
 	std::string			_boundary; // for multipart/form-data only
 
 	Encoding			_encoding;
-	// std::string			_bodyBuf;
 
+	// std::string			_bodyBuf;
 	uint32              _flags; // combination of MsgFlag
 };
 

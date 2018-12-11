@@ -503,6 +503,8 @@ HttpMessage::StatusCodeEx HttpConnection::sendMessage(HttpMessage::Ptr msg)
 		return HttpMessage::errSendConflict;
 
 	_msgOutgoing = msg;
+	_payloadOutgoing.clear();
+
 	return (HttpMessage::StatusCodeEx)((_msgOutgoing) ? _msgOutgoing->statusCode() : HttpMessage::errSendConflict);
 }
 

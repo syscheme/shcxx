@@ -192,10 +192,10 @@ private:
 	Headers				_Headers;
 	std::map<std::string, std::string> _argument;
 	std::string			_DummyHeaderValue;
-	int64				_BodyLength;//only valid if _bChunked == false
-	std::string 		_RawMessage;
+	int				    _BodyLength;  // only valid if _bChunked == false
+	std::string 		_simpleBody;  // valid only for response
 	Encoding			_encoding;
-	std::string			_boundary; // for multipart/form-data only
+	std::string			_boundary;    // for multipart/form-data only
 	std::string			_buf;
 };
 

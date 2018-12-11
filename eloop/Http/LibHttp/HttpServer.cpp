@@ -208,7 +208,7 @@ TCPConnection* HttpHandler::Response::getConn()
 	return _server.findConn(getConnId()); 
 }
 
-HttpMessage::StatusCodeEx HttpHandler::Response::post(int statusCode, const char* errMsg) 
+HttpMessage::StatusCodeEx HttpHandler::Response::post(int statusCode, const std::string& body, const char* errMsg) 
 {
 	HttpMessage::StatusCodeEx ret = HttpMessage::scInternalServerError;
 	{
@@ -243,7 +243,11 @@ HttpMessage::StatusCodeEx HttpHandler::Response::post(int statusCode, const char
 		_statusCode = statusCode;
 	else _statusCode = scInternalServerError;
 
-	return conn->sendMessage(this);
+	ret = conn->sendMessage(this);
+	if (HttpMessage::errSendConflict != ret && body.length() >0)
+		conn->pushOutgoingPayload((const void*) body.c_str(), body.length(), true);
+
+	return ret;
 }
 
 // ---------------------------------------

@@ -38,7 +38,10 @@ public:
 
 		Response(HttpServer& server, const HttpMessage::Ptr& req);
 
-		StatusCodeEx post(int statusCode, const char* errMsg = NULL); 
+		// a generic post
+		StatusCodeEx post(int statusCode, const std::string& body="", const char* errMsg = NULL); 
+
+		// seperate steps of post
 		StatusCodeEx post() { return post(_statusCode); }
 
 		TCPConnection* getConn();
@@ -127,9 +130,9 @@ public:
 		: IBaseApplication(logger, appProps) {}
 	virtual ~HttpApplication() {}
 
-	virtual HttpHandler::Ptr create(HttpPassiveConn& conn, const HttpHandler::Properties& dirProps)
-	{ 
-		return new HandlerT(*this, conn, dirProps);
+	virtual HttpHandler::Ptr create(HttpServer& server, const HttpMessage::Ptr& req, const HttpHandler::Properties& dirProps)
+	{
+		return new HandlerT(req, *this, server, dirProps)
 	}
 };
 
