@@ -134,7 +134,7 @@ public:
 
 	virtual HttpHandler::Ptr create(HttpServer& server, const HttpMessage::Ptr& req, const HttpHandler::Properties& dirProps)
 	{
-		return new HandlerT(req, *this, server, dirProps)
+		return new HandlerT(req, *this, server, dirProps);
 	}
 };
 
