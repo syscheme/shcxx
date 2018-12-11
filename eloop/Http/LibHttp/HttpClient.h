@@ -27,6 +27,7 @@ public:
 
 public:
 	virtual ~HttpRequest();
+
 	virtual StatusCodeEx getResponse(ZQ::eloop::HttpMessage::Ptr& resp, int32 timeout=-1, ICallBack* cbAsync =NULL);
 
 //	virtual StatusCodeEx POST(int32 timeout=-1);
@@ -66,7 +67,6 @@ protected:
 	ICallBack* _cb;
 
 	std::string  _txnId;
-	std::string  _uri, _qstr;
 	std::string _host;
 	int _port;
 

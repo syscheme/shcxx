@@ -153,7 +153,7 @@ HttpMessage::StatusCodeEx HttpPassiveConn::OnHeadersReceived(const HttpMessage::
 	if( NULL == _handler)
 	{
 		//should make a 404 response
-		_logger(ZQ::common::Log::L_WARNING, CONNFMT(HttpPassiveConn, "OnHeadersReceived failed to find a suitable handle to process url:[%s]"), msg->url().c_str());
+		_logger(ZQ::common::Log::L_WARNING, CONNFMT(HttpPassiveConn, "OnHeadersReceived failed to find a suitable handle to process uri[%s]"), msg->uri().c_str());
 		return resp->post(HttpMessage::scNotFound, "no associated handler");
 	}
 
@@ -162,7 +162,7 @@ HttpMessage::StatusCodeEx HttpPassiveConn::OnHeadersReceived(const HttpMessage::
 	if (HttpMessage::errAsyncInProgress == resp->_statusCode)
 		return HttpMessage::errAsyncInProgress;
 
-	_logger(HTTP_SUCC(resp->_statusCode) ? ZQ::common::Log::L_INFO :ZQ::common::Log::L_ERROR, CONNFMT(HttpPassiveConn, "OnHeadersReceived, finished handling, posting response(%d) url:%s"), resp->_statusCode, msg->url().c_str());
+	_logger(HTTP_SUCC(resp->_statusCode) ? ZQ::common::Log::L_INFO :ZQ::common::Log::L_ERROR, CONNFMT(HttpPassiveConn, "OnHeadersReceived, finished handling, posting response(%d) uri[%s]"), resp->_statusCode, msg->uri().c_str());
 	_handler = NULL;
 
 	return resp->post(resp->_statusCode);

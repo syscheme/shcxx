@@ -141,13 +141,15 @@ public:
 	static const char* code2status(int statusCode);
 	static std::string httpdate(int secsInFuture = 0);
 	static std::string uint2hex(unsigned long u, size_t alignLen = 0, char paddingChar = '0');
+	static bool chopURI(const std::string& uristr, std::string& host, int& port, std::string& uri, std::string& qstr);
 
 	HttpMethod  method() const { return _method; }
-	const std::string& url() const { return _url; }
+	// const std::string& url() const { return _url; }
 	int		statusCode() const { return _statusCode; }
 	MessagingPhase phase() const { return _phase; }
 	std::string getConnId() const { return _connId; }
 
+	//@return the URI of message according to the status line
 	virtual std::string uri();
 
 	const Headers headers() const { return _headers; }
@@ -184,8 +186,8 @@ protected:
 	std::string         _connId;
 	MessgeType          _type; //request or response
 	HttpMethod			_method;
-	std::string			_url;
-	std::string         _qstring;
+	std::string			_uri;
+	std::string         _qstr;
 	Headers				_headers;
 	std::string         _simpleBody;
 	int64				_stampCreated;
@@ -279,7 +281,7 @@ protected: // callbacks from HTTP parser
 	virtual int	onParser_MessageBegin() { return 0; }
 	virtual int	onParser_HeadersCompleted();
 	virtual int	onParser_MessageComplete();
-	virtual int	onParser_Uri(const char* at, size_t size);
+	virtual int	onParser_Url(const char* at, size_t size);
 	virtual int	onParser_Status(const char* at, size_t size);
 	virtual int	onParser_HeaderField(const char* at, size_t size);
 	virtual int	onParser_HeaderValue(const char* at, size_t size);

@@ -116,22 +116,13 @@ HttpRequest::HttpRequest(HTTPUserAgent& ua, HttpMethod _method, const std::strin
 {
 	header("User-Agent", _ua._userAgent);
 	HttpMessage::_method = _method;
-	HttpMessage::_url = url;
+	HttpMessage::_uri = url;
 
-	ZQ::common::URLStr parser(url.c_str());
-	_host = parser.getHost();
-	_port = parser.getPort();
-	_uri  = parser.getPath();
-
+	HttpMessage::chopURI(url, _host, _port, HttpMessage::_uri, HttpMessage::_qstr);
 	if (std::string::npos != _host.find_first_not_of("0123456789.")) // sounds like a domain name
 		header("Host", _host);
 	if (_port <=0)
 		_port = 80;
-
-	// determine the query string and uri
-	size_t pos = url.find_first_of("?&");
-	if (std::string::npos != pos)
-		_qstr = url.substr(pos+1);
 
 	for (Properties::const_iterator it= headers.begin(); it!=headers.end(); it++)
 	{
@@ -157,31 +148,32 @@ HttpRequest::HttpRequest(HTTPUserAgent& ua, HttpMethod _method, const std::strin
 			continue;
 		varstr += std::string("=") + buf;
 
-		if (strlen(parser.getVar(it->first.c_str())) >0)
-			bParamOverwrite = true;
 
-		parser.setVar(it->first.c_str(), it->second.c_str());
+		//if (strlen(parser.getVar(it->first.c_str())) >0)
+		//	bParamOverwrite = true;
+
+		//parser.setVar(it->first.c_str(), it->second.c_str());
 		paramstr += varstr;
 	}
 
-	if (bParamOverwrite)
-	{
-		const char* tmp = parser.getPathAndParam();
-		if (tmp)
-		{
-			_uri = tmp;
-			if ((pos = _uri.find_first_of("?&")) >1)
-			{
-				_qstr = _uri.substr(pos+1);
-				_uri = _uri.substr(0, pos);
-			}
-		}
-	}
-	else if (paramstr.length()>1)
-	{
+	//if (bParamOverwrite)
+	//{
+	//	const char* tmp = parser.getPathAndParam();
+	//	if (tmp)
+	//	{
+	//		_uri = tmp;
+	//		if ((pos = _uri.find_first_of("?&")) >1)
+	//		{
+	//			_qstr = _uri.substr(pos+1);
+	//			_uri = _uri.substr(0, pos);
+	//		}
+	//	}
+	//}
+	//else if (paramstr.length()>1)
+	//{
 		if (_qstr.length() >1) _qstr += paramstr;
 		else _qstr = paramstr.substr(1);
-	}
+	//}
 
 	_txnId = connId() + " [" + url+"]";
 
@@ -214,14 +206,6 @@ HttpRequest::~HttpRequest()
 {
     ZQ::common::MutexGuard gGuard(_ua._locker);
 	_ua._awaits.erase(connId());
-}
-
-std::string HttpRequest::uri()
-{
-	if (HTTP_POST == _method || _qstr.length() <=1 )
-		return _uri;
-
-	return _uri +"?" + _qstr;
 }
 
 ZQ::eloop::HttpMessage::StatusCodeEx HttpRequest::getResponse(ZQ::eloop::HttpMessage::Ptr& resp, int32 timeout, ICallBack* cbAsync)

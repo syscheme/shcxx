@@ -131,6 +131,39 @@ std::string HttpMessage::httpdate( int delta ) {
 	return buffer;
 }
 
+bool HttpMessage::chopURI(const std::string& uristr, std::string& host, int& port, std::string& uri, std::string& qstr)
+{
+	host = qstr ="";
+	port =-1;
+	size_t pos = uristr.find_first_of("?&");
+	if (std::string::npos != pos)
+	{
+		qstr = uristr.substr(pos+1);
+		uri = uristr.substr(0, pos);
+	}
+	else uri = uristr;
+
+	pos = uri.find_first_of(":");
+	if (std::string::npos != pos)
+	{
+		// sounds like a full URL with leading proto://
+		ZQ::common::URLStr parser(uri.c_str());
+		host = parser.getHost();
+		port = parser.getPort();
+		uri  = parser.getPath();
+	}
+
+	return true;
+}
+
+std::string HttpMessage::uri()
+{
+	if (_qstr.length() <= 0 )
+		return _uri;
+
+	return _uri +"?" + _qstr;
+}
+
 std::string HttpMessage::uint2hex(unsigned long u, size_t alignLen, char paddingChar)
 {
 	static char hexCharTbl[] = {
@@ -200,6 +233,7 @@ public:
 	std::string			headerName, headerValue;
 	HttpConnection&     _conn;
 	bool  _passive;
+	std::string         url;
 
 	NestedParser(HttpConnection& conn, bool passive) : _conn(conn), _passive(passive)
 	{
@@ -503,7 +537,8 @@ HttpMessage::StatusCodeEx HttpConnection::sendMessage(HttpMessage::Ptr msg)
 		return HttpMessage::errSendConflict;
 
 	_msgOutgoing = msg;
-	_payloadOutgoing.clear();
+	Payload empty;
+    std::swap(_payloadOutgoing, empty);
 
 	return (HttpMessage::StatusCodeEx)((_msgOutgoing) ? _msgOutgoing->statusCode() : HttpMessage::errSendConflict);
 }
@@ -696,13 +731,16 @@ int	HttpConnection::onParser_HeadersCompleted()
 	msg->_httpVMajor = ((NestedParser*)_nestedParser)->parser.http_major;
 	msg->_httpVMinor =((NestedParser*)_nestedParser)->parser.http_minor;
 
-	_logger(ZQ::common::Log::L_DEBUG, CONNFMT(onParser_HeadersCompleted, "result(%d)"), msg->_statusCode);
+	std::string host, uri, qstr, uristr = ((NestedParser*)_nestedParser)->url;
+	int port =-1;
+	HttpMessage::chopURI(uristr, host, port, msg->_uri, msg->_qstr);
+	_logger(ZQ::common::Log::L_DEBUG, CONNFMT(onParser_HeadersCompleted, "result(%d) url[%s]=> uri[%s] qstr[%s]"), msg->_statusCode, uristr.c_str());
 
 	// validating the received headers
 	do {
 		//ZQ::common::URLStr decoder(NULL, true); // case sensitive
 		//if(decoder.parse(((NestedParser*)_nestedParser)->msg->_url.c_str()))
-		//	msg->_qstring = decoder.getEnumVars();
+		//	msg->_qstr = decoder.getEnumVars();
 
 		//// cut off the paramesters
 		//size_t pos = msg->_url.find_first_of("?#");
@@ -783,7 +821,7 @@ int	HttpConnection::onParser_MessageComplete()
 	{
 	case HttpMessage::heFormUrlEncoded: // decode the post data in the buffer
 		{
-			// decode the body payload into msg->_qstring
+			// decode the body payload into msg->_qstr
 			RECV_GUARD();
 			if (!_payloadReceived.empty() && _payloadReceived.front())
 			{ 
@@ -798,7 +836,7 @@ int	HttpConnection::onParser_MessageComplete()
 				std::map<std::string, std::string> vars = decoder.getEnumVars();
 				std::map<std::string, std::string>::const_iterator it;
 				for(it = vars.begin(); it != vars.end(); ++it)
-					msg->_qstring += it->first + "=" + it->second +"&";
+					msg->_qstr += it->first + "=" + it->second +"&";
 				//				queryString(it->first, it->second);
 			}
 		}
@@ -810,7 +848,7 @@ int	HttpConnection::onParser_MessageComplete()
 			RECV_GUARD();
 			if (!_payloadReceived.empty() && _payloadReceived.front())
 			{
-				// decode the body data into msg->_qstring
+				// decode the body data into msg->_qstr
 				PayloadChunk::Ptr& payload = _payloadReceived.front();
 				// processing the multipart content
 				std::string dashBoundary = std::string("--") + msg->_boundary;
@@ -880,7 +918,7 @@ int	HttpConnection::onParser_MessageComplete()
 						break;
 					}
 
-					msg->_qstring += name + "=" + (p?p:"") +"&"; // queryString(name,p);
+					msg->_qstr += name + "=" + (p?p:"") +"&"; // queryString(name,p);
 					p = end + 2; // point to the boundary, continue the next iteration
 				} // while end (multi-part)
 			}
@@ -911,10 +949,17 @@ std::string HttpConnection::formatStartLine(HttpMessage::Ptr msg)
 
 	std::ostringstream oss;
 	ZQ::common::MutexGuard gd(msg->_locker);
+
 	if (msg->_type == HttpMessage::MSG_RESPONSE)
 		oss<<"HTTP/1.1" <<" " << msg->_statusCode <<" " << HttpMessage::code2status(msg->_statusCode) << EOL;
 	else
-		oss<< HttpMessage::method2str(msg->_method) << " " << msg->uri() << " " << "HTTP/1.1"<< EOL;
+	{
+		std::string uristr = msg->_uri;
+		if (HTTP_POST != msg->_method && msg->_qstr.length() >0 )
+			uristr += msg->_qstr;
+
+		oss<< HttpMessage::method2str(msg->_method) << " " << uristr << " " << "HTTP/1.1"<< EOL;
+	}
 
 	return oss.str();
 }
@@ -955,10 +1000,10 @@ std::string HttpConnection::formatMsgHeaders(HttpMessage::Ptr msg)
 }
 
 
-int	HttpConnection::onParser_Uri(const char* at, size_t size)
+int	HttpConnection::onParser_Url(const char* at, size_t size)
 {
 	RECV_GUARD();
-	((NestedParser*)_nestedParser)->msg->_url.append(at, size);
+	((NestedParser*)_nestedParser)->url.append(at, size);
 	return 0;
 }
 
@@ -1098,7 +1143,7 @@ int NestedParser::_parserCb_message_complete(http_parser* parser)
 int NestedParser::_parserCb_uri(http_parser* parser,const char* at,size_t size)
 {
 	NestedParser* pThis = reinterpret_cast<NestedParser*>(parser->data); if (!pThis) return 0;
-	return pThis->_conn.onParser_Uri(at, size);
+	return pThis->_conn.onParser_Url(at, size);
 }
 
 int NestedParser::_parserCb_status(http_parser* parser, const char* at, size_t size)
