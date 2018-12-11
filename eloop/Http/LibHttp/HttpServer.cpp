@@ -198,7 +198,8 @@ void HttpPassiveConn::OnClose()
 		//	_server.addAwait(this);
 		//}
 HttpHandler::Response::Response(HttpServer& server, const HttpMessage::Ptr& req)
-: _server(server), HttpMessage(HttpMessage::MSG_RESPONSE, req->getConnId()),_req(req), _stampPosted(0)
+: _server(server), HttpMessage(HttpMessage::MSG_RESPONSE, req->getConnId()),
+  _req(req), _stampPosted(0), _bodyBytesPushed(0)
 {
 	if (_req)
 	{
@@ -242,28 +243,53 @@ HttpMessage::StatusCodeEx HttpHandler::Response::post(int statusCode, const std:
 		_statusCode = statusCode;
 	else _statusCode = scInternalServerError;
 
-	bool end = false;
-	if (CONTENT_LEN_CHUNKED != contentLength() && (body.length() >= contentLength()))
-		end = true;
-
 	ret = conn->sendMessage(this);
-	if (HttpMessage::errSendConflict != ret && body.length() >0)
-		conn->pushOutgoingPayload((const void*) body.c_str(), body.length(), end);
+
+	size_t len = body.length();
+	if (HttpMessage::errSendConflict != ret && len >0)
+	{
+		bool end = false;
+		if (!chunked() && (_bodyBytesPushed + len) >= contentLength())
+			end = true;
+
+		conn->pushOutgoingPayload((const void*) body.c_str(), len, end);
+		_bodyBytesPushed += len;
+	}
 
 	return ret;
 }
 
-HttpMessage::StatusCodeEx HttpHandler::Response::pushBody(const uint8* data, size_t len, bool end)
+int64 HttpHandler::Response::declareContentLength(int64 contentLen, const char* contentType, bool chunked)
+{ 
+	_declaredBodyLength = contentLen; 
+	if (contentType)
+		header("Content-Type", contentType); 
+
+	if (chunked)
+	{
+		_declaredBodyLength = 0; 
+		_flags |= F_CHUNKED;
+		header("Transfer-Encoding", "chunked"); 
+	}
+
+	return _declaredBodyLength;
+}
+
+HttpMessage::StatusCodeEx HttpHandler::Response::pushBody(const uint8* data, size_t len, bool chunkedEnd)
 {
+	bool end = chunkedEnd;
 	if (NULL == data || len <=0)
 		return HttpMessage::scBadRequest;
 
 	HttpPassiveConn* conn = dynamic_cast<HttpPassiveConn*>(getConn());
 	if (conn == NULL)
 	{
-		_server._logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpResponse, "pushBody() drop %s per conn[%s] already closed"), _txnId.c_str(), getConnId().c_str());
+		_server._logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpResponse, "pushBody() %s failed per conn[%s] not found"), _txnId.c_str(), getConnId().c_str());
 		return HttpMessage::scInternalServerError;
 	}
+
+	if (!chunked() && (_bodyBytesPushed + len) >= contentLength())
+		end = true;
 
 	conn->pushOutgoingPayload(data, len, end);
 	return end ? HttpMessage::scOK : HttpMessage::scPartialContent;
