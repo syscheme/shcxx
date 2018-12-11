@@ -123,6 +123,7 @@ public:
 		errConnectFail      = -105,
 		errConnectTimeout   = -106,
 		errSendConflict     = -107,
+		errBadData          = -108,
 
 		// async handling
 		errAsyncInProgress  = -200,
