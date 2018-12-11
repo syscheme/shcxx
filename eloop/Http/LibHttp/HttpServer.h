@@ -115,6 +115,8 @@ protected: // forwarded from HttpConnection
 	HttpHandler::Properties _dirProps;
 };
 
+class HttpPassiveConn;
+
 // ---------------------------------------
 // template HttpApplication
 // ---------------------------------------
