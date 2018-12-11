@@ -113,6 +113,7 @@ protected: // forwarded from HttpConnection
 
 	// forwarded from HTTPConnection
 	virtual void	OnMessagingError(int error, const char* errorDescription) {}
+	virtual void    OnResponsePayloadSubmitted(size_t bytes, uint64 totalPayloadOffset) {}
 
 	HttpMessage::Ptr  _req;
 	HttpHandler::Response::Ptr  _resp;

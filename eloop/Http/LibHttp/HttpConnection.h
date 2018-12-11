@@ -237,7 +237,7 @@ protected:
 protected: // impl of TCPConnection, no more overwriteable
 	void OnConnected(ElpeError status);
 	void OnRead(ssize_t nread, const char *buf);
-	void OnWrote(int status);
+	void OnWrote(int status); // 
 	/// error occured on TCP connection
 	void OnConnectionError(int error, const char* errorDescription);
 	

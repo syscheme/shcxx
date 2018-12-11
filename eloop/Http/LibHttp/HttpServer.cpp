@@ -33,7 +33,8 @@ protected: // implementation of HttpConnection
 
 	//@return expect errAsyncInProgress to continue receiving 
 	virtual HttpMessage::StatusCodeEx OnBodyPayloadReceived(const char* data, size_t size); // maps to RTSP::OnRequest-2.2
-	virtual void    OnMessageSubmitted(HttpMessage::Ptr msg);
+	virtual void OnBodyPayloadSubmitted(size_t bytesPushed, uint64 offsetBodyPayload);
+	virtual void OnMessageSubmitted(HttpMessage::Ptr msg);
 
 	virtual void OnMessagingError( int error, const char* errorDescription );
 	//virtual void	OnClose(); 
@@ -88,6 +89,14 @@ void HttpPassiveConn::OnMessagingError(int error, const char* errorDescription)
 	disconnect(true);
 }
 
+void HttpPassiveConn::OnBodyPayloadSubmitted(size_t bytesPushed, uint64 offsetBodyPayload)
+{
+	HttpConnection::OnBodyPayloadSubmitted(bytesPushed, offsetBodyPayload);
+
+	if(_handler)
+		_handler->OnResponsePayloadSubmitted(bytesPushed, offsetBodyPayload);
+}
+
 void HttpPassiveConn::OnMessageSubmitted(HttpMessage::Ptr msg)
 {
 	HttpConnection::OnMessageSubmitted(msg);
@@ -101,6 +110,8 @@ void HttpPassiveConn::OnMessageSubmitted(HttpMessage::Ptr msg)
 	_logger(ZQ::common::Log::L_DEBUG, CONNFMT(OnMessageSubmitted, "disconnecting"));
 	disconnect(true);
 }
+
+
 
 void HttpPassiveConn::OnTimer()
 {
