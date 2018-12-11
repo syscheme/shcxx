@@ -201,6 +201,15 @@ void HttpPassiveConn::OnClose()
 */
 
 // ---------------------------------------
+// class HttpHandler
+// ---------------------------------------
+HttpHandler::HttpHandler(const HttpMessage::Ptr& req, IBaseApplication& app, HttpServer& server, const HttpHandler::Properties& dirProps)
+                 : _req(req), _app(app), _dirProps(dirProps)
+{}
+
+HttpHandler::~HttpHandler()
+{}
+// ---------------------------------------
 // class HttpResponse
 // ---------------------------------------
 		//	: _server(server), HttpMessage(HttpMessage::MSG_RESPONSE, req->getConnId()), _req(req)

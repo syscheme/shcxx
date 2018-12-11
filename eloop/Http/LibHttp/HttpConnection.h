@@ -276,7 +276,6 @@ protected: // new overwriteable entry points
 
 protected:
 	bool sendByPhase(); // triggered by OnWrote/Connected()
-	virtual void poll(); // triggered by the management party periodically, such as HttpServer as the server-side or HttpUserAgent as the client-side
 
 protected: // callbacks from HTTP parser
 	virtual int	onParser_MessageBegin() { return 0; }

@@ -62,10 +62,7 @@ public:
 	typedef std::map<std::string, std::string> Properties;
 	typedef ZQ::common::Pointer<HttpHandler> Ptr;
 
-	virtual ~HttpHandler()
-	{
-		(_app.log())(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpHandler, "~HttpHandler"));
-	}
+	virtual ~HttpHandler();
 
 	// ---------------------------------------
 	// interface IBaseApplication
@@ -101,15 +98,13 @@ public:
 
 protected: // hatched by HttpApplication
 	// the handler is created when all HTTP headers are received
-	HttpHandler(const HttpMessage::Ptr& req, IBaseApplication& app, HttpServer& server, const HttpHandler::Properties& dirProps = HttpHandler::Properties())
-		: _req(req), _app(app), _dirProps(dirProps)
-	{}
+	HttpHandler(const HttpMessage::Ptr& req, IBaseApplication& app, HttpServer& server, const HttpHandler::Properties& dirProps = HttpHandler::Properties());
 
 protected: // forwarded from HttpConnection
 	//@return expect errAsyncInProgress to continue receiving 
 	virtual HttpMessage::StatusCodeEx OnRequestHeaders(const Response::Ptr resp) { _resp=resp; return HttpMessage::errAsyncInProgress; } // maps to RTSP::OnRequest-1
 	virtual HttpMessage::StatusCodeEx OnRequestChunk(const char* data, size_t size) { return HttpMessage::errAsyncInProgress; } // maps to RTSP::OnRequest-2.2
-	virtual HttpMessage::StatusCodeEx OnRequestCompleted(); // maps to RTSP::OnRequest-3
+	virtual HttpMessage::StatusCodeEx OnRequestCompleted(){} // maps to RTSP::OnRequest-3
 
 	// forwarded from HTTPConnection
 	virtual void	OnMessagingError(int error, const char* errorDescription) {}

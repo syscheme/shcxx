@@ -50,7 +50,6 @@ protected: // override of HttpConnection
 	virtual void OnMessagingError(int error, const char* errorDescription);
 
 protected: // override of HttpMessage
-	virtual std::string uri();
 	void	setError(int error, const char* errMsg=NULL);
 
 protected:
