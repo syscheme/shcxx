@@ -22,7 +22,7 @@ struct http_parser_settings;
 namespace ZQ {
 namespace eloop {
 
-#define CONTENT_LEN_SIMPLEBODY   (-100)
+#define CONTENT_LEN_CHUNKED   (-100)
 
 // -----------------------------------------------------
 // class HttpMessage
@@ -148,6 +148,9 @@ public:
 	int		statusCode() const { return _statusCode; }
 	MessagingPhase phase() const { return _phase; }
 	std::string getConnId() const { return _connId; }
+	
+	int64 declareContentLength(int64 contentLen, const char* contentType=NULL)
+	{ _declaredBodyLength = contentLen; if (contentType) header("Content-Type", contentType); }
 
 	//@return the URI of message according to the status line
 	virtual std::string uri();

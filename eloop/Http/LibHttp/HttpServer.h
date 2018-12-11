@@ -47,10 +47,13 @@ public:
 		TCPConnection* getConn();
 		int getTimeLeft();
 
+		StatusCodeEx pushBody(const uint8* data, size_t len, bool end = false);
+
 	private:
 		HttpServer& _server;
 		HttpMessage::Ptr _req;
 		int64 _stampPosted;
+		std::string _txnId;
 	};
 
 public:

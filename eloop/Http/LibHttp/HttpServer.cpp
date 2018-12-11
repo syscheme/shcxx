@@ -200,7 +200,17 @@ void HttpPassiveConn::OnClose()
 HttpHandler::Response::Response(HttpServer& server, const HttpMessage::Ptr& req)
 : _server(server), HttpMessage(HttpMessage::MSG_RESPONSE, req->getConnId()),_req(req), _stampPosted(0)
 {
-	// _server.addAwait(this);
+	if (_req)
+	{
+		_txnId = req->header(Header_RequestId);
+		if (_txnId.empty())
+		{
+			char tmp[100];
+			snprintf(tmp, sizeof(tmp)-2, "%s@%s", HttpMessage::method2str(_req->method()), _req->getConnId().c_str());
+			_txnId = tmp;
+			header(Header_RequestId, _txnId);
+		}
+	}
 }
 
 TCPConnection* HttpHandler::Response::getConn() 
@@ -219,21 +229,10 @@ HttpMessage::StatusCodeEx HttpHandler::Response::post(int statusCode, const std:
 		_stampPosted = ZQ::common::now();
 	}
 
-	std::string reqId = header(Header_RequestId);
-	if (reqId.empty())
-	{
-		char tmp[100];
-		snprintf(tmp, sizeof(tmp)-2, "%s@%s", HttpMessage::method2str(_req->method()), _req->getConnId().c_str());
-		reqId = tmp;
-		header(Header_RequestId, reqId);
-	}
-
-	std::string txn = std::string("resp-of-req[") + reqId + "]";
-
 	HttpPassiveConn* conn = dynamic_cast<HttpPassiveConn*>(getConn());
 	if (conn == NULL)
 	{
-		_server._logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpResponse, "post() drop %s per conn[%s] already closed"), txn.c_str(), getConnId().c_str());
+		_server._logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpResponse, "post() drop %s per conn[%s] already closed"), _txnId.c_str(), getConnId().c_str());
 		return ret;
 	}
 
@@ -243,11 +242,31 @@ HttpMessage::StatusCodeEx HttpHandler::Response::post(int statusCode, const std:
 		_statusCode = statusCode;
 	else _statusCode = scInternalServerError;
 
+	bool end = false;
+	if (CONTENT_LEN_CHUNKED != contentLength() && (body.length() >= contentLength()))
+		end = true;
+
 	ret = conn->sendMessage(this);
 	if (HttpMessage::errSendConflict != ret && body.length() >0)
-		conn->pushOutgoingPayload((const void*) body.c_str(), body.length(), true);
+		conn->pushOutgoingPayload((const void*) body.c_str(), body.length(), end);
 
 	return ret;
+}
+
+HttpMessage::StatusCodeEx HttpHandler::Response::pushBody(const uint8* data, size_t len, bool end)
+{
+	if (NULL == data || len <=0)
+		return HttpMessage::scBadRequest;
+
+	HttpPassiveConn* conn = dynamic_cast<HttpPassiveConn*>(getConn());
+	if (conn == NULL)
+	{
+		_server._logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpResponse, "pushBody() drop %s per conn[%s] already closed"), _txnId.c_str(), getConnId().c_str());
+		return HttpMessage::scInternalServerError;
+	}
+
+	conn->pushOutgoingPayload(data, len, end);
+	return end ? HttpMessage::scOK : HttpMessage::scPartialContent;
 }
 
 // ---------------------------------------
