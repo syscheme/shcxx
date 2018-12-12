@@ -394,6 +394,7 @@ public:
 
 protected:
 	virtual void OnAsync() {}
+	virtual void OnClose() { Handle::OnClose(); }
 
 private:
 	static void _cbAsync(uv_async_t *async);

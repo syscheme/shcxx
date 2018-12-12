@@ -258,7 +258,7 @@ public:
 		headerName.clear();
 		headerValue = "";
 
-		msg = new HttpMessage(_passive ? HttpMessage::MSG_REQUEST : HttpMessage::MSG_RESPONSE);
+		msg = new HttpMessage(_passive ? HttpMessage::MSG_REQUEST : HttpMessage::MSG_RESPONSE, _conn.connId());
 		if(msg)
 			msg->_phase = HttpMessage::hmpStarted;
 	}
@@ -538,10 +538,14 @@ HttpMessage::StatusCodeEx HttpConnection::sendMessage(HttpMessage::Ptr msg)
 		return HttpMessage::errSendConflict;
 
 	_msgOutgoing = msg;
-	Payload empty;
-    std::swap(_payloadOutgoing, empty);
+//Payload empty;
+ //   std::swap(_payloadOutgoing, empty);
+//	return (HttpMessage::StatusCodeEx)((_msgOutgoing) ? _msgOutgoing->statusCode() : HttpMessage::errSendConflict);
+	if (!_msgOutgoing)
+		return HttpMessage::scInternalServerError;
 
-	return (HttpMessage::StatusCodeEx)((_msgOutgoing) ? _msgOutgoing->statusCode() : HttpMessage::errSendConflict);
+	sendByPhase();
+	return (HttpMessage::StatusCodeEx)_msgOutgoing->statusCode();
 }
 
 #define MAX_CHUNK_PER_SEND (20)
@@ -568,6 +572,7 @@ bool HttpConnection::sendByPhase()
 		case HttpMessage::hmpStarted:
 			{
 				std::string startLine = formatStartLine(_msgOutgoing) + formatMsgHeaders(_msgOutgoing);
+				_logger.hexDump(ZQ::common::Log::L_DEBUG, startLine.c_str(), startLine.length(), "sendByPhase() headers:", true);
 				ret = TCPConnection::_enqueueSend((const uint8*)startLine.c_str(), startLine.length());
 			}
 
@@ -599,6 +604,7 @@ bool HttpConnection::sendByPhase()
 							continue;
 
 						ret = TCPConnection::_enqueueSend((const uint8*)chunk->data(), chunk->len());
+						_logger.hexDump(ZQ::common::Log::L_DEBUG, chunk->data(), chunk->len(), "sendByPhase() body:");
 						if (ret >0)
 							payloadBytesSent += ret;
 					}
@@ -628,6 +634,7 @@ bool HttpConnection::sendByPhase()
 					snprintf(chunkHdr, sizeof(chunkHdr) -2, "%x\r\n", len);
 					ret = TCPConnection::_enqueueSend((const uint8*)chunkHdr, strlen(chunkHdr));
 					ret = TCPConnection::_enqueueSend((const uint8*)chunk->data(), chunk->len());
+					_logger.hexDump(ZQ::common::Log::L_DEBUG, chunk->data(), chunk->len(), "sendByPhase() chunk:");
 					if (ret >0)
 						payloadBytesSent += ret;
 				}
@@ -956,7 +963,7 @@ std::string HttpConnection::formatStartLine(HttpMessage::Ptr msg)
 	else
 	{
 		std::string uristr = msg->_uri;
-		if (HTTP_POST != msg->_method && msg->_qstr.length() >0 )
+		if (HttpMessage::POST != msg->_method && msg->_qstr.length() >0 )
 			uristr += msg->_qstr;
 
 		oss<< HttpMessage::method2str(msg->_method) << " " << uristr << " " << "HTTP/1.1"<< EOL;

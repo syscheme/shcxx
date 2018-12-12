@@ -259,22 +259,23 @@ HttpMessage::StatusCodeEx HttpHandler::Response::post(int statusCode, const std:
 
 	MAPSET(HttpMessage::Headers, _headers, "Date",   HttpMessage::httpdate());
 
-	if (statusCode < 100 || statusCode >999)
+	if (HTTP_STATUSCODE(statusCode))
 		_statusCode = statusCode;
 	else _statusCode = scInternalServerError;
 
-	ret = conn->sendMessage(this);
-
 	size_t len = body.length();
-	if (HttpMessage::errSendConflict != ret && len >0)
-	{
-		bool end = false;
-		if (!chunked() && (_bodyBytesPushed + len) >= contentLength())
-			end = true;
+        if (HttpMessage::errSendConflict != ret && len >0)
+       	{
+        	bool end = false;
+                if (!chunked() && (_bodyBytesPushed + len) >= contentLength())
+                	end = true;
 
-		conn->pushOutgoingPayload((const void*) body.c_str(), len, end);
-		_bodyBytesPushed += len;
-	}
+                conn->pushOutgoingPayload((const void*) body.c_str(), len, end);
+                _bodyBytesPushed += len;
+        }
+
+	
+	ret = conn->sendMessage(this);
 
 	return ret;
 }

@@ -262,12 +262,12 @@ public:
 protected: // new overwriteable entry points 
 	// about message receiving triggered by HTTP parser
 	//@return expect errAsyncInProgress to continue receiving 
-	virtual HttpMessage::StatusCodeEx OnHeadersReceived(const HttpMessage::Ptr msg) { return HttpMessage::errAsyncInProgress; }
+	virtual HttpMessage::StatusCodeEx OnHeadersReceived(const HttpMessage::Ptr& msg) { return HttpMessage::errAsyncInProgress; }
 	
 	//@return expect errAsyncInProgress to continue receiving 
 	virtual HttpMessage::StatusCodeEx OnBodyPayloadReceived(const char* data, size_t size);
 
-	virtual void OnMessageReceived(const HttpMessage::Ptr msg) {}
+	virtual void OnMessageReceived(const HttpMessage::Ptr& msg) {}
 	virtual void OnMessagingError(int error, const char* errorDescription ) {}
 
 	// about message sending
