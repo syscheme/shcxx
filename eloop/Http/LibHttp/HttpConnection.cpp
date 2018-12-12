@@ -257,9 +257,10 @@ public:
 		http_parser_init(&parser, (_passive ? HTTP_REQUEST : HTTP_RESPONSE));
 		headerName.clear();
 		headerValue = "";
-		msg->_phase = HttpMessage::hmpStarted;
 
 		msg = new HttpMessage(_passive ? HttpMessage::MSG_REQUEST : HttpMessage::MSG_RESPONSE);
+		if(msg)
+			msg->_phase = HttpMessage::hmpStarted;
 	}
 
 	void parse(const char* data, size_t size)
@@ -734,7 +735,7 @@ int	HttpConnection::onParser_HeadersCompleted()
 	std::string host, uri, qstr, uristr = ((NestedParser*)_nestedParser)->url;
 	int port =-1;
 	HttpMessage::chopURI(uristr, host, port, msg->_uri, msg->_qstr);
-	_logger(ZQ::common::Log::L_DEBUG, CONNFMT(onParser_HeadersCompleted, "result(%d) url[%s]=> uri[%s] qstr[%s]"), msg->_statusCode, uristr.c_str());
+	_logger(ZQ::common::Log::L_DEBUG, CONNFMT(onParser_HeadersCompleted, "result(%d) uristr[%s]=> uri[%s] qstr[%s]"), msg->_statusCode, uristr.c_str(), msg->_uri.c_str(), msg->_qstr.c_str());
 
 	// validating the received headers
 	do {
@@ -1041,6 +1042,7 @@ int	HttpConnection::onParser_HeaderValue(const char* at, size_t size)
 
 	((NestedParser*)_nestedParser)->headerValue = ret.first->second;
 	((NestedParser*)_nestedParser)->headerName.clear();
+	return 0;
 }
 
 int	HttpConnection::onParser_Body(const char* at, size_t size)
