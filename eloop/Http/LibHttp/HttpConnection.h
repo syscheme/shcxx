@@ -302,6 +302,7 @@ protected:
 
 	Payload				    _payloadReceived; // its message part is saved in _nestedParser
 	int64					_stampLastRecv;
+	int64                    _stampLastSent;
 	// HttpMessage::StatusCodeEx _lastRecvError;
 
 private:

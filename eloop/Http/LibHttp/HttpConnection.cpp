@@ -492,7 +492,7 @@ bool MIMEReader::search(const char* data, size_t len, SearchResult& result)
 #define CONNFMT(_FUNC, _X) CLOGFMT(HttpConn, "%s " #_FUNC "() " _X), connId().c_str()
 
 HttpConnection::HttpConnection(ZQ::common::Log& logger,const char* connId, TCPServer* tcpServer)
-		: TCPConnection(logger, connId, tcpServer), _nestedParser(NULL), _bOutgoingOpen(true), _stampLastRecv(0) // , _lastRecvError(HttpMessage::scOK)
+		: TCPConnection(logger, connId, tcpServer), _nestedParser(NULL), _bOutgoingOpen(true), _stampLastRecv(0), _stampLastSent(0) // , _lastRecvError(HttpMessage::scOK)
 {
 	RECV_GUARD();
 	_nestedParser = new NestedParser(*this, isPassive());
@@ -566,91 +566,95 @@ bool HttpConnection::sendByPhase()
 
 		int ret = 0;
 		payloadOffset = _offsetBodyPlayloadSent;
-		switch (_msgOutgoing->phase())
-		{
-		case HttpMessage::hmpNil:
-		case HttpMessage::hmpStarted:
+		do {
+			switch (_msgOutgoing->phase())
 			{
-				std::string startLine = formatStartLine(_msgOutgoing) + formatMsgHeaders(_msgOutgoing);
-				_logger.hexDump(ZQ::common::Log::L_DEBUG, startLine.c_str(), startLine.length(), "sendByPhase() headers:", true);
-				ret = TCPConnection::_enqueueSend((const uint8*)startLine.c_str(), startLine.length());
-			}
-
-			payloadOffset =_offsetBodyPlayloadSent =0;
-			_msgOutgoing->_phase = HttpMessage::hmpHeaders;
-			break;
-
-		case HttpMessage::hmpHeaders:
-			if(!_msgOutgoing->hasContentBody())
-			{
-				_msgOutgoing->_phase = HttpMessage::hmpCompleted;
-				break;
-			}
-
-			_msgOutgoing->_phase = HttpMessage::hmpBody;
-			// no break here, continue move to the next case
-
-		case HttpMessage::hmpBody:
-			{
-				Payload tmpQueue;
-				int bytesToWrite =0;
-
-				if(!_msgOutgoing->chunked())
+			case HttpMessage::hmpNil:
+			case HttpMessage::hmpStarted:
 				{
-					for (; !_payloadOutgoing.empty(); _payloadOutgoing.pop())
+					std::string startLine = formatStartLine(_msgOutgoing) + formatMsgHeaders(_msgOutgoing);
+					_logger.hexDump(ZQ::common::Log::L_DEBUG, startLine.c_str(), startLine.length(), "sendByPhase() headers:", true);
+					ret = TCPConnection::_enqueueSend((const uint8*)startLine.c_str(), startLine.length());
+				}
+
+				payloadOffset =_offsetBodyPlayloadSent =0;
+				_msgOutgoing->_phase = HttpMessage::hmpHeaders;
+				break;
+
+			case HttpMessage::hmpHeaders:
+				if(!_msgOutgoing->hasContentBody())
+				{
+					_msgOutgoing->_phase = HttpMessage::hmpCompleted;
+					break;
+				}
+
+				_msgOutgoing->_phase = HttpMessage::hmpBody;
+				// no break here, continue move to the next case
+
+			case HttpMessage::hmpBody:
+				{
+					Payload tmpQueue;
+					int bytesToWrite =0;
+
+					if(!_msgOutgoing->chunked())
+					{
+						for (; !_payloadOutgoing.empty(); _payloadOutgoing.pop())
+						{
+							PayloadChunk::Ptr& chunk = _payloadOutgoing.front();
+							if (!chunk)
+								continue;
+
+							ret = TCPConnection::_enqueueSend((const uint8*)chunk->data(), chunk->len());
+							_logger.hexDump(ZQ::common::Log::L_DEBUG, chunk->data(), chunk->len(), "sendByPhase() body:");
+							if (ret >0)
+								payloadBytesSent += ret;
+						}
+
+						if ((payloadBytesSent + payloadOffset) >=_msgOutgoing->_declaredBodyLength)
+							_msgOutgoing->_phase = HttpMessage::hmpCompleted;
+
+						continue;
+					}
+
+					// now deal with chunked
+					size_t cChunks = 0;
+					if (_payloadOutgoing.empty())
+					{
+						static const char* chunkEnd = "0\r\n\r\n";
+						ret = TCPConnection::_enqueueSend((const uint8*)chunkEnd, strlen(chunkEnd));
+						_msgOutgoing->_phase = HttpMessage::hmpCompleted;
+						break;
+					}
+
+					for (; !_payloadOutgoing.empty(); _payloadOutgoing.pop(), cChunks++)
 					{
 						PayloadChunk::Ptr& chunk = _payloadOutgoing.front();
-						if (!chunk)
+						size_t len = chunk->len();
+						if (len <=0)
 							continue;
 
+						char chunkHdr[16];
+						snprintf(chunkHdr, sizeof(chunkHdr) -2, "%x\r\n", len);
+						ret = TCPConnection::_enqueueSend((const uint8*)chunkHdr, strlen(chunkHdr));
 						ret = TCPConnection::_enqueueSend((const uint8*)chunk->data(), chunk->len());
-						_logger.hexDump(ZQ::common::Log::L_DEBUG, chunk->data(), chunk->len(), "sendByPhase() body:");
+						_logger.hexDump(ZQ::common::Log::L_DEBUG, chunk->data(), chunk->len(), "sendByPhase() chunk:");
 						if (ret >0)
 							payloadBytesSent += ret;
 					}
-
-					_msgOutgoing->_phase = HttpMessage::hmpCompleted;
-					break;
 				}
 
-				// now deal with chunked
-				size_t cChunks = 0;
-				if (_payloadOutgoing.empty())
-				{
-					static const char* chunkEnd = "0\r\n\r\n";
-					ret = TCPConnection::_enqueueSend((const uint8*)chunkEnd, strlen(chunkEnd));
-					_msgOutgoing->_phase = HttpMessage::hmpCompleted;
-					break;
-				}
+				break;
 
-				for (; !_payloadOutgoing.empty(); _payloadOutgoing.pop(), cChunks++)
-				{
-					PayloadChunk::Ptr& chunk = _payloadOutgoing.front();
-					size_t len = chunk->len();
-					if (len <=0)
-						continue;
+			case HttpMessage::hmpCompleted:
+				// reset to init
+				// _msgOutgoing->_phase = HttpMessage::hmpStarted;
+				msgCompleted = _msgOutgoing;
+				_msgOutgoing = NULL;
 
-					char chunkHdr[16];
-					snprintf(chunkHdr, sizeof(chunkHdr) -2, "%x\r\n", len);
-					ret = TCPConnection::_enqueueSend((const uint8*)chunkHdr, strlen(chunkHdr));
-					ret = TCPConnection::_enqueueSend((const uint8*)chunk->data(), chunk->len());
-					_logger.hexDump(ZQ::common::Log::L_DEBUG, chunk->data(), chunk->len(), "sendByPhase() chunk:");
-					if (ret >0)
-						payloadBytesSent += ret;
-				}
+				_logger(ZQ::common::Log::L_DEBUG, CONNFMT(sendByPhase, "message sent"));
+				break;
 			}
-
-			break;
-
-		case HttpMessage::hmpCompleted:
-			// reset to init
-			// _msgOutgoing->_phase = HttpMessage::hmpStarted;
-			msgCompleted = _msgOutgoing;
-			_msgOutgoing = NULL;
-
-		    _logger(ZQ::common::Log::L_DEBUG, CONNFMT(sendByPhase, "message sent"));
-			break;
-		}
+		} while(0);
 
 		if (payloadBytesSent >0)
 		{
@@ -691,8 +695,9 @@ void HttpConnection::OnConnectionError(int error, const char* errorDescription)
 
 void HttpConnection::OnWrote(int status)
 {
-	TCPConnection::OnWrote(status);
+	_stampLastSent = ZQ::common::now();
 	sendByPhase();
+	TCPConnection::OnWrote(status);
 }
 
 void HttpConnection::OnRead(ssize_t nread, const char *buf)

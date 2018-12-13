@@ -111,15 +111,22 @@ void HttpPassiveConn::OnMessageSubmitted(HttpMessage::Ptr msg)
 	disconnect(true);
 }
 
-
-
 void HttpPassiveConn::OnTimer()
 {
-	int idleElapsed = (int) (ZQ::common::now() - _stampLastRecv);
-	if (!_keepAlive && _idleTimeout>0 && idleElapsed > _idleTimeout)
+	if (!_keepAlive)
 	{
-		_logger(ZQ::common::Log::L_DEBUG, CONNFMT(OnTimer, "disconnecting, idle time %dmsec"), idleElapsed);
-		disconnect(false);
+		if (!_msgOutgoing && _stampLastSent >0)
+			disconnect(false); // for _keepAlive = false
+	}
+	else 
+	{
+		// keepAlive= true
+		int idleElapsed = (int) (ZQ::common::now() - MAX(_stampLastSent,_stampLastRecv));
+		if (_idleTimeout>0 && idleElapsed > _idleTimeout)
+		{
+			_logger(ZQ::common::Log::L_DEBUG, CONNFMT(OnTimer, "disconnecting, idle time %dmsec"), idleElapsed);
+			disconnect(false);
+		}
 	}
 }
 
