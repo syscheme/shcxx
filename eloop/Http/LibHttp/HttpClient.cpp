@@ -131,6 +131,9 @@ HttpRequest::HttpRequest(HTTPUserAgent& ua, HttpMethod _method, const std::strin
 		header(it->first, it->second);
 	}
 
+	// bound with a dummy response initially
+	_respMsg = new HttpMessage(MSG_RESPONSE);
+
 	bool bParamOverwrite = false;
 	std::string paramstr;
 	char buf[512];
@@ -208,15 +211,24 @@ HttpRequest::~HttpRequest()
 	_ua._awaits.erase(connId());
 }
 
-ZQ::eloop::HttpMessage::StatusCodeEx HttpRequest::getResponse(ZQ::eloop::HttpMessage::Ptr& resp, int32 timeout, ICallBack* cbAsync)
+ZQ::eloop::HttpMessage::Ptr HttpRequest::getResponse(int32 timeout, ICallBack* cbAsync)
 {
 	char tmp[60];
 	snprintf(tmp, sizeof(tmp)-2, "%s %s [%s:%d", connId().c_str(), method2str(_method), _host.c_str(), _port);
 	_txnId = tmp; _txnId += _uri +"]"; // +"?" +_qstr +"]";
 
 	_cb = cbAsync;
+	if (_respMsg)
+		_respMsg->_statusCode = errAsyncInProgress;
+
 	if (NULL ==_cb)
 		_pEvent = new ZQ::common::Event();
+
+	if (!_pEvent)
+		return errAsyncInProgress;
+
+	if (_respMsg)
+		_respMsg->_statusCode = scRequestTimeout;
 
 	_ua.enqueue(this);
 	// _logger.hexDump(ZQ::common::Log::L_DEBUG, _reqBody.c_str(), (int)_reqBody.length(), _txnId.c_str(), true);
@@ -232,6 +244,13 @@ ZQ::eloop::HttpMessage::StatusCodeEx HttpRequest::getResponse(ZQ::eloop::HttpMes
 
 	return (ZQ::eloop::HttpMessage::StatusCodeEx)resp->statusCode();
 }
+
+HttpMessage::StatusCodeEx HttpRequest::OnBodyPayloadReceived(const char* data, size_t size)
+{ 
+	if (NULL != data && size>0) _respBody.append(data, size();
+	return HttpMessage::errAsyncInProgress;
+}
+
 
 bool HttpRequest::startRequest()
 {

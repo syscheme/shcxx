@@ -40,7 +40,9 @@
 #pragma once
 #endif
 
+#include <windows.h>
 #include <limits.h>
+#include <winuser.h>
 
 // For Visual Studio 6 in C++ mode and for many Visual Studio versions when
 // compiling for ARM we should wrap <wchar.h> include with 'extern "C++" {}'

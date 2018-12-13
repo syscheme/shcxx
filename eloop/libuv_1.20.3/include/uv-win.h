@@ -24,12 +24,13 @@
 #endif
 
 #if !defined(_SSIZE_T_) && !defined(_SSIZE_T_DEFINED)
-typedef intptr_t ssize_t;
+typedef long ssize_t; // intptr_t ssize_t;
 # define _SSIZE_T_
 # define _SSIZE_T_DEFINED
 #endif
 
 #include <winsock2.h>
+#include <mswsock.h>
 
 #if defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR)
 typedef struct pollfd {
@@ -161,9 +162,10 @@ typedef struct pollfd {
                        LPTRANSMIT_FILE_BUFFERS lpTransmitBuffers,
                        DWORD dwFlags);
 
-  typedef PVOID RTL_SRWLOCK;
-  typedef RTL_SRWLOCK SRWLOCK, *PSRWLOCK;
 #endif
+
+typedef PVOID RTL_SRWLOCK;
+typedef RTL_SRWLOCK SRWLOCK, *PSRWLOCK;
 
 typedef int (WSAAPI* LPFN_WSARECV)
             (SOCKET socket,

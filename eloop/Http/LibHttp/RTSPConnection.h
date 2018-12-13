@@ -52,7 +52,6 @@ class RTSPMessage : public ZQ::common::SharedObject
 {
 public:
 	typedef ZQ::common::Pointer<RTSPMessage> Ptr;
-
 	typedef std::vector<Ptr> MsgVec;
 
 	static bool less(Ptr i, Ptr j) {  return (i->cSeq() < j->cSeq()); }
@@ -230,7 +229,7 @@ public:
 
 	int64				_stampCreated;
 
-private:
+protected:
 	std::string			_connId; // TODO: what if the connection is lost piror to response sending
 	ZQ::common::Mutex	_lockHeaders;
 	Headers				_headers;

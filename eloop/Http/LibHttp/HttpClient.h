@@ -28,7 +28,7 @@ public:
 public:
 	virtual ~HttpRequest();
 
-	virtual StatusCodeEx getResponse(ZQ::eloop::HttpMessage::Ptr& resp, int32 timeout=-1, ICallBack* cbAsync =NULL);
+	virtual ZQ::eloop::HttpMessage::Ptr getResponse(ZQ::eloop::HttpMessage::Ptr& resp, int32 timeout=-1, ICallBack* cbAsync =NULL);
 
 //	virtual StatusCodeEx POST(int32 timeout=-1);
 //    virtual StatusCodeEx GET(int32 timeout=-1);
@@ -45,6 +45,8 @@ protected: // override of HttpConnection
 	//@return expect errAsyncInProgress to continue receiving 
 	virtual HttpMessage::StatusCodeEx OnHeadersReceived(const HttpMessage::Ptr resp) { _respMsg = resp; return HttpMessage::errAsyncInProgress; }
 
+	//@return expect errAsyncInProgress to continue receiving 
+	virtual HttpMessage::StatusCodeEx OnBodyPayloadReceived(const char* data, size_t size);
 	virtual void OnMessageReceived(const HttpMessage::Ptr resp);
 
 	virtual void OnMessagingError(int error, const char* errorDescription);
