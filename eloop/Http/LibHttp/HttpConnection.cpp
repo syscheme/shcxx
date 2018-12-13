@@ -573,8 +573,8 @@ bool HttpConnection::sendByPhase()
 			case HttpMessage::hmpStarted:
 				{
 					std::string startLine = formatStartLine(_msgOutgoing) + formatMsgHeaders(_msgOutgoing);
-					_logger.hexDump(ZQ::common::Log::L_DEBUG, startLine.c_str(), startLine.length(), "sendByPhase() headers:", true);
 					ret = TCPConnection::_enqueueSend((const uint8*)startLine.c_str(), startLine.length());
+					//_logger.hexDump(ZQ::common::Log::L_DEBUG, startLine.c_str(), startLine.length(), "sendByPhase() headers:", true);
 				}
 
 				payloadOffset =_offsetBodyPlayloadSent =0;
@@ -585,7 +585,7 @@ bool HttpConnection::sendByPhase()
 				if(!_msgOutgoing->hasContentBody())
 				{
 					_msgOutgoing->_phase = HttpMessage::hmpCompleted;
-					break;
+					continue;
 				}
 
 				_msgOutgoing->_phase = HttpMessage::hmpBody;
@@ -605,9 +605,10 @@ bool HttpConnection::sendByPhase()
 								continue;
 
 							ret = TCPConnection::_enqueueSend((const uint8*)chunk->data(), chunk->len());
-							_logger.hexDump(ZQ::common::Log::L_DEBUG, chunk->data(), chunk->len(), "sendByPhase() body:");
-							if (ret >0)
-								payloadBytesSent += ret;
+							//_logger.hexDump(ZQ::common::Log::L_DEBUG, chunk->data(), chunk->len(), "sendByPhase() body:");
+							//if (ret >0) (comment _enqueueSend original returns)
+							//TODO : check if calls _enqueueSend returned correctly(because it always returns Zero)
+							payloadBytesSent += chunk->len();
 						}
 
 						if ((payloadBytesSent + payloadOffset) >=_msgOutgoing->_declaredBodyLength)
@@ -637,9 +638,10 @@ bool HttpConnection::sendByPhase()
 						snprintf(chunkHdr, sizeof(chunkHdr) -2, "%x\r\n", len);
 						ret = TCPConnection::_enqueueSend((const uint8*)chunkHdr, strlen(chunkHdr));
 						ret = TCPConnection::_enqueueSend((const uint8*)chunk->data(), chunk->len());
-						_logger.hexDump(ZQ::common::Log::L_DEBUG, chunk->data(), chunk->len(), "sendByPhase() chunk:");
-						if (ret >0)
-							payloadBytesSent += ret;
+						//_logger.hexDump(ZQ::common::Log::L_DEBUG, chunk->data(), chunk->len(), "sendByPhase() chunk:");
+						//if (ret >0) (comment _enqueueSend original returns)
+						//TODO : check if calls _enqueueSend returned correctly(because it always returns Zero)
+						payloadBytesSent += chunk->len();
 					}
 				}
 
@@ -651,7 +653,7 @@ bool HttpConnection::sendByPhase()
 				msgCompleted = _msgOutgoing;
 				_msgOutgoing = NULL;
 
-				_logger(ZQ::common::Log::L_DEBUG, CONNFMT(sendByPhase, "message sent"));
+				_logger(ZQ::common::Log::L_DEBUG, CONNFMT(sendByPhase, "HttpMessage sent out"));
 				break;
 			}
 		} while(0);

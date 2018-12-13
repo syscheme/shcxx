@@ -470,8 +470,8 @@ private:
 uint TCPConnection::_enableHexDump = 0;
 
 TCPConnection::TCPConnection(ZQ::common::Log& log, const char* connId, TCPServer* tcpServer)
-:_logger(log), _wakeup(*this), _isConnected(false), _tcpServer(tcpServer), _watchDog(NULL), // _isShutdown(false),_isStop(false),
-  _peerPort(0), _localPort(0)
+:_logger(log), _pWakeup(NULL),/*_wakeup(*this),*/ _isConnected(false), _tcpServer(tcpServer), _watchDog(NULL), // _isShutdown(false),_isStop(false),
+  _peerPort(0), _localPort(0), _stampBusySend(0)
 {
 	_lastCSeq.set(1);
 	if (connId != NULL)
@@ -488,7 +488,11 @@ TCPConnection::TCPConnection(ZQ::common::Log& log, const char* connId, TCPServer
 
 int TCPConnection::init(Loop &loop)
 {
-	_wakeup.init(loop);
+	//_wakeup.init(loop);
+	_pWakeup = new WakeUp(*this);
+	if(_pWakeup)
+		_pWakeup->init(loop);
+
 	return ZQ::eloop::TCP::init(loop);
 }
 
@@ -531,7 +535,9 @@ bool TCPConnection::disconnect(bool bShutdown)
 	Buffer::Queue NIL;
 	std::swap(_queSend, NIL);
 
-	_wakeup.close();
+	if(_pWakeup)
+		_pWakeup->close();
+	//_wakeup.close();
 	if (bShutdown)
 		shutdown();
 	else close();
@@ -576,7 +582,8 @@ int TCPConnection::_enqueueSend(const uint8* data, size_t len)
 		return 0;
 
 	_queSend.push(new Buffer(data, len));
-	return _wakeup.send();
+	//return _wakeup.send();
+	return _pWakeup->send();
 }
 
 void TCPConnection::OnShutdown(ElpeError status)
@@ -631,7 +638,7 @@ void TCPConnection::_sendNext(size_t maxlen)
 	{
 		Buffer::Ptr buf = _queSend.front();
 		_queSend.pop();
-		if (!buf)
+		if (!buf ||  buf->len()<=0)
 			continue;
 
 		tmpQueue.push(buf);
@@ -651,7 +658,7 @@ void TCPConnection::_sendNext(size_t maxlen)
 	if (ret < 0)
 		OnConnectionError(ret, "send failed");
 
-	else _logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection, "sent %dbuf %dbytes"), cEb, bytes2Sent);
+	else _logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection, "conn[%s] message sent [%d]nbuf(s) total [%d]byte(s)"), _connId.c_str(), cEb, bytes2Sent);
 }
 
 // ---------------------------------------

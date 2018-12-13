@@ -139,7 +139,7 @@ private:
 
 	protected:
 		virtual void OnAsync() {_conn.OnSendEnqueued();}
-		virtual void OnClose() {} // to avoid trigger Handle 'delete this'
+		//virtual void OnClose() {} // to avoid trigger Handle 'delete this'
 		TCPConnection& _conn;
 	};
 
@@ -172,7 +172,8 @@ protected:
 
 	ZQ::common::Mutex      _lkSend;
 	Buffer::Queue          _queSend;
-	WakeUp				   _wakeup;
+	WakeUp*				   _pWakeup;
+	//WakeUp				   _wakeup;
 	int64                  _stampBusySend;
 
 	std::string _peerIp, _localIp;
