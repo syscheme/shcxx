@@ -101,21 +101,21 @@ void HttpPassiveConn::OnMessageSubmitted(HttpMessage::Ptr msg)
 {
 	HttpConnection::OnMessageSubmitted(msg);
 
-	if (_keepAlive && _idleTimeout >0 && (_stampLastRecv + _idleTimeout) > ZQ::common::now())
-	{
-		_logger(ZQ::common::Log::L_DEBUG, CONNFMT(OnMessageSubmitted, "keep-alive timeout %dmsec"), _idleTimeout);
-		return;
-	}
+	//if (_keepAlive && _idleTimeout >0 && (_stampLastRecv + _idleTimeout) > ZQ::common::now())
+	//{
+	//	_logger(ZQ::common::Log::L_DEBUG, CONNFMT(OnMessageSubmitted, "keep-alive timeout %dmsec"), _idleTimeout);
+	//	return;
+	//}
 
-	_logger(ZQ::common::Log::L_DEBUG, CONNFMT(OnMessageSubmitted, "disconnecting"));
-	disconnect(true);
+	//_logger(ZQ::common::Log::L_DEBUG, CONNFMT(OnMessageSubmitted, "disconnecting"));
+	//disconnect(true);
 }
 
 void HttpPassiveConn::OnTimer()
 {
 	if (!_keepAlive)
 	{
-		if (!_msgOutgoing && _stampLastSent >0)
+		if (!_msgOutgoing &&  _stampLastSent>0 && (ZQ::common::now() - _stampLastSent) > _server._config.watchDogInterval)
 			disconnect(false); // for _keepAlive = false
 	}
 	else 
