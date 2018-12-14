@@ -566,7 +566,9 @@ bool HttpConnection::sendByPhase()
 
 		int ret = 0;
 		payloadOffset = _offsetBodyPlayloadSent;
-		do {
+		for (bool retry=true; retry;)
+		{
+			retry = false;
 			switch (_msgOutgoing->phase())
 			{
 			case HttpMessage::hmpNil:
@@ -585,7 +587,8 @@ bool HttpConnection::sendByPhase()
 				if(!_msgOutgoing->hasContentBody())
 				{
 					_msgOutgoing->_phase = HttpMessage::hmpCompleted;
-					continue;
+					retry = true; //continue;
+					break;
 				}
 
 				_msgOutgoing->_phase = HttpMessage::hmpBody;
@@ -602,7 +605,7 @@ bool HttpConnection::sendByPhase()
 						{
 							PayloadChunk::Ptr& chunk = _payloadOutgoing.front();
 							if (!chunk)
-								continue;
+								retry = true;//continue;
 
 							ret = TCPConnection::_enqueueSend((const uint8*)chunk->data(), chunk->len());
 							//_logger.hexDump(ZQ::common::Log::L_DEBUG, chunk->data(), chunk->len(), "sendByPhase() body:");
@@ -614,7 +617,9 @@ bool HttpConnection::sendByPhase()
 						if ((payloadBytesSent + payloadOffset) >=_msgOutgoing->_declaredBodyLength)
 							_msgOutgoing->_phase = HttpMessage::hmpCompleted;
 
-						continue;
+						//continue;
+						retry = true;
+						break;
 					}
 
 					// now deal with chunked
@@ -632,7 +637,7 @@ bool HttpConnection::sendByPhase()
 						PayloadChunk::Ptr& chunk = _payloadOutgoing.front();
 						size_t len = chunk->len();
 						if (len <=0)
-							continue;
+							continue;//retry = true;
 
 						char chunkHdr[16];
 						snprintf(chunkHdr, sizeof(chunkHdr) -2, "%x\r\n", len);
@@ -656,7 +661,7 @@ bool HttpConnection::sendByPhase()
 				_logger(ZQ::common::Log::L_DEBUG, CONNFMT(sendByPhase, "HttpMessage sent out"));
 				break;
 			}
-		} while(0);
+		}
 
 		if (payloadBytesSent >0)
 		{
