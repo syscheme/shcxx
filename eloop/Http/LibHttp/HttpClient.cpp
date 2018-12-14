@@ -247,7 +247,8 @@ ZQ::eloop::HttpMessage::Ptr HttpRequest::getResponse(int32 timeout, ICallBack* c
 
 HttpMessage::StatusCodeEx HttpRequest::OnBodyPayloadReceived(const char* data, size_t size)
 { 
-	if (NULL != data && size>0) _respBody.append(data, size();
+	if (NULL != data && size>0) 
+		_respBody.append(data, size());
 	return HttpMessage::errAsyncInProgress;
 }
 
@@ -282,6 +283,9 @@ void HttpRequest::OnExecuted()
 
 	if (_cb)
 		_cb->OnResult(_respMsg);
+
+	ZQ::common::MutexGuard gGuard(_ua._locker);
+	_ua._awaits.erase(connId());
 }
 
 void HttpRequest::setError(int error, const char* errMsg)
