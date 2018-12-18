@@ -199,9 +199,8 @@ ZQ::eloop::HttpMessage::StatusCodeEx HttpRequest::setResult(ZQ::eloop::HttpMessa
 	return error;
 }
 
-ZQ::eloop::HttpMessage::StatusCodeEx HttpRequest::waitResult(ZQ::eloop::HttpMessage::Ptr& resp, int32 timeout) // , ICallBack* cbAsync)
+ZQ::eloop::HttpMessage::StatusCodeEx HttpRequest::waitResult(int32 timeout) // , ICallBack* cbAsync)
 {
-	resp = NULL;
 	_pEvent  = new ZQ::common::Event();
 
 	if (timeout >0)
@@ -213,8 +212,7 @@ ZQ::eloop::HttpMessage::StatusCodeEx HttpRequest::waitResult(ZQ::eloop::HttpMess
 	if (!_pEvent->wait(timeout))
 		return setResult(scRequestTimeout);
 
-	resp = _respMsg;
-	return (ZQ::eloop::HttpMessage::StatusCodeEx)resp->statusCode();
+	return (ZQ::eloop::HttpMessage::StatusCodeEx) _respMsg->statusCode();
 }
 
 void HttpRequest::subscribeResult(IResponseSink* cb, int32 timeout) // , ICallBack* cbAsync)

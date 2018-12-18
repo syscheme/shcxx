@@ -29,7 +29,10 @@ public:
 public:
 	virtual ~HttpRequest();
 
-	virtual ZQ::eloop::HttpMessage::StatusCodeEx waitResult(ZQ::eloop::HttpMessage::Ptr& resp, int32 timeout=TIMEOUT_INF);
+	// trigger the request and wait for the result, the response can be accessed via response()
+	virtual ZQ::eloop::HttpMessage::StatusCodeEx waitResult(int32 timeout=TIMEOUT_INF);
+
+	// trigger the request async
 	virtual void subscribeResult(IResponseSink* cb, int32 timeout =TIMEOUT_INF);
 
 	virtual int getTimeLeft() const;
