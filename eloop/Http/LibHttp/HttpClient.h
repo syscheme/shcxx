@@ -14,7 +14,7 @@ class ZQ_ELOOP_HTTP_API HttpRequest;
 // ---------------------------------------
 // class HttpRequest
 // ---------------------------------------
-// HttpRequest represent a simple and sync-ed HTTP request to the server-side
+// HttpRequest represent a simple HTTP request to the server-side
 class HttpRequest : public HttpConnection, public HttpMessage
 {
 public:
@@ -83,6 +83,7 @@ protected:
 // ---------------------------------------
 // class HttpStream
 // ---------------------------------------
+// HttpStream extends HttpRequest to transfer big size data stream, currently cover download stream
 class HttpStream : public HttpRequest
 {
 	friend class HTTPUserAgent;

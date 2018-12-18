@@ -3,6 +3,8 @@
 #include "urlstr.h"
 #include "TimeUtil.h"
 
+#define TIMER_INTERVAL  (100)  // 100msec
+
 namespace ZQ {
 namespace eloop {
 
@@ -12,11 +14,18 @@ namespace eloop {
 HTTPUserAgent::HTTPUserAgent(ZQ::common::Log& logger, ZQ::eloop::Loop& loop, const std::string& userAgent, const std::string& bindIP)
 : _log(logger), _eloop(loop), _userAgent(userAgent), _bindIP(bindIP)
 {
+	Async::init(_eloop);
+	Timer::init(_eloop);
+	Timer::start(TIMER_INTERVAL, TIMER_INTERVAL);
 }
 
 HTTPUserAgent::~HTTPUserAgent()
 {
-    ZQ::common::MutexGuard gGuard(_locker);
+	Timer::stop();
+	Timer::close();
+	Async::close();
+
+	ZQ::common::MutexGuard gGuard(_locker);
 	_outgoings.clear();
 	_awaits.clear();
 }
@@ -40,6 +49,8 @@ void HTTPUserAgent::enqueue(HttpRequest::Ptr req)
 void HTTPUserAgent::poll()
 {
 	std::vector<HttpRequest::Ptr> list2expire;
+	std::string txnExpired, txnStarted;
+	size_t cStarted =0, cAwaits=0;
 	// step 1. about the out-going requests
 	{
 		ZQ::common::MutexGuard gGuard(_locker);
@@ -55,9 +66,12 @@ void HTTPUserAgent::poll()
 
 			// kick off the request by starting connection
 			req->startRequest();
+			txnStarted += req->_txnId +",";
+			cStarted++;
 		}
 
 		// step 2. about the await responses
+		cAwaits = _awaits.size();
 		for (RequestMap::iterator it = _awaits.begin(); it != _awaits.end();)
 		{
 			if (it->second)
@@ -74,12 +88,23 @@ void HTTPUserAgent::poll()
 	}
 
 	for (size_t i =0; i < list2expire.size(); i++)
-		list2expire[i]->dispatchResult();
+	{
+		try {
+			list2expire[i]->dispatchResult();
+			txnExpired += list2expire[i]->_txnId +",";
+		}
+		catch(...) {}
+	}
+
+	if ((cStarted + list2expire.size())>0)
+		_log(ZQ::common::Log::L_DEBUG, CLOGFMT(HTTPUserAgent, "%s[%s] started %d reqs[%s] and expired %d[%s], await-size %d"), _userAgent.c_str(), _bindIP.c_str(), cStarted, txnStarted.c_str(), list2expire.size(), txnExpired.c_str(), cAwaits);
 }
 
 // ---------------------------------------
 // class HttpRequest
 // ---------------------------------------
+#define REQFMT(FUNC, FMT) CLOGFMT(HttpRequest, #FUNC "txn[%s] " FMT), _txnId.c_str()
+
 HttpRequest::HttpRequest(HTTPUserAgent& ua, HttpMethod _method, const std::string& url, const std::string& reqbody, const Properties& params, const Properties& headers)
 : _ua(ua), HttpMessage(MSG_REQUEST), HttpConnection(ua._log), _port(80), _cb(NULL), _stampRequested(0), _timeout(TIMEOUT_INF)
 {
@@ -172,6 +197,8 @@ HttpRequest::HttpRequest(HTTPUserAgent& ua, HttpMethod _method, const std::strin
     char tmp[80] = {0};
 	snprintf(tmp, sizeof(tmp)-2, "%s:%s[", connId().c_str(), method2str(HttpMessage::method()));
 	_txnId = tmp; _txnId += url +"]";
+
+	_logger(ZQ::common::Log::L_DEBUG, REQFMT(HttpRequest, "created, bodylen %d"), reqbody.length());
 }
 
 HttpRequest::~HttpRequest()
@@ -204,7 +231,7 @@ ZQ::eloop::HttpMessage::StatusCodeEx HttpRequest::waitResult(int32 timeout) // ,
 	_pEvent  = new ZQ::common::Event();
 
 	if (timeout >0)
-		timeout +=200; // add additional 200msec
+		timeout += TIMER_INTERVAL *2; // add additional 200msec
 
 	subscribeResult(NULL, timeout);
 	// _logger.hexDump(ZQ::common::Log::L_DEBUG, _reqBody.c_str(), (int)_reqBody.length(), _txnId.c_str(), true);
@@ -236,19 +263,19 @@ HttpMessage::StatusCodeEx HttpRequest::OnBodyPayloadReceived(const uint8* data, 
 
 bool HttpRequest::startRequest()
 {
-	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient, "startRequest() bind[%s] connecting to [%s:%d]"), _ua._bindIP.c_str(), _host.c_str(), _port);
+	_logger(ZQ::common::Log::L_DEBUG, REQFMT(startRequest, "bind[%s] connecting to [%s:%d]"), _ua._bindIP.c_str(), _host.c_str(), _port);
 
 	setResult(errBindFail);
 	if (!_ua._bindIP.empty() && _ua._bindIP !="0.0.0.0" && HttpConnection::bind4(_ua._bindIP.c_str(), 0) <0)
 	{
-		_logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpRequest, "startRequest() failed to bind[%s]"), _ua._bindIP.c_str());
+		_logger(ZQ::common::Log::L_ERROR, REQFMT(startRequest, "failed to bind[%s]"), _ua._bindIP.c_str());
 		return false;
 	}
 	
 	setResult(errConnectFail);
 	if (HttpConnection::connect4(_host.c_str(), _port) <0)
 	{
-		_logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpRequest, "startRequest() failed to connect to [%s:%d]"), _host.c_str(), _port);
+		_logger(ZQ::common::Log::L_ERROR, REQFMT(startRequest, "failed to connect to [%s:%d]"), _host.c_str(), _port);
 		return false;
 	}
 
@@ -271,7 +298,7 @@ void HttpRequest::dispatchResult()
 
 void HttpRequest::OnMessagingError(int error, const char* errorDescription)
 {
-	_logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpRequest, "onError error(%d) %s"), error, errorDescription);
+	_logger(ZQ::common::Log::L_ERROR, REQFMT(OnMessagingError, "error(%d) %s"), error, errorDescription);
 	setResult((StatusCodeEx) error, errorDescription);
 	dispatchResult();
 }
@@ -285,13 +312,16 @@ void HttpRequest::OnMessageReceived(const ZQ::eloop::HttpMessage::Ptr msg)
 	if (_respMsg)
 		setResult((StatusCodeEx)_respMsg->statusCode());
 
-	_logger(ZQ::common::Log::L_INFO, CLOGFMT(HttpRequest, "req[%s] respond %d, contentlen[%d]"), _txnId.c_str(), msg->statusCode(), _respBody.length());
+	_logger(ZQ::common::Log::L_INFO, REQFMT(OnMessageReceived, "respond %d, contentlen[%d]"), msg->statusCode(), _respBody.length());
 	dispatchResult();
 }
 
 // ---------------------------------------
 // class HttpStream
 // ---------------------------------------
+#undef REQFMT
+#define REQFMT(FUNC, FMT) CLOGFMT(HttpStream, #FUNC "txn[%s] " FMT), _txnId.c_str()
+
 HttpStream::HttpStream(HTTPUserAgent& ua, const std::string& url, IDownloadSink* cbDownload, const Properties& params, const Properties& headers)
 : HttpRequest(ua, GET, url, "", params, headers), _cbDownload(cbDownload), _stampLastDownload(0)
 {
@@ -311,6 +341,7 @@ HttpMessage::StatusCodeEx HttpStream::OnBodyPayloadReceived(const uint8* data, s
 	if (_cbDownload)
 		_cbDownload->OnDownloadData(data, size);
 	
+	_logger(ZQ::common::Log::L_DEBUG, REQFMT(OnBodyPayloadReceived, "received %dB"), size);
 	return errAsyncInProgress;
 }
 
@@ -327,7 +358,7 @@ HttpMessage::StatusCodeEx HttpStream::OnHeadersReceived(const HttpMessage::Ptr r
 		_cbDownload->OnDownloadData(chunk->data(), chunk->len());
 	}
 
-	_logger(ZQ::common::Log::L_INFO, CLOGFMT(HttpStream, "req[%s] respond %d"), _txnId.c_str(), resp->statusCode());
+	_logger(ZQ::common::Log::L_DEBUG, REQFMT(OnHeadersReceived, "respond %d"), resp->statusCode());
 	dispatchResult();
 
 	return HttpMessage::errAsyncInProgress;
