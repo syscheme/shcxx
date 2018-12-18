@@ -1,6 +1,7 @@
 #include "ZQ_common_conf.h"
 #include "HttpClient.h"
 #include "urlstr.h"
+#include "TimeUtil.h"
 
 namespace ZQ {
 namespace eloop {
@@ -25,6 +26,7 @@ HttpRequest::Ptr HTTPUserAgent::createRequest(HttpMessage::HttpMethod method, co
 	return new HttpRequest(*this, method, url, reqbody, params, headers);
 }
 
+
 void HTTPUserAgent::enqueue(HttpRequest::Ptr req)
 {
 	if (!req)
@@ -35,85 +37,49 @@ void HTTPUserAgent::enqueue(HttpRequest::Ptr req)
 	Async::send();
 }
 
-void HTTPUserAgent::OnAsync()
+void HTTPUserAgent::poll()
 {
-    ZQ::common::MutexGuard gGuard(_locker);
-    while (!_outgoings.empty())
-    {
-        HttpRequest::Ptr req = _outgoings.front();
-		_outgoings.pop_front();
+	// step 1. about the out-going requests
+	{
+		ZQ::common::MutexGuard gGuard(_locker);
+		while (!_outgoings.empty())
+		{
+			HttpRequest::Ptr req = _outgoings.front();
+			_outgoings.pop_front();
 
-        if (!req)
-			continue;
+			if (!req)
+				continue;
 
-		MAPSET(RequestMap, _awaits, req->connId(), req);
+			MAPSET(RequestMap, _awaits, req->connId(), req);
 
-		// kick off the request by starting connection
-		req->startRequest();
-    }
+			// kick off the request by starting connection
+			req->startRequest();
+		}
+	}
+
+	// step 2. about the await responses
+	for (RequestMap::iterator it = _awaits.begin(); it != _awaits.end();)
+	{
+		if (it->second)
+		{
+			if (it->second->getTimeLeft() >0)
+				continue;
+
+			it->second->dispatchResult();
+			_awaits.erase(it++);
+		}
+	}
 }
-
-/*
-
-HttpClient::~HttpClient()
-{
-}
-
-void HttpClient::OnConnected(ElpeError status)
-{
-	HttpConnection::OnConnected(status);
-
-	if (status != elpeSuccess)
-		return;
-
-	read_start();
-	beginSend(_req);
-	endSend();
-}
-
-bool HttpClient::beginRequest( HttpMessage::Ptr msg, const std::string& url)
-{
-	ZQ::common::URLStr urlstr(url.c_str());
-	const char* host = urlstr.getHost();
-
-	//change uri, host in msg
-	msg->url( urlstr.getPathAndParam() );
-	if(msg->url().empty() ) 
-		msg->url("/");
-
-//	printf("ip = %s,port = %d,url = %s \n",host,urlstr.getPort(),msg->url().c_str());
-
-	msg->header("Host",host);
-
-	_req = msg;
-	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient, "beginRequest() connect to[%s:%d]"),host,urlstr.getPort());
-	connect4(host,urlstr.getPort());
-	return true;
-}
-
-bool HttpClient::beginRequest( HttpMessage::Ptr msg, const std::string& ip, const unsigned int& port )
-{
-	_req = msg;
-	connect4(ip.c_str(),port);
-	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient, "beginRequest() connect to[%s:%u]"), ip.c_str(), port);
-	return true;
-}
-
-void HttpClient::OnConnectionError( int error, const char* errorDescription )
-{
-	_logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient, "OnConnectionError [%p] %s error(%d) %s"), 
-		this, linkstr(), error,errorDescription);
-
-	shutdown();
-}
-*/
 
 // ---------------------------------------
 // class HttpRequest
 // ---------------------------------------
 HttpRequest::HttpRequest(HTTPUserAgent& ua, HttpMethod _method, const std::string& url, const std::string& reqbody, const Properties& params, const Properties& headers)
-: _ua(ua), HttpMessage(MSG_REQUEST), HttpConnection(ua._log), _port(80), _cb(NULL)
+: _ua(ua), HttpMessage(MSG_REQUEST), HttpConnection(ua._log), _port(80), _cb(NULL), _stampRequested(0), _timeout(TIMEOUT_INF)
 {
+	// bound with a dummy response initially
+	_respMsg = new HttpMessage(MSG_RESPONSE);
+
 	header("User-Agent", _ua._userAgent);
 	HttpMessage::_method = _method;
 	HttpMessage::_uri = url;
@@ -130,9 +96,6 @@ HttpRequest::HttpRequest(HTTPUserAgent& ua, HttpMethod _method, const std::strin
 			continue;
 		header(it->first, it->second);
 	}
-
-	// bound with a dummy response initially
-	_respMsg = new HttpMessage(MSG_RESPONSE);
 
 	bool bParamOverwrite = false;
 	std::string paramstr;
@@ -211,94 +174,102 @@ HttpRequest::~HttpRequest()
 	_ua._awaits.erase(connId());
 }
 
-ZQ::eloop::HttpMessage::Ptr HttpRequest::getResponse(int32 timeout, ICallBack* cbAsync)
+int HttpRequest::getTimeLeft() const
 {
-	char tmp[60];
-	snprintf(tmp, sizeof(tmp)-2, "%s %s [%s:%d", connId().c_str(), method2str(_method), _host.c_str(), _port);
-	_txnId = tmp; _txnId += _uri +"]"; // +"?" +_qstr +"]";
+	return (_timeout>0 && TIMEOUT_INF != _timeout) ? (int)(_stampRequested + _timeout - ZQ::common::now()) : 60000; 
+}
 
-	_cb = cbAsync;
-	if (_respMsg)
-		_respMsg->_statusCode = errAsyncInProgress;
+ZQ::eloop::HttpMessage::StatusCodeEx HttpRequest::setResult(ZQ::eloop::HttpMessage::StatusCodeEx error, const char* errMsg)
+{
+	if (!_respMsg)
+		return error;
 
-	if (NULL ==_cb)
-		_pEvent = new ZQ::common::Event();
+	_respMsg->_statusCode = (StatusCodeEx) error;
 
-	if (!_pEvent)
-		return errAsyncInProgress;
+	if (errMsg)
+	{	MAPSET(HttpMessage::Headers, _respMsg->_headers, "Warning", errMsg); }
+	else _respMsg->_headers.erase("Warning");
 
-	if (_respMsg)
-		_respMsg->_statusCode = scRequestTimeout;
+	return error;
+}
 
-	_ua.enqueue(this);
+ZQ::eloop::HttpMessage::StatusCodeEx HttpRequest::getResponse(ZQ::eloop::HttpMessage::Ptr& resp, int32 timeout) // , ICallBack* cbAsync)
+{
+	resp = NULL;
+	_pEvent  = new ZQ::common::Event();
+
+	if (timeout >0)
+		timeout +=200; // add additional 200msec
+
+	subscribeResponse(NULL, timeout);
 	// _logger.hexDump(ZQ::common::Log::L_DEBUG, _reqBody.c_str(), (int)_reqBody.length(), _txnId.c_str(), true);
 
-	if (!_pEvent)
-		return errAsyncInProgress;
-
-	if (timeout <=0)
-		timeout = -1;
-
 	if (!_pEvent->wait(timeout))
-		return scRequestTimeout;
+		return setResult(scRequestTimeout);
 
+	resp = _respMsg;
 	return (ZQ::eloop::HttpMessage::StatusCodeEx)resp->statusCode();
 }
 
-HttpMessage::StatusCodeEx HttpRequest::OnBodyPayloadReceived(const char* data, size_t size)
-{ 
-	if (NULL != data && size>0) 
-		_respBody.append(data, size());
-	return HttpMessage::errAsyncInProgress;
+void HttpRequest::subscribeResponse(IResponseSink* cb, int32 timeout) // , ICallBack* cbAsync)
+{
+	_cb = cb;
+	_stampRequested = ZQ::common::now();
+	_timeout = (timeout <=0) ? TIMEOUT_INF : timeout;
+
+	setResult(scRequestTimeout);
+	_ua.enqueue(this);
+	// _logger.hexDump(ZQ::common::Log::L_DEBUG, _reqBody.c_str(), (int)_reqBody.length(), _txnId.c_str(), true);
 }
 
+HttpMessage::StatusCodeEx HttpRequest::OnBodyPayloadReceived(const uint8* data, size_t size)
+{ 
+	if (NULL != data && size>0) 
+		_respBody.append((const char*)data, size);
+
+	return errAsyncInProgress;
+}
 
 bool HttpRequest::startRequest()
 {
 	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient, "startRequest() bind[%s] connecting to [%s:%d]"), _ua._bindIP.c_str(), _host.c_str(), _port);
 
-	setError(errBindFail);
+	setResult(errBindFail);
 	if (!_ua._bindIP.empty() && _ua._bindIP !="0.0.0.0" && HttpConnection::bind4(_ua._bindIP.c_str(), 0) <0)
 	{
 		_logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpRequest, "startRequest() failed to bind[%s]"), _ua._bindIP.c_str());
 		return false;
 	}
 	
-	setError(errConnectFail);
+	setResult(errConnectFail);
 	if (HttpConnection::connect4(_host.c_str(), _port) <0)
 	{
 		_logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpRequest, "startRequest() failed to connect to [%s:%d]"), _host.c_str(), _port);
 		return false;
 	}
 
-	setError(errConnectTimeout);
+	setResult(errConnectTimeout);
 	return true;
 }
 
-void HttpRequest::OnExecuted()
+void HttpRequest::dispatchResult()
 {
     HttpConnection::disconnect();
 	if (_pEvent)
 		_pEvent->signal();
 
 	if (_cb)
-		_cb->OnResult(_respMsg);
+		_cb->OnHttpResult(this, _respMsg);
 
 	ZQ::common::MutexGuard gGuard(_ua._locker);
 	_ua._awaits.erase(connId());
 }
 
-void HttpRequest::setError(int error, const char* errMsg)
-{
-	_ret = (StatusCodeEx) error;
-	_retStr = errMsg ? errMsg : code2status(error);
-}
-
 void HttpRequest::OnMessagingError(int error, const char* errorDescription)
 {
 	_logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpRequest, "onError error(%d) %s"), error, errorDescription);
-	setError(error, errorDescription);
-	OnExecuted();
+	setResult((StatusCodeEx) error, errorDescription);
+	dispatchResult();
 }
 
 void HttpRequest::OnMessageReceived(const ZQ::eloop::HttpMessage::Ptr msg)
@@ -308,10 +279,54 @@ void HttpRequest::OnMessageReceived(const ZQ::eloop::HttpMessage::Ptr msg)
 		_respBody += std::string((const char*)chunk->data(), chunk->len());
 
 	if (_respMsg)
-		setError(_respMsg->statusCode());
+		setResult((StatusCodeEx)_respMsg->statusCode());
 
-	_logger(ZQ::common::Log::L_INFO, CLOGFMT(HttpRequest, "req[%s] respond %d %s, bodylen[%d]"), _txnId.c_str(), _ret, _retStr.c_str(), _respBody.length());
-	OnExecuted();
+	_logger(ZQ::common::Log::L_INFO, CLOGFMT(HttpRequest, "req[%s] respond %d, contentlen[%d]"), _txnId.c_str(), msg->statusCode(), _respBody.length());
+	dispatchResult();
+}
+
+// ---------------------------------------
+// class HttpStream
+// ---------------------------------------
+HttpStream::HttpStream(HTTPUserAgent& ua, const std::string& url, IDownloadSink* cbDownload, const Properties& params, const Properties& headers)
+: HttpRequest(ua, GET, url, "", params, headers), _cbDownload(cbDownload), _stampLastDownload(0)
+{
+}
+
+int HttpStream::getTimeLeft() const
+{
+	if (_stampLastDownload > _stampRequested && _timeout >0 && TIMEOUT_INF != _timeout)
+		return (int)(_stampLastDownload + _timeout - ZQ::common::now());
+	
+	return HttpRequest::getTimeLeft(); 
+}
+
+HttpMessage::StatusCodeEx HttpStream::OnBodyPayloadReceived(const uint8* data, size_t size)
+{
+	_stampLastDownload =ZQ::common::now();
+	if (_cbDownload)
+		_cbDownload->OnDownloadData(data, size);
+	
+	return errAsyncInProgress;
+}
+
+HttpMessage::StatusCodeEx HttpStream::OnHeadersReceived(const HttpMessage::Ptr resp)
+{
+	_respMsg = resp;
+
+	// forward the received chunks to _cbDownload if there are any
+	for (HttpConnection::PayloadChunk::Ptr chunk = popReceivedPayload(); chunk; chunk = popReceivedPayload())
+	{
+		if (!chunk || !_cbDownload)
+			continue;
+
+		_cbDownload->OnDownloadData(chunk->data(), chunk->len());
+	}
+
+	_logger(ZQ::common::Log::L_INFO, CLOGFMT(HttpStream, "req[%s] respond %d"), _txnId.c_str(), resp->statusCode());
+	dispatchResult();
+
+	return HttpMessage::errAsyncInProgress;
 }
 
 } }//namespace ZQ::eloop

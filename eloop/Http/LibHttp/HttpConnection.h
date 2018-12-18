@@ -27,8 +27,9 @@ namespace eloop {
 // -----------------------------------------------------
 // class HttpMessage
 // -----------------------------------------------------
-class HttpMessage : public ZQ::common::SharedObject
+class HttpMessage : virtual public ZQ::common::SharedObject
 {
+	friend class HttpRequest;
 public:
 	typedef ZQ::common::Pointer<HttpMessage> Ptr;
 	typedef std::map<std::string, std::string> Properties;
@@ -265,7 +266,7 @@ protected: // new overwriteable entry points
 	virtual HttpMessage::StatusCodeEx OnHeadersReceived(const HttpMessage::Ptr& msg) { return HttpMessage::errAsyncInProgress; }
 	
 	//@return expect errAsyncInProgress to continue receiving 
-	virtual HttpMessage::StatusCodeEx OnBodyPayloadReceived(const char* data, size_t size);
+	virtual HttpMessage::StatusCodeEx OnBodyPayloadReceived(const uint8* data, size_t size);
 
 	virtual void OnMessageReceived(const HttpMessage::Ptr& msg) {}
 	virtual void OnMessagingError(int error, const char* errorDescription ) {}

@@ -1066,7 +1066,7 @@ int	HttpConnection::onParser_HeaderValue(const char* at, size_t size)
 
 int	HttpConnection::onParser_Body(const char* at, size_t size)
 {
-	switch(OnBodyPayloadReceived(at, size))
+	switch(OnBodyPayloadReceived((const uint8*)at, size))
 	{
 	case 0:
 	case HttpMessage::errAsyncInProgress:
@@ -1080,7 +1080,7 @@ int	HttpConnection::onParser_Body(const char* at, size_t size)
 }
 
 //@return expect errAsyncInProgress to continue receiving 
-HttpMessage::StatusCodeEx HttpConnection::OnBodyPayloadReceived(const char* data, size_t size)
+HttpMessage::StatusCodeEx HttpConnection::OnBodyPayloadReceived(const uint8* data, size_t size)
 {
 	HttpMessage::Ptr msg;
 	{

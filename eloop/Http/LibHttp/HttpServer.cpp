@@ -32,7 +32,7 @@ protected: // implementation of HttpConnection
 	virtual void OnMessageReceived(const HttpMessage::Ptr& req); // maps to RTSP::OnRequest-3
 
 	//@return expect errAsyncInProgress to continue receiving 
-	virtual HttpMessage::StatusCodeEx OnBodyPayloadReceived(const char* data, size_t size); // maps to RTSP::OnRequest-2.2
+	virtual HttpMessage::StatusCodeEx OnBodyPayloadReceived(const uint8* data, size_t size); // maps to RTSP::OnRequest-2.2
 	virtual void OnBodyPayloadSubmitted(size_t bytesPushed, uint64 offsetBodyPayload);
 	virtual void OnMessageSubmitted(HttpMessage::Ptr msg);
 
@@ -130,10 +130,10 @@ void HttpPassiveConn::OnTimer()
 	}
 }
 
-HttpMessage::StatusCodeEx HttpPassiveConn::OnBodyPayloadReceived(const char* data, size_t size)
+HttpMessage::StatusCodeEx HttpPassiveConn::OnBodyPayloadReceived(const uint8* data, size_t size)
 {
 	if (_handler && _handler->_req && _handler->_req->chunked())
-		return _handler->OnRequestChunk(data, size);
+		return _handler->OnRequestChunk((const char*)data, size);
 
 	return HttpConnection::OnBodyPayloadReceived(data, size);
 }
