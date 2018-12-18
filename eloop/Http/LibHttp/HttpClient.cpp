@@ -39,6 +39,7 @@ void HTTPUserAgent::enqueue(HttpRequest::Ptr req)
 
 void HTTPUserAgent::poll()
 {
+	std::vector<HttpRequest::Ptr> list2expire;
 	// step 1. about the out-going requests
 	{
 		ZQ::common::MutexGuard gGuard(_locker);
@@ -55,20 +56,25 @@ void HTTPUserAgent::poll()
 			// kick off the request by starting connection
 			req->startRequest();
 		}
-	}
 
-	// step 2. about the await responses
-	for (RequestMap::iterator it = _awaits.begin(); it != _awaits.end();)
-	{
-		if (it->second)
+		// step 2. about the await responses
+		for (RequestMap::iterator it = _awaits.begin(); it != _awaits.end();)
 		{
-			if (it->second->getTimeLeft() >0)
-				continue;
+			if (it->second)
+			{
+				if (it->second->getTimeLeft() >0)
+					continue;
 
-			it->second->dispatchResult();
+				list2expire.push_back(it->second);
+			}
+
 			_awaits.erase(it++);
 		}
+
 	}
+
+	for (size_t i =0; i < list2expire.size(); i++)
+		list2expire[i]->dispatchResult();
 }
 
 // ---------------------------------------
@@ -193,7 +199,7 @@ ZQ::eloop::HttpMessage::StatusCodeEx HttpRequest::setResult(ZQ::eloop::HttpMessa
 	return error;
 }
 
-ZQ::eloop::HttpMessage::StatusCodeEx HttpRequest::getResponse(ZQ::eloop::HttpMessage::Ptr& resp, int32 timeout) // , ICallBack* cbAsync)
+ZQ::eloop::HttpMessage::StatusCodeEx HttpRequest::waitResult(ZQ::eloop::HttpMessage::Ptr& resp, int32 timeout) // , ICallBack* cbAsync)
 {
 	resp = NULL;
 	_pEvent  = new ZQ::common::Event();
@@ -201,7 +207,7 @@ ZQ::eloop::HttpMessage::StatusCodeEx HttpRequest::getResponse(ZQ::eloop::HttpMes
 	if (timeout >0)
 		timeout +=200; // add additional 200msec
 
-	subscribeResponse(NULL, timeout);
+	subscribeResult(NULL, timeout);
 	// _logger.hexDump(ZQ::common::Log::L_DEBUG, _reqBody.c_str(), (int)_reqBody.length(), _txnId.c_str(), true);
 
 	if (!_pEvent->wait(timeout))
@@ -211,7 +217,7 @@ ZQ::eloop::HttpMessage::StatusCodeEx HttpRequest::getResponse(ZQ::eloop::HttpMes
 	return (ZQ::eloop::HttpMessage::StatusCodeEx)resp->statusCode();
 }
 
-void HttpRequest::subscribeResponse(IResponseSink* cb, int32 timeout) // , ICallBack* cbAsync)
+void HttpRequest::subscribeResult(IResponseSink* cb, int32 timeout) // , ICallBack* cbAsync)
 {
 	_cb = cb;
 	_stampRequested = ZQ::common::now();
@@ -259,7 +265,7 @@ void HttpRequest::dispatchResult()
 		_pEvent->signal();
 
 	if (_cb)
-		_cb->OnHttpResult(this, _respMsg);
+		_cb->OnHttpResult(this);
 
 	ZQ::common::MutexGuard gGuard(_ua._locker);
 	_ua._awaits.erase(connId());

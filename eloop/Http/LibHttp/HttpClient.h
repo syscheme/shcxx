@@ -23,14 +23,14 @@ public:
 
 	class IResponseSink {
 	public:
-		virtual void OnHttpResult(const Ptr& req, const ZQ::eloop::HttpMessage::Ptr& resp) =0;
+		virtual void OnHttpResult(const Ptr& req) =0;
 	};
 
 public:
 	virtual ~HttpRequest();
 
-	virtual ZQ::eloop::HttpMessage::StatusCodeEx getResponse(ZQ::eloop::HttpMessage::Ptr& resp, int32 timeout=TIMEOUT_INF);
-	virtual void subscribeResponse(IResponseSink* cb, int32 timeout =TIMEOUT_INF);
+	virtual ZQ::eloop::HttpMessage::StatusCodeEx waitResult(ZQ::eloop::HttpMessage::Ptr& resp, int32 timeout=TIMEOUT_INF);
+	virtual void subscribeResult(IResponseSink* cb, int32 timeout =TIMEOUT_INF);
 
 	virtual int getTimeLeft() const;
 
@@ -42,7 +42,6 @@ protected:
 private: //disallow construction and compier
 	HttpRequest(const HttpRequest&);
 	HttpRequest& operator=(const HttpRequest&);
-
 
 protected: // override of HttpConnection
 	// about message receiving triggered by HTTP parser
