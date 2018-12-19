@@ -35,6 +35,10 @@ HttpRequest::Ptr HTTPUserAgent::createRequest(HttpMessage::HttpMethod method, co
 	return new HttpRequest(*this, method, url, reqbody, params, headers);
 }
 
+HttpStream::Ptr  HTTPUserAgent::createStream(const std::string& url, HttpStream::IDownloadSink* cbDownload, const HttpMessage::Properties& params/* = HttpMessage::Properties()*/, const HttpMessage::Headers& headers/* = HttpMessage::Headers()*/)
+{
+	return new HttpStream(*this, url, cbDownload, params, headers);
+}
 
 void HTTPUserAgent::enqueue(HttpRequest::Ptr req)
 {
@@ -168,8 +172,13 @@ HttpRequest::HttpRequest(HTTPUserAgent& ua, HttpMethod _method, const std::strin
 	//}
 	//else if (paramstr.length()>1)
 	//{
-		if (_qstr.length() >1) _qstr += paramstr;
-		else _qstr = paramstr.substr(1);
+	if(!paramstr.empty())
+	{
+		if (_qstr.length() >1) 
+			_qstr += paramstr;
+		else 
+			_qstr = paramstr.substr(1);
+	}	
 	//}
 
 	_txnId = connId() + " [" + url+"]";
@@ -334,6 +343,10 @@ void HttpRequest::OnMessageReceived(const ZQ::eloop::HttpMessage::Ptr msg)
 
 HttpStream::HttpStream(HTTPUserAgent& ua, const std::string& url, IDownloadSink* cbDownload, const Properties& params, const Properties& headers)
 : HttpRequest(ua, GET, url, "", params, headers), _cbDownload(cbDownload), _stampLastDownload(0)
+{
+}
+
+HttpStream::~HttpStream()
 {
 }
 

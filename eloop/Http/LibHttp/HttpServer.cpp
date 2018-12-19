@@ -132,8 +132,8 @@ void HttpPassiveConn::OnTimer()
 
 HttpMessage::StatusCodeEx HttpPassiveConn::OnBodyPayloadReceived(const uint8* data, size_t size)
 {
-	if (_handler && _handler->_req && _handler->_req->chunked())
-		return _handler->OnRequestChunk((const char*)data, size);
+	if (_handler && _handler->_req) // && _handler->_req->chunked())
+		return _handler->OnRequestPayload((const char*)data, size);
 
 	return HttpConnection::OnBodyPayloadReceived(data, size);
 }

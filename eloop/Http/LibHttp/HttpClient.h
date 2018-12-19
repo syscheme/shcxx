@@ -94,7 +94,7 @@ public:
 	class IDownloadSink
 	{
 		friend class HttpStream;
-	protected:
+	public:
 		virtual void OnDownloadError(const int err, const std::string& msg) = 0;
 		virtual void OnDownloadData(const uint8* data, const size_t size) = 0;
 		virtual void OnEndOfDownloadStream(bool bBroken =false) = 0;
@@ -131,6 +131,8 @@ public:
 
 	HttpRequest::Ptr createRequest(HttpMessage::HttpMethod method, const std::string& url, const std::string& reqbody="", const HttpMessage::Properties& params = HttpMessage::Properties(), const HttpMessage::Headers& headers = HttpMessage::Headers());
 	HttpStream::Ptr  createStream(const std::string& url, HttpStream::IDownloadSink* cbDownload, const HttpMessage::Properties& params = HttpMessage::Properties(), const HttpMessage::Headers& headers = HttpMessage::Headers());
+
+	ZQ::common::Log& getLogger(){return _log;}
 
 protected: // impl of ZQ::eloop::Async and Timer
 	void OnAsync() { poll(); }
