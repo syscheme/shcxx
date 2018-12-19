@@ -94,7 +94,7 @@ public:
 	class IDownloadSink
 	{
 		friend class HttpStream;
-	protected:
+	public:
 		virtual void OnDownloadError(const int err, const std::string& msg) = 0;
 		virtual void OnDownloadData(const uint8* data, const size_t size) = 0;
 		virtual void OnEndOfDownloadStream(bool bBroken =false) = 0;
