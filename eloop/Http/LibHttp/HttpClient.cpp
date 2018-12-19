@@ -270,15 +270,15 @@ HttpMessage::StatusCodeEx HttpRequest::OnBodyPayloadReceived(const uint8* data, 
 
 bool HttpRequest::startRequest()
 {
-	_logger(ZQ::common::Log::L_DEBUG, REQFMT(startRequest, "bind[%s] connecting to [%s:%d]"), _ua._bindIP.c_str(), _host.c_str(), _port);
-
 	setResult(errBindFail);
 	std::string clientIP = _localIP.empty() ? _ua._bindIP : _localIP;
 	if (_localPort<=0)
 		_localPort =0;
+
+	_logger(ZQ::common::Log::L_DEBUG, REQFMT(startRequest, "connecting [%s:%d] to [%s:%d]"), clientIP.c_str(), _localPort, _host.c_str(), _port);
 	if (!clientIP.empty() && clientIP !="0.0.0.0" && HttpConnection::bind4(clientIP.c_str(), _localPort) <0)
 	{
-		_logger(ZQ::common::Log::L_ERROR, REQFMT(startRequest, "failed to bind localIP[%s]"), clientIP.c_str());
+		_logger(ZQ::common::Log::L_ERROR, REQFMT(startRequest, "failed to bind localIP[%s :%d]"), clientIP.c_str(), _localPort);
 		return false;
 	}
 	
