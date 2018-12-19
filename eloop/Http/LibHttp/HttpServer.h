@@ -103,7 +103,7 @@ protected: // hatched by HttpApplication
 protected: // forwarded from HttpConnection
 	//@return expect errAsyncInProgress to continue receiving 
 	virtual HttpMessage::StatusCodeEx OnRequestHeaders(const Response::Ptr resp) { _resp=resp; return HttpMessage::errAsyncInProgress; } // maps to RTSP::OnRequest-1
-	virtual HttpMessage::StatusCodeEx OnRequestChunk(const char* data, size_t size) { return HttpMessage::errAsyncInProgress; } // maps to RTSP::OnRequest-2.2
+	virtual HttpMessage::StatusCodeEx OnRequestPayload(const char* data, size_t size) { return HttpMessage::errAsyncInProgress; } // maps to RTSP::OnRequest-2.2
 	virtual HttpMessage::StatusCodeEx OnRequestCompleted(){} // maps to RTSP::OnRequest-3
 
 	// forwarded from HTTPConnection
