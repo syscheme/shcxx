@@ -132,6 +132,8 @@ public:
 	HttpRequest::Ptr createRequest(HttpMessage::HttpMethod method, const std::string& url, const std::string& reqbody="", const HttpMessage::Properties& params = HttpMessage::Properties(), const HttpMessage::Headers& headers = HttpMessage::Headers());
 	HttpStream::Ptr  createStream(const std::string& url, HttpStream::IDownloadSink* cbDownload, const HttpMessage::Properties& params = HttpMessage::Properties(), const HttpMessage::Headers& headers = HttpMessage::Headers());
 
+	ZQ::common::Log& getLogger(){return _log;}
+
 protected: // impl of ZQ::eloop::Async and Timer
 	void OnAsync() { poll(); }
 	void OnTimer() { poll(); }
