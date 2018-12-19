@@ -172,8 +172,13 @@ HttpRequest::HttpRequest(HTTPUserAgent& ua, HttpMethod _method, const std::strin
 	//}
 	//else if (paramstr.length()>1)
 	//{
-		if (_qstr.length() >1) _qstr += paramstr;
-		else _qstr = paramstr.substr(1);
+	if(!paramstr.empty())
+	{
+		if (_qstr.length() >1) 
+			_qstr += paramstr;
+		else 
+			_qstr = paramstr.substr(1);
+	}	
 	//}
 
 	_txnId = connId() + " [" + url+"]";
