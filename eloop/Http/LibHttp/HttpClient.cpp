@@ -106,7 +106,7 @@ void HTTPUserAgent::poll()
 #define REQFMT(FUNC, FMT) CLOGFMT(HttpRequest, #FUNC "txn[%s] " FMT), _txnId.c_str()
 
 HttpRequest::HttpRequest(HTTPUserAgent& ua, HttpMethod _method, const std::string& url, const std::string& reqbody, const Properties& params, const Properties& headers)
-: _ua(ua), HttpMessage(MSG_REQUEST), HttpConnection(ua._log), _port(80), _cb(NULL), _stampRequested(0), _timeout(TIMEOUT_INF)
+: _ua(ua), HttpMessage(MSG_REQUEST), HttpConnection(ua._log), _port(80), _cb(NULL), _stampRequested(0), _timeout(TIMEOUT_INF), _localPort(0), _localIP("0.0.0.0")
 {
 	// bound with a dummy response initially
 	_respMsg = new HttpMessage(MSG_RESPONSE);
@@ -212,6 +212,13 @@ int HttpRequest::getTimeLeft() const
 	return (_timeout>0 && TIMEOUT_INF != _timeout) ? (int)(_stampRequested + _timeout - ZQ::common::now()) : 60000; 
 }
 
+void HttpRequest::takeClientIP(const char* localIP, int port)
+{
+	if (NULL != localIP)
+		_localIP = localIP;
+	_localPort = (port>0) ?port: 0;
+}
+
 ZQ::eloop::HttpMessage::StatusCodeEx HttpRequest::setResult(ZQ::eloop::HttpMessage::StatusCodeEx error, const char* errMsg)
 {
 	if (!_respMsg)
@@ -266,9 +273,12 @@ bool HttpRequest::startRequest()
 	_logger(ZQ::common::Log::L_DEBUG, REQFMT(startRequest, "bind[%s] connecting to [%s:%d]"), _ua._bindIP.c_str(), _host.c_str(), _port);
 
 	setResult(errBindFail);
-	if (!_ua._bindIP.empty() && _ua._bindIP !="0.0.0.0" && HttpConnection::bind4(_ua._bindIP.c_str(), 0) <0)
+	std::string clientIP = _localIP.empty() ? _ua._bindIP : _localIP;
+	if (_localPort<=0)
+		_localPort =0;
+	if (!clientIP.empty() && clientIP !="0.0.0.0" && HttpConnection::bind4(clientIP.c_str(), _localPort) <0)
 	{
-		_logger(ZQ::common::Log::L_ERROR, REQFMT(startRequest, "failed to bind[%s]"), _ua._bindIP.c_str());
+		_logger(ZQ::common::Log::L_ERROR, REQFMT(startRequest, "failed to bind localIP[%s]"), clientIP.c_str());
 		return false;
 	}
 	

@@ -36,6 +36,7 @@ public:
 	virtual void subscribeResult(IResponseSink* cb, int32 timeout =TIMEOUT_INF);
 
 	virtual int getTimeLeft() const;
+	void takeClientIP(const char* localIP, int port =0);
 
 	virtual ZQ::eloop::HttpMessage::Ptr response(std::string& body) const { body =_respBody; return _respMsg; }
 
@@ -67,11 +68,8 @@ protected:
 	ZQ::common::Event::Ptr _pEvent;
 
 	std::string  _txnId;
-	std::string  _host;
-	int _port;
-
-	//StatusCodeEx   _ret;
-	//std::string    _retStr;
+	std::string  _host, _localIP;
+	int _port, _localPort;
 
 	ZQ::eloop::HttpMessage::Ptr _respMsg;
     std::string  _respBody;
