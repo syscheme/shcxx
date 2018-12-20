@@ -1,0 +1,317 @@
+// 由上层协议实现的接口
+
+IDialogue 接口
+用于接受请求与处理构架的其它通知
+
+struct IDialogue {
+	virtual void onConnected(IN IMainConn* conn) = 0;
+	virtual void onRequest(IN IMainConn* conn, IN const void* buf, 
+		IN int size) = 0;
+	virtual void onIdlenessTimeout(IN IMainConn* conn) = 0;
+	virtual void onDialogueDestroyed() = 0;
+};
+
+virtual void onConnected(IN IMainConn* conn) = 0;
+当连接到达时, Frame会为这个连接产生一个IMainConn对象,并且请求协议层的 IDialogueCreator 对象产生相应的 Dialogue 对象, 
+Frame把 IMainConn 传给 Dialogue对象, 进行必要的初始化.在例子ftp服务器中,是向客户端传送welcome信息.
+参数:
+	IN IMainConn* conn		当前 Dialogure 关联的 IMainConn
+返回值:
+	无
+	
+virtual void onRequest(IN IMainConn* conn, IN const void* buf, 
+	IN int size) = 0;
+当一个请求到达时, Frame把请求发给 Dialogue 对象进行协议相关的处理.
+参数:
+	IN IMainConn* conn		当前 Dialogure 关联的 IMainConn
+	IN const void* buf		请求数据包的缓冲区
+	IN int size				请求数据包的字节数
+返回值:
+	无
+
+
+virtual void onIdlenessTimeout(IN IMainConn* conn) = 0;
+由于空闲时间超出Frame中指定的值 (ServiceFrm::setIdleTimeout, ServiceFrm::getIdleTimeout), 向Dialogue发出通知,
+此时协议层可以根据协议或需求断开连接,也可以做其它的处理.
+参数:
+	IN IMainConn* conn		当前 Dialogure 关联的 IMainConn
+返回值:
+	无
+
+virtual void onDialogueDestroyed() = 0;
+由于协议层关闭连接, 或者客户端断开连接,导致 Dialogue 无效,即将被销毁, 此时连接对象已无效.
+参数:
+	无
+返回值:
+	无
+
+
+会话接口提供者, 用于协议层向Frame提供相应的Dialogue对象, 在服务初始化阶段, 通过调用 ServiceFrm::setDialogureCreator
+向Frame 提供
+
+struct IDialogueCreator {
+	virtual IDialogue* createDialogue() = 0;
+	virtual void releaseDialogue(IN IDialogue* session) = 0;
+};
+
+virtual IDialogue* createDialogue() = 0;
+Frame 请求得到一个 IDialogue对象, 协议层可以在此决定使用单个 Dialogue对象,还是创建新的 Dialogue对象
+参数:
+	无
+返回值:
+	成功时返回得到的Dialogue对象, 否则返回空.
+
+virtual void releaseDialogue(IN IDialogue* session) = 0;
+Frame 在与之相关的连接断开时,会在此通知 IDialogueCreator 对象, 由IDialogueCreator对象决定如何处理这个对象.
+参数:
+	IN IDialogue* session		要求释放的 Dialogue对象
+	
+返回值:
+	无
+
+
+//////////////////////////////////////////////////////////////////////////
+
+// 由底层Frame实现的接口
+#define CONN_TYPE_SOCKET_TCP		0
+#define CONN_TYPE_SOCKET_UDP		1
+#define CONN_TYPE_PIPE				2
+
+struct ConnID {
+	int				type;
+	int				addrlen;
+	union {
+		sockaddr	caddr;
+		TCHAR		cname[MAX_PATH];
+	};
+};
+
+struct PeerInfo {
+	ConnID		addr;	// address of peer
+	tm			ct;		// time of connection
+};
+
+连接接口
+struct IConnection {
+	virtual int recv(OUT void* buf, IN int size) = 0;
+	virtual int recvTimeout(OUT void* buf, IN int size, IN int timeo) = 0;
+	virtual int send(IN const void* buf, IN int size) = 0;
+	virtual int close() = 0;
+	
+
+	virtual int upgradeSecurity(int timeout) = 0;
+	virtual int degradeSecurity() = 0;
+	virtual bool isSecure() = 0;
+	virtual bool isActive() = 0;
+};
+
+virtual int recv(OUT void* buf, IN int size) = 0;
+从连接中取得数据.此操作阻塞.
+参数:
+	OUT void* buf		接收数据的缓冲区
+	IN int size			缓冲区的字节数
+返回值:
+	成功时返回接收到的数据字节数, 否则返回 <= 0.
+
+virtual int recvTimeout(OUT void* buf, IN int size, IN int timeo) = 0;
+从连接中取得数据, 带超时值.此操作阻塞.
+参数:
+	OUT void* buf		接收数据的缓冲区
+	IN int size			缓冲区的字节数
+	IN int timeo		微秒表示的超时时间
+返回值:
+	成功时返回接收到的数据字节数, 返回 0 表示超时, 返回 <0 表示出错.
+
+virtual int send(IN const void* buf, IN int size) = 0;
+向连接发送数据.
+参数:
+	IN void* buf		要发送的数据
+	IN int size			数据的字节数
+返回值:
+	成功时返回发送的的数据字节数, 否则返回 <= 0.
+
+virtual int close() = 0;
+关闭这个连接
+参数:
+	无
+返回值:
+	成功时返回0, 否则返回 非 0.
+
+virtual int upgradeSecurity(int timeout) = 0;
+将当前连接升级为安全连接
+参数:
+	int timeout		未用
+返回值:
+	成功时返回>0, 否则表示失败.
+
+virtual int degradeSecurity() = 0;
+将当前连接降级为非安全连接
+参数:
+	无
+返回值:
+	成功时返回>0, 否则表示失败.
+
+virtual bool isSecure() = 0;
+判断当前连接是否为安全连接
+
+virtual bool isActive() = 0;
+判断当前连接是否活动.
+
+#define CONN_MODE_PASSIVE		0
+#define CONN_MODE_ACTIVE		1
+
+struct IMainConn: IConnection {
+	virtual int getPeerInfo(OUT PeerInfo* info) = 0;
+	virtual void onConnected() = 0;
+
+	virtual IConnection* createConn(IN const ConnID* addr, 
+		IN int mode, bool inheritSec, IN int timeout) = 0;
+	virtual void destroyConn(IN IConnection* conn) = 0;
+
+	virtual IDialogue* getDialogue() = 0;
+	virtual bool setDialogue(IDialogue* session) = 0;
+};
+
+virtual int getPeerInfo(OUT PeerInfo* info) = 0;
+得到对方的相关信息
+参数:
+	OUT PeerInfo* info		返回对方的信息
+返回值:
+	成功时返回>0, 否则表示失败.
+
+virtual void onConnected() = 0;
+由 Frame 发送来的连接成功的通知
+参数:
+	无
+返回值:
+	无
+
+virtual IConnection* createConn(IN const ConnID* addr, 
+	IN int mode, bool inheritSec, IN int timeout) = 0;
+创建一个二级通道. 对于像ftp这样需要创建二级通道的协议, 可以用当前主连接创建一个二级通道.
+参数:
+	IN const ConnID* addr 		连接的地址
+	IN int mode					连接的模式 CONN_MODE_PASSIVE(被动连接) 或者 CONN_MODE_ACTIVE(主动连接)
+	IN bool inheritSec,			是否继承主连接的安全特性
+	IN int timeout				忽略
+返回值:
+	成功时返回创建的连接对象,否则返回NULL
+
+virtual void destroyConn(IN IConnection* conn) = 0;
+销毁由 createConn 创建的 连接对象
+参数:
+	IN IConnection* conn		由 createConn 创建的 连接对象
+返回值:
+	无
+
+virtual IDialogue* getDialogue() = 0;
+得到与连接相联的 Dialogue 对象
+参数:
+	无
+返回值:
+	成功时返回与连接相联的 Dialogue 对象, 否则返回空.
+
+virtual bool setDialogue(IDialogue* session) = 0;
+设置与连接相关的 Dialogue 对象, 这个函数由 frame 调用
+参数:
+	与连接相联的 Dialogue 对象
+
+返回值:
+	ture 成功, false 失败.
+
+
+/////////////////////////////////////////////////////////////////////////////////////
+ServiceFrm 的公共接口
+
+bool init(const char* cfgfile = NULL);
+初始化 service
+参数:
+	char* cfgfile		config 文件
+返回值:
+	ture 成功, false 失败.
+
+bool begin(const ConnID* connID);
+开始服务
+参数:
+	const ConnID* connID	本地地址
+返回值:
+	ture 成功, false 失败.
+
+bool end();
+停止服务
+参数:
+	无
+
+返回值:
+	ture 成功, false 失败.
+
+int getMainConnCount();
+得到连接数
+参数:
+	无
+返回值:
+	成功返回连接数,失败 -1.
+
+IMainConn* getMainConn(int index)
+得到相应的主连接
+参数:
+	int index			索引
+返回值:
+	成功返回主连接对象,失败返回NULL.
+
+bool setDialogureCreator(IDialogueCreator* dlgCtor);
+设置 IDialogueCreator 对象
+参数:
+	IDialogueCreator* dlgCtor			要设置的 IDialogueCreator 对象
+返回值:
+	ture 成功, false 失败.
+
+IDialogueCreator* getDialogureCreator();
+得到当前的 IDialogueCreator 对象
+参数:
+	无
+返回值:
+	成功返回当前的 IDialogueCreator 对象,失败NULL.
+
+
+bool setSecure(bool secure);
+将service设置为安全, 即所有的数据交换都在安全连接中进行.
+参数:
+	bool secure			ture 为安全, false 为非安全
+返回值:
+	ture 成功, false 失败.
+
+bool isSecure();
+判断当前是否为安全连接状态
+参数:
+	无
+返回值:
+	ture 为安全, false 为非安全
+	
+bool getServiceThread();
+判断当前服务是否启动一个新线程来提供服务.
+参数:
+	无
+返回值:
+	ture 为启动新线程, false 为不启动新线程
+
+bool setServiceThread(bool b);
+调协当前服务是否启动一个新线程来提供服务.
+参数:
+	bool b			ture 为启动新线程, false 为不启动新线程
+返回值:
+	ture 成功, false 失败.
+
+int getIdleTimeout();
+得到service 的空闲超时, 当连接空闲时间达到这个值时,会通知 Dialogue
+参数:
+	无
+返回值:
+	service 的空闲超时值
+
+bool setIdleTimeout();
+设置service 的空闲超时值
+参数:
+	int timeo		service 的空闲超时值
+返回值:
+	ture 成功, false 失败.

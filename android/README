@@ -1,0 +1,38 @@
+This test client need a share library : libzqcommon.so
+NDK is you NDK'path for example /cygdrive/d/Cygwin/android-ndk-r8d
+This TestClient have armeabi, armeabi-v7a, mips, x86 4 ABI you can choose
+
+libzqcommon.so:
+
+	dll/libs/
+	├── armeabi
+	│   └── libzqcommon.so
+	├── armeabi-v7a
+	│   └── libzqcommon.so
+	├── mips
+	│   └── libzqcommon.so
+	└── x86
+		└── libzqcommon.so
+
+TestClient
+
+	libs/
+	├── armeabi
+	│   └── TestClient
+	├── armeabi-v7a
+	│   └── TestClient
+	├── mips
+	│   └── TestClient
+	└── x86
+		└── TestClient
+
+You can 
+
+1, cd jni
+2, $NDK/ndk-build
+3, cd libs/*             #* => armeabi, armeabi-v7a, mips, x86
+4, ./TestClient arguments 
+
+To get THIS!
+
+

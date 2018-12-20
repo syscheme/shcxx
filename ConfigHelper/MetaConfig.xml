@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TianShan>
+	<Definitions>
+		<property name="TS_DIR" value="C:\TianShan"/>
+		<property name="LOCAL_IP" value="192.168.81.116"/>
+	</Definitions>
+</TianShan>

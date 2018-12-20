@@ -1,0 +1,48 @@
+Microsoft Visual Studio Solution File, Format Version 8.00
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "receiver", "v6receiver\receiver.vcproj", "{89ADA195-F3EF-4DAF-AA9A-02F816384B03}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sender", "v6sender\sender.vcproj", "{5D75233A-3482-4E02-9604-A1C0B0FFB767}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "v4Sender", "v4Sender\v4Sender.vcproj", "{E1489A92-5CA9-4999-96FB-B48D53B20B88}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "v4receiver", "v4receiver\v4receiver.vcproj", "{50C40E94-CA96-490A-9E08-34D6BF92A2E6}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(DPCodeReviewSolutionGUID) = preSolution
+		DPCodeReviewSolutionGUID = {00000000-0000-0000-0000-000000000000}
+	EndGlobalSection
+	GlobalSection(SolutionConfiguration) = preSolution
+		Debug = Debug
+		Release = Release
+	EndGlobalSection
+	GlobalSection(ProjectConfiguration) = postSolution
+		{89ADA195-F3EF-4DAF-AA9A-02F816384B03}.Debug.ActiveCfg = Debug|Win32
+		{89ADA195-F3EF-4DAF-AA9A-02F816384B03}.Debug.Build.0 = Debug|Win32
+		{89ADA195-F3EF-4DAF-AA9A-02F816384B03}.Release.ActiveCfg = Release|Win32
+		{89ADA195-F3EF-4DAF-AA9A-02F816384B03}.Release.Build.0 = Release|Win32
+		{5D75233A-3482-4E02-9604-A1C0B0FFB767}.Debug.ActiveCfg = Debug|Win32
+		{5D75233A-3482-4E02-9604-A1C0B0FFB767}.Debug.Build.0 = Debug|Win32
+		{5D75233A-3482-4E02-9604-A1C0B0FFB767}.Release.ActiveCfg = Release|Win32
+		{5D75233A-3482-4E02-9604-A1C0B0FFB767}.Release.Build.0 = Release|Win32
+		{E1489A92-5CA9-4999-96FB-B48D53B20B88}.Debug.ActiveCfg = Debug|Win32
+		{E1489A92-5CA9-4999-96FB-B48D53B20B88}.Debug.Build.0 = Debug|Win32
+		{E1489A92-5CA9-4999-96FB-B48D53B20B88}.Release.ActiveCfg = Release|Win32
+		{E1489A92-5CA9-4999-96FB-B48D53B20B88}.Release.Build.0 = Release|Win32
+		{50C40E94-CA96-490A-9E08-34D6BF92A2E6}.Debug.ActiveCfg = Debug|Win32
+		{50C40E94-CA96-490A-9E08-34D6BF92A2E6}.Debug.Build.0 = Debug|Win32
+		{50C40E94-CA96-490A-9E08-34D6BF92A2E6}.Release.ActiveCfg = Release|Win32
+		{50C40E94-CA96-490A-9E08-34D6BF92A2E6}.Release.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+	EndGlobalSection
+	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+EndGlobal

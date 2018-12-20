@@ -1,0 +1,27 @@
+This is a dll: libzqcommon.so
+
+This libzqcommon.so have armeabi, armeabi-v7a, mips, x86 4 ABI you can choose,and you can set in file jni/Application.mk
+	APP_ABI := all 
+
+libzqcommon.so:
+
+	dll/libs/
+	├── armeabi
+	│   └── libzqcommon.so
+	├── armeabi-v7a
+	│   └── libzqcommon.so
+	├── mips
+	│   └── libzqcommon.so
+	└── x86
+		└── libzqcommon.so
+You can 
+
+1, cd jni
+2, $NDK/ndk-build
+
+To get THIS!
+
+NOTEs: It's use the file at Common ,the file list that you can read the file treestruct.txt;
+       And just for android ,you should set a marco ZQ_COMMON_ANDROID
+	   
+NDK is you NDK'path for example /cygdrive/d/Cygwin/android-ndk-r8d

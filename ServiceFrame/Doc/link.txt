@@ -1,0 +1,45 @@
+一 ServiceFrame 依赖于如下库文件
+1 SSLLib
+$(SED1_VSS)/Common/SSLLib
+
+头文件:
+	ssllib.h
+源程序:
+	ssllib.cpp
+库文件:
+	无
+	
+2 NativeThread
+$(SED1_VSS)/Common
+如果在例程中使用的路径与你本机的路径不符,请在重新增加这些文件.
+
+头文件:
+	NativeThread.h NativeThreadPool.h
+源程序:
+	NativeThread.cpp NativeThreadPool.cpp Semaphore.cpp
+库文件:
+	无
+
+3 Openssl
+
+头文件:
+	openssl/err.h openssl/rand.h openssl/bio.h openssl/ssl.h
+源程序:
+	无
+库文件:
+	libeay32.lib ssleay32.lib
+
+4 其它
+头文件:
+	winsock2.h
+源程序:
+	无
+库文件:
+	ws32_2.lib
+
+二 宏
+1 _MT
+	由于 ServiceFrame 必须支持多线程, _MT必须被定义, c runtime 使用 支持多线程的版本
+	
+2 _NO_NAMESPACE
+	ServiceFrame 在 ZQ namespace 中定义, 要取消掉这个特性, 可以加入 _NO_NAMESPACE 宏定义.

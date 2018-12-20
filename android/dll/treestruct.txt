@@ -1,0 +1,219 @@
+dll
+├── inc
+│   ├── CombString.h
+│   ├── Exception.h
+│   ├── FileLog.h
+│   ├── InetAddr.h
+│   ├── Locks.h
+│   ├── Log.h
+│   ├── NativeThread.h
+│   ├── NativeThreadPool.h
+│   ├── Pointer.h
+│   ├── RTSPClient.h
+│   ├── Socket.h
+│   ├── strHelper.h
+│   ├── SystemUtils.h
+│   ├── TCPSocket.h
+│   ├── TimeUtil.h
+│   ├── urlstr.h
+│   └── ZQ_common_conf.h
+├── jni
+│   ├── Android.mk
+│   └── Application.mk
+├── libs
+│   ├── armeabi
+│   │   └── libzqcommon.so
+│   ├── armeabi-v7a
+│   │   └── libzqcommon.so
+│   ├── mips
+│   │   └── libzqcommon.so
+│   └── x86
+│       └── libzqcommon.so
+├── obj
+│   ├── convert-dependencies.sh
+│   └── local
+│       ├── armeabi
+│       │   ├── libgnustl_static.a
+│       │   ├── libzqcommon.so
+│       │   └── objs
+│       │       └── zqcommon
+│       │           └── __
+│       │               └── src
+│       │                   ├── Exception.o
+│       │                   ├── Exception.o.d
+│       │                   ├── FileLog.o
+│       │                   ├── FileLog.o.d
+│       │                   ├── InetAddr.o
+│       │                   ├── InetAddr.o.d
+│       │                   ├── linux_com.o
+│       │                   ├── linux_com.o.d
+│       │                   ├── Log.o
+│       │                   ├── Log.o.d
+│       │                   ├── NativeThread.o
+│       │                   ├── NativeThread.o.d
+│       │                   ├── NativeThreadPool.o
+│       │                   ├── NativeThreadPool.o.d
+│       │                   ├── Pointer.o
+│       │                   ├── Pointer.o.d
+│       │                   ├── RTSPClient.o
+│       │                   ├── RTSPClient.o.d
+│       │                   ├── RTSPSession.o
+│       │                   ├── RTSPSession.o.d
+│       │                   ├── Semaphore.o
+│       │                   ├── Semaphore.o.d
+│       │                   ├── Socket.o
+│       │                   ├── Socket.o.d
+│       │                   ├── strHelper.o
+│       │                   ├── strHelper.o.d
+│       │                   ├── SystemUtils.o
+│       │                   ├── SystemUtils.o.d
+│       │                   ├── TCPSocket.o
+│       │                   ├── TCPSocket.o.d
+│       │                   ├── TimeUtil.o
+│       │                   ├── TimeUtil.o.d
+│       │                   ├── urlstr.o
+│       │                   └── urlstr.o.d
+│       ├── armeabi-v7a
+│       │   ├── libgnustl_static.a
+│       │   ├── libzqcommon.so
+│       │   └── objs
+│       │       └── zqcommon
+│       │           └── __
+│       │               └── src
+│       │                   ├── Exception.o
+│       │                   ├── Exception.o.d
+│       │                   ├── FileLog.o
+│       │                   ├── FileLog.o.d
+│       │                   ├── InetAddr.o
+│       │                   ├── InetAddr.o.d
+│       │                   ├── linux_com.o
+│       │                   ├── linux_com.o.d
+│       │                   ├── Log.o
+│       │                   ├── Log.o.d
+│       │                   ├── NativeThread.o
+│       │                   ├── NativeThread.o.d
+│       │                   ├── NativeThreadPool.o
+│       │                   ├── NativeThreadPool.o.d
+│       │                   ├── Pointer.o
+│       │                   ├── Pointer.o.d
+│       │                   ├── RTSPClient.o
+│       │                   ├── RTSPClient.o.d
+│       │                   ├── RTSPSession.o
+│       │                   ├── RTSPSession.o.d
+│       │                   ├── Semaphore.o
+│       │                   ├── Semaphore.o.d
+│       │                   ├── Socket.o
+│       │                   ├── Socket.o.d
+│       │                   ├── strHelper.o
+│       │                   ├── strHelper.o.d
+│       │                   ├── SystemUtils.o
+│       │                   ├── SystemUtils.o.d
+│       │                   ├── TCPSocket.o
+│       │                   ├── TCPSocket.o.d
+│       │                   ├── TimeUtil.o
+│       │                   ├── TimeUtil.o.d
+│       │                   ├── urlstr.o
+│       │                   └── urlstr.o.d
+│       ├── mips
+│       │   ├── libgnustl_static.a
+│       │   ├── libzqcommon.so
+│       │   └── objs
+│       │       └── zqcommon
+│       │           └── __
+│       │               └── src
+│       │                   ├── Exception.o
+│       │                   ├── Exception.o.d
+│       │                   ├── FileLog.o
+│       │                   ├── FileLog.o.d
+│       │                   ├── InetAddr.o
+│       │                   ├── InetAddr.o.d
+│       │                   ├── linux_com.o
+│       │                   ├── linux_com.o.d
+│       │                   ├── Log.o
+│       │                   ├── Log.o.d
+│       │                   ├── NativeThread.o
+│       │                   ├── NativeThread.o.d
+│       │                   ├── NativeThreadPool.o
+│       │                   ├── NativeThreadPool.o.d
+│       │                   ├── Pointer.o
+│       │                   ├── Pointer.o.d
+│       │                   ├── RTSPClient.o
+│       │                   ├── RTSPClient.o.d
+│       │                   ├── RTSPSession.o
+│       │                   ├── RTSPSession.o.d
+│       │                   ├── Semaphore.o
+│       │                   ├── Semaphore.o.d
+│       │                   ├── Socket.o
+│       │                   ├── Socket.o.d
+│       │                   ├── strHelper.o
+│       │                   ├── strHelper.o.d
+│       │                   ├── SystemUtils.o
+│       │                   ├── SystemUtils.o.d
+│       │                   ├── TCPSocket.o
+│       │                   ├── TCPSocket.o.d
+│       │                   ├── TimeUtil.o
+│       │                   ├── TimeUtil.o.d
+│       │                   ├── urlstr.o
+│       │                   └── urlstr.o.d
+│       └── x86
+│           ├── libgnustl_static.a
+│           ├── libzqcommon.so
+│           └── objs
+│               └── zqcommon
+│                   └── __
+│                       └── src
+│                           ├── Exception.o
+│                           ├── Exception.o.d
+│                           ├── FileLog.o
+│                           ├── FileLog.o.d
+│                           ├── InetAddr.o
+│                           ├── InetAddr.o.d
+│                           ├── linux_com.o
+│                           ├── linux_com.o.d
+│                           ├── Log.o
+│                           ├── Log.o.d
+│                           ├── NativeThread.o
+│                           ├── NativeThread.o.d
+│                           ├── NativeThreadPool.o
+│                           ├── NativeThreadPool.o.d
+│                           ├── Pointer.o
+│                           ├── Pointer.o.d
+│                           ├── RTSPClient.o
+│                           ├── RTSPClient.o.d
+│                           ├── RTSPSession.o
+│                           ├── RTSPSession.o.d
+│                           ├── Semaphore.o
+│                           ├── Semaphore.o.d
+│                           ├── Socket.o
+│                           ├── Socket.o.d
+│                           ├── strHelper.o
+│                           ├── strHelper.o.d
+│                           ├── SystemUtils.o
+│                           ├── SystemUtils.o.d
+│                           ├── TCPSocket.o
+│                           ├── TCPSocket.o.d
+│                           ├── TimeUtil.o
+│                           ├── TimeUtil.o.d
+│                           ├── urlstr.o
+│                           └── urlstr.o.d
+├── src
+│   ├── Exception.cpp
+│   ├── FileLog.cpp
+│   ├── InetAddr.cpp
+│   ├── linux_com.cpp
+│   ├── Log.cpp
+│   ├── NativeThread.cpp
+│   ├── NativeThreadPool.cpp
+│   ├── Pointer.cpp
+│   ├── RTSPClient.cpp
+│   ├── RTSPSession.cpp
+│   ├── Semaphore.cpp
+│   ├── Socket.cpp
+│   ├── strHelper.cpp
+│   ├── SystemUtils.cpp
+│   ├── TCPSocket.cpp
+│   ├── TimeUtil.cpp
+│   └── urlstr.cpp
+└── treestruct.txt
+
+30 directories, 187 files
