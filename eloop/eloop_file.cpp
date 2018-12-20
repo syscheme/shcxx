@@ -152,9 +152,12 @@ void File::_cbFileClose(uv_fs_t* req)
 		h->clean();
 		h->OnClose(req->result);
 	}
-
-	uv_fs_req_cleanup(req);
-	delete req;
+	if (req != NULL)
+	{
+		uv_fs_req_cleanup(req);
+		delete req;
+		req = NULL;
+	}
 }
 
 void File::_cbFileWrite(uv_fs_t* req)

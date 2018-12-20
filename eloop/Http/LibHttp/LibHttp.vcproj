@@ -104,7 +104,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="../../..;..;../../libuv_1.9.1/include;../..;&quot;$(RegExppKit)&quot;"
-				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;_WIN32_WINNT=0x0400"
+				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;LIBHTTP_EXPORTS"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -122,6 +122,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
+				AdditionalLibraryDirectories="$(RegExppKit)\bin\x86"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -169,7 +170,23 @@
 				>
 			</File>
 			<File
-				RelativePath=".\RedisClient.cpp"
+				RelativePath=".\RTSPClient.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\RTSPConnection.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\RTSPMessage.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\RTSPServer.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\TCPServer.cpp"
 				>
 			</File>
 		</Filter>
@@ -199,7 +216,19 @@
 				>
 			</File>
 			<File
-				RelativePath=".\RedisClient.h"
+				RelativePath=".\RTSPClient.h"
+				>
+			</File>
+			<File
+				RelativePath=".\RTSPConnection.h"
+				>
+			</File>
+			<File
+				RelativePath=".\RTSPServer.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TCPServer.h"
 				>
 			</File>
 		</Filter>

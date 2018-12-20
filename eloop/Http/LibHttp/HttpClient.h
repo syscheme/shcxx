@@ -6,6 +6,8 @@
 
 namespace ZQ {
 namespace eloop {
+
+class ZQ_ELOOP_HTTP_API HttpClient;
 // ---------------------------------------
 // class HttpClient
 // ---------------------------------------
@@ -44,7 +46,7 @@ protected:
 
 	HttpMessage::Ptr		_req;
 private:
-	ZQ::common::Log&		_Logger;
+	ZQ::common::Log&		_logger;
 };
 } }//namespace ZQ::eloop
 #endif

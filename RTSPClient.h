@@ -332,12 +332,17 @@ public:
 
 public:
 
-	static std::string trim(char const* str);
-	static char* nextLine(char* startOfLine, int maxByte); // this func may change the input chars of startOfLine
+	typedef struct _MsgPair
+	{
+		uint cSeq;
+		RTSPMessage::Ptr  inMsg;
+		RTSPRequest::Ptr  outReq;
 
-	static bool parseRequestLine(const std::string& line, std::string& cmdName, std::string& url, std::string& proto);
-	static bool parseResponseLine(const std::string& line, uint& resultCode, std::string& resultStr, std::string& proto);
-	static bool parseRangeParam(char const* paramStr, double& rangeStart, double& rangeEnd);
+		static bool less(_MsgPair i, _MsgPair j) { return (i.cSeq<j.cSeq); }
+	} MsgPair;
+
+	typedef std::vector <MsgPair> MsgPairs;
+
 
 	/// maps the RTSPResultCode to description string
 	static const char* resultCodeToStr(uint resultCode);
@@ -347,6 +352,48 @@ public:
 
 	/// maps the RTSPAnnounceCode to description string
 	static const char* announceCodeToStr(uint announceCode);
+};
+
+// -----------------------------
+// class RTSPParser
+// -----------------------------
+class RTSPParser : public Mutex
+{
+public:
+
+	class Bind
+	{
+	public:
+		virtual void OnResponses(RTSPSink::MsgPairs responses) =0;
+		virtual void OnRequests(RTSPSink::MsgPairs requests) =0;
+		virtual const char*  connDesc() { return ""; }
+	};
+
+	RTSPParser(Log& log, Bind& sink)
+		: _log(log), _bind(sink), _pCurrentMsg(NULL), _inCommingByteSeen(0)
+	{}
+
+	static std::string trim(char const* str);
+	static char* nextLine(char* startOfLine, int maxByte); // this func may change the input chars of startOfLine
+
+	static bool parseRequestLine(const std::string& line, std::string& cmdName, std::string& url, std::string& proto);
+	static bool parseResponseLine(const std::string& line, uint& resultCode, std::string& resultStr, std::string& proto);
+	static bool parseRangeParam(char const* paramStr, double& rangeStart, double& rangeEnd);
+
+	//@note the call will reset the buffer if last incomplete message exceed bufsz
+	virtual char* getReceiveBuf(int& bytesAvail);
+	virtual void parse();
+	void reset();
+
+protected:
+	Bind&            _bind;
+	Log&             _log;
+
+	RTSPMessage::Ptr _pCurrentMsg;
+	char             _inCommingBuffer[RTSP_MSG_BUF_SIZE];
+	int	             _inCommingByteSeen;
+	int              _bytesAvail;
+
 };
 
 // -----------------------------
@@ -471,8 +518,6 @@ protected: // impl of RTSPSink
 
 	// new overwriteable entries, dispatched from OnServerRequest()
 	virtual void OnANNOUNCE(RTSPClient& rtspClient, RTSPMessage::Ptr& pInMessage);
-
-
 
 ////////////NOT TESTED, DO NOT USE/////////////////////////////////
 //	2010-10-29	Chuan.li Add: a list to contain all parsed result
@@ -729,10 +774,12 @@ private:
 /// the server if the connection is lost but there is pending request to send. 
 /// All the requests of RTSPClient is handled asynchronously, which means you should override the relatived callback 
 /// methods OnXXXX of RTSPClient or RTSPSession to handle the response and/or ANNOUNCE
-class RTSPClient : protected RTSPSink, public TCPClient
+class RTSPClient : protected RTSPSink, RTSPParser::Bind, public TCPClient
 {
 	friend class RTSPRequest;
 	friend class RTSPSession;
+	friend class MessageProcessCmd;
+	friend class RequestErrCmd;
 
 public:
 	RTSPClient(Log& log, NativeThreadPool& thrdpool, InetHostAddress& bindAddress, const std::string& baseURL, const char* userAgent = NULL, Log::loglevel_t verbosityLevel =Log::L_WARNING, tpport_t bindPort=0);
@@ -740,10 +787,7 @@ public:
 
 	static void setVerboseFlags(uint16 flags =0);
 
-protected:
-	// impl of RTSPSink
-	friend class MessageProcessCmd;
-	friend class RequestErrCmd;
+protected: // impl of RTSPSink
 
 	/// event of non-session request failed to issue, see RTSPSink for more details about the parameters
 	/// see RTSPClient for per-session requests
@@ -775,6 +819,12 @@ protected:
 	// new  callbacks
 	virtual int  OnRequestPrepare(RTSPRequest::Ptr& pReq) { return 0; }
 	virtual void OnRequestClean(RTSPRequest& req) {}
+
+protected: // impl of RTSPParser::Bind
+	virtual void OnResponses(RTSPSink::MsgPairs responses);
+	virtual void OnRequests(RTSPSink::MsgPairs requests);
+	virtual const char* connDesc() { return connDescription(); }
+
 
 public: // RTSP commands
 
@@ -952,17 +1002,13 @@ protected:
 
 	int  sendMessage(RTSPMessage::Ptr pMessage, const RTSPMessage::AttrMap& headerToOverride, const char* msgDesc =NULL);
 
-	RTSPMessage::Ptr _pCurrentMsg;
-	char             _inCommingBuffer[RTSP_MSG_BUF_SIZE];
-	int	             _inCommingByteSeen;
-	Mutex	         _lockInCommingMsg;
-
 	/// increase last CSeq and then return the new CSeq in the range [1, MAX_CLIENT_CSEQ)
 	uint lastCSeq();
 
 private:
 	void _cleanupExpiredAwaitRequests(uint8 multiplyTimeout=1, char* func=""); // private use
 	static uint16 _verboseFlags;
+	RTSPParser _parser;
 };
 
 // -----------------------------

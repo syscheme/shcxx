@@ -8,16 +8,12 @@ namespace eloop {
 // class HttpClient
 // ---------------------------------------
 HttpClient::HttpClient(ZQ::common::Log& logger)
-	:HttpConnection(true,logger),
-	_Logger(logger),
-	_req(NULL)
+	: HttpConnection(logger), _logger(logger), _req(NULL)
 {
-
 }
 
 HttpClient::~HttpClient()
 {
-
 }
 
 void HttpClient::OnConnected(ElpeError status)
@@ -49,6 +45,7 @@ bool HttpClient::beginRequest( HttpMessage::Ptr msg, const std::string& url)
 	msg->header("Host",host);
 
 	_req = msg;
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient, "beginRequest() connect to[%s:%d]"),host,urlstr.getPort());
 	connect4(host,urlstr.getPort());
 	return true;
 }
@@ -57,6 +54,7 @@ bool HttpClient::beginRequest( HttpMessage::Ptr msg, const std::string& ip, cons
 {
 	_req = msg;
 	connect4(ip.c_str(),port);
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpClient, "beginRequest() connect to[%s:%u]"), ip.c_str(), port);
 	return true;
 }
 
@@ -70,7 +68,7 @@ void HttpClient::onError( int error,const char* errorDescription )
 	int  peerport = 0;
 	getpeerIpPort(peerip,peerport);
 
-	_Logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient, "onError [%p] [%s:%d => %s:%d], errorCode[%d],Description[%s]"), 
+	_logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpClient, "onError [%p] [%s:%d => %s:%d], errorCode[%d],Description[%s]"), 
 		this, locip, locport, peerip, peerport,error,errorDescription);
 
 	shutdown();

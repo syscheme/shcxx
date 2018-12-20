@@ -110,6 +110,3 @@ std::string join(const StringColl& strs, const std::string& delimiter = ", ")
 }
 }}} // namspace ZQ::common::Text
 #endif
-
-
-

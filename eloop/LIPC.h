@@ -1,6 +1,6 @@
 // ===========================================================================
 // Copyright (c) 2015 by
-// XOR media, Shanghai 
+// XOR media, Shanghai, PRC., 
 // All Rights Reserved.  Unpublished rights reserved under the copyright
 // laws of the United States.
 // 
@@ -102,7 +102,7 @@ public:
 		LIPC_TCP, 
 		LIPC_FILE, 
 		LIPC_NONE,
-
+		LIPC_HTTP, 
 	} FdType;
 
 	LIPCMessage(int cseq =0, Json::Value msg = Json::Value::null);

@@ -29,7 +29,13 @@ class HttpHandler: public IHttpParseSink, public virtual ZQ::common::SharedObjec
 public:
 	typedef std::map<std::string, std::string> Properties;
 	typedef ZQ::common::Pointer<HttpHandler> Ptr;
-	virtual ~HttpHandler() {}
+	virtual ~HttpHandler() {
+
+		(_app.log())(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpHandler, "~HttpHandler"));
+
+	}
+
+	HttpPassiveConn& conn() { return _conn; }
 
 	// ---------------------------------------
 	// interface IBaseApplication
@@ -58,14 +64,13 @@ public:
 
 	typedef ZQ::common::Pointer<IBaseApplication> AppPtr;
 
-
 protected: // hatched by HttpApplication
 	HttpHandler(IBaseApplication& app, HttpPassiveConn& conn, const HttpHandler::Properties& dirProps = HttpHandler::Properties())
 		: _conn(conn), _app(app), _dirProps(dirProps)
 	{}
 
-	virtual void	onHttpDataSent(size_t size){}
-	virtual void	onHttpDataReceived( size_t size ){}
+	virtual void	onHttpDataSent(size_t size) {}
+	virtual void	onHttpDataReceived( size_t size ) {}
 
 	HttpPassiveConn& _conn;
 	IBaseApplication& _app;
@@ -90,17 +95,17 @@ public:
 	}
 };
 
-
-//---------------------------------------
-//class HttpMonitorTimer
-//----------------------------------------
-class HttpMonitorTimer : public Timer
-{
-public:
-	//	~HttpMonitorTimer(){printf("~HttpMonitorTimer\n");}
-	virtual void OnTimer();
-	//	virtual void OnClose(){printf("HttpMonitorTimer onclose!\n");}
-};
+////---------------------------------------
+////class HttpMonitorTimer
+////----------------------------------------
+//class HttpMonitorTimer : public Timer
+//{
+//public:
+//	//	~HttpMonitorTimer(){printf("~HttpMonitorTimer\n");}
+//	virtual void OnTimer();
+//	//	virtual void OnClose(){printf("HttpMonitorTimer onclose!\n");}
+//};
+//
 
 // ---------------------------------------
 // class HttpPassiveConn
@@ -109,16 +114,12 @@ public:
 class HttpPassiveConn : public HttpConnection
 {
 public:
-	HttpPassiveConn(HttpServer& server,ZQ::common::Log& logger);
+	HttpPassiveConn(HttpServer& server);
 	~HttpPassiveConn();
 
-	bool			start();
-	const std::string& hint() const { return _Hint; }
-	void			stop();
-
-	bool			keepAlive(){return _keepAlive_Timeout>0;}
-	virtual void onRespComplete();
+	bool			keepAlive() const { return _keepAlive_Timeout>0; }
 	void 			errorResponse( int code );
+	virtual void    onRespComplete(bool isShutdown = false);
 
 protected:
 
@@ -129,105 +130,46 @@ protected:
 	virtual bool	onHeadersEnd( const HttpMessage::Ptr msg);
 	virtual bool	onBodyData( const char* data, size_t size);
 	virtual void	onMessageCompleted();
-	virtual void	OnClose();
+	//virtual void	OnClose();
+
+	virtual void OnTimer();
+
 
 private:
 	// NOTE: DO NOT INVOKE THIS METHOD unless you known what you are doing
 	void initHint();
 
-public:
-    HttpServer&					_server;
-
-private:
-	HttpHandler::Ptr			_Handler;
-
-//	typedef std::map<std::string,HttpHandler::Ptr> MapHandler;
-//	MapHandler					_mapHandler;
-	
-	ZQ::common::Log&			_Logger;
-//	bool						_HeaderComplete;
-//	bool						_bError;
+protected:
+	HttpHandler::Ptr			_handler;
+	HttpServer&					_server;
 
 	bool						_keepAlive;
 	int64						_keepAlive_Timeout;
 	int64						_startTime;
-	HttpMonitorTimer			_timer;
-
-	std::string					_Hint;
-// 	int64						_lastRespTime;
 };
 
 // ---------------------------------------
 // class HttpServer
 // ---------------------------------------
 class IHttpEngine;
-class HttpServer
+class HttpServer: public TCPServer
 {
 public:
-	enum ServerMode
-	{
-		SINGLE_LOOP_MODE,
-		MULTIPE_LOOP_MODE,
-		DEFAULT_MODE = MULTIPE_LOOP_MODE
-	};
+	HttpServer( const TCPServer::ServerConfig& conf,ZQ::common::Log& logger)
+		:TCPServer(conf,logger){}
 
-	struct HttpServerConfig
-	{
-		HttpServerConfig()
-		{
-			serverName		= "Eloop Http Server";
-			host			= "127.0.0.1";
-			port			= 8888;
-			httpHeaderAvailbleTimeout = 5* 60 * 1000;
-			keepalive_timeout		= -1;		//ms
-			keepAliveIdleMin		= 5 * 60 * 1000;
-			keepAliveIdleMax		= 10 * 60 *1000;
-			maxConns 				= 100 * 1000;
-			mode					= DEFAULT_MODE;
-			threadCount				= 4;
-		}
-
-		std::string serverName;
-		std::string	host;
-		int		    port;
-		ServerMode	mode;
-		int			threadCount;
-		uint64		httpHeaderAvailbleTimeout;
-		uint64		keepalive_timeout;
-		uint64		keepAliveIdleMin;
-		uint64		keepAliveIdleMax;
-		uint64		maxConns;
-	};
-
-public:
-	HttpServer( const HttpServerConfig& conf,ZQ::common::Log& logger);
-	~HttpServer();
-
-	bool startAt();
-	void stop();
-
-    virtual bool OnStart(ZQ::eloop::Loop& loop){return true;}
-    virtual bool OnStop(){return true;}
+	virtual bool onStart(ZQ::eloop::Loop& loop){ return true; }
+	virtual bool onStop(){ return true; }
 
 	// register an application to uri
 	//@param uriEx - the regular expression of uri
-	bool mount(const std::string& ruleStr, HttpHandler::AppPtr app, const HttpHandler::Properties& props=HttpHandler::Properties(), const char* virtualSite =DEFAULT_SITE);
+	bool mount(const std::string& uriEx, HttpHandler::AppPtr app, const HttpHandler::Properties& props=HttpHandler::Properties(), const char* virtualSite =DEFAULT_SITE);
 
 	HttpHandler::Ptr createHandler( const std::string& uri, HttpPassiveConn& conn, const std::string& virtualSite = std::string(DEFAULT_SITE));
 
-	void	addConn( HttpPassiveConn* servant );
-	void	delConn( HttpPassiveConn* servant );
+	virtual TCPConnection* createPassiveConn();
 
-	HttpMessage::Ptr makeSimpleResponse( int code ) const;
-
-	int64    keepAliveTimeout() const;
-
-	void single();
-
-protected:
-	HttpServerConfig		_Config;
-	ZQ::common::Log&		_Logger;
-
+private:
 	typedef struct _MountDir
 	{
 		std::string					uriEx;
@@ -240,124 +182,7 @@ protected:
 	typedef std::map<std::string, MountDirs> VSites;
 
 	VSites _vsites;
-
-	std::set<HttpPassiveConn*> _PassiveConn;
-	ZQ::common::Mutex		_connCountLock;
-	SYS::SingleObject		_sysWakeUp;
-	IHttpEngine*			_engine;
-	bool					_isStart;
 };
-
-//------------------------------------------
-//IHttpEngine
-//------------------------------------------
-class IHttpEngine
-{
-public:
-	IHttpEngine(const std::string& ip,int port,ZQ::common::Log& logger,HttpServer& server)
-		:_ip(ip),
-		_port(port),
-		_Logger(logger),
-		_server(server)
-	{}
-
-	virtual ~IHttpEngine(){}
-
-public:
-	virtual bool startAt() = 0;
-	virtual void stop() = 0;
-
-	ZQ::common::Log&		_Logger;
-	const std::string&		_ip;
-	int						_port;
-	HttpServer&				_server;
-
-};
-
-// ---------------------------------------
-// class AsyncQuit
-// ---------------------------------------
-class AsyncQuit:public Async
-{
-public:
-	virtual void OnAsync();
-	virtual void OnClose();
-};
-// ---------------------------------------
-// class SingleLoopHttpEngine
-// ---------------------------------------
-// Single event loop
-class SingleLoopHttpEngine:public TCP,public IHttpEngine,public ZQ::common::NativeThread
-{
-public:
-	SingleLoopHttpEngine(const std::string& ip,int port,ZQ::common::Log& logger,HttpServer& server);
-	~SingleLoopHttpEngine();
-
-public:
-	virtual bool startAt();
-	virtual void stop();
-	virtual int run(void);
-	virtual void doAccept(ElpeError status);
-	virtual void OnClose();
-
-private:
-	ZQ::eloop::Loop _loop;
-	AsyncQuit		_async;
-};
-
-// ---------------------------------------
-// class MultipleLoopHttpEngine
-// ---------------------------------------
-//Multiple event loops
-class MultipleLoopHttpEngine:public ZQ::common::NativeThread,public IHttpEngine
-{
-public:
-	MultipleLoopHttpEngine(const std::string& ip,int port,ZQ::common::Log& logger,HttpServer& server);
-	~MultipleLoopHttpEngine();
-
-public:
-	virtual bool startAt();
-	virtual void stop();
-	virtual int run(void);
-	void QuitNotify(ServantThread* sev);
-
-private:
-	bool	_bRunning;
-	int		_socket;
-	std::vector<ServantThread*> _vecThread;
-	int		_roundCount;
-	int		_threadCount;
-	ZQ::common::Mutex _Lock;
-	int		_quitCount;
-};
-
-// ---------------------------------------
-// class ServantThread
-// ---------------------------------------
-class ServantThread:public ZQ::common::NativeThread,public Async
-{
-public:
-	ServantThread(HttpServer& server,MultipleLoopHttpEngine& engine,ZQ::common::Log& logger);
-	~ServantThread();
-	virtual int run(void);
-	Loop& getLoop();
-	void addSocket(int sock);
-	virtual void OnAsync();
-	virtual void OnClose();
-	void quit();
-
-private:
-	ZQ::common::Log&			_Logger;
-	Loop						*_loop;
-	MultipleLoopHttpEngine&		_engine;
-	HttpServer&					_server;
-	std::list<int>				_ListSocket;
-	ZQ::common::Mutex			_LockSocket;
-	bool						_quit;
-//	int					_Count;
-//	ZQ::common::Mutex	_LockerCount;
-};
-
 
 // ---------------------------------------
 // class HttpStatistics
@@ -404,7 +229,7 @@ public:
 	} CountersOfMethod;
 
 	CountersOfMethod _counters[METHOD_MAX];
-	int64		_mesureSince;
+	int64		_measureSince;
 
 	void reset();
 	void addCounter(HttpMessage::HttpMethod mtd, int32 errCode, int32 latencyHeader, int32 latencyBody);

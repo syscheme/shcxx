@@ -361,7 +361,7 @@ char* RedisClient::_nextLine(char* startOfLine, int maxByte, int minLen)
 
 int RedisClient::_sendLine(const std::string& cmdline)
 {
-	if (cmdline.empty() || _isClose)
+	if (cmdline.empty())
 		return -1;
 
 	std::string cmdToSend = cmdline + REDIS_NEWLINE;
@@ -447,10 +447,8 @@ void RedisClient::OnConnected(ElpeError status)
         return;
     }
     _tcpStatus = Connected;
-    fd_t fd = 0;
-    fileno(&fd);
-	_log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnConnected() connected to the peer, new conn: %s, fd[%d]"), _connDesc, fd);
-	//set_blocking(1);
+	_log(Log::L_DEBUG, CLOGFMT(RedisClient, "OnConnected() connected to the peer, new conn: %s"), _connDesc);
+	set_blocking(1);
     read_start();
 	_inCommingByteSeen =0;
 
