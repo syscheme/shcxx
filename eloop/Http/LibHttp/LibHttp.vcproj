@@ -103,7 +103,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../..;..;../../libuv_1.9.1/include;../..;&quot;$(RegExppKit)&quot;"
+				AdditionalIncludeDirectories="../../..;..;../../libuv_1.20.3/include;../..;&quot;$(RegExppKit)&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;LIBHTTP_EXPORTS"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -159,10 +159,6 @@
 			</File>
 			<File
 				RelativePath=".\HttpConnection.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\HttpMessage.cpp"
 				>
 			</File>
 			<File

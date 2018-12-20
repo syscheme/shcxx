@@ -34,12 +34,13 @@
 
 #include "ZQ_common_conf.h"
 
+#include "uv.h"
+#include "uv-errno.h"
+
 extern "C"{
 #ifdef ZQ_OS_LINUX
 	#include <sys/time.h>
 #endif
-#include "uv.h"
-#include "uv-errno.h"
 };
 
 #include <string>
@@ -232,16 +233,17 @@ public:
 		elpuENXIO               = UV__ENXIO,
 		elpuEMLINK              = UV__EMLINK,
 		elpuEHOSTDOWN           = UV__EHOSTDOWN,
+		elpuUnKnown
 
 	} ElpeError;
 
+	static ElpeError uvErr2ElpeErr(int errCode);
 	static const char* errDesc(ElpeError err)  { return errDesc((int)err); }
 	static const char* errDesc(int err)  { return uv_strerror(err); }
 	static const char* errName(ElpeError err) { return errName((int) err); }
 	static const char* errName(int errNum)    { return uv_err_name(errNum); }
 
 	static int exepath(char* buf,size_t* size){return uv_exepath(buf,size);}
-
 
 protected:
 	Handle();
@@ -250,7 +252,7 @@ protected:
 	virtual ~Handle();
 
 public:
-	void init(Loop &loop);
+	void init(Loop& loop);
 
 	void* data;
 	void close();
@@ -268,7 +270,7 @@ public:
 	uv_handle_t *context_ptr();
 
 protected:
-	virtual void OnClose(){delete this;}
+	virtual void OnClose() { delete this; }
 //	bool		_isStart;
 	bool		_isClose;
 	
@@ -392,6 +394,7 @@ public:
 
 protected:
 	virtual void OnAsync() {}
+	virtual void OnClose() { Handle::OnClose(); }
 
 private:
 	static void _cbAsync(uv_async_t *async);

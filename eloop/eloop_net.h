@@ -31,8 +31,9 @@
 #ifndef __ZQ_COMMON_ELOOP_Net_H__
 #define __ZQ_COMMON_ELOOP_Net_H__
 
-#include "eloop.h"
 #include "ZQ_common_conf.h"
+#include "eloop.h"
+
 namespace ZQ {
 namespace eloop {
 
@@ -56,6 +57,7 @@ public:
 	int shutdown();
 	int listen();
 	int accept(Handle* client);			//windows handle
+
 	int read_start();
 	int read_stop();
 	int write(const eloop_buf_t bufs[],unsigned int nbufs,Handle *send_handle = NULL);
@@ -128,6 +130,8 @@ public:
 	int set_recv_buf_size(int* value);
 
 protected:
+	friend class SingleLoopTCPEngine;
+
 	// TODO: must enumerate all the status in the class
 	virtual void OnConnected(ElpeError status) {}
 
@@ -137,7 +141,6 @@ private:
 	static void _cbConnect(uv_connect_t *req, int status);
 
 };
-
 
 // -----------------------------
 // class UDP

@@ -115,7 +115,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../..;../../libuv_1.9.1/include;../../.."
+				AdditionalIncludeDirectories="../..;../../libuv_1.20.3/include;../../.."
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"

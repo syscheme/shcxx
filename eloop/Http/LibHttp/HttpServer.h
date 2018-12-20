@@ -1,41 +1,68 @@
 #ifndef __HTTP_SERVER_h__
 #define __HTTP_SERVER_h__
 
-#include "HttpMessage.h"
-#include "eloop_net.h"
 #include "HttpConnection.h"
+#include "eloop_net.h"
+
 #include <NativeThread.h>
 #include <SystemUtils.h>
-#include <boost/regex.hpp>
-#include <set>
+#include <list>
 
 
 namespace ZQ {
 namespace eloop {
 
+#define DUMMY_PROCESS_TIMEOUT (60*1000) // 1min a dummy big time
 #define DEFAULT_SITE "."
-class HttpServer;
-class HttpPassiveConn;
-class ServantThread;
+
+class ZQ_ELOOP_HTTP_API HttpServer;
+class ZQ_ELOOP_HTTP_API HttpHandler;
 
 // ---------------------------------------
 // interface HttpHandler
 // ---------------------------------------
-class HttpHandler: public IHttpParseSink, public virtual ZQ::common::SharedObject
+class HttpHandler: public virtual ZQ::common::SharedObject
 {
 	friend class HttpPassiveConn;
-	friend class IBaseApplication;
+	friend class HttpServer;
+
+public:
+	// ---------------------------------------
+	// class HTTP Response
+	// ---------------------------------------
+	class Response : public HttpMessage
+	{
+	public:
+		typedef ZQ::common::Pointer<Response> Ptr;
+		typedef std::list<Ptr>	List;
+
+		Response(HttpServer& server, const HttpMessage::Ptr& req);
+
+		// a generic post
+		StatusCodeEx post(int statusCode, const std::string& body="", const char* errMsg = NULL); 
+
+		// seperate steps of post
+		StatusCodeEx post() { return post(_statusCode); }
+
+		TCPConnection* getConn();
+		int getTimeLeft();
+
+		int64 declareContentLength(int64 contentLen, const char* contentType=NULL, bool chunked=false);
+		StatusCodeEx pushBody(const uint8* data, size_t len, bool chunkedEnd=false);
+
+	private:
+		HttpServer& _server;
+		HttpMessage::Ptr _req;
+		int64 _stampPosted;
+		std::string _txnId;
+		int64 _bodyBytesPushed;
+	};
 
 public:
 	typedef std::map<std::string, std::string> Properties;
 	typedef ZQ::common::Pointer<HttpHandler> Ptr;
-	virtual ~HttpHandler() {
 
-		(_app.log())(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpHandler, "~HttpHandler"));
-
-	}
-
-	HttpPassiveConn& conn() { return _conn; }
+	virtual ~HttpHandler();
 
 	// ---------------------------------------
 	// interface IBaseApplication
@@ -52,31 +79,48 @@ public:
 		virtual ~IBaseApplication() {}
 
 		HttpHandler::Properties getProps() const { return _appProps; }
+		int OngoingSize() { return _cOngoings.get(); }
 		ZQ::common::Log& log() { return _log; }
 
 		// NOTE: this method may be accessed by multi threads concurrently
-		virtual HttpHandler::Ptr create(HttpPassiveConn& conn, const HttpHandler::Properties& dirProps) =0;
+		virtual HttpHandler::Ptr create(HttpServer& server, const HttpMessage::Ptr& req, const HttpHandler::Properties& dirProps) =0;
 
 	protected:
 		HttpHandler::Properties _appProps;
 		ZQ::common::Log&        _log;
+
+	private:
+		friend class HttpHandler;
+		ZQ::common::AtomicInt _cOngoings;
 	};
 
 	typedef ZQ::common::Pointer<IBaseApplication> AppPtr;
 
 protected: // hatched by HttpApplication
-	HttpHandler(IBaseApplication& app, HttpPassiveConn& conn, const HttpHandler::Properties& dirProps = HttpHandler::Properties())
-		: _conn(conn), _app(app), _dirProps(dirProps)
-	{}
+	// the handler is created when all HTTP headers are received
+	HttpHandler(const HttpMessage::Ptr& req, IBaseApplication& app, HttpServer& server, const HttpHandler::Properties& dirProps = HttpHandler::Properties());
 
-	virtual void	onHttpDataSent(size_t size) {}
-	virtual void	onHttpDataReceived( size_t size ) {}
+protected: // forwarded from HttpConnection
+	//@return expect errAsyncInProgress to continue receiving 
+	virtual HttpMessage::StatusCodeEx OnRequestHeaders(const Response::Ptr resp) { _resp=resp; return HttpMessage::errAsyncInProgress; } // maps to RTSP::OnRequest-1
+	virtual HttpMessage::StatusCodeEx OnRequestPayload(const char* data, size_t size) { return HttpMessage::errAsyncInProgress; } // maps to RTSP::OnRequest-2.2
+	virtual HttpMessage::StatusCodeEx OnRequestCompleted(){} // maps to RTSP::OnRequest-3
 
-	HttpPassiveConn& _conn;
+	// forwarded from HTTPConnection
+	virtual void	OnMessagingError(int error, const char* errorDescription) {}
+	virtual void    OnResponsePayloadSubmitted(size_t bytes, uint64 totalPayloadOffset) {}
+
+	HttpMessage::Ptr  _req;
+	HttpHandler::Response::Ptr  _resp;
 	IBaseApplication& _app;
 	HttpHandler::Properties _dirProps;
 };
 
+class HttpPassiveConn;
+
+// ---------------------------------------
+// template HttpApplication
+// ---------------------------------------
 template <class Handler>
 class HttpApplication: public HttpHandler::IBaseApplication
 {
@@ -89,91 +133,45 @@ public:
 		: IBaseApplication(logger, appProps) {}
 	virtual ~HttpApplication() {}
 
-	virtual HttpHandler::Ptr create(HttpPassiveConn& conn, const HttpHandler::Properties& dirProps)
-	{ 
-		return new HandlerT(*this, conn, dirProps);
+	virtual HttpHandler::Ptr create(HttpServer& server, const HttpMessage::Ptr& req, const HttpHandler::Properties& dirProps)
+	{
+		return new HandlerT(req, *this, server, dirProps);
 	}
-};
-
-////---------------------------------------
-////class HttpMonitorTimer
-////----------------------------------------
-//class HttpMonitorTimer : public Timer
-//{
-//public:
-//	//	~HttpMonitorTimer(){printf("~HttpMonitorTimer\n");}
-//	virtual void OnTimer();
-//	//	virtual void OnClose(){printf("HttpMonitorTimer onclose!\n");}
-//};
-//
-
-// ---------------------------------------
-// class HttpPassiveConn
-// ---------------------------------------
-// present an accepted incomming connection
-class HttpPassiveConn : public HttpConnection
-{
-public:
-	HttpPassiveConn(HttpServer& server);
-	~HttpPassiveConn();
-
-	bool			keepAlive() const { return _keepAlive_Timeout>0; }
-	void 			errorResponse( int code );
-	virtual void    onRespComplete(bool isShutdown = false);
-
-protected:
-
-	// implementation of HttpConnection
-	virtual void	onError( int error,const char* errorDescription );
-	virtual void	onHttpDataSent(size_t size);
-	virtual void	onHttpDataReceived( size_t size );
-	virtual bool	onHeadersEnd( const HttpMessage::Ptr msg);
-	virtual bool	onBodyData( const char* data, size_t size);
-	virtual void	onMessageCompleted();
-	//virtual void	OnClose();
-
-	virtual void OnTimer();
-
-
-private:
-	// NOTE: DO NOT INVOKE THIS METHOD unless you known what you are doing
-	void initHint();
-
-protected:
-	HttpHandler::Ptr			_handler;
-	HttpServer&					_server;
-
-	bool						_keepAlive;
-	int64						_keepAlive_Timeout;
-	int64						_startTime;
 };
 
 // ---------------------------------------
 // class HttpServer
 // ---------------------------------------
-class IHttpEngine;
 class HttpServer: public TCPServer
 {
 public:
-	HttpServer( const TCPServer::ServerConfig& conf,ZQ::common::Log& logger)
-		:TCPServer(conf,logger){}
+	HttpServer( const TCPServer::ServerConfig& conf, ZQ::common::Log& logger);
+	virtual ~HttpServer();
 
-	virtual bool onStart(ZQ::eloop::Loop& loop){ return true; }
-	virtual bool onStop(){ return true; }
+	// virtual bool onStart(ZQ::eloop::Loop& loop){ return true; }
+	// virtual bool onStop(){ return true; }
 
+public:
 	// register an application to uri
 	//@param uriEx - the regular expression of uri
 	bool mount(const std::string& uriEx, HttpHandler::AppPtr app, const HttpHandler::Properties& props=HttpHandler::Properties(), const char* virtualSite =DEFAULT_SITE);
+	bool unmount(const std::string& uriEx, const char* virtualSite =DEFAULT_SITE);
+	void clearMounts() { _vsites.clear(); }
 
-	HttpHandler::Ptr createHandler( const std::string& uri, HttpPassiveConn& conn, const std::string& virtualSite = std::string(DEFAULT_SITE));
+	HttpHandler::Ptr createHandler(const HttpMessage::Ptr& req, HttpConnection& conn, const std::string& virtualSite = std::string(DEFAULT_SITE));
 
 	virtual TCPConnection* createPassiveConn();
+
+public: // about the await responses
+	void checkReqStatus();
+	void addAwait(HttpHandler::Response::Ptr resp);
+	void removeAwait(HttpHandler::Response::Ptr resp);
+	int getPendingSize();
 
 private:
 	typedef struct _MountDir
 	{
 		std::string					uriEx;
-		boost::regex				re;
 		HttpHandler::AppPtr	app;
 		HttpHandler::Properties     props;
 	} MountDir;
@@ -182,6 +180,11 @@ private:
 	typedef std::map<std::string, MountDirs> VSites;
 
 	VSites _vsites;
+
+private:
+	HttpHandler::Response::List	_awaits;
+	ZQ::common::Mutex			_lkAwaits;
+
 };
 
 // ---------------------------------------

@@ -24,12 +24,13 @@
 #endif
 
 #if !defined(_SSIZE_T_) && !defined(_SSIZE_T_DEFINED)
-typedef intptr_t ssize_t;
+typedef long ssize_t; // intptr_t ssize_t;
 # define _SSIZE_T_
 # define _SSIZE_T_DEFINED
 #endif
 
 #include <winsock2.h>
+#include <mswsock.h>
 
 #if defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR)
 typedef struct pollfd {
@@ -161,9 +162,10 @@ typedef struct pollfd {
                        LPTRANSMIT_FILE_BUFFERS lpTransmitBuffers,
                        DWORD dwFlags);
 
-  typedef PVOID RTL_SRWLOCK;
-  typedef RTL_SRWLOCK SRWLOCK, *PSRWLOCK;
 #endif
+
+typedef PVOID RTL_SRWLOCK;
+typedef RTL_SRWLOCK SRWLOCK, *PSRWLOCK;
 
 typedef int (WSAAPI* LPFN_WSARECV)
             (SOCKET socket,
@@ -253,15 +255,6 @@ typedef union {
     CRITICAL_SECTION num_readers_lock_;
     HANDLE write_semaphore_;
   } state_;
-  /* TODO: remove me in v2.x. */
-  struct {
-    SRWLOCK unused_;
-  } unused1_;
-  /* TODO: remove me in v2.x. */
-  struct {
-    uv_mutex_t unused1_;
-    uv_mutex_t unused2_;
-  } unused2_;
 } uv_rwlock_t;
 
 typedef struct {

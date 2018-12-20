@@ -166,6 +166,8 @@ typedef struct _IP_ADAPTER_UNICAST_ADDRESS_XP {
   ULONG LeaseLifetime;
 } IP_ADAPTER_UNICAST_ADDRESS_XP,*PIP_ADAPTER_UNICAST_ADDRESS_XP;
 
+#endif
+
 typedef struct _IP_ADAPTER_UNICAST_ADDRESS_LH {
   union {
     ULONGLONG Alignment;
@@ -184,8 +186,6 @@ typedef struct _IP_ADAPTER_UNICAST_ADDRESS_LH {
   ULONG LeaseLifetime;
   UINT8 OnLinkPrefixLength;
 } IP_ADAPTER_UNICAST_ADDRESS_LH,*PIP_ADAPTER_UNICAST_ADDRESS_LH;
-
-#endif
 
 int uv__convert_to_localhost_if_unspecified(const struct sockaddr* addr,
                                             struct sockaddr_storage* storage);

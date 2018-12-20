@@ -248,6 +248,7 @@ class LIPCClient
 
 public:
 	LIPCClient(Loop &loop, ZQ::common::Log& log, int64 timeout =500, int ipc=1); 
+	virtual ~LIPCClient() {}
 
 	uint32	getVerbosity() { return (ZQ::common::Log::loglevel_t)_log.getVerbosity() | (_verboseFlags<<8); }
 	void    setVerbosity(uint32 verbose = (0 | ZQ::common::Log::L_ERROR)) { _log.setVerbosity(verbose & 0x0f); _verboseFlags =verbose>>8; }

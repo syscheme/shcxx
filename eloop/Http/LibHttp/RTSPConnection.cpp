@@ -1,9 +1,47 @@
 #include "RTSPConnection.h"
 #include "TimeUtil.h"
 #include "urlstr.h"
+#include <vector>
+#include <algorithm>
 
 namespace ZQ {
 namespace eloop {
+
+const char* RTSPMessage::methodToStr(RequestMethod method)
+{
+	switch(method)
+	{
+	case mtdSETUP: return "SETUP";
+	case mtdPLAY: return "PLAY";
+	case mtdPAUSE: return "PAUSE";
+	case mtdTEARDOWN: return "TEARDOWN";
+	case mtdGET_PARAMETER: return "GET_PARAMETER";
+	case mtdSET_PARAMETER: return "SET_PARAMETER";
+	case mtdDESCRIBE: return "DESCRIBE";
+	case mtdANNOUNCE: return "ANNOUNCE";
+	case mtdOPTIONS: return "OPTIONS";
+
+	case mtdUNKNOWN:
+	default: break;
+	}
+
+	return "UNKNOWN";
+}
+
+RTSPMessage::RequestMethod RTSPMessage::strToMethod(const char* method)
+{
+	if (0 == stricmp(method, "SETUP")) return mtdSETUP;
+	if (0 == stricmp(method, "PLAY")) return mtdPLAY;
+	if (0 == stricmp(method, "PAUSE")) return mtdPAUSE;
+	if (0 == stricmp(method, "TEARDOWN")) return mtdTEARDOWN;
+	if (0 == stricmp(method, "GET_PARAMETER")) return mtdGET_PARAMETER;
+	if (0 == stricmp(method, "SET_PARAMETER")) return mtdSET_PARAMETER;
+	if (0 == stricmp(method, "DESCRIBE")) return mtdDESCRIBE;
+	if (0 == stricmp(method, "ANNOUNCE")) return mtdANNOUNCE;
+	if (0 == stricmp(method, "OPTIONS")) return mtdOPTIONS;
+
+	return mtdUNKNOWN;
+}
 
 #define  RTSP_RECV_BUF_SIZE (8*1024)
 //-------------------------------------
@@ -11,16 +49,7 @@ namespace eloop {
 //-------------------------------------
 void RTSPConnection::OnConnected(ElpeError status)
 {
-	if (status != ZQ::eloop::Handle::elpeSuccess)
-	{
-		std::string desc = "connect error:";
-		desc.append(ZQ::eloop::Handle::errDesc(status));
-		desc = hint() + desc;
-		onError(status,desc.c_str());
-		return;
-	}
-
-	start();
+	TCPConnection::OnConnected(status);
 
 	for (RTSPMessage::MsgVec::iterator it = _reqList.begin();it != _reqList.end();)
 	{
@@ -44,7 +73,7 @@ void RTSPConnection::doAllocate(eloop_buf_t* buf, size_t suggested_size)
 
 		if ((_recvBuf.len - _byteSeen) <=0)
 		{
-			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPConnection, "doAllocate() conn[%s] last incomplete message exceed bufsz[%d] from offset[%d], give it up"), hint().c_str(), _recvBuf.len, _byteSeen);
+			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPConnection, "doAllocate() conn[%s] last incomplete message exceed bufsz[%d] from offset[%d], give it up"), linkstr(), _recvBuf.len, _byteSeen);
 			_byteSeen =0;
 			memset(_recvBuf.base,0,_recvBuf.len);
 		}
@@ -56,23 +85,12 @@ void RTSPConnection::doAllocate(eloop_buf_t* buf, size_t suggested_size)
 
 void RTSPConnection::OnRead(ssize_t nread, const char *buf)
 {
-	if (nread < 0)
-	{
-		std::string desc = "Read error:";
-		desc.append(errDesc(nread));
-		desc = hint() + desc;
-		onError(nread, desc.c_str());
-		return;
-	}
-
+	TCPConnection::OnRead(nread, buf);
 	if (nread == 0)
 		return;
 
 	if (TCPConnection::_enableHexDump > 0)
-		_logger.hexDump(ZQ::common::Log::L_INFO, _recvBuf.base+_byteSeen, nread, (hint()+ " OnRead").c_str(),true);
-
-
-	onDataReceived(nread);
+		_logger.hexDump(ZQ::common::Log::L_INFO, _recvBuf.base+_byteSeen, nread, (_connId + _linkstr + " OnRead").c_str(),true);
 
 	parse(nread);
 }
@@ -107,8 +125,8 @@ int RTSPConnection::sendRequest(RTSPMessage::Ptr req, int64 timeout, bool expect
 
 	OnRequestPrepared(req);
 	std::string reqStr = req->toRaw();
-	int ret = write(reqStr.c_str(), reqStr.size());
-	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPConnection, "sendRequest() conn[%s] msg[%s]"), hint().c_str(),reqStr.c_str());
+	int ret = enqueueSend((const uint8*)reqStr.c_str(), reqStr.size());
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPConnection, "sendRequest() conn[%s] msg[%s]"), linkstr(),reqStr.c_str());
 
 	if (ret < 0)
 	{
@@ -159,7 +177,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 
 			if (_currentParseMsg.contentBodyRead < _currentParseMsg.pMsg->contentLength())
 			{
-				_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPConnection, "parse() conn[%s] incompleted message left, appended[%zd], Content-Length[%d/%d]"), hint().c_str(), len, (int)_currentParseMsg.contentBodyRead, _currentParseMsg.pMsg->contentLength());
+				_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPConnection, "parse() conn[%s] incompleted message left, appended[%zd], Content-Length[%d/%d]"), linkstr(), len, (int)_currentParseMsg.contentBodyRead, _currentParseMsg.pMsg->contentLength());
 				continue;
 			}
 
@@ -168,7 +186,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 			// check the header CSeq
 			if (_currentParseMsg.pMsg->cSeq() <= 0)
 			{
-				_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPConnection, "parse() conn[%s] ignore illegal response withno CSeq"), hint().c_str());
+				_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPConnection, "parse() conn[%s] ignore illegal response withno CSeq"), linkstr());
 				_currentParseMsg.reset();
 				continue;
 			}
@@ -182,7 +200,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 				char descBuf[4096];
 				unsigned char* data = (unsigned char* )_recvBuf.base;
 				int bufPos = 0;
-				bufPos += sprintf(&descBuf[bufPos], "%s %s startLine:%s msg:",hint().c_str(), desc.c_str(), _currentParseMsg.startLine.c_str());
+				bufPos += sprintf(&descBuf[bufPos], "%s %s startLine:%s msg:",linkstr(), desc.c_str(), _currentParseMsg.startLine.c_str());
 
 				int bufLeft = sizeof(descBuf) - bufPos - 8;
 
@@ -190,7 +208,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 					descBuf[bufPos ++] = (' '==data[i] || isgraph(data[i])) ? data[i] : '.';
 				descBuf[bufPos++] = '\0';
 
-				onError(ParseStartLineError, descBuf);
+				OnConnectionError(ParseStartLineError, descBuf);
 				_currentParseMsg.reset();
 				continue;
 			}
@@ -364,7 +382,7 @@ void RTSPConnection::parse(ssize_t bytesRead)
 			if (resp)
 				err = resp->code();
 
-			_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPConnection, "OnResponse() %s(%d) ret(%d) took %dmsec triggered, cleaning from await list"), resp->method().c_str(), cseq, err, elapsed);
+			_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPConnection, "OnResponse() %s(%d) ret(%d) took %dmsec triggered, cleaning from await list"), RTSPMessage::methodToStr(resp->method()), cseq, err, elapsed);
 
 			OnRequestDone(cseq, err);
 			_awaits.erase(cseq);
@@ -423,7 +441,7 @@ bool RTSPConnection::parseStartLine(const std::string& startLine, RTSPMessage::P
 			std::string proto = trim(p);
 
 			pMsg->setMsgType(RTSPMessage::RTSP_MSG_REQUEST);
-			pMsg->method(cmdName);
+			pMsg->method(RTSPMessage::strToMethod(cmdName.c_str()));
 			pMsg->url(url);
 			pMsg->version(proto);
 		}
@@ -507,18 +525,6 @@ char* RTSPConnection::nextLine(char* startOfLine, int maxByte)
 		*ptr = '\0';
 
 	return startOfLine;
-}
-
-void RTSPConnection::OnWrote(int status)
-{
-	if (status != elpeSuccess)
-	{
-		std::string desc = std::string("send failed: ") + hint() + " " + errDesc(status);
-		onError(status,desc.c_str());
-		return;
-	}
-
-	onDataSent(status);
 }
 
 void RTSPConnection::OnTimer()

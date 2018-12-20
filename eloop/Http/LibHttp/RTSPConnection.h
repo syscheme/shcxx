@@ -3,7 +3,6 @@
 
 #include "Pointer.h"
 #include "TCPServer.h"
-#include "TimeUtil.h"
 
 #include <sstream>
 #include <string>
@@ -22,13 +21,14 @@ namespace eloop {
 #define	Header_Session				"Session"
 #define	Header_Transport			"Transport"
 
-#define	Header_MethodCode			"Method-Code"
 #define Header_UserAgent			"User-Agent"
 #define Header_ContentType			"Content-Type"
 #define Header_ContentLength		"Content-Length"
 #define Header_Notice				"Notice"
 #define Header_Date					"Date"
-#define Header_Reason				"x-reason"
+#define Header_Warning				"Warning"
+// #define Header_Reason				"X-reason"
+#define	Header_RequestId			"X-Request-ID"
 
 
 #define Method_OPTIONS				"OPTIONS"
@@ -44,6 +44,7 @@ namespace eloop {
 class ZQ_ELOOP_HTTP_API RTSPMessage;
 class ZQ_ELOOP_HTTP_API RTSPSession;
 class ZQ_ELOOP_HTTP_API RTSPConnection;
+
 //-------------------------------------
 //	class RTSPMessage
 //-------------------------------------
@@ -51,7 +52,6 @@ class RTSPMessage : public ZQ::common::SharedObject
 {
 public:
 	typedef ZQ::common::Pointer<RTSPMessage> Ptr;
-
 	typedef std::vector<Ptr> MsgVec;
 
 	static bool less(Ptr i, Ptr j) {  return (i->cSeq() < j->cSeq()); }
@@ -64,6 +64,7 @@ public:
 		rcUnauthorized          = 401,
 		rcForbidden 		    = 403,
 		rcObjectNotFound        = 404,
+		rcMethodNotAllowed      = 405,
 		rcNotAcceptable  		= 406,
 		rcRequestTimeout        = 408,
 		rcBadParameter          = 451,
@@ -74,6 +75,7 @@ public:
 		rcInternalError			= 500,
 		rcNotImplement			= 501,
 		rcServiceUnavail		= 503,
+		rcProcessTimeout        = 504,
 		rcOptionNotSupport		= 551,
 
 		// NGOD-compatible extensions
@@ -96,6 +98,9 @@ public:
 		// async handling
 		Err_AsyncHandling  = -200,
 	} ExtendedErrCode;
+
+#define RTSP_SUCC(ErrCode) (ErrCode>=200 && ErrCode < 300)
+#define RTSP_SUCC_PROCESS(ErrCode) (RTSP_SUCC(ErrCode) || (ZQ::eloop::RTSPMessage::Err_AsyncHandling == ErrCode))
 
 	typedef enum _AnnounceCode
 	{
@@ -131,6 +136,22 @@ public:
 		RTSP_MSG_RESPONSE = 1
 	} RTSPMessgeType;
 
+	typedef enum _RequestMethod {
+		mtdUNKNOWN,
+		mtdSETUP,
+		mtdPLAY,
+		mtdPAUSE,
+		mtdTEARDOWN,
+		mtdGET_PARAMETER,
+		mtdSET_PARAMETER,
+		mtdDESCRIBE,
+		mtdOPTIONS,
+		mtdANNOUNCE, // this is a mimic
+	} RequestMethod;
+
+	static const char* methodToStr(RequestMethod method);
+	static RequestMethod strToMethod(const char* method);
+
 	typedef std::map<std::string, std::string> Properties;
 	typedef Properties Headers;
 
@@ -138,14 +159,11 @@ public:
 	{
 		std::string		key;
 		std::string		value;
-	}StrPair;
+	} StrPair;
 	typedef std::vector<StrPair>	StrPairVec;
 
 public:
-	RTSPMessage(const std::string& connId="", RTSPMessgeType type = RTSP_MSG_REQUEST):_msgType(type),_cSeq(-1),_bodyLen(0),_stampCreated(ZQ::common::now()),_connId(connId)
-	{
-	}
-
+	RTSPMessage(const std::string& connId="", RTSPMessgeType type = RTSP_MSG_REQUEST);
 	virtual ~RTSPMessage() {}
 
 	static void splitStrPair(const std::string& strPairData, StrPairVec& outVec,const std::string& delimiter="\r\n");
@@ -154,21 +172,25 @@ public:
 	static const std::string& code2status(int code);
 
 	const std::string& header( const std::string& key) const;
+	int elapsed() const;
 
 	template<typename T>
 	void header( const std::string& key, const T& value)
 	{
 		std::ostringstream oss;
-		oss<<value;
+		oss << value;
+		std::string valstr = oss.str();
 		ZQ::common::MutexGuard gd(_lockHeaders);
-		_headers[key] = oss.str();
+		if (valstr.empty())
+			_headers.erase(key);
+		else _headers[key] = valstr;
 	}
 
-	const std::string& version() const { return _protocolVersion; }
-	void version(const std::string& version) { _protocolVersion = version; }
+	const std::string& version() const { return _rtspVersion; }
+	void version(const std::string& version) { _rtspVersion = version; }
 
-	const std::string&	method() const { return _method; }
-	void method(const std::string& method) { _method = method; }
+	RequestMethod method() const { return _method; }
+	void method(RequestMethod method) { _method = method; }
 
 	const std::string& url() const { return _url; }
 	void url(const std::string& url) { _url = url; }
@@ -203,10 +225,11 @@ public:
 
 	std::string toRaw();
 	std::string getConnId(){ return _connId; }
-	void setConnId(const std::string& connId){ _connId = connId; }
+	void setConnId(const std::string& connId) { _connId = connId; }
 
 	int64				_stampCreated;
-private:
+
+protected:
 	std::string			_connId; // TODO: what if the connection is lost piror to response sending
 	ZQ::common::Mutex	_lockHeaders;
 	Headers				_headers;
@@ -221,10 +244,9 @@ private:
 	std::string			_statusDesc;
 	int					_statusCode;//status code
 
-	std::string			_method;
+	RequestMethod   	_method;
 	std::string			_url;
-	std::string			_protocolVersion;
-
+	std::string			_rtspVersion; // 1.0 by default
 };
 
 #ifndef SYS_PROP
@@ -317,12 +339,8 @@ protected:
 	virtual void doAllocate(eloop_buf_t* buf, size_t suggested_size);
 
 	virtual void OnRead(ssize_t nread, const char *buf);
-	virtual void OnWrote(int status);
 
-	virtual void onError( int error,const char* errorDescription ){}
-
-	virtual void	onDataSent(size_t size){}
-	virtual void	onDataReceived( size_t size ){}
+	virtual void OnConnectionError( int error,const char* errorDescription ){}
 
 protected: // impl of RTSPParseSink
 	virtual void OnResponse(RTSPMessage::Ptr resp){}
@@ -363,9 +381,7 @@ private:
 	typedef std::map<uint, AwaitRequest> AwaitRequestMap;
 	AwaitRequestMap _awaits;
 	ZQ::common::Mutex _lkAwaits; // because sendRequest() is open for other threads out of eloop to call
-
 	RTSPMessage::MsgVec		_reqList;
-
 
 	void parse(ssize_t bytesRead);
 
