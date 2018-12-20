@@ -1,5 +1,5 @@
 #include "eloop.h"
-#include "eloop_net.h"
+// #include "eloop_net.h"
 //#include <stdlib.h>
 namespace ZQ {
 namespace eloop {
@@ -130,142 +130,136 @@ Handle::ElpeError Handle::uvErr2ElpeErr(int errCode)
 	return elpuUnKnown;
 }
 
+static int64 usStampNow()
+{
+#ifdef ZQ_OS_LINUX
 
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	return tv.tv_sec*1000*1000 + tv.tv_usec;
+#else
+	return 0;
+#endif
+}
 
 // -----------------------------
 // class Handle
 // -----------------------------
-Handle::Handle()
-	:data(NULL),
-	context(NULL),
-	_isClose(false),
-	_loop(NULL) 
+Handle::Handle(Loop& loop)
+	: _context(NULL), _loop(loop) // , _isClose(false), data(NULL)
 {
+	_context = new uv_any_handle;
+	_context->handle.data = static_cast<void *>(this);
 }
 
-Handle::~Handle() {
-
-	if (context == NULL || !is_active())
+Handle::~Handle()
+{
+	if (_context == NULL)
 		return;
 
-	close();
-	uv_run(context->handle.loop, UV_RUN_DEFAULT);
-}
+	if (uv_is_active(&_context->handle))
+		uv_close(&_context->handle, _cbClose);
 
-Handle::Handle(Handle &other) {
-	context = other.context;
-	data = other.data;
-	_loop = other._loop;
-	other.context = NULL;
-	other.data = NULL;
-	other._loop =NULL;
+	while (uv_is_closing(&_context->handle))
+		uv_run(_context->handle.loop, UV_RUN_DEFAULT);
+
+	delete _context;
+	_context = NULL;
 }
 
 void Handle::_cbClose(uv_handle_t *uvhandle)
 {
 	Handle *h = static_cast<Handle *>(uvhandle->data);
 	if (NULL != h)
-	{
-		h->_deleteContext();
 		h->OnClose();
-	}
 }
 
-Handle& Handle::operator=(Handle &other) {
+//Handle::Handle(Handle &other)
+//{
+//	_context = other._context;
+//	data = other.data;
+//	_loop = other._loop;
+//	other.context = NULL;
+//	other.data = NULL;
+//	other._loop =NULL;
+//}
+//
+//
+//Handle& Handle::operator=(Handle &other) {
+//
+//	context = other.context;
+//	data = other.data;
+//	_loop = other._loop;
+//
+//	other.context = NULL;
+//	other.data = NULL;
+//	other._loop =NULL;
+//	return *this;
+//}
 
-	context = other.context;
-	data = other.data;
-	_loop = other._loop;
-
-	other.context = NULL;
-	other.data = NULL;
-	other._loop =NULL;
-	return *this;
-}
-
-void Handle::init(Loop &loop) {
-	
-	_loop = &loop;
-	if (context != NULL)
-		return;
-
-	context = new uv_any_handle;
-	context->handle.data = static_cast<void *>(this);
-}
-
-uv_handle_t *Handle::context_ptr()
-{
-	if (context)
-		return &context->handle;
-
-	return NULL;
-}
-
-int Handle::is_active() {
-	if (context == NULL) return 0;
-	return uv_is_active(&context->handle);
-}
-
-int Handle::is_closing()
-{
-	if (context == NULL) return elpuEAI_NODATA;
-	return uv_is_closing(&context->handle);
-}
+//
+//uv_handle_t *Handle::context_ptr()
+//{
+//	if (context)
+//		return &context->handle;
+//
+//	return NULL;
+//}
+//
+//int Handle::is_active() {
+//	if (context == NULL) return 0;
+//	return uv_is_active(&context->handle);
+//}
+//
+//int Handle::is_closing()
+//{
+//	if (context == NULL) return elpuEAI_NODATA;
+//	return uv_is_closing(&context->handle);
+//}
 
 void Handle::close()
 {
-	if (_isClose) return;
-	_isClose = true;
-	uv_close(&context->handle, _cbClose);
+	if (_context == NULL || uv_is_closing(&_context->handle))
+		return;
+
+	if (uv_is_active(&_context->handle))
+		uv_close(&_context->handle, _cbClose);
 }
 
-void Handle::_deleteContext()
-{
-	if (context == NULL) return;
-
-	delete context;
-	context = NULL;
-}
-
-void Handle::ref()
-{
-	if (context == NULL) return;
-	uv_ref(&context->handle);
-}
-
-void Handle::unref()
-{
-	if (context == NULL) return;
-	uv_unref(&context->handle);
-}
-
-int Handle::has_ref()
-{
-	if (context == NULL) return elpuEAI_NODATA;
-	return uv_has_ref(&context->handle);
-}
+//void Handle::ref()
+//{
+//	if (context == NULL) return;
+//	uv_ref(&context->handle);
+//}
+//
+//void Handle::unref()
+//{
+//	if (context == NULL) return;
+//	uv_unref(&context->handle);
+//}
+//
+//int Handle::has_ref()
+//{
+//	if (context == NULL) return elpuEAI_NODATA;
+//	return uv_has_ref(&context->handle);
+//}
 
 int Handle::send_buffer_size(int *value)
 {
-	if (context == NULL) return elpuEAI_NODATA;
-	return uv_send_buffer_size(&context->handle, value);
+	if (_context == NULL) return elpuEAI_NODATA;
+	return uv_send_buffer_size(&_context->handle, value);
 }
 
 int Handle::recv_buffer_size(int *value) 
 {
-	if (context == NULL) return elpuEAI_NODATA;
-	return uv_recv_buffer_size(&context->handle, value);
+	if (_context == NULL) return elpuEAI_NODATA;
+	return uv_recv_buffer_size(&_context->handle, value);
 }
 
 int Handle::fileno(fd_t *fd)
 {
-	if (context == NULL) return elpuEAI_NODATA;
-	return uv_fileno(&context->handle, fd);
-}
-
-Loop& Handle::get_loop()
-{
-	return *_loop;
+	if (_context == NULL) return elpuEAI_NODATA;
+	return uv_fileno(&_context->handle, fd);
 }
 
 // -----------------------------
@@ -406,41 +400,41 @@ void Loop::walk(void *arg)
 // -----------------------------
 // class Idle
 // -----------------------------
-Idle::Idle()
+#define TYPED_HANDLE(_TYPE_T)  ((_TYPE_T *) &_context->handle)
+#define INIT_UV_HANDLE(_TYPE)  if (_context) uv_##_TYPE##_init(_loop.context_ptr(), TYPED_HANDLE(uv_##_TYPE##_t));
+#define CALL_ASSERT()          if (NULL == _context) return -1;
+
+#define CALLBACK_CTX(_CLASS, cbFUNC, PARAMS)  _CLASS* ctx = static_cast<_CLASS *>(uvhandle->data); if (ctx) ctx->cbFUNC PARAMS;
+
+void Idle::init()
 {
+	if (NULL == _context) return;
+	uv_idle_init(_loop.context_ptr(), TYPED_HANDLE(uv_idle_t));
 }
 
 void Idle::_cbOnIdle(uv_idle_t* uvhandle)
 {
-	Idle *h = static_cast<Idle *>(uvhandle->data);
-	if (NULL != h)
-		h->OnIdle();
+	CALLBACK_CTX(Idle, OnIdle, ())
+	//Idle *h = static_cast<Idle *>(uvhandle->data);
+	//if (NULL != h)
+	//	h->OnIdle();
 }
 
-int Idle::init(Loop &loop) {
-	this->Handle::init(loop);
-	uv_idle_t* handle = (uv_idle_t *)context_ptr();
-	return uv_idle_init(loop.context_ptr(), handle);
+int Idle::start()
+{
+	CALL_ASSERT();
+	return uv_idle_start(TYPED_HANDLE(uv_idle_t), _cbOnIdle);
 }
 
-int Idle::start() {
-	uv_idle_t* handle = (uv_idle_t *)context_ptr();
-	return uv_idle_start(handle, _cbOnIdle);
-}
-
-int Idle::stop() {
-	uv_idle_t* handle = (uv_idle_t *)context_ptr();
-	return uv_idle_stop(handle);
+int Idle::stop()
+{
+	CALL_ASSERT();
+	return uv_idle_stop(TYPED_HANDLE(uv_idle_t));
 }
 
 // -----------------------------
 // class Timer
 // -----------------------------
-/*
-Timer::Timer()
-{
-}
-*/
 void Timer::_cbOnTimer(uv_timer_t *timer)
 {
 	Timer *h = static_cast<Timer *>(timer->data);
@@ -448,19 +442,28 @@ void Timer::_cbOnTimer(uv_timer_t *timer)
 		h->OnTimer();
 }
 
-int Timer::init(Loop &loop) {
-	this->Handle::init(loop);
-	uv_timer_t * timer = (uv_timer_t *)context_ptr();
-	return uv_timer_init(loop.context_ptr(), timer);
+void Timer::init()
+{
+	INIT_UV_HANDLE(timer);
+
+	//this->Handle::init(loop);
+	//uv_timer_t * timer = (uv_timer_t *)context_ptr();
+	//return uv_timer_init(loop.context_ptr(), timer);
 }
 
-int Timer::start(uint64_t timeout, uint64_t repeat) {
+int Timer::start(uint64_t timeout, uint64_t repeat)
+{
+	CALL_ASSERT();
+	return uv_timer_start(TYPED_HANDLE(uv_timer_t), _cbOnTimer, timeout, repeat);
 
-	uv_timer_t* timer = (uv_timer_t *)context_ptr();
-	return uv_timer_start(timer, _cbOnTimer, timeout, repeat);
+	//uv_timer_t* timer = (uv_timer_t *)context_ptr();
+	//return uv_timer_start(timer, _cbOnTimer, timeout, repeat);
 }
 
-int Timer::stop() {
+int Timer::stop()
+{
+	CALL_ASSERT();
+	return uv_timer_start(TYPED_HANDLE(uv_timer_t), _cbOnTimer, timeout, repeat);
 
 	uv_timer_t* timer = (uv_timer_t *)context_ptr();
 	return uv_timer_stop(timer);

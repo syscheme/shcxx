@@ -39,7 +39,7 @@
 
 extern "C"{
 #ifdef ZQ_OS_LINUX
-	#include <sys/time.h>
+#include <sys/time.h>
 #endif
 };
 
@@ -59,19 +59,6 @@ extern "C"{
 namespace ZQ {
 namespace eloop {
 
-
-	static int64 usStampNow()
-	{
-		#ifdef ZQ_OS_LINUX
-
-				struct timeval tv;
-				gettimeofday(&tv, NULL);
-				return tv.tv_sec*1000*1000 + tv.tv_usec;
-		#else
-				return 0;
-		#endif
-	}
-
 class ZQ_ELOOP_API Loop;
 class ZQ_ELOOP_API Handle;
 class ZQ_ELOOP_API Idle;
@@ -88,7 +75,6 @@ class Handle
 {
 public:
 	typedef uv_os_fd_t fd_t;
-
 	typedef uv_buf_t eloop_buf_t;
 
 	typedef enum _ElpHandleType
@@ -111,7 +97,7 @@ public:
 		ELOOP_TTY = UV_TTY,
 		ELOOP_UDP = UV_UDP,
 		ELOOP_SIGNAL = UV_SIGNAL,
-		
+
 		ELOOP_FILE = UV_FILE,
 		ELOOP_HANDLE_TYPE_MAX = UV_HANDLE_TYPE_MAX
 	} eloop_handle_type;
@@ -172,7 +158,7 @@ public:
 		elpuEAI_SOCKTYPE        = UV__EAI_SOCKTYPE,
 		elpuEAI_BADHINTS        = UV__EAI_BADHINTS,
 		elpuEAI_PROTOCOL        = UV__EAI_PROTOCOL,
-		
+
 		elpuE2BIG               = UV__E2BIG,
 		elpuEACCES              = UV__EACCES,
 		elpuEADDRINUSE          = UV__EADDRINUSE,
@@ -246,42 +232,44 @@ public:
 	static int exepath(char* buf,size_t* size){return uv_exepath(buf,size);}
 
 protected:
-	Handle();
-	Handle(Handle &);
-	Handle &operator=(Handle &);
+	Handle(Loop& loop);
+	// Handle(Handle &);
+	// Handle &operator=(Handle &);
+
+	virtual void init() =0;
 	virtual ~Handle();
 
 public:
-	void init(Loop& loop);
+	Loop& loop() { return _loop; }
 
-	void* data;
-	void close();
-	void ref();
-	void unref();
-	int has_ref();
+	void close(); // void close();
 
-	int is_active();
-	int is_closing();
+	//void* data;
+	//void close();
+	//void ref();
+	//void unref();
+	//int has_ref();
+
+	//int is_active();
+	//int is_closing();
 	int send_buffer_size(int *value);
 	int recv_buffer_size(int *value);
 	int fileno(fd_t* fd);
-	void _deleteContext();
-	Loop& get_loop();
-	uv_handle_t *context_ptr();
+    //void _deleteContext();
+    //Loop& get_loop();
+    //uv_handle_t *context_ptr();
 
 protected:
 	virtual void OnClose() { delete this; }
-//	bool		_isStart;
-	bool		_isClose;
-	
+	//	bool		_isStart;
+	// bool		_isClose;
+
+	Loop& _loop;
+	uv_any_handle* _context;
 
 private:
 	static void _cbClose(uv_handle_t *uvhandle);
-
-	uv_any_handle* context;
-	Loop* _loop;
 };
-
 
 // -----------------------------
 // class Request
@@ -298,7 +286,7 @@ private:
 	EloopRequest &operator=(EloopRequest &){}
 protected:
 	uv_req_t *context_ptr();
-	
+
 private:
 	uv_any_req* context;
 };
@@ -348,12 +336,13 @@ private:
 class Idle : public Handle
 {
 public:
-	Idle();
-	int init(Loop &loop);
+	Idle(Loop& loop) : Handle(loop) {}
+
 	int start();
 	int stop();
 
 protected:
+	virtual void init();
 	virtual void OnIdle() {}
 
 private:
@@ -366,8 +355,7 @@ private:
 class Timer : public Handle
 {
 public:
-//	Timer();
-	int init(Loop &loop);
+	Timer(Loop& loop) : Handle(loop) {}
 	int start(uint64_t timeout, uint64_t repeat);
 	int stop();
 	int again();
@@ -375,6 +363,7 @@ public:
 	uint64_t get_repeat();
 
 protected:
+	virtual void init();
 	virtual void OnTimer() {}
 
 private:
@@ -444,7 +433,7 @@ class Stream;
 class Process : public Handle
 {
 public:
-	 typedef enum _stdioFlags{
+	typedef enum _stdioFlags{
 		ELOOP_IGNORE = UV_IGNORE,
 		ELOOP_CREATE_PIPE = UV_CREATE_PIPE,
 		ELOOP_INHERIT_FD = UV_INHERIT_FD,
@@ -457,8 +446,8 @@ public:
 		ELOOP_WRITABLE_PIPE = UV_WRITABLE_PIPE
 	}eloop_stdio_flags;
 
-	 typedef enum _processFlags{
-			  /*
+	typedef enum _processFlags{
+		/*
 		* Set the child process' user id. The user id is supplied in the `uid` field
 		* of the options struct. This does not work on windows; setting this flag
 		* will cause uv_spawn() to fail.
@@ -490,7 +479,7 @@ public:
 		* ignored.
 		*/
 		ELOOP_PROCESS_WINDOWS_HIDE = UV_PROCESS_WINDOWS_HIDE
-	 }eloop_process_flags;
+	}eloop_process_flags;
 
 	typedef uv_stdio_container_t eloop_stdio_container_t;
 	typedef uv_uid_t	eloop_uid_t;
@@ -510,7 +499,7 @@ public:
 	int kill(int pid,int signum);
 
 protected:
-	virtual void OnExit(int64_t exit_status,int term_signal) { close();}
+	virtual void OnExit(int64_t exit_status,int term_signal) { close(); }
 
 private:
 	static void _cbExit(uv_process_t* handle,int64_t exit_status,int term_signal);
@@ -526,21 +515,21 @@ private:
 class AsyncBuf
 {
 public:
-	typedef std::vector<uv_buf_t> ELBUFS;
+typedef std::vector<uv_buf_t> ELBUFS;
 public:
-	AsyncBuf(){}
-	~AsyncBuf(){}
+AsyncBuf(){}
+~AsyncBuf(){}
 
-	void push_back(char* base,size_t len)
-	{
-		uv_buf_t buf;
-		buf.base = base;
-		buf.len = len;
-		_bufs.push_back(buf);
-	}
+void push_back(char* base,size_t len)
+{
+uv_buf_t buf;
+buf.base = base;
+buf.len = len;
+_bufs.push_back(buf);
+}
 
 private:
-	ELBUFS _bufs;
+ELBUFS _bufs;
 };
 */
 
