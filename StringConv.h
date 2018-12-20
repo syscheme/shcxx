@@ -1,7 +1,7 @@
 
 // ===========================================================================
 // Copyright (c) 2004 by
-// syscheme, Shanghai,,
+// syscheme, Shanghai
 // All Rights Reserved.  Unpublished rights reserved under the copyright
 // laws of the United States.
 // 
