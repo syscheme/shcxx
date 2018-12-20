@@ -1,6 +1,6 @@
 // ===========================================================================
 // Copyright (c) 2015 by
-// XOR media, Shanghai
+// XOR media, Shanghai, PRC.,
 // All Rights Reserved.  Unpublished rights reserved under the copyright
 // laws of the United States.
 // 
@@ -96,7 +96,6 @@ private:
 protected:
 	eloop_buf_t	_recvBuf;
 	int			_byteSeen;
-
 };
 
 // -----------------------------

@@ -241,7 +241,7 @@ protected:
 	virtual void OnError();
 	virtual void OnRead(ssize_t nread, const char *buf);
     virtual void OnWrote(int status);
-    virtual void OnClose(){_tcpStatus = unConnect;}
+    virtual void OnClose(){}
 
 	// new  callbacks
 	virtual int  OnRequestPrepare(RedisCommand::Ptr& pReq) { return 0; }

@@ -132,6 +132,11 @@ void UnixSocket::OnCloseAsync()
 		delete _async;
 		_async = NULL;
 	}
+
+	{
+		ZQ::common::MutexGuard gd(_lkSendMsgList);
+		_SendMsgList.clear();
+	}
 	shutdown();
 }
 
@@ -176,6 +181,7 @@ void UnixSocket::encode(const std::string& src,std::string& dest)
 
     // format of a netstring is [len]:[string]
     sprintf(strLen, "~%d:", len);
+	dest.reserve(len + strlen(strLen) + 10);
     dest.append(strLen);
     dest.append(src);
     dest.append(",");
@@ -245,7 +251,12 @@ void UnixSocket::encode(const std::string& src,std::string& dest)
 
 void UnixSocket::processMessage(ssize_t nread, const char *buf)
 {
-	int buflen = strlen(buf);
+//	int buflen = strlen(buf);
+	int buflen = 0;
+	while(*(buf+buflen) != '\0' && buflen <= nread) 
+		buflen++;
+
+
 	if (nread != buflen)
 	{
 		char errDesc[10240];

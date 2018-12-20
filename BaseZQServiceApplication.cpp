@@ -267,7 +267,7 @@ HRESULT BaseZQServiceApplication::init(int argc,char *argv[])
 	MyGlog(ZQ::common::Log::L_INFO,_T("===================== Loading service common interface ======================"));
 	ZQ::common::setGlogger(m_pReporter);
 
-	_strVersion = __STR1__(ZQ_PRODUCT_VER_MAJOR) "." __STR1__(ZQ_PRODUCT_VER_MINOR) "." __STR1__(ZQ_PRODUCT_VER_PATCH) "." __STR1__(ZQ_PRODUCT_VER_BUILD);
+	_strVersion = __N2S__(ZQ_PRODUCT_VER_MAJOR) "." __N2S__(ZQ_PRODUCT_VER_MINOR) "." __N2S__(ZQ_PRODUCT_VER_PATCH) "." __N2S__(ZQ_PRODUCT_VER_BUILD);
 	MyGlog(Log::L_INFO, "========================= Service[%s] version[%s] starts =========================",m_sServiceName,_strVersion.c_str());
 
 	// remark the log
@@ -320,8 +320,8 @@ HRESULT BaseZQServiceApplication::init(int argc,char *argv[])
 	//SNMPManagerAddVar(_T("LogLevel"), (DWORD)&m_dwLogLevel, ZQSNMP_INT, 0, &dwRet);
     //
     // added the version info
-    //_tcscpy(m_sVersion, ZQ_INTERNAL_FILE_NAME ":" __STR1__(ZQ_PRODUCT_VER_MAJOR) "." __STR1__(ZQ_PRODUCT_VER_MINOR) "." __STR1__(ZQ_PRODUCT_VER_PATCH) "." __STR1__(ZQ_PRODUCT_VER_BUILD));
-    _tcscpy(m_sVersion, __STR1__(ZQ_PRODUCT_VER_MAJOR) "." __STR1__(ZQ_PRODUCT_VER_MINOR) "." __STR1__(ZQ_PRODUCT_VER_PATCH) "." __STR1__(ZQ_PRODUCT_VER_BUILD));
+    //_tcscpy(m_sVersion, ZQ_INTERNAL_FILE_NAME ":" __N2S__(ZQ_PRODUCT_VER_MAJOR) "." __N2S__(ZQ_PRODUCT_VER_MINOR) "." __N2S__(ZQ_PRODUCT_VER_PATCH) "." __N2S__(ZQ_PRODUCT_VER_BUILD));
+    _tcscpy(m_sVersion, __N2S__(ZQ_PRODUCT_VER_MAJOR) "." __N2S__(ZQ_PRODUCT_VER_MINOR) "." __N2S__(ZQ_PRODUCT_VER_PATCH) "." __N2S__(ZQ_PRODUCT_VER_BUILD));
 	
 	// SNMPManageVariable("Version", &m_sVersion, ZQSNMP_VARTYPE_STRING, TRUE);
     // SNMPManageVariable("SnmpLoggingMask", &m_dwSnmpLoggingMask, ZQSNMP_VARTYPE_INT32, TRUE);
@@ -487,7 +487,7 @@ HRESULT BaseZQServiceApplication::init(int argc,char *argv[])
 	hr = OnInit();
 	if(hr==S_OK)
 	{
-		const char* pStr= ZQ_FILE_DESCRIPTION " " __STR1__(ZQ_PRODUCT_VER_MAJOR) "." __STR1__(ZQ_PRODUCT_VER_MINOR) "." __STR1__(ZQ_PRODUCT_VER_PATCH) "." __STR1__(ZQ_PRODUCT_VER_BUILD);		
+		const char* pStr= ZQ_FILE_DESCRIPTION " " __N2S__(ZQ_PRODUCT_VER_MAJOR) "." __N2S__(ZQ_PRODUCT_VER_MINOR) "." __N2S__(ZQ_PRODUCT_VER_PATCH) "." __N2S__(ZQ_PRODUCT_VER_BUILD);		
 		logEvent(ZQ::common::Log::L_INFO,_T("%s started"),pStr);
 	}
     else

@@ -179,15 +179,17 @@ Evictor::Item::Ptr Evictor::add(const Evictor::Item::ObjectPtr& obj, const Ident
 	// DeactivateController::Guard deactivateGuard(_deactivateController);
 	bool alreadyThere = false;
 	Evictor::Item::Ptr item = NULL;
-
-	// Create a new entry
-	item = new Item(*this, ident);
-	item->_data.status = Evictor::Item::dead;
-
 	Evictor::Item::Ptr oldElt = pin(ident, item); // load the item if exist, otherwise add this new item into
 
-	if (!oldElt)
+	if (oldElt)
 		item = oldElt;
+
+    if (!item)
+    {
+        // Create a new entry
+        item = new Item(*this, ident);
+        item->_data.status = Evictor::Item::dead;
+    }
 
 	bool bNeedRequeue =false;
 	{
@@ -198,6 +200,15 @@ Evictor::Item::Ptr Evictor::add(const Evictor::Item::ObjectPtr& obj, const Ident
 		case Evictor::Item::created:
 		case Evictor::Item::modified:
 			alreadyThere = true;
+            item->_data.status = Item::modified;
+            item->_data.servant = obj;
+            item->_data.stampLastSave = now();
+            bNeedRequeue = true;
+
+            {
+                MutexGuard g(_lkEvictor);
+                _queueModified(item); // this is only be called while item is locked
+            }
 			break;
 
 		case Evictor::Item::destroyed:
@@ -236,7 +247,8 @@ Evictor::Item::Ptr Evictor::add(const Evictor::Item::ObjectPtr& obj, const Ident
 	}
 
 	if (alreadyThere)
-        throw EvictorException(409, "add() existing object");
+        _log(Log::L_DEBUG, CLOGFMT(Evictor, "object[%s](%s) alreadyThere old will be cover"), ident_cstr(ident), Item::stateToString(item->_data.status));
+        //throw EvictorException(409, "add() existing object");
 
 	if (TRACE)
 		_log(Log::L_DEBUG, CLOGFMT(Evictor, "added object[%s](%s)"), ident_cstr(ident), Item::stateToString(item->_data.status));
@@ -470,6 +482,7 @@ bool Evictor::poll(bool flushAll)
 	int64 stampNow = now();
 	if (TRACE)
 	{
+        MutexGuard sync(_lkEvictor);
 		_log((size != cToStream +deadObjects.size())?Log::L_WARNING : Log::L_DEBUG, CLOGFMT(Evictor, "streamed %d to %d modified +%d dead, pending %d streamed, took %dmsec"), 
 			size, cToStream, deadObjects.size(), _streamedList.size(), (int) (stampNow - stampStart));
 	}

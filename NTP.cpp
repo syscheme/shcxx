@@ -55,11 +55,11 @@ int NTPServer::run()
 	int64 intServerTime=ZQ::common::TimeUtil::now();
 	NTPClient::time2ntp(intServerTime*10000,pServerTime);
 	int32 nControlWord = 0;
-	nControlWord = ::ntohl(ntp_ServerPacket.Control_Word) & (0x3800FF00);
+	nControlWord = ntohl(ntp_ServerPacket.Control_Word) & (0x3800FF00);
 	ntp_ServerPacket.Control_Word = htonl(nControlWord | 0x04010090);
-	ntp_ServerPacket.root_delay = ::htonl(0x00000000); // root_delay = 0
-	ntp_ServerPacket.root_dispersion = ::htonl(0x00000000); // root_diespersion = 0
-	ntp_ServerPacket.reference_identifier = ::htonl(0x47505300); // GPS = 0x47505300
+	ntp_ServerPacket.root_delay = htonl(0x00000000); // root_delay = 0
+	ntp_ServerPacket.root_dispersion = htonl(0x00000000); // root_diespersion = 0
+	ntp_ServerPacket.reference_identifier = htonl(0x47505300); // GPS = 0x47505300
 	ntp_ServerPacket.stampReceive= pServerTime;
 	intServerTime=ZQ::common::TimeUtil::now();
 	NTPClient::time2ntp(intServerTime*10000,pServerTime);

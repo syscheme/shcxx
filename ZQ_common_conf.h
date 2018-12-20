@@ -431,9 +431,9 @@ typedef	uint64			timeout64_t; // msec
 
 #ifndef  __MSGLOC__
 // definitions for macro #pragma message(__MSGLOC__  "blah blah")
-#  define __STR2__(x) #x
-#  define __STR1__(x) __STR2__(x)
-#  define __MSGLOC__ __FILE__ "("__STR1__(__LINE__)") : "
+#  define __N2S2__(x) #x
+#  define __N2S__(x) __N2S2__(x)
+#  define __MSGLOC__ __FILE__ "("__N2S__(__LINE__)") : "
 #endif // __MSGLOC__
 
 #define __TODO__ __MSGLOC__  "!TODO: " __FUNCTION__ "() "

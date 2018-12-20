@@ -77,7 +77,7 @@ int main(int argc,char* argv[])
 	ZQ::eloop::HttpHandler::AppPtr getVar = new ZQ::eloop::ServerAgent::App(*pLog);
 	ZQ::eloop::HttpHandler::AppPtr loadfile = new ZQ::eloop::LoadFile::App(*pLog, appProps);
 	
-	ZQ::eloop::HttpServer::HttpServerConfig conf;
+	ZQ::eloop::TCPServer::ServerConfig conf;
 	conf.host = ip;
 	conf.port = port;
 
@@ -86,7 +86,7 @@ int main(int argc,char* argv[])
 	server->mount("/svar/.*",getVar);
 	server->mount("/fvar/.*",loadfile);
 	server->mount(".*",loadfile);
-	server->startAt();
+	server->start();
 
 	while(1)
 		SYS::sleep(10000);

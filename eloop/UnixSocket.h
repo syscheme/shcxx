@@ -34,6 +34,12 @@ public:
 		#endif
 	}
 
+	virtual ~UnixSocket()
+	{
+		ZQ::common::MutexGuard gd(_lkSendMsgList);
+		_SendMsgList.clear();
+	}
+
 	int  init(Loop &loop, int ipc=1);
 	void closeUnixSocket();
 

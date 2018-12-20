@@ -645,7 +645,7 @@ protected: // impls of ThreadRequest
 				break;
 		}
 
-		_engine.ctxlog()(Log::L_INFO, CLOGFMT(RuleEngine, "RuleExecCmd[%p] reached the end of actions with (%d), took %lldmsec"), this, _ctx.statusCode, now() - _stampCreated);
+		_engine.ctxlog()(Log::L_INFO, CLOGFMT(RuleEngine, "RuleExecCmd[%p] reached the end of actions with (%d), took %dmsec"), this, _ctx.statusCode, (int)(now() - _stampCreated));
 		if (NULL != _cbFinish)
 		{
 			try {

@@ -152,7 +152,7 @@ public:
 
 protected:
 	friend class RedisClient;
-	friend class RequestErrCmd;
+	friend class RedisErrCmd;
 	friend class ReplyDispatcher;
 
 	RedisCommand(RedisClient& client, const std::string& cmdstr, char replyType, RedisSink::Ptr cbRedirect=NULL);
@@ -186,7 +186,7 @@ protected:
 class RedisClient : public TCPClient, virtual public SharedObject
 {
 	friend class RedisCommand;
-	friend class RequestErrCmd;
+	friend class RedisErrCmd;
 	friend class ReplyDispatcher;
 
 public:
@@ -237,6 +237,7 @@ public: // Redis commands
 	RedisCommand::Ptr sendSREM(const char *key, const char *member, int vlen=-1, RedisSink::Ptr reply=NULL);
 	RedisCommand::Ptr sendSMEMBERS(const char *key, RedisSink::Ptr reply=NULL);
 
+    RedisCommand::Ptr sendEXPIRE(const char *key, int seconds, RedisSink::Ptr reply=NULL);
 	// sync commands with result parsed
 	RedisSink::Error PING();
 	RedisSink::Error INFO(PropertyMap& props);
@@ -276,6 +277,7 @@ protected:
 	typedef std::queue <RedisCommand::Ptr> CommandQueue;
 	CommandQueue _commandQueueToSend, _commandQueueToReceive;
 	ZQ::common::Mutex _lockCommandQueue;
+    int _receivesCmd; int _completeCmd;
 
 	// send a request thru the connection
 	//@return CSeq num in [1, MAX_CLIENT_CSEQ) if succeeded, or negative if failed
@@ -327,7 +329,6 @@ protected: // the child class inherited from this evictor should implement the f
 protected:
 	RedisClient::Ptr  _client;
 	size_t            _maxValueLen;
-	uint8*            _recvBuf;
 };
 
 }}//endof namespace
