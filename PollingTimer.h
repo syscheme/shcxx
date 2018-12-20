@@ -1,6 +1,6 @@
 // ============================================================================================
 // Copyright (c) 1997, 1998 by
-// syscheme, Shanghai,,
+// syscheme, Shanghai
 // All Rights Reserved. Unpublished rights reserved under the copyright laws of the United States.
 // 
 // The software contained  on  this media is proprietary to and embodies the confidential
