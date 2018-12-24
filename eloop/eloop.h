@@ -63,8 +63,8 @@ class ZQ_ELOOP_API Loop;
 class ZQ_ELOOP_API Handle;
 class ZQ_ELOOP_API IterationBlocker;
 class ZQ_ELOOP_API Timer;
-class ZQ_ELOOP_API Async;
-class ZQ_ELOOP_API Signal;
+class ZQ_ELOOP_API Wakeup;
+class ZQ_ELOOP_API SysSignalSink;
 class ZQ_ELOOP_API CpuInfo;
 class ZQ_ELOOP_API Process;
 
@@ -235,12 +235,11 @@ protected:
 	Handle(Loop& loop);
 	// Handle(Handle &);
 	// Handle &operator=(Handle &);
-
 	virtual void init() =0;
-	virtual ~Handle();
 
 public:
 	Loop& loop() { return _loop; }
+	virtual ~Handle();
 
 	void close(); // void close();
 
@@ -333,6 +332,8 @@ private:
 // -----------------------------
 // class IterationBlocker
 // -----------------------------
+// this handle will be run once per loop iteration, right before the Prepare handles
+// if registered, it will overwrite the IO blocking step
 class IterationBlocker : public Handle
 {
 public:
@@ -341,9 +342,11 @@ public:
 	int start();
 	int stop();
 
-protected:
-	virtual void init();
+protected: // event callback
 	virtual void OnIdle() {}
+
+private: // impl of Handle
+	void init();
 
 private:
 	static void _cbOnIdle(uv_idle_t* uvhandle);
@@ -356,52 +359,62 @@ class Timer : public Handle
 {
 public:
 	Timer(Loop& loop) : Handle(loop) {}
-	int start(uint64_t timeout, uint64_t repeat);
+	int start(uint64_t timeout, bool bRepeat =false); // int start(uint64_t timeout, uint64_t repeat);
 	int stop();
 	int again();
-	void set_repeat(uint64_t repeat);
+	
+	// Set the repeat interval in msec. The interval will be regardless the duration of OnTimer(), for example, a 50msec
+	// repeating timer will be scheduled to run again 33msec later if the previous OnTimer() takes 17msec
+	void set_repeat(uint64_t interval);
 	uint64_t get_repeat();
 
-protected:
-	virtual void init();
+protected: // event callback
 	virtual void OnTimer() {}
+
+private: // impl of Handle
+	void init();
 
 private:
 	static void _cbOnTimer(uv_timer_t *timer);
 };
 
 // -----------------------------
-// class Async
+// class Wakeup
 // -----------------------------
-// the async class allow others, maybe the threads out of the eloop, to notify the handle registered in the eloop
-class Async : public Handle
+// old name Async
+// to allow others, maybe the threads out of the eloop, to wakeup the eloop
+class Wakeup : public Handle
 {
 public:
-	Async();
-	int init(Loop &loop);
-	int send();
+	Wakeup(Loop& loop) : Handle(loop) {}
+	int wakeup();
 
-protected:
-	virtual void OnAsync() {}
-	virtual void OnClose() { Handle::OnClose(); }
+protected: // event callback
+	virtual void OnWakedUp() {}
+
+private: // impl of Handle
+	void init();
 
 private:
 	static void _cbAsync(uv_async_t *async);
 };
 
 // -----------------------------
-// class Signal
+// class SysSignalSink
 // -----------------------------
-class Signal : public Handle
+// sinks Unix-style OS signals on a per-event loop base
+class SysSignalSink : public Handle
 {
 public:
-	Signal();
-	int init(Loop &loop);
-	int start(int signum);
+	SysSignalSink(Loop& loop) : Handle(loop) {}
+	int subscribe(int signum);
 	int stop();
 
-protected:
+protected: // event callback
 	virtual void OnSignal(int signum) {}
+
+private: // impl of Handle
+	void init();
 
 private:
 	static void _cbSignal(uv_signal_t *signal, int signum);
@@ -427,13 +440,17 @@ private:
 };
 
 // -----------------------------
-// class Process
+// class ChildProcess
 // -----------------------------
+// old name Process
+// manage to child process and allowing communication with the child using streams or named pipes
 class Stream;
-class Process : public Handle
+class ChildProcess : public Handle
 {
 public:
-	typedef enum _stdioFlags{
+	typedef uint uid_t;
+	typedef uint gid_t;
+	typedef enum _stdioFlags {
 		ELOOP_IGNORE = UV_IGNORE,
 		ELOOP_CREATE_PIPE = UV_CREATE_PIPE,
 		ELOOP_INHERIT_FD = UV_INHERIT_FD,
@@ -444,9 +461,9 @@ public:
 		// flags may be specified to create a duplex data stream.
 		ELOOP_READABLE_PIPE = UV_READABLE_PIPE,
 		ELOOP_WRITABLE_PIPE = UV_WRITABLE_PIPE
-	}eloop_stdio_flags;
+	} eloop_stdio_flags;
 
-	typedef enum _processFlags{
+	typedef enum _processFlags {
 		/*
 		* Set the child process' user id. The user id is supplied in the `uid` field
 		* of the options struct. This does not work on windows; setting this flag
@@ -479,34 +496,46 @@ public:
 		* ignored.
 		*/
 		ELOOP_PROCESS_WINDOWS_HIDE = UV_PROCESS_WINDOWS_HIDE
-	}eloop_process_flags;
+	} eloop_process_flags;
 
-	typedef uv_stdio_container_t eloop_stdio_container_t;
-	typedef uv_uid_t	eloop_uid_t;
-	typedef uv_gid_t	eloop_gid_t;
+//typedef struct uv_stdio_container_s {
+//  uv_stdio_flags flags;
+//
+//  union {
+//    uv_stream_t* stream;
+//    int fd;
+//  } data;
+//} eloop_stdio_container_t;
+
+	typedef struct _StreamNode {
+		uint8_t flags;
+		union {
+			uv_stream_t* stream;
+			int fd;
+		} pipe;
+
+	} StreamNode;
+
+	typedef std::vector<StreamNode> Streams;
 
 public:
-	void setenv(char** env);
-	void setcwd(const char* cwd);
-	void setflags(eloop_process_flags flags);
-	void setuid(eloop_uid_t uid);
-	void setgid(eloop_gid_t gid);
-
-	int spawn(const char* file,char** args,eloop_stdio_container_t* container=NULL,int stdio_count=0);
+	ChildProcess(Loop& loop, const char* cwd, char** env, uid_t uid, gid_t gid);
+	int spawn(const char* exec, char** args, eloop_process_flags flags, Streams& pipes =Streams());
 
 	int pid();
 	int kill(int signum);
-	int kill(int pid,int signum);
+	static int kill(int pid, int signum);
 
-protected:
-	virtual void OnExit(int64_t exit_status,int term_signal) { close(); }
+protected: // event callback
+	virtual void OnExit(int64_t exit_status, int term_signal) { close(); }
+
+private: // impl of Handle
+	void init() {} // do nothing because spawn() covers init()
 
 private:
 	static void _cbExit(uv_process_t* handle,int64_t exit_status,int term_signal);
 	uv_process_options_t _opt;
 };
-
-
 
 /*
 // -----------------------------

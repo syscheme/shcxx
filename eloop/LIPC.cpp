@@ -347,7 +347,7 @@ private:
 // ------------------------------------------------
 // class AsyncClose
 // ------------------------------------------------
-class AsyncClose : public ZQ::eloop::Async
+class AsyncClose : public ZQ::eloop::Wakeup
 {
 public:
 	AsyncClose(LIPCService& sev):_sev(sev){}

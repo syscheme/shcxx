@@ -9,7 +9,7 @@ namespace eloop {
 // ------------------------------------------------
 // class AsyncSender
 // ------------------------------------------------
-class AsyncSender : public ZQ::eloop::Async
+class AsyncSender : public ZQ::eloop::Wakeup
 {
 public:
 	AsyncSender(UnixSocket& socket):_socket(socket){}

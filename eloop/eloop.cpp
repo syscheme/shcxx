@@ -400,16 +400,17 @@ void Loop::walk(void *arg)
 // -----------------------------
 // class IterationBlocker
 // -----------------------------
-#define TYPED_HANDLE(_TYPE_T)  ((_TYPE_T *) &_context->handle)
-#define INIT_UV_HANDLE(_TYPE)  if (_context) uv_##_TYPE##_init(_loop.context_ptr(), TYPED_HANDLE(uv_##_TYPE##_t));
-#define CALL_ASSERT()          if (NULL == _context) return -1;
+#define UVTYPED_HANDLE(_UVTYPE_T)  ((_UVTYPE_T *) &_context->handle)
+// #define INIT_UV_HANDLE(_TYPE)  if (_context) uv_##_TYPE##_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_##_TYPE##_t));
+#define CALL_ASSERT(_RET)         if (NULL == _context) return _RET
+#define CALL_ASSERTV()            if (NULL == _context) return
 
-#define CALLBACK_CTX(_CLASS, cbFUNC, PARAMS)  _CLASS* ctx = static_cast<_CLASS *>(uvhandle->data); if (ctx) ctx->cbFUNC PARAMS;
+#define CALLBACK_CTX(_CLASS, cbFUNC, PARAMS)  { _CLASS* ctx = static_cast<_CLASS *>(uvhandle->data); if (ctx) ctx->cbFUNC PARAMS; }
 
 void IterationBlocker::init()
 {
-	if (NULL == _context) return;
-	uv_idle_init(_loop.context_ptr(), TYPED_HANDLE(uv_idle_t));
+	CALL_ASSERTV();
+	uv_idle_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_idle_t));
 }
 
 void IterationBlocker::_cbOnIdle(uv_idle_t* uvhandle)
@@ -422,39 +423,42 @@ void IterationBlocker::_cbOnIdle(uv_idle_t* uvhandle)
 
 int IterationBlocker::start()
 {
-	CALL_ASSERT();
-	return uv_idle_start(TYPED_HANDLE(uv_idle_t), _cbOnIdle);
+	CALL_ASSERT(-1);
+	return uv_idle_start(UVTYPED_HANDLE(uv_idle_t), _cbOnIdle);
 }
 
 int IterationBlocker::stop()
 {
-	CALL_ASSERT();
-	return uv_idle_stop(TYPED_HANDLE(uv_idle_t));
+	CALL_ASSERT(-1);
+	return uv_idle_stop(UVTYPED_HANDLE(uv_idle_t));
 }
 
 // -----------------------------
 // class Timer
 // -----------------------------
-void Timer::_cbOnTimer(uv_timer_t *timer)
+void Timer::_cbOnTimer(uv_timer_t *uvhandle)
 {
-	Timer *h = static_cast<Timer *>(timer->data);
-	if (NULL != h)
-		h->OnTimer();
+	CALLBACK_CTX(Timer, OnTimer, ());
 }
 
 void Timer::init()
 {
-	INIT_UV_HANDLE(timer);
+	CALL_ASSERTV();
+	uv_timer_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_timer_t));
 
 	//this->Handle::init(loop);
 	//uv_timer_t * timer = (uv_timer_t *)context_ptr();
 	//return uv_timer_init(loop.context_ptr(), timer);
 }
 
-int Timer::start(uint64_t timeout, uint64_t repeat)
+int Timer::start(uint64_t timeout, bool bRepeat)
 {
-	CALL_ASSERT();
-	return uv_timer_start(TYPED_HANDLE(uv_timer_t), _cbOnTimer, timeout, repeat);
+	CALL_ASSERT(-1);
+	uint64_t repeat = timeout;
+	if (!bRepeat && timeout <=0)
+		repeat =-1;
+
+	return uv_timer_start(UVTYPED_HANDLE(uv_timer_t), _cbOnTimer, timeout, repeat);
 
 	//uv_timer_t* timer = (uv_timer_t *)context_ptr();
 	//return uv_timer_start(timer, _cbOnTimer, timeout, repeat);
@@ -462,84 +466,98 @@ int Timer::start(uint64_t timeout, uint64_t repeat)
 
 int Timer::stop()
 {
-	CALL_ASSERT();
-	return uv_timer_stop(TYPED_HANDLE(uv_timer_t));
+	CALL_ASSERT(-1);
+	return uv_timer_stop(UVTYPED_HANDLE(uv_timer_t));
 }
 
 int Timer::again() {
-	CALL_ASSERT();
-	return uv_timer_again(TYPED_HANDLE(uv_timer_t));
+	CALL_ASSERT(-1);
+	return uv_timer_again(UVTYPED_HANDLE(uv_timer_t));
 }
 
-void Timer::set_repeat(uint64_t repeat) {
-	CALL_ASSERT();
-	uv_timer_set_repeat(TYPED_HANDLE(uv_timer_t), repeat);
+void Timer::set_repeat(uint64_t repeat)
+{
+	CALL_ASSERTV();
+	uv_timer_set_repeat(UVTYPED_HANDLE(uv_timer_t), repeat);
 }
 
-uint64_t Timer::get_repeat() {
-	CALL_ASSERT();
-	return uv_timer_get_repeat(TYPED_HANDLE(uv_timer_t));
+uint64_t Timer::get_repeat()
+{
+	CALL_ASSERT(-1);
+	return uv_timer_get_repeat(UVTYPED_HANDLE(uv_timer_t));
 }
 
 // -----------------------------
-// class Async
+// class Wakeup
 // -----------------------------
-Async::Async()
+// used
+void Wakeup::_cbAsync(uv_async_t *uvhandle)
 {
+	CALLBACK_CTX(Wakeup, OnWakedUp, ());
+	//Wakeup *h = static_cast<Wakeup *>(async->data);
+	//if (NULL != h)
+	//	h->OnWakedUp();
 }
 
-void Async::_cbAsync(uv_async_t *async)
+void Wakeup::init()
 {
-	Async *h = static_cast<Async *>(async->data);
-	if (NULL != h)
-		h->OnAsync();
+	CALL_ASSERTV();
+	uv_async_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_async_t), _cbAsync);
+
+	//this->Handle::init(loop);
+	//uv_async_t * async = (uv_async_t *)context_ptr();
+	//return uv_async_init(loop.context_ptr(), async, _cbAsync);
 }
 
-int Async::init(Loop &loop)
+int Wakeup::wakeup()
 {
-	this->Handle::init(loop);
-	uv_async_t * async = (uv_async_t *)context_ptr();
-	return uv_async_init(loop.context_ptr(), async, _cbAsync);
-}
+	CALL_ASSERT(-1);
+	return uv_async_send(UVTYPED_HANDLE(uv_async_t));
 
-int Async::send()
-{
-	uv_async_t* async = (uv_async_t *)context_ptr();
-	return uv_async_send(async);
+	//uv_async_t* async = (uv_async_t *)context_ptr();
+	//return uv_async_send(async);
 }
 
 // -----------------------------
-// class Signal
+// class SysSignalSink
 // -----------------------------
-Signal::Signal()
+void SysSignalSink::_cbSignal(uv_signal_t *uvhandle, int signum)
 {
+	CALLBACK_CTX(SysSignalSink, OnSignal, (signum));
+
+	//SysSignalSink* self = static_cast<SysSignalSink *>(signal->data);
+	//if (self != NULL) {
+	//	self->OnSignal(signum);
+	//}
 }
 
-int Signal::init(Loop &loop) {
-	this->Handle::init(loop);
-	uv_signal_t* signal = (uv_signal_t *)context_ptr();
-	return uv_signal_init(loop.context_ptr(), signal);
+void SysSignalSink::init()
+{
+	CALL_ASSERTV();
+	uv_signal_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_signal_t));
+	//this->Handle::init(loop);
+	//uv_signal_t* signal = (uv_signal_t *)context_ptr();
+	//return uv_signal_init(loop.context_ptr(), signal);
 }
 
-int Signal::start(int signum) {
-	uv_signal_t* signal = (uv_signal_t *)context_ptr();
-
-	return uv_signal_start(signal, _cbSignal, signum);
+int SysSignalSink::subscribe(int signum)
+{
+	CALL_ASSERT(-1);
+	return uv_signal_start(UVTYPED_HANDLE(uv_signal_t), _cbSignal, signum);
+	//uv_signal_t* signal = (uv_signal_t *)context_ptr();
+	//return uv_signal_start(signal, _cbSignal, signum);
 }
 
-int Signal::stop() {
-	uv_signal_t* signal = (uv_signal_t *)context_ptr();
-	return uv_signal_stop(signal);
+int SysSignalSink::stop() {
+	CALL_ASSERT(-1);
+	return uv_signal_stop(UVTYPED_HANDLE(uv_signal_t));
+	//uv_signal_t* signal = (uv_signal_t *)context_ptr();
+	//return uv_signal_stop(signal);
 }
 
-void Signal::_cbSignal(uv_signal_t *signal, int signum) {
-
-	Signal* self = static_cast<Signal *>(signal->data);
-	if (self != NULL) {
-		self->OnSignal(signum);
-	}
-}
-
+// -----------------------------
+// class CpuInfo
+// -----------------------------
 CpuInfo::CpuInfo()
 	:_count(0),
 	_info(NULL),
@@ -583,85 +601,91 @@ void CpuInfo::freeCpuInfo()
 }
 
 // -----------------------------
-// class Process
+// class ChildProcess
 // -----------------------------
-
-void Process::setenv(char** env)
+ChildProcess::ChildProcess(Loop& loop, const char* cwd, char** env, uid_t uid, gid_t gid)
+: Handle(loop)
 {
+	memset(&_opt, 0, sizeof(_opt));
 	_opt.env = env;
-}
-void Process::setcwd(const char* cwd)
-{
 	_opt.cwd = cwd;
-}
-void Process::setflags(eloop_process_flags flags)
-{
-	_opt.flags = flags;
-}
-void Process::setuid(eloop_uid_t uid)
-{
 	_opt.uid = uid;
-}
-
-void Process::setgid(eloop_gid_t gid)
-{
 	_opt.gid = gid;
 }
 
-int Process::spawn(const char* file,char** args,eloop_stdio_container_t* container,int stdio_count)
+void ChildProcess::_cbExit(uv_process_t* uvhandle, int64_t exit_status, int term_signal)
 {
-	_opt.file = file;
+	CALLBACK_CTX(ChildProcess, OnExit, (exit_status, term_signal));
+	//ChildProcess* self = static_cast<ChildProcess *>(handle->data);
+	//if (self != NULL) {
+	//	self->OnExit(exit_status,term_signal);
+	//}
+}
+
+//void ChildProcess::setenv(char** env)
+//{
+//	_opt.env = env;
+//}
+//void ChildProcess::setcwd(const char* cwd)
+//{
+//	_opt.cwd = cwd;
+//}
+//void ChildProcess::setflags(eloop_process_flags flags)
+//{
+//	_opt.flags = flags;
+//}
+//void ChildProcess::setuid(eloop_uid_t uid)
+//{
+//	_opt.uid = uid;
+//}
+//
+//void ChildProcess::setgid(eloop_gid_t gid)
+//{
+//	_opt.gid = gid;
+//}
+//
+
+int ChildProcess::spawn(const char* exec, char** args, eloop_process_flags flags, ChildProcess::Streams& pipes)
+{
+	_opt.file = exec;
 	_opt.args = args;
 	_opt.exit_cb = _cbExit;
-// 	_opt.flags = 0;
-// 	_opt.cwd = NULL;
-// 	_opt.env = NULL;
-	if (stdio_count > 0)
+	_opt.flags = flags;
+
+	for (size_t i=0; i <pipes.size(); i++)
 	{
-		_opt.stdio_count = stdio_count;
-		_opt.stdio = container;
+// TODO
 	}
-	uv_process_t* h = (uv_process_t*)context_ptr();
-	return uv_spawn(get_loop().context_ptr(),h,&_opt);
-}
-/*
-int Process::spawn()
-{
-	Process::eloop_stdio_container_t child_stdio[3];
 
-	child_stdio[0].flags = (Process::eloop_stdio_flags)(Process::ELOOP_CREATE_PIPE | Process::ELOOP_READABLE_PIPE);
-	child_stdio[0].data.stream = (uv_stream_t*)(work.pipe->context_ptr());
-	child_stdio[1].flags = (Process::eloop_stdio_flags)Process::ELOOP_IGNORE;
-	child_stdio[2].flags = (Process::eloop_stdio_flags)Process::ELOOP_INHERIT_FD;
-	child_stdio[2].data.fd = 2;
+	//if (stdio_count > 0)
+	//{
+	//	_opt.stdio_count = stdio_count;
+	//	_opt.stdio = container;
+	//}
 
-	_opt.stdio_count = 3;
-	_opt.stdio = child_stdio;
-}
-*/
-int Process::pid()
-{
-	uv_process_t* h = (uv_process_t*)context_ptr();
-	return h->pid;
+	return uv_spawn(_loop.context_ptr(), UVTYPED_HANDLE(uv_process_t), &_opt);
 }
 
-int Process::kill(int signum)
+int ChildProcess::pid()
 {
-	uv_process_t* h = (uv_process_t*)context_ptr();
-	return uv_process_kill(h,signum);
+	CALL_ASSERT(-1);
+	return UVTYPED_HANDLE(uv_process_t)->pid;
+
+	//uv_process_t* h = (uv_process_t*) context_ptr();
+	//return h->pid;
 }
 
-int Process::kill(int pid,int signum)
+int ChildProcess::kill(int signum)
 {
-	return uv_kill(pid,signum);
+	CALL_ASSERT(-1);
+	return uv_process_kill(UVTYPED_HANDLE(uv_process_t), signum);
+	//uv_process_t* h = (uv_process_t*)context_ptr();
+	//return uv_process_kill(h,signum);
 }
 
-void Process::_cbExit(uv_process_t* handle,int64_t exit_status,int term_signal)
+int ChildProcess::kill(int pid,int signum)
 {
-	Process* self = static_cast<Process *>(handle->data);
-	if (self != NULL) {
-		self->OnExit(exit_status,term_signal);
-	}
+	return uv_kill(pid, signum);
 }
 
 }} // namespace ZQ::eloop
