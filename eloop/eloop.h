@@ -73,6 +73,8 @@ class ZQ_ELOOP_API Process;
 // ----------------------------------------------------
 class Handle
 {
+	friend class AbstractStream;
+
 public:
 	typedef uv_os_fd_t fd_t;
 	typedef uv_buf_t eloop_buf_t;
@@ -236,6 +238,8 @@ protected:
 	// Handle(Handle &);
 	// Handle &operator=(Handle &);
 	virtual void init() =0;
+	uv_any_handle* context() { return _context; };
+
 
 public:
 	Loop& loop() { return _loop; }

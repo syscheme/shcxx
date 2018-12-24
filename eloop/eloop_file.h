@@ -39,7 +39,7 @@ extern "C"{
 
 namespace ZQ {
 namespace eloop {
-class ZQ_ELOOP_API FileEvent;
+class ZQ_ELOOP_API FSMonitor;
 class ZQ_ELOOP_API File;
 class ZQ_ELOOP_API Pipe;
 
@@ -59,10 +59,10 @@ class ZQ_ELOOP_API Pipe;
 #endif
 
 // -----------------------------
-// class FileEvent
+// class FSMonitor
 // -----------------------------
-// dup of uvpp_fs_event
-class FileEvent : public Handle
+// to monitors file events occur on file system
+class FSMonitor : public Handle
 {
 public:
 	typedef enum _Event {
@@ -87,19 +87,19 @@ public:
 	} StartFlags ;
 	
 public:
-	FileEvent();
-
-	int init(Loop &loop);
+	FSMonitor(Loop& loop) : Handle(loop) {}
 
 	//@param flags - flag combination of StartFlags
-	int start(const char *path, uint flags = fsfNone);
+	int monitor(const char *path, uint flags = fsfNone);
 	int stop();
-	int getpath(char *buffer, size_t *size);
+	std::string path();
 
 protected:
 	//@param events  - combination of flags of Event
 	virtual void OnFileEvent(const char *filename, uint events, ElpeError status) {}
 
+private: // impl of Handle
+	void init();
 private:
 	static void _cbFSevent(uv_fs_event_t *handle, const char *filename, int events, int status);
 };

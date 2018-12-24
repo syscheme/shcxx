@@ -3,43 +3,65 @@
 namespace ZQ {
 namespace eloop {
 
+#define UVTYPED_HANDLE(_UVTYPE_T)  ((_UVTYPE_T *) &_context->handle)
+#define CALL_ASSERT(_RET)         if (NULL == _context) return _RET
+#define CALL_ASSERTV()            if (NULL == _context) return
+
+#define CALLBACK_CTX(_CLASS, cbFUNC, PARAMS)  { _CLASS* ctx = static_cast<_CLASS *>(uvhandle->data); if (ctx) ctx->cbFUNC PARAMS; }
+
 // -----------------------------
 // class File
 // -----------------------------
-FileEvent::FileEvent() {
-}
-
-int FileEvent::init(Loop &loop) {
-	this->Handle::init(loop);
-	uv_fs_event_t* event = (uv_fs_event_t *)context_ptr();
-	return uv_fs_event_init(loop.context_ptr(), event);
-}
-
-int FileEvent::start(const char *path, uint flags)
+void FSMonitor::_cbFSevent(uv_fs_event_t *uvhandle, const char *filename, int events, int status)
 {
-	uv_fs_event_t* event = (uv_fs_event_t *)context_ptr();
+	CALLBACK_CTX(FSMonitor, OnFileEvent, (filename, (uint) events, (ElpeError)status));
 
-	return uv_fs_event_start(event, _cbFSevent, path, flags);
+	//FSMonitor* self = static_cast<FSMonitor *>(handle->data);
+	//if (self != NULL) {
+	//	self->OnFileEvent(filename, (uint) events, (ElpeError)status);
+	//}
 }
 
-int FileEvent::stop() {
-	uv_fs_event_t* event = (uv_fs_event_t *) context_ptr();
-	return uv_fs_event_stop(event);
+void FSMonitor::init()
+{
+	CALL_ASSERTV();
+	uv_fs_event_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_fs_event_t));
+	//this->Handle::init(loop);
+	//uv_fs_event_t* event = (uv_fs_event_t *)context_ptr();
+	//return uv_fs_event_init(loop.context_ptr(), event);
 }
 
-int FileEvent::getpath(char *buffer, size_t *size) {
-	uv_fs_event_t* event = (uv_fs_event_t *)context_ptr();
-	return uv_fs_event_getpath(event, buffer, size);
+int FSMonitor::monitor(const char *path, uint flags)
+{
+	CALL_ASSERT(-1);
+	return uv_fs_event_start(UVTYPED_HANDLE(uv_fs_event_t), _cbFSevent, path, flags);
+
+	//uv_fs_event_t* event = (uv_fs_event_t *)context_ptr();
+	//return uv_fs_event_start(event, _cbFSevent, path, flags);
 }
 
-void FileEvent::_cbFSevent(uv_fs_event_t *handle, const char *filename, int events, int status) {
+int FSMonitor::stop()
+{
+	CALL_ASSERT(-1);
+	return uv_fs_event_stop(UVTYPED_HANDLE(uv_fs_event_t));
 
-	FileEvent* self = static_cast<FileEvent *>(handle->data);
-	if (self != NULL) {
-		self->OnFileEvent(filename, (uint) events, (ElpeError)status);
-	}
+	//uv_fs_event_t* event = (uv_fs_event_t *) context_ptr();
+	//return uv_fs_event_stop(event);
 }
 
+std::string FSMonitor::path()
+{
+	char buffer[1024];
+	size_t len = sizeof(buffer)-2;
+
+	CALL_ASSERT("");
+	if (0==uv_fs_event_getpath(UVTYPED_HANDLE(uv_fs_event_t), buffer, &len))
+		return std::string(buffer, len);
+	return "";
+
+	//uv_fs_event_t* event = (uv_fs_event_t *)context_ptr();
+	//return uv_fs_event_getpath(event, buffer, size);
+}
 
 // -----------------------------
 // class File

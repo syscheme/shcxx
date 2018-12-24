@@ -401,7 +401,6 @@ void Loop::walk(void *arg)
 // class IterationBlocker
 // -----------------------------
 #define UVTYPED_HANDLE(_UVTYPE_T)  ((_UVTYPE_T *) &_context->handle)
-// #define INIT_UV_HANDLE(_TYPE)  if (_context) uv_##_TYPE##_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_##_TYPE##_t));
 #define CALL_ASSERT(_RET)         if (NULL == _context) return _RET
 #define CALL_ASSERTV()            if (NULL == _context) return
 

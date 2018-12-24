@@ -46,14 +46,16 @@ class ZQ_ELOOP_API DNS;
 // -----------------------------
 // class Stream
 // -----------------------------
-class Stream : public Handle
+class AbstractStream : public Handle
 {
 	friend class Process;
 protected:
-	Stream();
-	virtual ~Stream();
+	AbstractStream(Loop& loop): Handle(loop), _byteSeen(0) { _recvBuf.base = NULL, _recvBuf.len=0; }
+	virtual void init() =0;
 
 public:
+	virtual ~AbstractStream();
+
 	int shutdown();
 	int listen();
 	int accept(Handle* client);			//windows handle
@@ -103,15 +105,13 @@ protected:
 // -----------------------------
 // class TCP
 // -----------------------------
-class TCP : public Stream
+class TCP : public AbstractStream
 {
 public:
 	typedef uv_os_sock_t sock_t;
 
 public:
-	TCP();
-	int init(Loop &loop);
-	int init_ex(Loop &loop, int flags);
+	TCP(Loop& loop, int initFlags=0): AbstractStream(loop), _initFlags(initFlags) {}
 	int open(sock_t sock);
 	int connected_open(sock_t sock);
 	int nodelay(int enable);
@@ -135,10 +135,14 @@ protected:
 	// TODO: must enumerate all the status in the class
 	virtual void OnConnected(ElpeError status) {}
 
+private: // impl of Handle
+	void init();
+
 private:
 	int connect(const struct sockaddr *addr);
 	int bind(const sockaddr *addr, unsigned int flags);
 	static void _cbConnect(uv_connect_t *req, int status);
+	int _initFlags;
 
 };
 
@@ -158,10 +162,9 @@ public:
 	typedef uv_membership membership_t;
 
 public:
-	UDP();
+	UDP(Loop& loop, int initFlags=0): Handle(loop), _initFlags(initFlags) { _buf.base =NULL, _buf.len =0; }
 	virtual ~UDP();
-	int init(Loop &loop);
-	int init_ex(Loop &loop, unsigned int flags);
+
 	int open(sock_t sock);
 	int bind4(const char *ipv4, int port, unsigned int flags = Reuseaddr);
 	int bind6(const char *ipv6, int port, unsigned int flags = Reuseaddr);
@@ -201,8 +204,13 @@ protected:
 	virtual void doFree(eloop_buf_t* buf);
 	virtual void OnReceived(ssize_t nread, const char *buf, const struct sockaddr *addr, unsigned flags) {}
 
+private: // impl of Handle
+	void init();
+
 private:
 	eloop_buf_t   _buf;
+	int _initFlags;
+
 	int bind(const struct sockaddr *addr, unsigned int flags);
 	int try_send(const char *buf, size_t length, const struct sockaddr *addr);
 
@@ -217,7 +225,7 @@ private:
 class DNS
 {
 public:
-	DNS();
+	DNS() {}
 	int getAddrInfo(Loop &loop,const char* node,const char* service,const struct addrinfo* hints);
 
 protected:
@@ -225,7 +233,6 @@ protected:
 
 private:
 	static void _cbResolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res);
-
 };
 
 } } // namespace ZQ::eloop
