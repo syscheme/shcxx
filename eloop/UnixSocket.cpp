@@ -1,5 +1,5 @@
 #include "UnixSocket.h"
-#include "LIPC.h"
+// #include "LIPC.h"
 
 namespace ZQ {
 namespace eloop {
@@ -7,16 +7,16 @@ namespace eloop {
 #define INFO_LEVEL_FLAG (_verboseFlags & FLG_INFO)
 #define TRACE_LEVEL_FLAG (_verboseFlags & FLG_TRACE)
 // ------------------------------------------------
-// class AsyncSender
+// class Waker
 // ------------------------------------------------
-class AsyncSender : public ZQ::eloop::Wakeup
+class Waker : public ZQ::eloop::Wakeup
 {
 public:
-	AsyncSender(UnixSocket& socket):_socket(socket){}
+	Waker(UnixSocket& socket):_socket(socket), Wakeup(socket.loop()) {}
 
 protected:
-	virtual void OnAsync() {_socket.OnAsyncSend();}
-	virtual void OnClose(){_socket.OnCloseAsync();}
+	virtual void OnWakedUp() {_socket.OnWakedUp();}
+	// virtual void OnClose() {_socket.OnCloseAsync();}
 
 private:
 	UnixSocket& _socket;
@@ -26,21 +26,44 @@ private:
 // class UnixSocket
 // -----------------------------------------
 uint32 UnixSocket::_verboseFlags =0xffffffff;
-int UnixSocket::init(Loop &loop, int ipc)
+
+UnixSocket::UnixSocket(Loop& loop, ZQ::common::LogWrapper& log, int ipc)
+: Pipe(loop, ipc), _lipcLog(log), _waker(NULL)
 {
-	if (_async == NULL)
-	{
-		_async = new AsyncSender(*this);
-		_async->init(loop);
-	}
-	return ZQ::eloop::Pipe::init(loop,ipc);
+	_waker = new Waker(*this);
+#ifdef ZQ_OS_LINUX
+	//Ignore SIGPIPE signal
+	signal(SIGPIPE, SIG_IGN);
+#endif
 }
+
+UnixSocket::~UnixSocket()
+{
+	closeUnixSocket();
+
+	ZQ::common::MutexGuard gd(_lkSendMsgList);
+	if (_waker)
+		delete _waker;
+	_waker = NULL;
+
+	_outgoings.clear();
+}
+
+//int UnixSocket::init(Loop &loop, int ipc)
+//{
+//	if (_async == NULL)
+//	{
+//		_async = new Waker(*this);
+//		_async->init(loop);
+//	}
+//	return ZQ::eloop::Pipe::init(loop,ipc);
+//}
 
 void UnixSocket::closeUnixSocket()
 {
-	if(_async != NULL)
-		_async->close();
-	else
+	//if(_async != NULL)
+	//	_async->close();
+	//else
 		shutdown();
 }
 
@@ -68,11 +91,11 @@ void UnixSocket::OnRead(ssize_t nread, const char *buf)
 void UnixSocket::OnWrote(int status)
 {
 	ZQ::common::MutexGuard gd(_lkSendMsgList);
-	if(!_SendMsgList.empty())
+	if(!_outgoings.empty())
 	{
-		AsyncMessage asyncMsg;
-		asyncMsg = _SendMsgList.front();
-		_SendMsgList.pop_front();
+		Message asyncMsg;
+		asyncMsg = _outgoings.front();
+		_outgoings.pop_front();
 
 		send(asyncMsg.msg, asyncMsg.fd);
 	}
@@ -82,64 +105,73 @@ int UnixSocket::AsyncSend(const std::string& msg, int fd)
 {
 	if (msg.size() >= RECV_BUF_SIZE)
 	{
-		_lipcLog(ZQ::common::Log::L_WARNING,CLOGFMT(UnixSocket, "send() msg size[%d]too big,limit[%d]"), msg.size(), RECV_BUF_SIZE);
+		_lipcLog(ZQ::common::Log::L_WARNING,CLOGFMT(UnixSocket, "AsyncSend() msg size[%d]too big,limit[%d]"), msg.size(), RECV_BUF_SIZE);
 		return -1;
 	}
 
-	AsyncMessage asyncMsg;
+	if (!isActive() || NULL == _waker)
+	{
+		_lipcLog(ZQ::common::Log::L_WARNING,CLOGFMT(UnixSocket, "AsyncSend() handle inactive or NULL waker"));
+		return -1;
+	}
+
+	Message asyncMsg;
 	asyncMsg.msg = msg;
 	asyncMsg.fd = fd;
 
 	{
 		ZQ::common::MutexGuard gd(_lkSendMsgList);
-		_SendMsgList.push_back(asyncMsg);
+		_outgoings.push_back(asyncMsg);
 	}
-	if (_async != NULL)
-		return _async->send();
+
+	if (_waker != NULL)
+		return _waker->wakeup();
 
 	if(INFO_LEVEL_FLAG)
-		_lipcLog(ZQ::common::Log::L_WARNING,CLOGFMT(UnixSocket, "AsyncSend async Handle is close."));
+		_lipcLog(ZQ::common::Log::L_WARNING,CLOGFMT(UnixSocket, "AsyncSend NULL _waker"));
+
 	return -1;
 }
 
-void UnixSocket::OnAsyncSend()
+void UnixSocket::OnWakedUp()
 {
  	int i = 1000;
 	ZQ::common::MutexGuard gd(_lkSendMsgList);
- 	while (!_SendMsgList.empty() && i>0)
+ 	while (!_outgoings.empty() && i>0)
 	{
-		AsyncMessage asyncMsg;
-		asyncMsg = _SendMsgList.front();
-		_SendMsgList.pop_front();
+		Message m = _outgoings.front();
+		_outgoings.pop_front();
 
-		int ret = send(asyncMsg.msg, asyncMsg.fd);
+		int ret = send(m.msg, m.fd);
 		if (ret < 0)
 		{
 			std::string desc = "send msg :";
-			desc.append(asyncMsg.msg);
+			desc.append(m.msg);
 			desc.append(" errDesc:");
 			desc.append(errDesc(ret));
 			onError(ret,desc.c_str());
 		}
+
 		i--;
 	}
 }
 
-void UnixSocket::OnCloseAsync()
-{
-	if (_async != NULL)
-	{
-		delete _async;
-		_async = NULL;
-	}
-
-	{
-		ZQ::common::MutexGuard gd(_lkSendMsgList);
-		_SendMsgList.clear();
-	}
-	shutdown();
-}
-
+//void UnixSocket::OnCloseAsync()
+//{
+//	if (_async != NULL)
+//	{
+//		delete _async;
+//		_async = NULL;
+//	}
+//
+//	{
+//		ZQ::common::MutexGuard gd(_lkSendMsgList);
+//		_outgoings.clear();
+//	}
+//
+//	shutdown();
+//}
+//
 
 int UnixSocket::send(const std::string& msg, int fd)
 {

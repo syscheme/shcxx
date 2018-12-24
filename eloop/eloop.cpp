@@ -1,3 +1,6 @@
+#include "Log.h"
+#include "SystemUtils.h"
+
 #include "eloop.h"
 // #include "eloop_net.h"
 //#include <stdlib.h>
@@ -158,21 +161,39 @@ Handle::~Handle()
 		return;
 
 	if (uv_is_active(&_context->handle))
-		uv_close(&_context->handle, _cbClose);
+		uv_close(&_context->handle, _cbDeactived);
 
-	while (uv_is_closing(&_context->handle))
-		uv_run(_context->handle.loop, UV_RUN_DEFAULT);
+	while (uv_is_closing(&_context->handle) && _loop.alive())
+	{
+		if (_loop.threadId() == __THREADID__)
+			uv_run(_context->handle.loop, UV_RUN_ONCE);
+		else SYS::sleep(1);
+	}
 
 	delete _context;
 	_context = NULL;
 }
 
-void Handle::_cbClose(uv_handle_t *uvhandle)
+#define UVTYPED_HANDLE(_UVTYPE_T)  ((_UVTYPE_T *) &_context->handle)
+#define CALL_ASSERT(_RET)         if (NULL == _context) return _RET
+#define CALL_ASSERTV()            if (NULL == _context) return
+
+#define CALLBACK_CTX(_CLASS, cbFUNC, PARAMS)  { _CLASS* ctx = static_cast<_CLASS *>(uvhandle->data); if (ctx) ctx->cbFUNC PARAMS; }
+
+void Handle::_cbDeactived(uv_handle_t *uvhandle)
 {
-	Handle *h = static_cast<Handle *>(uvhandle->data);
-	if (NULL != h)
-		h->OnClose();
+	CALLBACK_CTX(Handle, OnDeactived, ());
+	//Handle *h = static_cast<Handle *>(uvhandle->data);
+	//if (NULL != h)
+	//	h->OnDeactived();
 }
+
+bool Handle::isActive()
+{
+	CALL_ASSERT(false);
+	return 0 != uv_is_active(UVTYPED_HANDLE(uv_handle_t));
+}
+
 
 //Handle::Handle(Handle &other)
 //{
@@ -217,13 +238,13 @@ void Handle::_cbClose(uv_handle_t *uvhandle)
 //	return uv_is_closing(&context->handle);
 //}
 
-void Handle::close()
+void Handle::deactive()
 {
 	if (_context == NULL || uv_is_closing(&_context->handle))
 		return;
 
 	if (uv_is_active(&_context->handle))
-		uv_close(&_context->handle, _cbClose);
+		uv_close(&_context->handle, _cbDeactived);
 }
 
 //void Handle::ref()
@@ -322,6 +343,7 @@ void Loop::_doWalk(uv_handle_t* uvhandle, void *arg)
 
 bool Loop::run(RunMode mode)
 {
+	_thrdId = __THREADID__;
 	return uv_run(_uvLoop, (uv_run_mode)mode) == 0;
 }
 
@@ -400,12 +422,6 @@ void Loop::walk(void *arg)
 // -----------------------------
 // class IterationBlocker
 // -----------------------------
-#define UVTYPED_HANDLE(_UVTYPE_T)  ((_UVTYPE_T *) &_context->handle)
-#define CALL_ASSERT(_RET)         if (NULL == _context) return _RET
-#define CALL_ASSERTV()            if (NULL == _context) return
-
-#define CALLBACK_CTX(_CLASS, cbFUNC, PARAMS)  { _CLASS* ctx = static_cast<_CLASS *>(uvhandle->data); if (ctx) ctx->cbFUNC PARAMS; }
-
 void IterationBlocker::init()
 {
 	CALL_ASSERTV();

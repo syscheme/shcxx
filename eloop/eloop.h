@@ -245,7 +245,8 @@ public:
 	Loop& loop() { return _loop; }
 	virtual ~Handle();
 
-	void close(); // void close();
+	void deactive(); // void close();
+	bool isActive();
 
 	//void* data;
 	//void close();
@@ -263,7 +264,7 @@ public:
     //uv_handle_t *context_ptr();
 
 protected:
-	virtual void OnClose() { delete this; }
+	virtual void OnDeactived() {}  // OLD: virtual void OnClose() { delete this; }
 	//	bool		_isStart;
 	// bool		_isClose;
 
@@ -271,7 +272,7 @@ protected:
 	uv_any_handle* _context;
 
 private:
-	static void _cbClose(uv_handle_t *uvhandle);
+	static void _cbDeactived(uv_handle_t *uvhandle);
 };
 
 // -----------------------------
@@ -318,6 +319,7 @@ public:
 
 	unsigned int getThreadPoolSize();
 	int setThreadPoolSize(const unsigned int size);
+	uint threadId() const { return _thrdId; }
 
 	uint64_t now();
 	void update_time();
@@ -329,6 +331,7 @@ protected:
 
 private:
 	uv_loop_t* _uvLoop;
+	uint _thrdId;
 
 	static void _doWalk(uv_handle_t* uvhandle, void *arg);
 };
@@ -531,7 +534,7 @@ public:
 	static int kill(int pid, int signum);
 
 protected: // event callback
-	virtual void OnExit(int64_t exit_status, int term_signal) { close(); }
+	virtual void OnExit(int64_t exit_status, int term_signal) { deactive(); }
 
 private: // impl of Handle
 	void init() {} // do nothing because spawn() covers init()

@@ -73,7 +73,7 @@ public:
 
 protected:
 	// called when the stream is shutdown
-	virtual void OnShutdown(ElpeError status) {close();}
+	virtual void OnShutdown(ElpeError status) { deactive(); }
 
 	// tiggered when a new incomming connection is detected by listen()
 	virtual void doAccept(ElpeError status) {}

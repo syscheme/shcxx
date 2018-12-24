@@ -173,7 +173,7 @@ private:
 class Pipe : public AbstractStream
 {
 public:
-	Pipe(Loop& loop, int ipc=0): AbstractStream(loop), _ipc(ipc) {}
+	Pipe(Loop& loop, int ipc=1): AbstractStream(loop), _ipc(ipc) {}
 
 	int  open(uv_file file);
 	int  bind(const char *name);

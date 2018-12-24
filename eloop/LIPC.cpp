@@ -240,7 +240,7 @@ class PassiveConn : public UnixSocket
 {
 public:
 	PassiveConn(LIPCService& service)
-		:_service(service), UnixSocket(service._log)
+		:_service(service), UnixSocket(service.loop(), service._log)
 	{
 		char buf[80];
 		ZQ::common::Guid guid;
@@ -364,6 +364,10 @@ private:
 // class LIPCService
 // -------------------------------------------------
 uint32 LIPCService::_verboseFlags =0xffffffff;
+
+LIPCService::LIPCService(Loop& loop, ZQ::common::Log& log, int ipc)
+: Pipe(loop, ipc), _log(log), _isOnClose(false) 
+{}
 
 void LIPCService::setVerbosity(uint32 verbose) 
 {
