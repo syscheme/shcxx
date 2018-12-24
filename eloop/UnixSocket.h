@@ -26,7 +26,8 @@ public:
 
 public:
 
-	UnixSocket(ZQ::common::LogWrapper& log):_lipcLog(log),_async(NULL)
+	UnixSocket(Loop& loop, ZQ::common::LogWrapper& log, int ipc=1)
+		: Pipe(loop, ipc), _lipcLog(log), _async(NULL)
 	{
 		#ifdef ZQ_OS_LINUX
 				//Ignore SIGPIPE signal

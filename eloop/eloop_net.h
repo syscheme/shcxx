@@ -44,7 +44,7 @@ class ZQ_ELOOP_API DNS;
 
 #define RECV_BUF_SIZE (32*1024)
 // -----------------------------
-// class Stream
+// class AbstractStream
 // -----------------------------
 class AbstractStream : public Handle
 {

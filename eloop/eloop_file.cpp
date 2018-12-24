@@ -221,71 +221,96 @@ void File::_cbMkdir(uv_fs_t* req)
 // -----------------------------
 // class Pipe
 // -----------------------------
-Pipe::Pipe() {
+void Pipe::init()
+{
+	CALL_ASSERTV();
+	if(_ipc == 1)
+		uv_pipe_init(_loop.context_ptr(), &_fdContainer, _ipc);
+
+	uv_pipe_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_pipe_t), _ipc);
 }
 
-int Pipe::init(Loop &loop, int ipc) {
-	if(ipc == 1)
-	   uv_pipe_init(loop.context_ptr(),&_fdContainer,ipc);
-	this->Handle::init(loop);
-	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
-	return uv_pipe_init(loop.context_ptr(), pipe, ipc);
-}
+//int Pipe::init(Loop &loop, int ipc) {
+//	if(ipc == 1)
+//	   uv_pipe_init(loop.context_ptr(),&_fdContainer,ipc);
+//	this->Handle::init(loop);
+//	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
+//	return uv_pipe_init(loop.context_ptr(), pipe, ipc);
+//}
 
 int Pipe::open(uv_file file) {
-	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
-	return uv_pipe_open(pipe, file);
+	CALL_ASSERT(-1);
+	return uv_pipe_open(UVTYPED_HANDLE(uv_pipe_t), file);
+	//uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
+	//return uv_pipe_open(pipe, file);
 }
 
 int Pipe::bind(const char *name) {
-	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
-	return uv_pipe_bind(pipe, name);
+	CALL_ASSERT(-1);
+	return uv_pipe_bind(UVTYPED_HANDLE(uv_pipe_t), name);
+	//uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
+	//return uv_pipe_bind(pipe, name);
 }
 
 void Pipe::connect(const char *name) {
-	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
+	CALL_ASSERTV();
 	uv_connect_t* req = new uv_connect_t;
-
-	uv_pipe_connect(req, pipe, name, _cbConnected);
+	uv_pipe_connect(req, UVTYPED_HANDLE(uv_pipe_t), name, _cbConnected);
+	//uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
+	//return uv_pipe_connect(req, pipe, name, _cbConnected);
 }
 
 int Pipe::getsockname(char *buffer, size_t *size) {
-	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
-	return uv_pipe_getsockname(pipe, buffer, size);
+	CALL_ASSERT(-1);
+	return uv_pipe_getsockname(UVTYPED_HANDLE(uv_pipe_t), buffer, size);
+	//uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
+	//return uv_pipe_getsockname(pipe, buffer, size);
 }
 
 int Pipe::getpeername(char *buffer, size_t *size) {
-	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
-	return uv_pipe_getpeername(pipe, buffer, size);
+	CALL_ASSERT(-1);
+	return uv_pipe_getpeername(UVTYPED_HANDLE(uv_pipe_t), buffer, size);
+	//uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
+	//return uv_pipe_getpeername(pipe, buffer, size);
 }
 
 void Pipe::pending_instances(int count) {
-	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
-	uv_pipe_pending_instances(pipe, count);
+	CALL_ASSERTV();
+	uv_pipe_pending_instances(UVTYPED_HANDLE(uv_pipe_t), count);
+	//uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
+	//uv_pipe_pending_instances(pipe, count);
 }
 
 int Pipe::pending_count() {
-	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
-	return uv_pipe_pending_count(pipe);
+	CALL_ASSERT(-1);
+	return uv_pipe_pending_count(UVTYPED_HANDLE(uv_pipe_t));
+	//uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
+	//return uv_pipe_pending_count(pipe);
 }
 
 Pipe::eloop_handle_type Pipe::pending_type()
 {
-	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
-	return (eloop_handle_type)uv_pipe_pending_type(pipe);
+	CALL_ASSERT(ELOOP_UNKNOWN_HANDLE);
+	return (eloop_handle_type) uv_pipe_pending_type(UVTYPED_HANDLE(uv_pipe_t));
+	//uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
+	//return (eloop_handle_type)uv_pipe_pending_type(pipe);
 }
+
 #ifdef ZQ_OS_LINUX
 int Pipe::sendfd(const eloop_buf_t bufs[],unsigned int nbufs,int fd)
 {
 	uv_setfd(&_fdContainer,fd);
-	return write(bufs,nbufs,(uv_stream_t*)&_fdContainer);
+	return write(bufs, nbufs, (uv_stream_t*)&_fdContainer);
 }
 
 int Pipe::acceptfd()
 {
-	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
-	return uv_acceptfd((uv_stream_t*)pipe);
+	CALL_ASSERT(-1);
+	return uv_acceptfd(UVTYPED_HANDLE(uv_pipe_t));
+	//uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
+	//return uv_acceptfd((uv_stream_t*)pipe);
 }
+
 #endif
 
 void Pipe::_cbConnected(uv_connect_t *req, int status) {
@@ -293,10 +318,8 @@ void Pipe::_cbConnected(uv_connect_t *req, int status) {
 
 	Pipe* self = static_cast<Pipe *>(stream->data);
 
-	if (self != NULL) {
-		//TODO: why wiped uv_connect_t here??
+	if (self != NULL)//TODO: why wiped uv_connect_t here??
 		self->OnConnected((ElpeError)status);
-	}
 
 	delete req;
 }

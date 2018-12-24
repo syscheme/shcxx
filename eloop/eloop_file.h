@@ -170,18 +170,17 @@ private:
 // -----------------------------
 // class Pipe
 // -----------------------------
-class Pipe : public Stream
+class Pipe : public AbstractStream
 {
 public:
-	Pipe();
+	Pipe(Loop& loop, int ipc=0): AbstractStream(loop), _ipc(ipc) {}
 
-	int  init(Loop &loop, int ipc=1);
 	int  open(uv_file file);
 	int  bind(const char *name);
-	void connect(const char *name);
+	void  connect(const char *name);
 	int  getsockname(char *buffer, size_t *size);
 	int  getpeername(char *buffer, size_t *size);
-	void pending_instances(int count);
+	void  pending_instances(int count);
 	int  pending_count();
 	eloop_handle_type pending_type();
 	#ifdef ZQ_OS_LINUX
@@ -193,9 +192,12 @@ protected:
 	//TODO: why wiped uv_connect_t here??
 	virtual void OnConnected(ElpeError status) {}
 
+private: // impl of Handle
+	void init();
 private:
 	static void _cbConnected(uv_connect_t *req, int status);
 	uv_pipe_t	_fdContainer;
+	int _ipc;
 	
 };
 
