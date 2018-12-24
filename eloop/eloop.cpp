@@ -398,7 +398,7 @@ void Loop::walk(void *arg)
 }
 
 // -----------------------------
-// class Idle
+// class IterationBlocker
 // -----------------------------
 #define TYPED_HANDLE(_TYPE_T)  ((_TYPE_T *) &_context->handle)
 #define INIT_UV_HANDLE(_TYPE)  if (_context) uv_##_TYPE##_init(_loop.context_ptr(), TYPED_HANDLE(uv_##_TYPE##_t));
@@ -406,27 +406,27 @@ void Loop::walk(void *arg)
 
 #define CALLBACK_CTX(_CLASS, cbFUNC, PARAMS)  _CLASS* ctx = static_cast<_CLASS *>(uvhandle->data); if (ctx) ctx->cbFUNC PARAMS;
 
-void Idle::init()
+void IterationBlocker::init()
 {
 	if (NULL == _context) return;
 	uv_idle_init(_loop.context_ptr(), TYPED_HANDLE(uv_idle_t));
 }
 
-void Idle::_cbOnIdle(uv_idle_t* uvhandle)
+void IterationBlocker::_cbOnIdle(uv_idle_t* uvhandle)
 {
-	CALLBACK_CTX(Idle, OnIdle, ())
-	//Idle *h = static_cast<Idle *>(uvhandle->data);
+	CALLBACK_CTX(IterationBlocker, OnIdle, ())
+	//IterationBlocker *h = static_cast<IterationBlocker *>(uvhandle->data);
 	//if (NULL != h)
 	//	h->OnIdle();
 }
 
-int Idle::start()
+int IterationBlocker::start()
 {
 	CALL_ASSERT();
 	return uv_idle_start(TYPED_HANDLE(uv_idle_t), _cbOnIdle);
 }
 
-int Idle::stop()
+int IterationBlocker::stop()
 {
 	CALL_ASSERT();
 	return uv_idle_stop(TYPED_HANDLE(uv_idle_t));
@@ -463,31 +463,29 @@ int Timer::start(uint64_t timeout, uint64_t repeat)
 int Timer::stop()
 {
 	CALL_ASSERT();
-	return uv_timer_start(TYPED_HANDLE(uv_timer_t), _cbOnTimer, timeout, repeat);
-
-	uv_timer_t* timer = (uv_timer_t *)context_ptr();
-	return uv_timer_stop(timer);
+	return uv_timer_stop(TYPED_HANDLE(uv_timer_t));
 }
 
 int Timer::again() {
-	uv_timer_t* timer = (uv_timer_t *)context_ptr();
-	return uv_timer_again(timer);
+	CALL_ASSERT();
+	return uv_timer_again(TYPED_HANDLE(uv_timer_t));
 }
 
 void Timer::set_repeat(uint64_t repeat) {
-	uv_timer_t* timer = (uv_timer_t *)context_ptr();
-	uv_timer_set_repeat(timer, repeat);
+	CALL_ASSERT();
+	uv_timer_set_repeat(TYPED_HANDLE(uv_timer_t), repeat);
 }
 
 uint64_t Timer::get_repeat() {
-	uv_timer_t* timer = (uv_timer_t *)context_ptr();
-	return uv_timer_get_repeat(timer);
+	CALL_ASSERT();
+	return uv_timer_get_repeat(TYPED_HANDLE(uv_timer_t));
 }
 
 // -----------------------------
 // class Async
 // -----------------------------
-Async::Async() {
+Async::Async()
+{
 }
 
 void Async::_cbAsync(uv_async_t *async)
@@ -497,13 +495,15 @@ void Async::_cbAsync(uv_async_t *async)
 		h->OnAsync();
 }
 
-int Async::init(Loop &loop) {
+int Async::init(Loop &loop)
+{
 	this->Handle::init(loop);
 	uv_async_t * async = (uv_async_t *)context_ptr();
 	return uv_async_init(loop.context_ptr(), async, _cbAsync);
 }
 
-int Async::send() {
+int Async::send()
+{
 	uv_async_t* async = (uv_async_t *)context_ptr();
 	return uv_async_send(async);
 }

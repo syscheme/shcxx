@@ -61,7 +61,7 @@ namespace eloop {
 
 class ZQ_ELOOP_API Loop;
 class ZQ_ELOOP_API Handle;
-class ZQ_ELOOP_API Idle;
+class ZQ_ELOOP_API IterationBlocker;
 class ZQ_ELOOP_API Timer;
 class ZQ_ELOOP_API Async;
 class ZQ_ELOOP_API Signal;
@@ -331,12 +331,12 @@ private:
 };
 
 // -----------------------------
-// class Idle
+// class IterationBlocker
 // -----------------------------
-class Idle : public Handle
+class IterationBlocker : public Handle
 {
 public:
-	Idle(Loop& loop) : Handle(loop) {}
+	IterationBlocker(Loop& loop) : Handle(loop) {}
 
 	int start();
 	int stop();
