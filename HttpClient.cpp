@@ -1,13 +1,13 @@
 // ===========================================================================
 // Copyright (c) 2004 by
-// ZQ Interactive, Inc., Shanghai, PRC.,
+// syscheme, Shanghai
 // All Rights Reserved.  Unpublished rights reserved under the copyright
 // laws of the United States.
 // 
 // The software contained  on  this media is proprietary to and embodies the
-// confidential technology of ZQ Interactive, Inc. Possession, use,
+// confidential technology of syscheme Possession, use,
 // duplication or dissemination of the software and media is authorized only
-// pursuant to a valid written license from ZQ Interactive, Inc.
+// pursuant to a valid written license from syscheme
 // 
 // This software is furnished under a  license  and  may  be used and copied
 // only in accordance with the terms of  such license and with the inclusion
@@ -16,7 +16,7 @@
 // title to and ownership of the software is hereby transferred.
 //
 // The information in this software is subject to change without notice and
-// should not be construed as a commitment by ZQ Interactive, Inc.
+// should not be construed as a commitment by syscheme
 //
 // Ident : $Id: Exception.h,v 1.8 2008/04/17 09:32:35 yixin tian Exp $
 // Branch: $Name:  $
