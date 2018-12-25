@@ -166,11 +166,8 @@ typedef struct _IP_ADAPTER_UNICAST_ADDRESS_XP {
   ULONG LeaseLifetime;
 } IP_ADAPTER_UNICAST_ADDRESS_XP,*PIP_ADAPTER_UNICAST_ADDRESS_XP;
 
-<<<<<<< HEAD
 #endif
 
-=======
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 typedef struct _IP_ADAPTER_UNICAST_ADDRESS_LH {
   union {
     ULONGLONG Alignment;
@@ -190,11 +187,6 @@ typedef struct _IP_ADAPTER_UNICAST_ADDRESS_LH {
   UINT8 OnLinkPrefixLength;
 } IP_ADAPTER_UNICAST_ADDRESS_LH,*PIP_ADAPTER_UNICAST_ADDRESS_LH;
 
-<<<<<<< HEAD
-=======
-#endif
-
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 int uv__convert_to_localhost_if_unspecified(const struct sockaddr* addr,
                                             struct sockaddr_storage* storage);
 

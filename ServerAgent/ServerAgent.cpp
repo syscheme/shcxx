@@ -26,7 +26,7 @@ public:
 private:
 	ZQSnmpSingleton(){}
 	~ZQSnmpSingleton(){if(_agent)delete _agent;}
-	//ï¿½Ñ¸ï¿½ï¿½Æ¹ï¿½ï¿½ìº¯ï¿½ï¿½ï¿½ï¿½=ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò²ï¿½ï¿½ÎªË½ï¿½ï¿½,ï¿½ï¿½Ö¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	//°Ñ¸´ÖÆ¹¹Ôìº¯ÊýºÍ=²Ù×÷·ûÒ²ÉèÎªË½ÓÐ,·ÀÖ¹±»¸´ÖÆ
 	ZQSnmpSingleton(const ZQSnmpSingleton&){}
 	ZQSnmpSingleton& operator=(const ZQSnmpSingleton&){}
 
@@ -231,7 +231,7 @@ bool LoadFile::onHeadersEnd( const HttpMessage::Ptr msg)
 				_curfile = fopen(filePath2.c_str(), "rb");
 			}
 			if(_curfile != NULL){
-/*				fseek(_curfile,0,SEEK_END);     //ï¿½ï¿½Î»ï¿½ï¿½ï¿½Ä¼ï¿½Ä©   
+/*				fseek(_curfile,0,SEEK_END);     //¶¨Î»µ½ÎÄ¼þÄ©   
 				fileSize = ftell(_curfile);
 				rewind(_curfile);*/
 				std::ifstream in(filePath.c_str());   

@@ -3,7 +3,6 @@
 namespace ZQ {
 namespace eloop {
 
-<<<<<<< HEAD
 #define UVTYPED_HANDLE(_UVTYPE_T)  ((_UVTYPE_T *) &_context->handle)
 #define CALL_ASSERT(_RET)         if (NULL == _context) return _RET
 #define CALL_ASSERTV()            if (NULL == _context) return
@@ -64,46 +63,6 @@ std::string FSMonitor::path()
 	//return uv_fs_event_getpath(event, buffer, size);
 }
 
-=======
-// -----------------------------
-// class File
-// -----------------------------
-FileEvent::FileEvent() {
-}
-
-int FileEvent::init(Loop &loop) {
-	this->Handle::init(loop);
-	uv_fs_event_t* event = (uv_fs_event_t *)context_ptr();
-	return uv_fs_event_init(loop.context_ptr(), event);
-}
-
-int FileEvent::start(const char *path, uint flags)
-{
-	uv_fs_event_t* event = (uv_fs_event_t *)context_ptr();
-
-	return uv_fs_event_start(event, _cbFSevent, path, flags);
-}
-
-int FileEvent::stop() {
-	uv_fs_event_t* event = (uv_fs_event_t *) context_ptr();
-	return uv_fs_event_stop(event);
-}
-
-int FileEvent::getpath(char *buffer, size_t *size) {
-	uv_fs_event_t* event = (uv_fs_event_t *)context_ptr();
-	return uv_fs_event_getpath(event, buffer, size);
-}
-
-void FileEvent::_cbFSevent(uv_fs_event_t *handle, const char *filename, int events, int status) {
-
-	FileEvent* self = static_cast<FileEvent *>(handle->data);
-	if (self != NULL) {
-		self->OnFileEvent(filename, (uint) events, (ElpeError)status);
-	}
-}
-
-
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 // -----------------------------
 // class File
 // -----------------------------
@@ -262,7 +221,6 @@ void File::_cbMkdir(uv_fs_t* req)
 // -----------------------------
 // class Pipe
 // -----------------------------
-<<<<<<< HEAD
 void Pipe::init()
 {
 	CALL_ASSERTV();
@@ -328,95 +286,31 @@ int Pipe::pending_count() {
 	return uv_pipe_pending_count(UVTYPED_HANDLE(uv_pipe_t));
 	//uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
 	//return uv_pipe_pending_count(pipe);
-=======
-Pipe::Pipe() {
-}
-
-int Pipe::init(Loop &loop, int ipc) {
-	if(ipc == 1)
-	   uv_pipe_init(loop.context_ptr(),&_fdContainer,ipc);
-	this->Handle::init(loop);
-	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
-	return uv_pipe_init(loop.context_ptr(), pipe, ipc);
-}
-
-int Pipe::open(uv_file file) {
-	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
-	return uv_pipe_open(pipe, file);
-}
-
-int Pipe::bind(const char *name) {
-	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
-	return uv_pipe_bind(pipe, name);
-}
-
-void Pipe::connect(const char *name) {
-	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
-	uv_connect_t* req = new uv_connect_t;
-
-	uv_pipe_connect(req, pipe, name, _cbConnected);
-}
-
-int Pipe::getsockname(char *buffer, size_t *size) {
-	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
-	return uv_pipe_getsockname(pipe, buffer, size);
-}
-
-int Pipe::getpeername(char *buffer, size_t *size) {
-	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
-	return uv_pipe_getpeername(pipe, buffer, size);
-}
-
-void Pipe::pending_instances(int count) {
-	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
-	uv_pipe_pending_instances(pipe, count);
-}
-
-int Pipe::pending_count() {
-	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
-	return uv_pipe_pending_count(pipe);
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 }
 
 Pipe::eloop_handle_type Pipe::pending_type()
 {
-<<<<<<< HEAD
 	CALL_ASSERT(ELOOP_UNKNOWN_HANDLE);
 	return (eloop_handle_type) uv_pipe_pending_type(UVTYPED_HANDLE(uv_pipe_t));
 	//uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
 	//return (eloop_handle_type)uv_pipe_pending_type(pipe);
 }
 
-=======
-	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
-	return (eloop_handle_type)uv_pipe_pending_type(pipe);
-}
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 #ifdef ZQ_OS_LINUX
 int Pipe::sendfd(const eloop_buf_t bufs[],unsigned int nbufs,int fd)
 {
 	uv_setfd(&_fdContainer,fd);
-<<<<<<< HEAD
 	return write(bufs, nbufs, (uv_stream_t*)&_fdContainer);
-=======
-	return write(bufs,nbufs,(uv_stream_t*)&_fdContainer);
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 }
 
 int Pipe::acceptfd()
 {
-<<<<<<< HEAD
 	CALL_ASSERT(-1);
 	return uv_acceptfd(UVTYPED_HANDLE(uv_pipe_t));
 	//uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
 	//return uv_acceptfd((uv_stream_t*)pipe);
 }
 
-=======
-	uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
-	return uv_acceptfd((uv_stream_t*)pipe);
-}
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 #endif
 
 void Pipe::_cbConnected(uv_connect_t *req, int status) {
@@ -424,15 +318,8 @@ void Pipe::_cbConnected(uv_connect_t *req, int status) {
 
 	Pipe* self = static_cast<Pipe *>(stream->data);
 
-<<<<<<< HEAD
 	if (self != NULL)//TODO: why wiped uv_connect_t here??
 		self->OnConnected((ElpeError)status);
-=======
-	if (self != NULL) {
-		//TODO: why wiped uv_connect_t here??
-		self->OnConnected((ElpeError)status);
-	}
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	delete req;
 }

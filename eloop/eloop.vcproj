@@ -52,11 +52,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				InlineFunctionExpansion="1"
-<<<<<<< HEAD
 				AdditionalIncludeDirectories=".;..;libuv_1.20.3/include;&quot;$(RegExppKit)&quot;"
-=======
-				AdditionalIncludeDirectories=".;..;libuv_1.9.1/include;&quot;$(RegExppKit)&quot;"
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;ELOOP_EXPORTS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_WIN32_WINNT=0x0600;_GNU_SOURCE"
 				StringPooling="true"
 				RuntimeLibrary="2"
@@ -155,11 +151,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				InlineFunctionExpansion="1"
-<<<<<<< HEAD
 				AdditionalIncludeDirectories="..;libuv_1.20.3/include;&quot;$(RegExppKit)&quot;"
-=======
-				AdditionalIncludeDirectories="..;libuv_1.9.1/include;&quot;$(RegExppKit)&quot;"
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;ELOOP_EXPORTS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_WIN32_WINNT=0x0600;_GNU_SOURCE"
 				StringPooling="true"
 				RuntimeLibrary="2"
@@ -256,11 +248,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-<<<<<<< HEAD
 				AdditionalIncludeDirectories="..;&quot;$(RegExppKit)&quot;;../eloop/libuv_1.20.3/include"
-=======
-				AdditionalIncludeDirectories="..;&quot;$(RegExppKit)&quot;;../eloop/libuv_1.9.1/include"
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 				PreprocessorDefinitions="_DEBUG;WIN32;_WINDOWS;_USRDLL;ELOOP_EXPORTS;XML_STATIC;LOGFMTWITHTID;_WIN32_WINNT=0x500"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -559,13 +547,10 @@
 					/>
 				</FileConfiguration>
 			</File>
-<<<<<<< HEAD
 			<File
 				RelativePath="..\getopt.cpp"
 				>
 			</File>
-=======
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 		</Filter>
 		<File
 			RelativePath=".\ReadMe.txt"

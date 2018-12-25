@@ -41,6 +41,7 @@ bool ZQ_COMMON_API	TrimExtra(std::string& str, const std::string& strExtra)
 			break;
 		posBegin++;
 	}
+
 	posEnd=length-1;
 	while (posEnd>=posBegin)
 	{
@@ -49,11 +50,13 @@ bool ZQ_COMMON_API	TrimExtra(std::string& str, const std::string& strExtra)
 			break;
 		posEnd--;
 	}
+
 	if(posEnd>=posBegin)
 	{
 		str=str.substr (posBegin,posEnd-posBegin+1);
 		return true;
 	}
+
 	return false;
 }
 
@@ -241,6 +244,7 @@ long ZQ_COMMON_API str2long(const char* str)
 		//step 2. start transform
 		return strtol(valstr.c_str(), NULL ,16);
 	}
+
 	//type 2.Dec transform,inlclude 1000 or 1024
 	if (std::string::npos != (pos= valstr.find_first_of("kmg")))//Dec,supports format of [NUM]g[NUM]m[NUM]k,such as: 1.2g2m5k, 3kB
 	{	
@@ -263,6 +267,7 @@ long ZQ_COMMON_API str2long(const char* str)
 			if (std::string::npos != (pos = valstr.find_first_of("0123456789")))
 				valstr = valstr.substr(pos);
 		}
+
 		val*=level;
 		if (std::string::npos != (pos= valstr.find('m')))
 		{
@@ -275,6 +280,7 @@ long ZQ_COMMON_API str2long(const char* str)
 			if (std::string::npos != (pos = valstr.find_first_of("0123456789")))
 				valstr = valstr.substr(pos);
 		}
+
 		val*=level;
 		if (std::string::npos != (pos= valstr.find('k')))
 		{
@@ -287,6 +293,7 @@ long ZQ_COMMON_API str2long(const char* str)
 			if (std::string::npos != (pos = valstr.find_first_of("0123456789")))
 				valstr = valstr.substr(pos);
 		}
+
 		val*=level;
 		//after transfer g,m,k,use the standard strtolong
 		if(!valstr.empty())
@@ -428,6 +435,7 @@ long ZQ_COMMON_API  str2msec(const char* str)
 
 	return (long) val;
 }
+
 
 bool keywordReduce(const std::vector< std::string >& texts, std::vector< std::string >& keywords, const char* wordDelimitor, const char* kwDelimitor)
 {

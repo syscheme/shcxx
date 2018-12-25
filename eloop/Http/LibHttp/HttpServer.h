@@ -1,44 +1,26 @@
 #ifndef __HTTP_SERVER_h__
 #define __HTTP_SERVER_h__
 
-<<<<<<< HEAD
 #include "HttpConnection.h"
 #include "eloop_net.h"
 
 #include <NativeThread.h>
 #include <SystemUtils.h>
 #include <list>
-=======
-#include "HttpMessage.h"
-#include "eloop_net.h"
-#include "HttpConnection.h"
-#include <NativeThread.h>
-#include <SystemUtils.h>
-#include <boost/regex.hpp>
-#include <set>
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 
 namespace ZQ {
 namespace eloop {
 
-<<<<<<< HEAD
 #define DUMMY_PROCESS_TIMEOUT (60*1000) // 1min a dummy big time
 #define DEFAULT_SITE "."
 
 class ZQ_ELOOP_HTTP_API HttpServer;
 class ZQ_ELOOP_HTTP_API HttpHandler;
-=======
-#define DEFAULT_SITE "."
-class HttpServer;
-class HttpPassiveConn;
-class ServantThread;
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 // ---------------------------------------
 // interface HttpHandler
 // ---------------------------------------
-<<<<<<< HEAD
 class HttpHandler: public virtual ZQ::common::SharedObject
 {
 	friend class HttpPassiveConn;
@@ -75,28 +57,12 @@ public:
 		std::string _txnId;
 		int64 _bodyBytesPushed;
 	};
-=======
-class HttpHandler: public IHttpParseSink, public virtual ZQ::common::SharedObject
-{
-	friend class HttpPassiveConn;
-	friend class IBaseApplication;
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 public:
 	typedef std::map<std::string, std::string> Properties;
 	typedef ZQ::common::Pointer<HttpHandler> Ptr;
-<<<<<<< HEAD
 
 	virtual ~HttpHandler();
-=======
-	virtual ~HttpHandler() {
-
-		(_app.log())(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpHandler, "~HttpHandler"));
-
-	}
-
-	HttpPassiveConn& conn() { return _conn; }
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	// ---------------------------------------
 	// interface IBaseApplication
@@ -113,35 +79,24 @@ public:
 		virtual ~IBaseApplication() {}
 
 		HttpHandler::Properties getProps() const { return _appProps; }
-<<<<<<< HEAD
 		int OngoingSize() { return _cOngoings.get(); }
 		ZQ::common::Log& log() { return _log; }
 
 		// NOTE: this method may be accessed by multi threads concurrently
 		virtual HttpHandler::Ptr create(HttpServer& server, const HttpMessage::Ptr& req, const HttpHandler::Properties& dirProps) =0;
-=======
-		ZQ::common::Log& log() { return _log; }
-
-		// NOTE: this method may be accessed by multi threads concurrently
-		virtual HttpHandler::Ptr create(HttpPassiveConn& conn, const HttpHandler::Properties& dirProps) =0;
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	protected:
 		HttpHandler::Properties _appProps;
 		ZQ::common::Log&        _log;
-<<<<<<< HEAD
 
 	private:
 		friend class HttpHandler;
 		ZQ::common::AtomicInt _cOngoings;
-=======
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	};
 
 	typedef ZQ::common::Pointer<IBaseApplication> AppPtr;
 
 protected: // hatched by HttpApplication
-<<<<<<< HEAD
 	// the handler is created when all HTTP headers are received
 	HttpHandler(const HttpMessage::Ptr& req, IBaseApplication& app, HttpServer& server, const HttpHandler::Properties& dirProps = HttpHandler::Properties());
 
@@ -157,28 +112,15 @@ protected: // forwarded from HttpConnection
 
 	HttpMessage::Ptr  _req;
 	HttpHandler::Response::Ptr  _resp;
-=======
-	HttpHandler(IBaseApplication& app, HttpPassiveConn& conn, const HttpHandler::Properties& dirProps = HttpHandler::Properties())
-		: _conn(conn), _app(app), _dirProps(dirProps)
-	{}
-
-	virtual void	onHttpDataSent(size_t size) {}
-	virtual void	onHttpDataReceived( size_t size ) {}
-
-	HttpPassiveConn& _conn;
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	IBaseApplication& _app;
 	HttpHandler::Properties _dirProps;
 };
 
-<<<<<<< HEAD
 class HttpPassiveConn;
 
 // ---------------------------------------
 // template HttpApplication
 // ---------------------------------------
-=======
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 template <class Handler>
 class HttpApplication: public HttpHandler::IBaseApplication
 {
@@ -191,7 +133,6 @@ public:
 		: IBaseApplication(logger, appProps) {}
 	virtual ~HttpApplication() {}
 
-<<<<<<< HEAD
 	virtual HttpHandler::Ptr create(HttpServer& server, const HttpMessage::Ptr& req, const HttpHandler::Properties& dirProps)
 	{
 		return new HandlerT(req, *this, server, dirProps);
@@ -227,96 +168,10 @@ public: // about the await responses
 	void removeAwait(HttpHandler::Response::Ptr resp);
 	int getPendingSize();
 
-=======
-	virtual HttpHandler::Ptr create(HttpPassiveConn& conn, const HttpHandler::Properties& dirProps)
-	{ 
-		return new HandlerT(*this, conn, dirProps);
-	}
-};
-
-////---------------------------------------
-////class HttpMonitorTimer
-////----------------------------------------
-//class HttpMonitorTimer : public Timer
-//{
-//public:
-//	//	~HttpMonitorTimer(){printf("~HttpMonitorTimer\n");}
-//	virtual void OnTimer();
-//	//	virtual void OnClose(){printf("HttpMonitorTimer onclose!\n");}
-//};
-//
-
-// ---------------------------------------
-// class HttpPassiveConn
-// ---------------------------------------
-// present an accepted incomming connection
-class HttpPassiveConn : public HttpConnection
-{
-public:
-	HttpPassiveConn(HttpServer& server);
-	~HttpPassiveConn();
-
-	bool			keepAlive() const { return _keepAlive_Timeout>0; }
-	void 			errorResponse( int code );
-	virtual void    onRespComplete(bool isShutdown = false);
-
-protected:
-
-	// implementation of HttpConnection
-	virtual void	onError( int error,const char* errorDescription );
-	virtual void	onHttpDataSent(size_t size);
-	virtual void	onHttpDataReceived( size_t size );
-	virtual bool	onHeadersEnd( const HttpMessage::Ptr msg);
-	virtual bool	onBodyData( const char* data, size_t size);
-	virtual void	onMessageCompleted();
-	//virtual void	OnClose();
-
-	virtual void OnTimer();
-
-
-private:
-	// NOTE: DO NOT INVOKE THIS METHOD unless you known what you are doing
-	void initHint();
-
-protected:
-	HttpHandler::Ptr			_handler;
-	HttpServer&					_server;
-
-	bool						_keepAlive;
-	int64						_keepAlive_Timeout;
-	int64						_startTime;
-};
-
-// ---------------------------------------
-// class HttpServer
-// ---------------------------------------
-class IHttpEngine;
-class HttpServer: public TCPServer
-{
-public:
-	HttpServer( const TCPServer::ServerConfig& conf,ZQ::common::Log& logger)
-		:TCPServer(conf,logger){}
-
-	virtual bool onStart(ZQ::eloop::Loop& loop){ return true; }
-	virtual bool onStop(){ return true; }
-
-	// register an application to uri
-	//@param uriEx - the regular expression of uri
-	bool mount(const std::string& uriEx, HttpHandler::AppPtr app, const HttpHandler::Properties& props=HttpHandler::Properties(), const char* virtualSite =DEFAULT_SITE);
-
-	HttpHandler::Ptr createHandler( const std::string& uri, HttpPassiveConn& conn, const std::string& virtualSite = std::string(DEFAULT_SITE));
-
-	virtual TCPConnection* createPassiveConn();
-
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 private:
 	typedef struct _MountDir
 	{
 		std::string					uriEx;
-<<<<<<< HEAD
-=======
-		boost::regex				re;
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 		HttpHandler::AppPtr	app;
 		HttpHandler::Properties     props;
 	} MountDir;
@@ -325,14 +180,11 @@ private:
 	typedef std::map<std::string, MountDirs> VSites;
 
 	VSites _vsites;
-<<<<<<< HEAD
 
 private:
 	HttpHandler::Response::List	_awaits;
 	ZQ::common::Mutex			_lkAwaits;
 
-=======
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 };
 
 // ---------------------------------------
@@ -398,8 +250,4 @@ extern HttpStatistics& getHttpStatistics();
 
 } }//namespace ZQ::eloop
 
-<<<<<<< HEAD
 #endif
-=======
-#endif
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534

@@ -2,15 +2,9 @@
 #define __RTSP_SERVER_H__
 
 #include "RTSPConnection.h"
-<<<<<<< HEAD
 
 #include <set>
 #include <list>
-=======
-#include "TCPServer.h"
-
-#include <set>
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 namespace ZQ {
 namespace eloop {
@@ -18,18 +12,13 @@ namespace eloop {
 class ZQ_ELOOP_HTTP_API RTSPServer;
 class ZQ_ELOOP_HTTP_API RTSPHandler;
 class ZQ_ELOOP_HTTP_API RTSPPassiveConn;
-<<<<<<< HEAD
 class ZQ_ELOOP_HTTP_API RTSPResponse;
 
 #define DUMMY_PROCESS_TIMEOUT (60*1000) // 1min a dummy big time
-=======
-class ZQ_ELOOP_HTTP_API RTSPServerResponse;
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 #define DEFAULT_SITE "."
 
 // ---------------------------------------
-<<<<<<< HEAD
 // class RTSPResponse
 // ---------------------------------------
 class RTSPResponse : public RTSPMessage
@@ -39,27 +28,11 @@ public:
 
 	RTSPResponse(RTSPServer& server, const RTSPMessage::Ptr& req);
 	virtual ~RTSPResponse() {}
-=======
-// class RTSPServerResponse
-// ---------------------------------------
-class RTSPServerResponse : public RTSPMessage
-{
-public:
-	typedef ZQ::common::Pointer<RTSPServerResponse> Ptr;
-
-	RTSPServerResponse(RTSPServer& server,const RTSPMessage::Ptr& req);
-
-	~RTSPServerResponse() {}
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	void post(int statusCode, const char* errMsg = NULL, bool bAsync = true); 
 	TCPConnection* getConn();
 
-<<<<<<< HEAD
 	int getTimeLeft();
-=======
-	int getRemainTime();
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 private:
 	RTSPServer& _server;
@@ -83,20 +56,6 @@ public:
 	typedef ZQ::common::Pointer<RTSPHandler> Ptr;
 	typedef std::map<std::string, Ptr> Map;
 
-<<<<<<< HEAD
-=======
-	enum RequestMethod {
-		mtdUNKNOWN,
-		mtdSETUP,
-		mtdPLAY,
-		mtdPAUSE,
-		mtdTEARDOWN,
-		mtdGET_PARAMETER,
-		mtdDESCRIBE,
-		mtdOPTIONS,
-	};
-
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 public: // about the session management
 	// ---------------------------------------
 	// subclass server-side RTSPSession
@@ -135,17 +94,10 @@ public: // about the session management
 		virtual ~IBaseApplication() {}
 
 		RTSPHandler::Properties getProps() const { return _appProps; }
-<<<<<<< HEAD
 		int OngoingSize() { return _cOngoings.get(); }
 
 		// NOTE: this method may be accessed by multi threads concurrently
 		virtual RTSPHandler::Ptr create(ZQ::eloop::RTSPServer& server, const ZQ::eloop::RTSPMessage::Ptr& req, const ZQ::eloop::RTSPHandler::Properties& dirProps) =0;
-=======
-		ZQ::common::Log& log() { return _log; }
-
-		// NOTE: this method may be accessed by multi threads concurrently
-		virtual RTSPHandler::Ptr create(RTSPServer& server, const RTSPHandler::Properties& dirProps) =0;
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 		virtual Session::Ptr newSession(RTSPServer& server, const char* sessId = NULL) =0;
 
 	protected:
@@ -153,19 +105,15 @@ public: // about the session management
 
 	public:
 		ZQ::common::Log&        _log;
-<<<<<<< HEAD
 
 	private:
 		friend class RTSPHandler;
 		ZQ::common::AtomicInt _cOngoings;
-=======
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	};
 
 	typedef ZQ::common::Pointer<IBaseApplication> AppPtr;
 
 protected: // hatched by HttpApplication
-<<<<<<< HEAD
 	RTSPHandler(const RTSPMessage::Ptr& req, IBaseApplication& app, RTSPServer& server, const RTSPHandler::Properties& dirProps = RTSPHandler::Properties());
 
 	virtual ~RTSPHandler();
@@ -216,35 +164,6 @@ protected: // hatched by HttpApplication
 	virtual std::string mediaSDP(const std::string& mid);
 
 	RTSPMessage::Ptr        _req;
-=======
-	RTSPHandler(IBaseApplication& app, RTSPServer& server, const RTSPHandler::Properties& dirProps = RTSPHandler::Properties());
-
-	virtual ~RTSPHandler();
-
-	virtual void	onDataSent(size_t size);
-	virtual void	onDataReceived( size_t size );
-	virtual void	onError( int error,const char* errorDescription ){}
-
-	// non session-based requests
-	//@return RTSP status code
-	virtual RTSPMessage::ExtendedErrCode onOptions(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp);
-	virtual RTSPMessage::ExtendedErrCode onDescribe(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp);
-	virtual RTSPMessage::ExtendedErrCode onAnnounce(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp);
-
-	// session-based requests
-	//@return RTSP status code
-	virtual RTSPMessage::ExtendedErrCode procSessionSetup(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionPlay(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionPause(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionTeardown(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionAnnounce(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionDescribe(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionGetParameter(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
-	virtual RTSPMessage::ExtendedErrCode procSessionSetParameter(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess);
-
-	virtual std::string mediaSDP(const std::string& mid);
-
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	IBaseApplication&       _app;
 	RTSPHandler::Properties _dirProps;
 	RTSPServer&		        _server;
@@ -262,14 +181,9 @@ public:
 
  	bool mount(const std::string& uriEx, RTSPHandler::AppPtr app, const RTSPHandler::Properties& props=RTSPHandler::Properties(), const char* virtualSite =DEFAULT_SITE);
 	bool unmount(const std::string& uriEx, const char* virtualSite =DEFAULT_SITE);
-<<<<<<< HEAD
 	void clearMounts() { _vsites.clear(); }
 
 	RTSPHandler::Ptr createHandler(const RTSPMessage::Ptr& req, RTSPPassiveConn& conn, const std::string& virtualSite = std::string(DEFAULT_SITE));
-=======
-
-	RTSPHandler::Ptr createHandler(const std::string& uri, RTSPPassiveConn& conn, const std::string& virtualSite = std::string(DEFAULT_SITE));
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	// RTSPHandler::Ptr findSessionHandler(const std::string& sessId); //TODO: PLAY/PAUSE et operation other than SETUP will give dummy uri, so a RTSPServer should be able to find the proper Handler by session ID
 
 	virtual TCPConnection* createPassiveConn();
@@ -291,13 +205,8 @@ public: // about the session management
 	virtual void OnTimer();
 
 	void checkReqStatus();
-<<<<<<< HEAD
 	void addReq(RTSPResponse::Ptr resp);
 	void removeReq(RTSPResponse::Ptr resp);
-=======
-	void addReq(RTSPServerResponse::Ptr resp);
-	void removeReq(RTSPServerResponse::Ptr resp);
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	int getPendingRequest();
 
 private:
@@ -305,10 +214,6 @@ private:
 	typedef struct _MountDir
 	{
 		std::string					uriEx;
-<<<<<<< HEAD
-=======
-		boost::regex			 re;
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 		RTSPHandler::AppPtr	app;
 		RTSPHandler::Properties     props;
 	} MountDir;
@@ -318,11 +223,7 @@ private:
 
 	VSites _vsites;
 
-<<<<<<< HEAD
 	typedef std::list<RTSPResponse::Ptr>	RequestList;
-=======
-	typedef std::list<RTSPServerResponse::Ptr>	RequestList;
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 private:
 	ZQ::common::Mutex			_lkSessMap;
@@ -348,15 +249,9 @@ public:
 	virtual ~RTSPApplication() {}
 
 	// create the handler instance
-<<<<<<< HEAD
 	virtual RTSPHandler::Ptr create(RTSPServer& server, const RTSPMessage::Ptr& req, const RTSPHandler::Properties& dirProps)
 	{ 
 		return new HandlerT(req, *this, server, dirProps);
-=======
-	virtual RTSPHandler::Ptr create(RTSPServer& server, const RTSPHandler::Properties& dirProps)
-	{ 
-		return new HandlerT(*this, server, dirProps);
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	}
 
 	// create the server-side session

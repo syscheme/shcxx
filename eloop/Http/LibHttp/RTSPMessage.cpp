@@ -1,19 +1,12 @@
 #include "RTSPConnection.h"
 
-<<<<<<< HEAD
 #include "TimeUtil.h"
 #include "strHelper.h"
 
-=======
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 #include <sstream>
 #include <string>
 #include <map>
 #include <vector>
-<<<<<<< HEAD
-=======
-#include "strHelper.h"
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 namespace ZQ {
 namespace eloop {
@@ -90,7 +83,6 @@ RtspCode2StatusMapInit rtspcode2status;
 //-------------------------------------
 //	class RTSPMessage
 //-------------------------------------
-<<<<<<< HEAD
 RTSPMessage::RTSPMessage(const std::string& connId, RTSPMessgeType type)
 : _msgType(type),_cSeq(-1),_bodyLen(0),_stampCreated(ZQ::common::now()),_connId(connId)
 {
@@ -101,8 +93,6 @@ int RTSPMessage::elapsed() const
 	return (int) (ZQ::common::now() - _stampCreated); 
 }
 
-=======
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 void RTSPMessage::splitStrPair(const std::string& strPairData, StrPairVec& outVec,const std::string& delimiter)
 {
 	if (strPairData.empty())
@@ -182,19 +172,12 @@ std::string RTSPMessage::date( int delta ) {
 
 const std::string& RTSPMessage::code2status(int code)
 {
-<<<<<<< HEAD
 	static std::string UNKNOWN = "unknown";
 	std::map<int,std::string>::const_iterator it = RtspCode2StatusMap.find(code);
 	if( it != RtspCode2StatusMap.end())
 		return it->second;
 
 	return UNKNOWN;
-=======
-	std::map<int,std::string>::const_iterator it = RtspCode2StatusMap.find(code);
-	if( it != RtspCode2StatusMap.end())
-		return it->second;
-	return "unknown";
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 }
 
 const std::string& RTSPMessage::header( const std::string& key) const 
@@ -209,11 +192,7 @@ const std::string& RTSPMessage::header( const std::string& key) const
 void RTSPMessage::setBody(const std::string& body) 
 { 
 	_contentBody = body; 
-<<<<<<< HEAD
 	_bodyLen = (uint)_contentBody.size(); 
-=======
-	_bodyLen = _contentBody.size(); 
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 }
 
 const std::string& RTSPMessage::body() 
@@ -228,36 +207,21 @@ std::string RTSPMessage::toRaw()
 	if( !_RawMessage.empty())
 		return _RawMessage;
 
-<<<<<<< HEAD
 	if(_msgType != RTSP_MSG_RESPONSE )
 		oss<< methodToStr(_method) << " " << _url << " " << "RTSP/1.0"<< line_term;
 	else
 	{
-=======
-	if(_msgType != RTSP_MSG_RESPONSE ) {
-		oss<< _method << " " << _url << " " << "RTSP/1.0"<< line_term;
-	} else {
-
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 		if (_statusDesc.empty())
 			_statusDesc = code2status(_statusCode);
 		oss<<"RTSP/1.0" <<" " <<_statusCode<<" "<<_statusDesc<<line_term;
 	}
 
-<<<<<<< HEAD
 	if(_bodyLen <= 0 )
 		_headers.erase("Content-Length");
 	else
 	{
 		std::ostringstream ossBL;ossBL<<_bodyLen;
 		_headers["Content-Length"] = ossBL.str();
-=======
-	if(_bodyLen >= 0 ) {
-		std::ostringstream ossBL;ossBL<<_bodyLen;
-		_headers["Content-Length"] = ossBL.str();
-	} else {
-		_headers.erase("Content-Length");
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	}
 
 	_headers["Date"] = date();

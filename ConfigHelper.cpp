@@ -57,6 +57,7 @@ XmlNodes locate(XmlNode root, const std::string &path)
         // the case of empty path
         result.push_back(current);
     }
+
     return result;
 }
 
@@ -177,6 +178,7 @@ bool setConfLogInLoader(bool* pEnabled) {
     if(pEnabled) {
         gSetConfLogInLoader = *pEnabled;
     }
+
     return gSetConfLogInLoader;
 }
 

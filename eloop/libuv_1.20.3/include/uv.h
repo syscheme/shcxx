@@ -23,7 +23,6 @@
 
 #ifndef UV_H
 #define UV_H
-<<<<<<< HEAD
 
 #if defined(_WIN32)
 # include "uv-win.h"
@@ -31,8 +30,6 @@
 # include "uv-unix.h"
 #endif
 
-=======
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -66,15 +63,6 @@ extern "C" {
 # include <stdint.h>
 #endif
 
-<<<<<<< HEAD
-=======
-#if defined(_WIN32)
-# include "uv-win.h"
-#else
-# include "uv-unix.h"
-#endif
-
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 /* Expand this list if necessary. */
 #define UV_ERRNO_MAP(XX)                                                      \
   XX(E2BIG, "argument list too long")                                         \

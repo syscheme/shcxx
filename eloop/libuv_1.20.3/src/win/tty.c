@@ -1093,12 +1093,7 @@ static int uv__cancel_read_console(uv_tty_t* handle) {
   record.Event.KeyEvent.bKeyDown = TRUE;
   record.Event.KeyEvent.wRepeatCount = 1;
   record.Event.KeyEvent.wVirtualKeyCode = VK_RETURN;
-<<<<<<< HEAD
   record.Event.KeyEvent.wVirtualScanCode = MapVirtualKeyW(VK_RETURN, MAPVK_VK_TO_VSC);
-=======
-  record.Event.KeyEvent.wVirtualScanCode =
-    MapVirtualKeyW(VK_RETURN, MAPVK_VK_TO_VSC);
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
   record.Event.KeyEvent.uChar.UnicodeChar = L'\r';
   record.Event.KeyEvent.dwControlKeyState = 0;
   if (!WriteConsoleInputW(handle->handle, &record, 1, &written))

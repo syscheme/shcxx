@@ -115,11 +115,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-<<<<<<< HEAD
 				AdditionalIncludeDirectories="../../LibHttp;../../..;../../../libuv_1.20.3/include;../../../..;&quot;$(RegExppKit)&quot;"
-=======
-				AdditionalIncludeDirectories="../../LibHttp;../../..;../../../libuv_1.9.1/include;../../../..;&quot;$(RegExppKit)&quot;"
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"

@@ -196,11 +196,7 @@ public:
 	typedef std::set<PassiveConn*> PipeClientList;
 
 public:
-<<<<<<< HEAD
 	LIPCService(Loop& loop, ZQ::common::Log& log, int ipc=1);
-=======
-	LIPCService(ZQ::common::Log& log) : _log(log),_isOnClose(false) {}
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	uint32	getVerbosity() { return (ZQ::common::Log::loglevel_t)_log.getVerbosity() | (_verboseFlags<<8); }
 	void    setVerbosity(uint32 verbose = (0 | ZQ::common::Log::L_ERROR));
@@ -252,10 +248,7 @@ class LIPCClient
 
 public:
 	LIPCClient(Loop &loop, ZQ::common::Log& log, int64 timeout =500, int ipc=1); 
-<<<<<<< HEAD
 	virtual ~LIPCClient() {}
-=======
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	uint32	getVerbosity() { return (ZQ::common::Log::loglevel_t)_log.getVerbosity() | (_verboseFlags<<8); }
 	void    setVerbosity(uint32 verbose = (0 | ZQ::common::Log::L_ERROR)) { _log.setVerbosity(verbose & 0x0f); _verboseFlags =verbose>>8; }

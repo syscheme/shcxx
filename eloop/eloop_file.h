@@ -39,11 +39,7 @@ extern "C"{
 
 namespace ZQ {
 namespace eloop {
-<<<<<<< HEAD
 class ZQ_ELOOP_API FSMonitor;
-=======
-class ZQ_ELOOP_API FileEvent;
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 class ZQ_ELOOP_API File;
 class ZQ_ELOOP_API Pipe;
 
@@ -63,17 +59,10 @@ class ZQ_ELOOP_API Pipe;
 #endif
 
 // -----------------------------
-<<<<<<< HEAD
 // class FSMonitor
 // -----------------------------
 // to monitors file events occur on file system
 class FSMonitor : public Handle
-=======
-// class FileEvent
-// -----------------------------
-// dup of uvpp_fs_event
-class FileEvent : public Handle
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 {
 public:
 	typedef enum _Event {
@@ -98,33 +87,19 @@ public:
 	} StartFlags ;
 	
 public:
-<<<<<<< HEAD
 	FSMonitor(Loop& loop) : Handle(loop) {}
 
 	//@param flags - flag combination of StartFlags
 	int monitor(const char *path, uint flags = fsfNone);
 	int stop();
 	std::string path();
-=======
-	FileEvent();
-
-	int init(Loop &loop);
-
-	//@param flags - flag combination of StartFlags
-	int start(const char *path, uint flags = fsfNone);
-	int stop();
-	int getpath(char *buffer, size_t *size);
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 protected:
 	//@param events  - combination of flags of Event
 	virtual void OnFileEvent(const char *filename, uint events, ElpeError status) {}
 
-<<<<<<< HEAD
 private: // impl of Handle
 	void init();
-=======
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 private:
 	static void _cbFSevent(uv_fs_event_t *handle, const char *filename, int events, int status);
 };
@@ -195,7 +170,6 @@ private:
 // -----------------------------
 // class Pipe
 // -----------------------------
-<<<<<<< HEAD
 class Pipe : public AbstractStream
 {
 public:
@@ -207,20 +181,6 @@ public:
 	int  getsockname(char *buffer, size_t *size);
 	int  getpeername(char *buffer, size_t *size);
 	void  pending_instances(int count);
-=======
-class Pipe : public Stream
-{
-public:
-	Pipe();
-
-	int  init(Loop &loop, int ipc=1);
-	int  open(uv_file file);
-	int  bind(const char *name);
-	void connect(const char *name);
-	int  getsockname(char *buffer, size_t *size);
-	int  getpeername(char *buffer, size_t *size);
-	void pending_instances(int count);
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	int  pending_count();
 	eloop_handle_type pending_type();
 	#ifdef ZQ_OS_LINUX
@@ -232,18 +192,12 @@ protected:
 	//TODO: why wiped uv_connect_t here??
 	virtual void OnConnected(ElpeError status) {}
 
-<<<<<<< HEAD
 private: // impl of Handle
 	void init();
 private:
 	static void _cbConnected(uv_connect_t *req, int status);
 	uv_pipe_t	_fdContainer;
 	int _ipc;
-=======
-private:
-	static void _cbConnected(uv_connect_t *req, int status);
-	uv_pipe_t	_fdContainer;
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	
 };
 
