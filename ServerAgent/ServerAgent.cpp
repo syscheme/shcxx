@@ -26,7 +26,7 @@ public:
 private:
 	ZQSnmpSingleton(){}
 	~ZQSnmpSingleton(){if(_agent)delete _agent;}
-	//°Ñ¸´ÖÆ¹¹Ôìº¯ÊýºÍ=²Ù×÷·ûÒ²ÉèÎªË½ÓÐ,·ÀÖ¹±»¸´ÖÆ
+	//ï¿½Ñ¸ï¿½ï¿½Æ¹ï¿½ï¿½ìº¯ï¿½ï¿½ï¿½ï¿½=ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò²ï¿½ï¿½ÎªË½ï¿½ï¿½,ï¿½ï¿½Ö¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	ZQSnmpSingleton(const ZQSnmpSingleton&){}
 	ZQSnmpSingleton& operator=(const ZQSnmpSingleton&){}
 
@@ -64,13 +64,8 @@ public:
 		outmsg->contentLength(body.length());
 
 		std::string head = outmsg->toRaw();
-<<<<<<< HEAD
 		_conn.enqueueSend((const uint8*)head.c_str(),head.length());
 		_conn.enqueueSend((const uint8*)body.c_str(),body.length());
-=======
-		_conn.write(head.c_str(),head.length());
-		_conn.write(body.c_str(),body.length());
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 		//_conn.setkeepAlive(false);
 		return;
 	}
@@ -129,13 +124,8 @@ bool ServerAgent::onHeadersEnd( const HttpMessage::Ptr msg)
 			outmsg->contentLength(body.length());
 
 			std::string head = outmsg->toRaw();
-<<<<<<< HEAD
 			_conn.enqueueSend((const uint8*)head.c_str(),head.length());
 			_conn.enqueueSend((const uint8*)body.c_str(),body.length());
-=======
-			_conn.write(head.c_str(),head.length());
-			_conn.write(body.c_str(),body.length());
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 			//_conn.setkeepAlive(false);
 		}
@@ -241,7 +231,7 @@ bool LoadFile::onHeadersEnd( const HttpMessage::Ptr msg)
 				_curfile = fopen(filePath2.c_str(), "rb");
 			}
 			if(_curfile != NULL){
-/*				fseek(_curfile,0,SEEK_END);     //¶¨Î»µ½ÎÄ¼þÄ©   
+/*				fseek(_curfile,0,SEEK_END);     //ï¿½ï¿½Î»ï¿½ï¿½ï¿½Ä¼ï¿½Ä©   
 				fileSize = ftell(_curfile);
 				rewind(_curfile);*/
 				std::ifstream in(filePath.c_str());   
@@ -270,7 +260,6 @@ bool LoadFile::onHeadersEnd( const HttpMessage::Ptr msg)
 	if(_curfile){
 		outmsg->contentLength(fileSize);
 		std::string head = outmsg->toRaw();
-<<<<<<< HEAD
 		_conn.enqueueSend((const uint8*)head.c_str(),head.length());
 	} else{
 		outmsg->contentLength(body.length());
@@ -278,15 +267,6 @@ bool LoadFile::onHeadersEnd( const HttpMessage::Ptr msg)
 		_conn.enqueueSend((const uint8*)head.c_str(),head.length());
 		//sent error body
 		_conn.enqueueSend((const uint8*)body.c_str(),body.length());
-=======
-		_conn.write(head.c_str(),head.length());
-	} else{
-		outmsg->contentLength(body.length());
-		std::string head = outmsg->toRaw();
-		_conn.write(head.c_str(),head.length());
-		//sent error body
-		_conn.write(body.c_str(),body.length());
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	}
 	return true;
 }
@@ -298,11 +278,7 @@ void LoadFile::onHttpDataSent(size_t size)
 		return;
 	size_t ret = fread(_buf,1,MAXLENGTH,_curfile);
 	if (ret > 0){
-<<<<<<< HEAD
 		_conn.enqueueSend((const uint8*)_buf,ret);
-=======
-		_conn.write(_buf,ret);
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 		_Logger(ZQ::common::Log::L_DEBUG, CLOGFMT(ServerAgent, "send data [%d][%s]"),ret,_buf);
 	}
 	else

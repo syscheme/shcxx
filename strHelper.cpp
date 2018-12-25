@@ -24,27 +24,16 @@ typedef struct  _STATTR
 }STATTR;
 typedef std::stack<STATTR>	CHSTACK;
 
-<<<<<<< HEAD
 bool ZQ_COMMON_API	TrimExtra(std::string& str, const std::string& strExtra)
 {
 	if(str.length ()<=0)
 		return false;
 
-=======
-bool ZQ_COMMON_API	TrimExtra(std::string& str,const std::string& strExtra)
-{
-	if(str.length ()<=0)
-		return false;
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	std::string::size_type	posBegin=0,posEnd=0;
 //	std::string::size_type	curPos=0;
 	std::string::size_type	length=str.length ();
 	std::string	ch;
-<<<<<<< HEAD
 	//ï¿½ï¿½ï¿½È²ï¿½ï¿½ï¿½begin
-=======
-	//Ê×ÏÈ²éÕÒbegin
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	while (length>posBegin)
 	{
 		ch=str.at(posBegin);
@@ -52,10 +41,6 @@ bool ZQ_COMMON_API	TrimExtra(std::string& str,const std::string& strExtra)
 			break;
 		posBegin++;
 	}
-<<<<<<< HEAD
-
-=======
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	posEnd=length-1;
 	while (posEnd>=posBegin)
 	{
@@ -64,28 +49,16 @@ bool ZQ_COMMON_API	TrimExtra(std::string& str,const std::string& strExtra)
 			break;
 		posEnd--;
 	}
-<<<<<<< HEAD
-
-=======
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	if(posEnd>=posBegin)
 	{
 		str=str.substr (posBegin,posEnd-posBegin+1);
 		return true;
 	}
-<<<<<<< HEAD
-
-=======
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	return false;
 }
 
 bool ZQ_COMMON_API SplitString(const std::string& str ,std::vector<std::string>& result, 
-<<<<<<< HEAD
 										const std::string& delimiter,
-=======
-										const std::string& delimiter	,
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 										const std::string& trimDelimiter,
 										const std::string& quote,
 										const std::string& escape,
@@ -93,37 +66,19 @@ bool ZQ_COMMON_API SplitString(const std::string& str ,std::vector<std::string>&
 {
 	result.clear ();
 	if(str.empty ())
-<<<<<<< HEAD
 		return false;
 
-=======
-	{		
-		return false;
-	}
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	int		curPos=0;	//current position
 	int		lastPos=0;	//last position
 					
 	int		length=(int)str.length ();
 
 	std::string			strQuote;
-<<<<<<< HEAD
 	///ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÒªÉ¨ï¿½ï¿½quoteï¿½ï¿½È·ï¿½ï¿½ï¿½Ç·ï¿½Ï·ï¿½
 	if( (quote.length ()-1)/2*2==(quote.length ()/2*2))
 		strQuote=quote+quote.at(quote.length ()-1); //odd
 	else
 		strQuote=quote;
-=======
-	///ÏÖÔÚÐèÒªÉ¨ÃèquoteÒÔÈ·¶¨ÊÇ·ñºÏ·¨
-	if( (quote.length ()-1)/2*2==(quote.length ()/2*2))
-	{//odd
-		strQuote=quote+quote.at(quote.length ()-1);
-	}
-	else
-	{
-		strQuote=quote;
-	}	
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	
 	CHSTACK		stackQuote;			//record current quote stack
 
@@ -135,7 +90,6 @@ bool ZQ_COMMON_API SplitString(const std::string& str ,std::vector<std::string>&
 		ch=pStrPointer[curPos];
 		
 		if(POSOK(escape.find(ch)))
-<<<<<<< HEAD
 		{//ï¿½ï¿½ï¿½ï¿½ï¿½Ç°ï¿½Ö·ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½Ö±ï¿½Ó·ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½
 			curPos+=2;
 			if( curPos > length )
@@ -189,73 +143,14 @@ bool ZQ_COMMON_API SplitString(const std::string& str ,std::vector<std::string>&
 	if(TrimExtra (strTemp,trimDelimiter)&&strTemp.length ()>0)
 		result.push_back (strTemp);
 
-=======
-		{//Èç¹ûµ±Ç°×Ö·ûÊÇ×ªÒå×Ö·û£¬Ö±½Ó·ÖÎöÏÂÒ»¸ö
-			curPos+=2;
-			if( curPos > length )
-				curPos=length;
-		}
-		else
-		{
-			if(stackQuote.size ()<=0)
-			{
-				//Ê×ÏÈ¼ì²éÕâ¸ö×Ö·ûÊÇ²»ÊÇ·Ö¸î·ûºÅ
-				if ( POSOK(delimiter.find (ch)))
-				{//Èç¹ûÕâ¸ö×Ö·ûÊÇ·Ö¸ô·ûºÅ
-					std::string	strTemp=str.substr (lastPos,curPos-lastPos+1);					
-					lastPos=++curPos;
-					if(TrimExtra (strTemp,trimDelimiter)&&strTemp.length ()>0)
-						result.push_back (strTemp);
-				}
-				else if(POSOK(strQuote.find (ch)))
-				{
-					STATTR st;
-					st._ch=ch;
-					st._index=strQuote.find (ch);
-					stackQuote.push (st);
-					curPos++;
-				}
-				else
-				{//Èç¹ûÕâ¸ö×Ö·û²»ÊÇ·Ö¸ô·ûºÅ
-					curPos++;
-				}
-			}
-			else
-			{
-				//Èç¹ûµ±Ç°µÄstackQuote²»Îª¿Õ£¬ÄÇÃ´¾Í´ú±íµ±Ç°×Ö·û´®ÈÔÈ»ÊÇÒ»¸öÕûÌå
-				//Ê×ÏÈÅÐ¶Ïµ±Ç°µÄ×Ö·ûÊÇ·ñÊÇquote×Ö·û
-				std::string::size_type posQuote=strQuote.rfind (ch);
-				if(POSOK(posQuote))
-				{
-					if(stackQuote.top ()._index+1==(int)posQuote)//
-					{//Æ¥Åäquote×Ö·û
-						//µ¯³ö¶¥²ãµÄ×Ö·û£¬ÓÃÒÔÆ¥Åä
-						stackQuote.pop();
-					}
-				}
-				//µ±Ç°×Ö·û´®ÈÔÎªÒ»¸öÕûÌå
-				curPos++;				
-			}
-		}		
-	}
-	std::string	strTemp=str.substr ( lastPos );	
-	if(TrimExtra (strTemp,trimDelimiter)&&strTemp.length ()>0)
-		result.push_back (strTemp);
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	return true;
 }
 
 std::vector<std::string> ZQ_COMMON_API split(const std::string& src, char sep, size_t counts) {
 	std::vector<std::string> result;
 
-<<<<<<< HEAD
 	if(src.empty())
 		return result;
-=======
-	if(src.empty()) {
-		return result;
-	}
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	std::string sub = src;
 	std::string::size_type pos = sub.find_first_of(sep);
@@ -265,7 +160,6 @@ std::vector<std::string> ZQ_COMMON_API split(const std::string& src, char sep, s
 		result.push_back(sub.substr(0, pos));
 		sub = sub.substr(pos+1); 	
 
-<<<<<<< HEAD
 		if(++cnt == counts)
 			break;
 
@@ -277,21 +171,6 @@ std::vector<std::string> ZQ_COMMON_API split(const std::string& src, char sep, s
 
 	if(result.empty())
 		result.push_back(sub);
-=======
-		if(++cnt == counts) {
-			break;
-		}
-
-		pos = sub.find_first_of(sep);
-	}
-	if(!sub.empty()) {
-		result.push_back(sub);
-	}
-
-	if(result.empty()) {
-		result.push_back(sub);
-	}
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	return result;
 }
@@ -299,14 +178,8 @@ std::vector<std::string> ZQ_COMMON_API split(const std::string& src, char sep, s
 std::vector<std::string> ZQ_COMMON_API rsplit(const std::string& src, char sep, size_t counts) {
 	std::vector<std::string> result;
 
-<<<<<<< HEAD
 	if(src.empty())
 		return result;
-=======
-	if(src.empty()) {
-		return result;
-	}
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	std::vector<std::string> tmp;
 
@@ -318,21 +191,12 @@ std::vector<std::string> ZQ_COMMON_API rsplit(const std::string& src, char sep, 
 		tmp.push_back(sub.substr(pos+1));
 		sub = sub.substr(0, pos); 	
 
-<<<<<<< HEAD
 		if(++cnt == counts)
 			break;
 
 		pos = sub.find_last_of(sep);
 	}
 
-=======
-		if(++cnt == counts) {
-			break;
-		}
-
-		pos = sub.find_last_of(sep);
-	}
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	if(!sub.empty()) {
 		tmp.push_back(sub);
 	}
@@ -377,10 +241,6 @@ long ZQ_COMMON_API str2long(const char* str)
 		//step 2. start transform
 		return strtol(valstr.c_str(), NULL ,16);
 	}
-<<<<<<< HEAD
-
-=======
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	//type 2.Dec transform,inlclude 1000 or 1024
 	if (std::string::npos != (pos= valstr.find_first_of("kmg")))//Dec,supports format of [NUM]g[NUM]m[NUM]k,such as: 1.2g2m5k, 3kB
 	{	
@@ -403,10 +263,6 @@ long ZQ_COMMON_API str2long(const char* str)
 			if (std::string::npos != (pos = valstr.find_first_of("0123456789")))
 				valstr = valstr.substr(pos);
 		}
-<<<<<<< HEAD
-
-=======
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 		val*=level;
 		if (std::string::npos != (pos= valstr.find('m')))
 		{
@@ -419,10 +275,6 @@ long ZQ_COMMON_API str2long(const char* str)
 			if (std::string::npos != (pos = valstr.find_first_of("0123456789")))
 				valstr = valstr.substr(pos);
 		}
-<<<<<<< HEAD
-
-=======
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 		val*=level;
 		if (std::string::npos != (pos= valstr.find('k')))
 		{
@@ -435,10 +287,6 @@ long ZQ_COMMON_API str2long(const char* str)
 			if (std::string::npos != (pos = valstr.find_first_of("0123456789")))
 				valstr = valstr.substr(pos);
 		}
-<<<<<<< HEAD
-
-=======
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 		val*=level;
 		//after transfer g,m,k,use the standard strtolong
 		if(!valstr.empty())
@@ -447,15 +295,10 @@ long ZQ_COMMON_API str2long(const char* str)
 				valstr = valstr.substr(pos);
 			val+=atof(valstr.c_str());
 		}
-<<<<<<< HEAD
 
 		return (long)val;
 	}
 	
-=======
-		return (long)val;
-	}
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	//type 3.standard strtolong
 	return atol(str);
 }
@@ -586,8 +429,6 @@ long ZQ_COMMON_API  str2msec(const char* str)
 	return (long) val;
 }
 
-
-<<<<<<< HEAD
 bool keywordReduce(const std::vector< std::string >& texts, std::vector< std::string >& keywords, const char* wordDelimitor, const char* kwDelimitor)
 {
 	keywords.clear();
@@ -649,8 +490,6 @@ bool keywordReduce(const std::vector< std::string >& texts, std::vector< std::st
 	return true;
 }
 
-=======
->>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 }//namespace stringHelper
 }//namespace common
 }//namespace ZQ
