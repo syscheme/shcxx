@@ -130,7 +130,7 @@ public:
 	int set_recv_buf_size(int* value);
 
 protected:
-	friend class SingleLoopTCPEngine;
+	friend class ServiceSocket;
 
 	// TODO: must enumerate all the status in the class
 	virtual void OnConnected(ElpeError status) {}

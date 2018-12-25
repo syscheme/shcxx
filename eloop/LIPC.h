@@ -225,10 +225,10 @@ protected:
 	
 	// sub-class AsyncClose
 	// ------------------------------------------------
-	class Waker : public Wakeup
+	class Waker : public Interruptor
 	{
 	public:
-		Waker(LIPCService& sev): Wakeup(sev.loop()), _svc(sev) {}
+		Waker(LIPCService& sev): Interruptor(sev.loop()), _svc(sev) {}
 
 	protected:
 		virtual void OnWakedUp() { _svc.OnWakedUp(false); }

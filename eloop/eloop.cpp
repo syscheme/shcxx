@@ -503,18 +503,18 @@ uint64_t Timer::get_repeat()
 }
 
 // -----------------------------
-// class Wakeup
+// class Interruptor
 // -----------------------------
 // used
-void Wakeup::_cbAsync(uv_async_t *uvhandle)
+void Interruptor::_cbAsync(uv_async_t *uvhandle)
 {
-	CALLBACK_CTX(Wakeup, OnWakedUp, ());
-	//Wakeup *h = static_cast<Wakeup *>(async->data);
+	CALLBACK_CTX(Interruptor, OnWakedUp, ());
+	//Interruptor *h = static_cast<Interruptor *>(async->data);
 	//if (NULL != h)
 	//	h->OnWakedUp();
 }
 
-void Wakeup::init()
+void Interruptor::init()
 {
 	CALL_ASSERTV();
 	uv_async_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_async_t), _cbAsync);
@@ -524,7 +524,7 @@ void Wakeup::init()
 	//return uv_async_init(loop.context_ptr(), async, _cbAsync);
 }
 
-int Wakeup::wakeup()
+int Interruptor::wakeup()
 {
 	CALL_ASSERT(-1);
 	return uv_async_send(UVTYPED_HANDLE(uv_async_t));

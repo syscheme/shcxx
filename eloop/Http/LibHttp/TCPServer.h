@@ -55,7 +55,7 @@ public:
 	};
 
 public:
-	WatchDog() {}
+	WatchDog(Loop& loop) : Timer(loop) {}
 	// WatchDog(IObservee* dog) { _observeeList.push_back(dog); }
 
 	void watch(IObservee* observee);
@@ -63,7 +63,7 @@ public:
 
 protected: // impl of ZQ::eloop::Timer to redirect the OnTimer to _observeeList
 	virtual void OnTimer();
-	virtual void OnClose();
+	virtual void OnDeactived();
 
 private:
 	std::vector<IObservee*>	_observeeList;
@@ -71,6 +71,7 @@ private:
 };
 
 class ITCPEngine;
+
 // ---------------------------------------
 // class TCPConnection
 // ---------------------------------------
@@ -130,15 +131,15 @@ protected:
 	void OnShutdown(ElpeError status);
 
 private:
-	// subclass AsyncSender
+	// subclass WakeUp
 	// ------------------------------------------------
-	class WakeUp : public ZQ::eloop::Async
+	class WakeUp : public ZQ::eloop::Interruptor
 	{
 	public:
-		WakeUp(TCPConnection& conn):_conn(conn) {}
+		WakeUp(TCPConnection& conn): ZQ::eloop::Interruptor(conn.loop()), _conn(conn) {}
 
 	protected:
-		virtual void OnAsync() {_conn.OnSendEnqueued();}
+		virtual void OnWakedUp() {_conn.OnSendEnqueued();}
 		//virtual void OnClose() {} // to avoid trigger Handle 'delete this'
 		TCPConnection& _conn;
 	};
@@ -173,7 +174,7 @@ protected:
 	ZQ::common::Mutex      _lkSend;
 	Buffer::Queue          _queSend;
 	WakeUp*				   _pWakeup;
-	//WakeUp				   _wakeup;
+	//WakeUp			   _wakeup;
 	int64                  _stampBusySend;
 
 	std::string _peerIp, _localIp;
@@ -235,7 +236,7 @@ public:
 
 public:
 	TCPServer(const ServerConfig& conf, ZQ::common::Log& logger)
-	: _config(conf), _logger(logger),_isStart(false),_isOnStart(false)
+	: _config(conf), _logger(logger), _soService(NULL) // ,_isStart(false),_isOnStart(false)
 	{
 #ifdef ZQ_OS_LINUX
 		//Ignore SIGPIPE signal
@@ -260,21 +261,28 @@ public:
 
 	void onLoopThreadStart(ZQ::eloop::Loop& loop);
 	void signal();
-	virtual TCPConnection* createPassiveConn();
+	virtual TCPConnection* createPassiveConn(ZQ::eloop::Loop& loop);
 
 	ServerConfig		_config;
 	ZQ::common::Log&	_logger;
 
 private:
-	typedef std::map<std::string, TCPConnection*>	ConnMAP;
 
+	friend class ServiceSocket;
+	friend class TCPSvcLoop;
+	ServiceSocket* _soService;
+
+	typedef std::map<std::string, TCPConnection*>	ConnMAP;
 	ConnMAP					_connMap;
+	std::vector<TCPSvcLoop*> _thrdLoops;
+	size_t _idxLoop;
 	ZQ::common::Mutex		_connCountLock;
-	SYS::SingleObject		_sysWakeUp;
-	ITCPEngine*				_engine;
-	bool					_isStart;
-	bool					_isOnStart;
-	ZQ::common::Mutex		_onStartLock;
+
+	//SYS::SingleObject		_sysWakeUp;
+	//ITCPEngine*				_engine;
+	//bool					_isStart;
+	//bool					_isOnStart;
+	//ZQ::common::Mutex		_onStartLock;
 };
 
 } }//namespace ZQ::eloop

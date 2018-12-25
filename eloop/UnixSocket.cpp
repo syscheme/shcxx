@@ -9,10 +9,10 @@ namespace eloop {
 // ------------------------------------------------
 // class Waker
 // ------------------------------------------------
-class Waker : public ZQ::eloop::Wakeup
+class Waker : public ZQ::eloop::Interruptor
 {
 public:
-	Waker(UnixSocket& socket):_socket(socket), Wakeup(socket.loop()) {}
+	Waker(UnixSocket& socket):_socket(socket), Interruptor(socket.loop()) {}
 
 protected:
 	virtual void OnWakedUp() {_socket.OnWakedUp();}

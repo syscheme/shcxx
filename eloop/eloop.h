@@ -63,7 +63,7 @@ class ZQ_ELOOP_API Loop;
 class ZQ_ELOOP_API Handle;
 class ZQ_ELOOP_API IterationBlocker;
 class ZQ_ELOOP_API Timer;
-class ZQ_ELOOP_API Wakeup;
+class ZQ_ELOOP_API Interruptor;
 class ZQ_ELOOP_API SysSignalSink;
 class ZQ_ELOOP_API CpuInfo;
 class ZQ_ELOOP_API Process;
@@ -386,14 +386,14 @@ private:
 };
 
 // -----------------------------
-// class Wakeup
+// class Interruptor
 // -----------------------------
 // old name Async
 // to allow others, maybe the threads out of the eloop, to wakeup the eloop
-class Wakeup : public Handle
+class Interruptor : public Handle
 {
 public:
-	Wakeup(Loop& loop) : Handle(loop) {}
+	Interruptor(Loop& loop) : Handle(loop) {}
 	int wakeup();
 
 protected: // event callback
