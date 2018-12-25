@@ -137,6 +137,15 @@ void UnixSocket::OnWakedUp()
 {
  	int i = 1000;
 	ZQ::common::MutexGuard gd(_lkSendMsgList);
+	if (!isActive())
+	{
+		if (TRACE_LEVEL_FLAG)
+			_lipcLog(ZQ::common::Log::L_WARNING,CLOGFMT(UnixSocket, "OnWakedUp clear %d outgoing messages per deactive mode"), _outgoings.size());
+
+		_outgoings.clear();
+		return;
+	}
+
  	while (!_outgoings.empty() && i>0)
 	{
 		Message m = _outgoings.front();

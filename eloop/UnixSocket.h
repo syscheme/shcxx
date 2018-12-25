@@ -12,6 +12,9 @@ namespace eloop {
 
 class ZQ_ELOOP_API UnixSocket;
 
+#define FLG_TRACE               FLAG(0)
+#define FLG_INFO                FLAG(1)
+
 // -----------------------------
 // class UnixSocket
 // -----------------------------

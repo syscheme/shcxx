@@ -51,9 +51,6 @@ class ClientConn;
 class ClientTimer;
 class AsyncClose;
 
-
-#define FLG_TRACE               FLAG(0)
-#define FLG_INFO                FLAG(1)
 // ------------------------------------------------
 // class LIPCMessage
 // ------------------------------------------------
@@ -201,17 +198,16 @@ public:
 	uint32	getVerbosity() { return (ZQ::common::Log::loglevel_t)_log.getVerbosity() | (_verboseFlags<<8); }
 	void    setVerbosity(uint32 verbose = (0 | ZQ::common::Log::L_ERROR));
 
-	int init(ZQ::eloop::Loop &loop, int ipc=1);
+	// int init(ZQ::eloop::Loop &loop, int ipc=1);
 //	PipeClientList& getPipeClientList() { return _clients; }
 
-	void UnInit();
+	void stopServing();
 
 	void sendResp(const std::string& msg, int fd, const std::string& connId,bool bAsync = false);
 
 protected:
-//	ZQ::common::Log& _log;
+	static uint32          _verboseFlags;
 	ZQ::common::LogWrapper _log;
-	static uint32 _verboseFlags;
 
 	void addConn(PassiveConn* conn);
 	void delConn(PassiveConn* conn);
@@ -225,46 +221,66 @@ protected:
 	virtual void execOrDispatch(const std::string& methodName, const LIPCRequest::Ptr& req, LIPCResponse::Ptr& resp)
 	{ resp->postException(LIPCMessage::LIPC_METHOD_NOT_FOUND); }
 
-	virtual void OnUnInit();
-	virtual void OnClose();
+	virtual void OnWakedUp(bool isHeartbeat); // virtual void OnClose();
+	
+	// sub-class AsyncClose
+	// ------------------------------------------------
+	class Waker : public Wakeup
+	{
+	public:
+		Waker(LIPCService& sev): Wakeup(sev.loop()), _svc(sev) {}
 
+	protected:
+		virtual void OnWakedUp() { _svc.OnWakedUp(false); }
+		LIPCService& _svc;
+	};
+
+	// sub-class Heartbeat
+	// ------------------------------------------------
+	class Heartbeat : public Timer
+	{
+	public:
+		Heartbeat(LIPCService& sev): Timer(sev.loop()), _svc(sev) {}
+
+	protected:
+		virtual void OnTimer() { _svc.OnWakedUp(true); }
+		LIPCService& _svc;
+	};
 
 private:
 	ZQ::common::Mutex	_connLock;
 	PipeClientList		_clients;
 	int					_ipc;
-	bool				_isOnClose;
-	AsyncClose*			_asyncClose;
+	bool				_bQuit;
+	Waker			    _waker;
 };
 
 // ------------------------------------------------
 // class LIPCClient
 // ------------------------------------------------
-class LIPCClient
+class LIPCClient : public Timer
 {
 	friend class ClientConn;
-	friend class ClientTimer;
 	friend class ClientAsync;
 
 public:
-	LIPCClient(Loop &loop, ZQ::common::Log& log, int64 timeout =500, int ipc=1); 
-	virtual ~LIPCClient() {}
+	LIPCClient(Loop &loop, ZQ::common::Log& log, int timeout =500, int ipc=1); 
+	virtual ~LIPCClient();
+
+	uint lastCSeq();
+	static uint32 _verboseFlags;
 
 	uint32	getVerbosity() { return (ZQ::common::Log::loglevel_t)_log.getVerbosity() | (_verboseFlags<<8); }
 	void    setVerbosity(uint32 verbose = (0 | ZQ::common::Log::L_ERROR)) { _log.setVerbosity(verbose & 0x0f); _verboseFlags =verbose>>8; }
 
 	typedef void (*Callback_t)(LIPCMessage& msg, void* data);
 
-	int  bind(const char *name);
-	int connect(const char *name);
-	ZQ::eloop::Loop& get_loop() const;
+	// int  bind(const char *name);
+	void  connect(const std::string& pipeName);
+	void  disconnect();
 	const char* conndesc() const { return _peerPipeName.c_str(); }
 
-	int read_start();
-	int read_stop();
-	int sendRequest(const std::string& methodName, LIPCRequest::Ptr req, int64 timeout = 500, bool bAsync = true, bool expectResp = true);		//default timeout = 500ms
-	void close();
-	bool isConnect(){ return _isConn;}
+	int sendRequest(const std::string& methodName, LIPCRequest::Ptr req, int timeout = 500, bool bAsync = true, bool expectResp = true);		//default timeout = 500ms
 
 protected:
 	virtual void OnRequestPrepared(LIPCRequest::Ptr req) {}
@@ -273,38 +289,31 @@ protected:
 
 	virtual void OnIndividualMessage(Json::Value& msg);
 
+	virtual void poll();
+
 protected: // redirect from UnixSocket
 	virtual void OnConnected(ZQ::eloop::Handle::ElpeError status);
 	virtual void OnWrote(int status) {}
-	virtual void OnClose();
+	virtual void OnConnectionClosed();
 	virtual void onError( int error, const char* errorDescription );
 
 	// supposed to receive a response of request just sent
 	virtual void OnMessage(std::string& msg);
 
 protected: // impl of ZQ::eloop::Timer
-
-//	ZQ::common::Log& _log;
-	ZQ::common::LogWrapper _log;
-	static uint32 _verboseFlags;
-
-	virtual void OnTimer();
+	void OnTimer() { poll(); }
 
 private:
-	void OnCloseConn();
-	void OnCloseTimer();
-	void OnCloseAsync();
-	uint lastCSeq();
+	ZQ::common::LogWrapper _log;
+
+	void _doDisconnect();
 
 	std::string		_localPipeName;
 	std::string		_peerPipeName;
 	int			    _ipc;
 	ClientConn*	    _conn; // for reconnect
-	ClientTimer*	_timer;
-	Loop&           _loop;
-	bool		    _reconnect;
-	int64			_timeout;
-	bool			_isConn;
+	int64		    _stampConnected, _stampLastConnect;
+	int			    _timeout;
 
 	ZQ::common::AtomicInt _lastCSeq;
 	typedef struct
