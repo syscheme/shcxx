@@ -4,7 +4,11 @@ include $(TOPDIR)/build/defines.mk
 
 SOLIB	:= Http
 
+<<<<<<< HEAD
 OBJS	:= TCPServer.os RTSPMessage.os RTSPConnection.os RTSPServer.os RTSPClient.os HttpServer.os HttpClient.os HttpConnection.os http_parser.os
+=======
+OBJS	:= TCPServer.os RTSPMessage.os RTSPConnection.os RTSPServer.os RTSPClient.os HttpServer.os HttpClient.os HttpConnection.os HttpMessage.os http_parser.os
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 INCDIR += $(_uv_dir)/include $(TOPDIR)/Common/eloop
 

@@ -240,7 +240,11 @@ class PassiveConn : public UnixSocket
 {
 public:
 	PassiveConn(LIPCService& service)
+<<<<<<< HEAD
 		:_service(service), UnixSocket(service.loop(), service._log)
+=======
+		:_service(service), UnixSocket(service._log)
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	{
 		char buf[80];
 		ZQ::common::Guid guid;
@@ -347,7 +351,11 @@ private:
 // ------------------------------------------------
 // class AsyncClose
 // ------------------------------------------------
+<<<<<<< HEAD
 class AsyncClose : public ZQ::eloop::Wakeup
+=======
+class AsyncClose : public ZQ::eloop::Async
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 {
 public:
 	AsyncClose(LIPCService& sev):_sev(sev){}
@@ -365,10 +373,13 @@ private:
 // -------------------------------------------------
 uint32 LIPCService::_verboseFlags =0xffffffff;
 
+<<<<<<< HEAD
 LIPCService::LIPCService(Loop& loop, ZQ::common::Log& log, int ipc)
 : Pipe(loop, ipc), _log(log), _isOnClose(false) 
 {}
 
+=======
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 void LIPCService::setVerbosity(uint32 verbose) 
 {
 	_log.setVerbosity(verbose & 0x0f); _verboseFlags =verbose>>8; 
@@ -820,7 +831,10 @@ void LIPCClient::OnConnected(ZQ::eloop::Handle::ElpeError status)
 		onError(status,desc.c_str());
 		return;
 	}
+<<<<<<< HEAD
 
+=======
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	read_start();
 	_isConn = true;
 }

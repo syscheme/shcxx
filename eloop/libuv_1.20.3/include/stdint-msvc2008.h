@@ -40,9 +40,13 @@
 #pragma once
 #endif
 
+<<<<<<< HEAD
 #include <windows.h>
 #include <limits.h>
 #include <winuser.h>
+=======
+#include <limits.h>
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 // For Visual Studio 6 in C++ mode and for many Visual Studio versions when
 // compiling for ARM we should wrap <wchar.h> include with 'extern "C++" {}'
@@ -81,9 +85,15 @@ extern "C" {
    typedef unsigned short    uint16_t;
    typedef unsigned int      uint32_t;
 #else
+<<<<<<< HEAD
    typedef __int8     int8_t;
    typedef __int16    int16_t;
    typedef __int32    int32_t;
+=======
+   typedef signed __int8     int8_t;
+   typedef signed __int16    int16_t;
+   typedef signed __int32    int32_t;
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
    typedef unsigned __int8   uint8_t;
    typedef unsigned __int16  uint16_t;
    typedef unsigned __int32  uint32_t;

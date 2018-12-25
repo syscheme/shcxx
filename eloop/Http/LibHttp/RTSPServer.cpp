@@ -1,8 +1,14 @@
 #include "RTSPServer.h"
+<<<<<<< HEAD
 #include "TimeUtil.h"
 #include "Guid.h"
 #include "SystemUtils.h"
 
+=======
+
+#include "Guid.h"
+#include "SystemUtils.h"
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 #include <boost/regex.hpp>
 
 namespace ZQ {
@@ -18,12 +24,22 @@ public:
 		: RTSPConnection(server._logger, NULL, &server), _server(server)
 	{}
 
+<<<<<<< HEAD
 	virtual ~RTSPPassiveConn(){}
+=======
+	~RTSPPassiveConn(){}
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	virtual void OnTimer(){}
 
 	virtual void onError( int error,const char* errorDescription );
 
+<<<<<<< HEAD
+=======
+	virtual void	onDataSent(size_t size);
+	virtual void	onDataReceived( size_t size );
+
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 protected: // impl of RTSPParseSink
 	virtual void OnResponse(RTSPMessage::Ptr resp);
 	virtual void OnRequest(RTSPMessage::Ptr req);
@@ -44,6 +60,7 @@ void RTSPHandler::Session::destroy()
 	_server.removeSession(_id);
 }
 
+<<<<<<< HEAD
 RTSPHandler::RTSPHandler(const RTSPMessage::Ptr& req, IBaseApplication& app, RTSPServer& server, const RTSPHandler::Properties& dirProps)
 : _app(app), _server(server), _dirProps(dirProps), _req(req)
 {
@@ -53,20 +70,46 @@ RTSPHandler::RTSPHandler(const RTSPMessage::Ptr& req, IBaseApplication& app, RTS
 RTSPHandler::~RTSPHandler()
 {
 	_app._cOngoings.dec();
+=======
+RTSPHandler::RTSPHandler(IBaseApplication& app, RTSPServer& server, const RTSPHandler::Properties& dirProps)
+: _app(app), _server(server), _dirProps(dirProps)
+{
+}
+
+RTSPHandler::~RTSPHandler() {}
+
+void RTSPHandler::onDataSent(size_t size)
+{
+}
+
+void RTSPHandler::onDataReceived( size_t size )
+{
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 }
 
 std::string RTSPHandler::mediaSDP(const std::string& mid) { return "";}
 
+<<<<<<< HEAD
 RTSPMessage::ExtendedErrCode RTSPHandler::onOptions(RTSPResponse::Ptr& resp)
+=======
+RTSPMessage::ExtendedErrCode RTSPHandler::onOptions(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp)
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 {
 	resp->header("Public","OPTIONS, DESCRIBE, ANNOUNCE, SETUP, TEARDOWN, PLAY, PAUSE");
 	return RTSPMessage::rcOK;
 }
 
+<<<<<<< HEAD
 RTSPMessage::ExtendedErrCode RTSPHandler::onDescribe(RTSPResponse::Ptr& resp)
 {
 	// URL: rtsp://127.0.0.1:9960/3012
 	std::string url = _req->url(); 
+=======
+RTSPMessage::ExtendedErrCode RTSPHandler::onDescribe(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp)
+{
+	// URL: rtsp://127.0.0.1:9960/3012
+	std::string url = req->url(); 
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	size_t midStartPos = url.rfind("/");
 	std::string mid = url.substr(midStartPos + 1);
 
@@ -81,11 +124,16 @@ RTSPMessage::ExtendedErrCode RTSPHandler::onDescribe(RTSPResponse::Ptr& resp)
 	return RTSPMessage::rcOK;
 }
 
+<<<<<<< HEAD
 RTSPMessage::ExtendedErrCode RTSPHandler::onAnnounce(RTSPResponse::Ptr& resp)
+=======
+RTSPMessage::ExtendedErrCode RTSPHandler::onAnnounce(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp)
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 {
 	return RTSPMessage::rcOK;
 }
 
+<<<<<<< HEAD
 RTSPMessage::ExtendedErrCode RTSPHandler::onGetParameter(RTSPResponse::Ptr& resp)
 {
 	return RTSPMessage::rcMethodNotAllowed;
@@ -97,13 +145,20 @@ RTSPMessage::ExtendedErrCode RTSPHandler::onSetParameter(RTSPResponse::Ptr& resp
 }
 
 RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetup(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess)
+=======
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetup(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 {
 	RTSPServer::Session::Ptr svrsess = RTSPServer::Session::Ptr::dynamicCast(sess);
 	if (NULL == svrsess)
 		return RTSPMessage::rcInternalError;
 
 	// URL: rtsp://127.0.0.1:9960/3201/(rtx/audio/video)
+<<<<<<< HEAD
 	std::string url = _req->url(); 
+=======
+	std::string url = req->url(); 
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	// mid and stream name
 	size_t urlEndPos = url.rfind("/");
@@ -112,6 +167,7 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetup(RTSPResponse::Ptr& re
 	size_t midStartPos = url.rfind("/");
 	std::string mid = url.substr(midStartPos + 1);
 
+<<<<<<< HEAD
 	std::string strTran = _req->header( "Transport" );
 
 	if(strTran.find("TCP") != std::string::npos)
@@ -122,6 +178,21 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetup(RTSPResponse::Ptr& re
 	}
 	else		//UDP
 	{
+=======
+	std::string strTran = req->header( "Transport" );
+
+	if(strTran.find("TCP") != std::string::npos)
+	{
+
+	}
+	else if(strTran.find("multicast") != std::string::npos)
+	{
+		
+	}
+	else		//UDP
+	{
+		
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	}
 
 	// TODO: the handler impl here: pSess->setup();
@@ -130,13 +201,21 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetup(RTSPResponse::Ptr& re
 	return RTSPMessage::rcOK;
 }
 
+<<<<<<< HEAD
 RTSPMessage::ExtendedErrCode RTSPHandler::procSessionPlay(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess)
+=======
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionPlay(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 {
 	RTSPServer::Session::Ptr svrsess = RTSPServer::Session::Ptr::dynamicCast(sess);
 	if (NULL == svrsess)
 		return RTSPMessage::rcInternalError;
 
+<<<<<<< HEAD
 	std::string strTime = _req->header("Range");
+=======
+	std::string strTime = req->header("Range");
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	// TODO: the handler impl here: pSess->play();
 
@@ -144,7 +223,11 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionPlay(RTSPResponse::Ptr& res
 	 return RTSPMessage::rcOK;
 }
 
+<<<<<<< HEAD
 RTSPMessage::ExtendedErrCode RTSPHandler::procSessionPause(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess)
+=======
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionPause(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 {
 	RTSPServer::Session::Ptr svrsess = RTSPServer::Session::Ptr::dynamicCast(sess);
 	if (NULL == svrsess)
@@ -154,7 +237,11 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionPause(RTSPResponse::Ptr& re
 	return RTSPMessage::rcNotImplement;
 }
 
+<<<<<<< HEAD
 RTSPMessage::ExtendedErrCode RTSPHandler::procSessionTeardown(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess)
+=======
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionTeardown(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 {
 	RTSPServer::Session::Ptr svrsess = RTSPServer::Session::Ptr::dynamicCast(sess);
 	if (NULL == svrsess)
@@ -164,7 +251,11 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionTeardown(RTSPResponse::Ptr&
 	return RTSPMessage::rcNotImplement;
 }
 
+<<<<<<< HEAD
 RTSPMessage::ExtendedErrCode RTSPHandler::procSessionAnnounce(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess)
+=======
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionAnnounce(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 {
 	RTSPServer::Session::Ptr svrsess = RTSPServer::Session::Ptr::dynamicCast(sess);
 	if (NULL == svrsess)
@@ -174,7 +265,11 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionAnnounce(RTSPResponse::Ptr&
 	return RTSPMessage::rcNotImplement;
 }
 
+<<<<<<< HEAD
 RTSPMessage::ExtendedErrCode RTSPHandler::procSessionDescribe(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess)
+=======
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionDescribe(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 {
 	RTSPServer::Session::Ptr svrsess = RTSPServer::Session::Ptr::dynamicCast(sess);
 	if (NULL == svrsess)
@@ -184,29 +279,47 @@ RTSPMessage::ExtendedErrCode RTSPHandler::procSessionDescribe(RTSPResponse::Ptr&
 	return RTSPMessage::rcNotImplement;
 }
 
+<<<<<<< HEAD
 RTSPMessage::ExtendedErrCode RTSPHandler::procSessionGetParameter(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess)
+=======
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionGetParameter(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 {
 	// TODO: the handler impl here
 	return RTSPMessage::rcNotImplement;
 }
 
+<<<<<<< HEAD
 RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetParameter(RTSPResponse::Ptr& resp, RTSPSession::Ptr& sess)
+=======
+RTSPMessage::ExtendedErrCode RTSPHandler::procSessionSetParameter(const RTSPMessage::Ptr& req, RTSPServerResponse::Ptr& resp, RTSPSession::Ptr& sess)
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 {
 	// TODO: the handler impl here
 	return RTSPMessage::rcNotImplement;
 }
 
 // ---------------------------------------
+<<<<<<< HEAD
 // class RTSPResponse
 // ---------------------------------------
 RTSPResponse::RTSPResponse(RTSPServer& server,const RTSPMessage::Ptr& req)
 : _server(server), RTSPMessage(req->getConnId(), RTSPMessage::RTSP_MSG_RESPONSE),_req(req),_isResp(false)
 {
 	header("Method-Code", methodToStr(req->method())); // TODO: to remove
+=======
+// class RTSPServerResponse
+// ---------------------------------------
+RTSPServerResponse::RTSPServerResponse(RTSPServer& server,const RTSPMessage::Ptr& req)
+: _server(server), RTSPMessage(req->getConnId(), RTSPMessage::RTSP_MSG_RESPONSE),_req(req),_isResp(false)
+{
+	header(Header_MethodCode, req->method());
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	cSeq(req->cSeq());
 	_server.addReq(this);
 }
 
+<<<<<<< HEAD
 int RTSPResponse::getTimeLeft()
 {
 	if (_server._config.procTimeout <=0)
@@ -216,11 +329,26 @@ int RTSPResponse::getTimeLeft()
 }
 
 TCPConnection* RTSPResponse::getConn() 
+=======
+int RTSPServerResponse::getRemainTime()
+{
+	int remainTime = int ((int64)(_server._config.procTimeout) + _req->_stampCreated - ZQ::common::now());
+	if (remainTime < 0)
+		return 0;
+	return remainTime;
+}
+
+TCPConnection* RTSPServerResponse::getConn() 
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 {	
 	return _server.findConn(getConnId()); 
 }
 
+<<<<<<< HEAD
 void RTSPResponse::post(int statusCode, const char* errMsg, bool bAsync) 
+=======
+void RTSPServerResponse::post(int statusCode, const char* errMsg, bool bAsync) 
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 {
 	{
 		// to avoid double post response
@@ -232,6 +360,7 @@ void RTSPResponse::post(int statusCode, const char* errMsg, bool bAsync)
 
 	_server.removeReq(this);
 
+<<<<<<< HEAD
 	std::string reqId = header(Header_RequestId);
 	if (reqId.empty())
 	{
@@ -249,38 +378,72 @@ void RTSPResponse::post(int statusCode, const char* errMsg, bool bAsync)
 		statusCode = rcInternalError;
 	}
 
+=======
+	//if (statusCode != 408 && getRemainTime() <= 0)
+	//	statusCode = 408;
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	code(statusCode);
 
 	if (errMsg != NULL)
 		status(errMsg);
 
 	std::string respMsg = toRaw();
+<<<<<<< HEAD
 	// TODO: _conn._logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), _conn.linkstr(),true);
+=======
+	// TODO: _conn._logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), _conn.hint().c_str(),true);
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	TCPConnection* conn = _server.findConn(getConnId());
 	if (conn == NULL)
 	{
+<<<<<<< HEAD
 		_server._logger(ZQ::common::Log::L_ERROR, CLOGFMT(RTSPResponse, "post() drop %s per conn[%s] already closed"), txn.c_str(), getConnId().c_str());
+=======
+		_server._logger(ZQ::common::Log::L_ERROR, CLOGFMT(RTSPServerResponse, "post() conn[%s] already closed"),getConnId().c_str());
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 		return;
 	}
 
 	int ret = 0;
 	if (bAsync)
+<<<<<<< HEAD
 		ret = conn->enqueueSend(respMsg);
 	else
 	{
 		if (TCPConnection::_enableHexDump > 0)
 			_server._logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), txn.c_str() ,true);
 		ret = conn->enqueueSend((const uint8*) respMsg.c_str(), respMsg.size());
+=======
+		ret = conn->AsyncSend(respMsg);
+	else
+	{
+		if (TCPConnection::_enableHexDump > 0)
+			_server._logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), (conn->hint() + " post").c_str(),true);
+		ret = conn->write(respMsg.c_str(), respMsg.size());
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	}
 	 
 	if (ret < 0)
 	{
+<<<<<<< HEAD
 		conn->OnConnectionError(ret, ZQ::eloop::Handle::errDesc(ret));
 		return;
 	}
 
 	_server._logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPResponse, "post() %s ret(%d) took %dms"), txn.c_str(), statusCode, _req->elapsed());
+=======
+		conn->onError(ret,ZQ::eloop::Handle::errDesc(ret));
+		return;
+	}
+
+	int64 elapsed = ZQ::common::now() - _req->_stampCreated;
+	std::string sessId = header(Header_Session);
+
+	_server._logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPServerResponse, "post() sessId[%s] %s(%d) ret(%d) took %lldms"), sessId.c_str(), _req->method().c_str(), _req->cSeq(), statusCode, elapsed);
+
+	//_server._logger.hexDump(ZQ::common::Log::L_INFO, respMsg.c_str(), (int)respMsg.size(), conn->hint().c_str(),true);
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 }
 
 // ---------------------------------------
@@ -292,15 +455,36 @@ void RTSPPassiveConn::onError( int error,const char* errorDescription )
 		_rtspHandler->onError(error,errorDescription);
 }
 
+<<<<<<< HEAD
+=======
+void RTSPPassiveConn::onDataSent(size_t size)
+{
+	if(_rtspHandler)
+		_rtspHandler->onDataSent(size);
+}
+
+void RTSPPassiveConn::onDataReceived( size_t size )
+{
+	if(_rtspHandler)
+		_rtspHandler->onDataReceived(size);
+}
+
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 void RTSPPassiveConn::OnResponse(RTSPMessage::Ptr resp)
 {
 }
 
 void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 {
+<<<<<<< HEAD
 	RTSPResponse::Ptr resp = new RTSPResponse(_server, req);
 
 	int respCode = RTSPMessage::rcInternalError;
+=======
+	RTSPServerResponse::Ptr resp = new RTSPServerResponse(_server, req);
+
+	int respCode =500;
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	std::string sessId;
 
 	do {
@@ -310,6 +494,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 
 		int pendings =  _server.getPendingRequest();
 		if (pendings >2)
+<<<<<<< HEAD
 		{
 			if (_server._config.maxPendings >2 && pendings >= _server._config.maxPendings)
 			{
@@ -327,6 +512,23 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 			// should make a 404 response
 			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn, "OnRequest() failed to find a suitable handle to process url: %s"), req->url().c_str() );
 			respCode = RTSPMessage::rcObjectNotFound;
+=======
+			_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequests() enqueuing %s(%d) into pendings[%d /%d]"), req->method().c_str(), req->cSeq(), pendings, (int)_server._config.maxPendings);
+
+		if (_server._config.maxPendings >0 && pendings >= _server._config.maxPendings)
+		{
+			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn, "OnRequests() rejecting %s(%d) per too many pendings [%d /%d]"), req->method().c_str(), req->cSeq(), pendings, _server._config.maxPendings);
+			respCode =503;
+			break;
+		}
+
+		_rtspHandler = _server.createHandler(req->url(), *this);
+		if(!_rtspHandler)
+		{
+			// should make a 404 response
+			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPPassiveConn, "OnRequests failed to find a suitable handle to process url: %s"), req->url().c_str() );
+			respCode =404;
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 			break;
 		}
 
@@ -339,7 +541,11 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 			pSess = _server.findSession(sessId);//RTSPServer::Session::Ptr::dynamicCast(_server.findSession(sid));
 			if (NULL == pSess)
 			{
+<<<<<<< HEAD
 				respCode = RTSPMessage::rcSessNotFound;
+=======
+				respCode =454;
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 				break;
 			}
 		}
@@ -347,7 +553,11 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 		if (NULL == pSess)
 		{
 			// handle if it is a SETUP
+<<<<<<< HEAD
 			if (RTSPMessage::mtdSETUP == req->method()) 
+=======
+			if (0 == req->method().compare(Method_SETUP)) 
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 			{ 
 				sessId = _server.generateSessionID();
 				resp->header(Header_Session,  sessId);
@@ -355,9 +565,15 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 				if (sess == NULL)
 				{
 					if (_tcpServer)
+<<<<<<< HEAD
 						_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() create session failed sessId[%s] hint%s SETUP(%d)"), sessId.c_str(), linkstr(), req->cSeq());
 
 					respCode = RTSPMessage::rcInternalError;
+=======
+						_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() create session failed sessId[%s] hint%s SETUP(%d)"), sessId.c_str(), hint().c_str(), req->cSeq());
+
+					respCode =500;
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 					break;
 				}
 				
@@ -365,16 +581,28 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 				if (NULL == pSess)
 				{
 					if (_tcpServer)
+<<<<<<< HEAD
 						_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() create session failed sessId[%s] hint%s SETUP(%d)"), sessId.c_str(), linkstr(), req->cSeq());
 
 					respCode = RTSPMessage::rcInternalError;
+=======
+						_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() create session failed sessId[%s] hint%s SETUP(%d)"), sessId.c_str(), hint().c_str(), req->cSeq());
+
+					respCode =500;
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 					break;
 				}
 
 				if (_tcpServer)
+<<<<<<< HEAD
 					_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() building up new session[%s] hint%s SETUP(%d)"), sessId.c_str(), linkstr(), req->cSeq());
 
 				respCode = _rtspHandler->procSessionRequest(RTSPMessage::mtdSETUP, resp, pSess);
+=======
+					_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() building up new session[%s] hint%s SETUP(%d)"), sessId.c_str(), hint().c_str(), req->cSeq());
+
+				respCode = _rtspHandler->procSessionSetup(req, resp, pSess);
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 				if (RTSPMessage::Err_AsyncHandling == respCode)
 				{
 					// the request is current being handled async-ly, add the session and quit the processing
@@ -393,6 +621,7 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 			}
 
 			// non-session based requests
+<<<<<<< HEAD
 			respCode =RTSPMessage::rcMethodNotAllowed;
 			switch(req->method())
 			{
@@ -427,11 +656,36 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 		respCode = _rtspHandler->procSessionRequest(req->method(), resp, pSess);
 		if (RTSPMessage::Err_AsyncHandling == respCode)
 			return; 
+=======
+			if (0 == req->method().compare(Method_OPTIONS))	{ respCode = _rtspHandler->onOptions(req, resp);   if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
+			if (0 == req->method().compare(Method_ANNOUNCE)) { respCode = _rtspHandler->onAnnounce(req, resp); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
+			if (0 == req->method().compare(Method_DESCRIBE)) { respCode = _rtspHandler->onDescribe(req, resp); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
+
+			respCode =405; break;
+		}
+
+		// session-based requests and session has been addressed
+		 resp->header(Header_Session,  pSess->id());
+
+		if (0 == req->method().compare(Method_PLAY))     { respCode = _rtspHandler->procSessionPlay(req, resp, pSess);     if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
+		if (0 == req->method().compare(Method_PAUSE))    { respCode = _rtspHandler->procSessionPause(req, resp, pSess);    if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
+		if (0 == req->method().compare(Method_ANNOUNCE)) { respCode = _rtspHandler->procSessionAnnounce(req, resp, pSess); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
+		if (0 == req->method().compare(Method_DESCRIBE)) { respCode = _rtspHandler->procSessionDescribe(req, resp, pSess); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
+		if (0 == req->method().compare(Method_TEARDOWN)) { respCode = _rtspHandler->procSessionTeardown(req, resp, pSess); _server.removeSession(pSess->id()); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
+		if (0 == req->method().compare(Method_GetParameter)) { respCode = _rtspHandler->procSessionGetParameter(req, resp, pSess); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
+		if (0 == req->method().compare(Method_SetParameter)) { respCode = _rtspHandler->procSessionSetParameter(req, resp, pSess); if (RTSPMessage::Err_AsyncHandling == respCode) return; break; }
+
+		respCode =405;
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	} while(0);
 
 	if (respCode < 100)
+<<<<<<< HEAD
 		respCode = RTSPMessage::rcInternalError;
+=======
+		respCode = 500;
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	resp->post(respCode, NULL, false);
 
@@ -440,11 +694,19 @@ void RTSPPassiveConn::OnRequest(RTSPMessage::Ptr req)
 // 	write(respMsg.c_str(), respMsg.size());
 // 
 // 	if (TCPConnection::_enableHexDump > 0)
+<<<<<<< HEAD
 // 		_logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), linkstr(),true);
 // 	int64 elapsed = ZQ::common::now() - req->_stampCreated;
 // 	
 // 	if (_tcpServer)
 // 		_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() sessId[%s] %s(%d) ret(%d) took %lldms"), sessId.c_str(), RTSPMessage::methodToStr(req->method()), req->cSeq(), respCode, elapsed);
+=======
+// 		_logger.hexDump(ZQ::common::Log::L_DEBUG, respMsg.c_str(), (int)respMsg.size(), hint().c_str(),true);
+// 	int64 elapsed = ZQ::common::now() - req->_stampCreated;
+// 	
+// 	if (_tcpServer)
+// 		_tcpServer->_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(RTSPPassiveConn, "OnRequest() sessId[%s] %s(%d) ret(%d) took %lldms"), sessId.c_str(), req->method().c_str(), req->cSeq(), respCode, elapsed);
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 // 
 // 	_server.removeReq(resp->get());
 }
@@ -457,7 +719,11 @@ void RTSPPassiveConn::simpleResponse(int code,uint32 cseq,RTSPConnection* conn)
 	resp->status(RTSPMessage::code2status(code));
 
 	std::string response = resp->toRaw();
+<<<<<<< HEAD
 	conn->enqueueSend((const uint8*)response.c_str(), response.size());
+=======
+	conn->write(response.c_str(), response.size());
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 }
 
 // ---------------------------------------
@@ -479,6 +745,17 @@ bool RTSPServer::mount(const std::string& uriEx, RTSPHandler::AppPtr app, const 
 	std::string vsite = (virtualSite && *virtualSite) ? virtualSite :DEFAULT_SITE;
 
 	MountDir dir;
+<<<<<<< HEAD
+=======
+	try {
+		dir.re.assign(uriEx);
+	}
+	catch( const boost::regex_error& )
+	{
+		_logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer, "mount() failed to add [%s:%s] as url uriEx"), vsite.c_str(), uriEx.c_str());
+		return false;
+	}
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	dir.uriEx = uriEx;
 	dir.app = app;
@@ -519,12 +796,20 @@ bool RTSPServer::unmount(const std::string& uriEx, const char* virtualSite)
 	return ret;
 }
 
+<<<<<<< HEAD
 RTSPHandler::Ptr RTSPServer::createHandler(const RTSPMessage::Ptr& req, RTSPPassiveConn& conn, const std::string& virtualSite)
+=======
+RTSPHandler::Ptr RTSPServer::createHandler( const std::string& uri, RTSPPassiveConn& conn, const std::string& virtualSite)
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 {
 	RTSPHandler::AppPtr app = NULL;
 
 	// cut off the paramesters
+<<<<<<< HEAD
 	std::string uriWithnoParams = req->url();
+=======
+	std::string uriWithnoParams = uri;
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	size_t pos = uriWithnoParams.find_first_of("?#");
 	if (std::string::npos != pos)
 		uriWithnoParams = uriWithnoParams.substr(0, pos);
@@ -539,6 +824,7 @@ RTSPHandler::Ptr RTSPServer::createHandler(const RTSPMessage::Ptr& req, RTSPPass
 
 	for( ; it != itSite->second.end(); it++)
 	{
+<<<<<<< HEAD
 		boost::regex re;
 		try {
 			re.assign(it->uriEx);
@@ -553,6 +839,12 @@ RTSPHandler::Ptr RTSPServer::createHandler(const RTSPMessage::Ptr& req, RTSPPass
 		{
 			if (it->app)
 				handler = it->app->create(*this, req, it->props);
+=======
+		if (boost::regex_match(uriWithnoParams, it->re))
+		{
+			if (it->app)
+				handler = it->app->create(*this, it->props);
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 			break;
 		}
@@ -634,24 +926,39 @@ void RTSPServer::checkReqStatus()
 		ZQ::common::MutexGuard g(_lkReqList);
 		for(RequestList::iterator it= _awaitRequests.begin(); it != _awaitRequests.end();)
 		{
+<<<<<<< HEAD
 			if (!(*it) || (*it)->getTimeLeft() > 0)
+=======
+			if (!(*it) || (*it)->getRemainTime() > 0)
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 			{
 				it++;
 				continue;
 			}
 			
 			//timeout
+<<<<<<< HEAD
 			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPServer, "checkReqStatus() req[%s(%d)] timeout per %d, cancelling from pendings"), RTSPMessage::methodToStr((*it)->method()), (*it)->cSeq(), (int)_config.procTimeout);
+=======
+			_logger(ZQ::common::Log::L_WARNING, CLOGFMT(RTSPServer, "checkReqStatus() req[%s(%d)] timeout per %d, cancelling from pendings"), (*it)->method().c_str(), (*it)->cSeq(), (int)_config.procTimeout);
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 			listToCancel.push_back(*it);
 			it= _awaitRequests.erase(it);
 		}
 	}
 
 	for(RequestList::iterator itCancel= listToCancel.begin(); itCancel != listToCancel.end(); itCancel++)
+<<<<<<< HEAD
 		(*itCancel)->post(RTSPMessage::rcProcessTimeout);
 }
 
 void RTSPServer::addReq(RTSPResponse::Ptr resp)
+=======
+		(*itCancel)->post(408);
+}
+
+void RTSPServer::addReq(RTSPServerResponse::Ptr resp)
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 {
 	ZQ::common::MutexGuard g(_lkReqList);
 	if (std::find(_awaitRequests.begin(),_awaitRequests.end(), resp) != _awaitRequests.end())
@@ -659,7 +966,11 @@ void RTSPServer::addReq(RTSPResponse::Ptr resp)
 	_awaitRequests.push_back(resp);
 }
 
+<<<<<<< HEAD
 void RTSPServer::removeReq(RTSPResponse::Ptr resp)
+=======
+void RTSPServer::removeReq(RTSPServerResponse::Ptr resp)
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 {
 	ZQ::common::MutexGuard g(_lkReqList);
 	for(RequestList::iterator it= _awaitRequests.begin(); it != _awaitRequests.end();)

@@ -11,13 +11,21 @@ namespace ZQ {
 namespace eloop {
 
 class ZQ_ELOOP_API UnixSocket;
+<<<<<<< HEAD
 
+=======
+class AsyncSender;
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 // -----------------------------
 // class UnixSocket
 // -----------------------------
 class UnixSocket : public ZQ::eloop::Pipe
 {
+<<<<<<< HEAD
 	friend class Waker;
+=======
+	friend class AsyncSender;
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 public:
 	typedef enum
 	{
@@ -26,10 +34,28 @@ public:
 
 public:
 
+<<<<<<< HEAD
 	UnixSocket(Loop& loop, ZQ::common::LogWrapper& log, int ipc=1);
 	virtual ~UnixSocket();
 
 	// int  init(Loop &loop, int ipc=1);
+=======
+	UnixSocket(ZQ::common::LogWrapper& log):_lipcLog(log),_async(NULL)
+	{
+		#ifdef ZQ_OS_LINUX
+				//Ignore SIGPIPE signal
+				signal(SIGPIPE, SIG_IGN);
+		#endif
+	}
+
+	virtual ~UnixSocket()
+	{
+		ZQ::common::MutexGuard gd(_lkSendMsgList);
+		_SendMsgList.clear();
+	}
+
+	int  init(Loop &loop, int ipc=1);
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	void closeUnixSocket();
 
 	virtual void OnRead(ssize_t nread, const char *buf);
@@ -53,8 +79,13 @@ public:
 
 	int AsyncSend(const std::string& msg, int fd = -1);
 
+<<<<<<< HEAD
 	virtual void OnWakedUp();
 	// void OnCloseAsync();
+=======
+	void OnAsyncSend();
+	void OnCloseAsync();
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 //protected:
 //	ZQ::common::Log& _lipcLog;
@@ -65,11 +96,16 @@ public:
 private:
 	std::string		_buf;
 
+<<<<<<< HEAD
 	typedef struct _Message{
+=======
+	typedef struct _AsyncMessage{
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 		std::string msg;
 		int fd;
 
+<<<<<<< HEAD
 		_Message(){
 			fd = -1;
 		}
@@ -78,6 +114,16 @@ private:
 	ZQ::common::Mutex _lkSendMsgList;
 	std::list<Message> _outgoings;
 	Waker* _waker;
+=======
+		_AsyncMessage(){
+			fd = -1;
+		}
+	} AsyncMessage;
+
+	ZQ::common::Mutex _lkSendMsgList;
+	std::list<AsyncMessage> _SendMsgList;
+	AsyncSender* _async;
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 //	ZQ::common::Mutex _lkRecvMsgList;
 //	std::list<std::string> _RecvMsgList;

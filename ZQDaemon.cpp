@@ -80,14 +80,22 @@ bool BaseZQServiceApplication::init(int argc, char* argv[])
 	_appStopEvent = sem_open(eventName.c_str(), 0, 0644, 0);
 
 	if (_appStopEvent == SEM_FAILED) {
+<<<<<<< HEAD
 		syslog(LOG_ERR, CLOGFMT(ZQService, "failed to create stop-event: err(%s)"), strerror(errno));
+=======
+		syslog(LOG_ERR, "failed to create stop event: (%s)", strerror(errno));
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 		return false;
 	}
 
 	// basic load configuration
 	XMLPreferenceDocumentEx doc;
 	if (!doc.open(ConfigFile)) {
+<<<<<<< HEAD
 		syslog(LOG_ERR, CLOGFMT(ZQService, "failed to open configuration[%s]"), ConfigFile);
+=======
+		syslog(LOG_ERR, "failed to open configuration (%s)", ConfigFile);
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 		return false;
 	}
 
@@ -106,7 +114,11 @@ bool BaseZQServiceApplication::init(int argc, char* argv[])
 	// path
 	res = node->getAttributeValue("path", value);
 	if (!res) {
+<<<<<<< HEAD
 		syslog(LOG_ERR, CLOGFMT(ZQService, "no log path specified"));
+=======
+		syslog(LOG_ERR, "failed to get log path");
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 		return false;
 	}
 	_logDir = value;
@@ -209,7 +221,11 @@ bool BaseZQServiceApplication::init(int argc, char* argv[])
 			<< logFilename << ") :"
 			<< "(" << ex.getString() << ")";
 
+<<<<<<< HEAD
 		syslog(LOG_ERR, CLOGFMT(ZQService, "%s"), os.str().c_str());
+=======
+		syslog(LOG_ERR, os.str().c_str());
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 		return false;
 	}
@@ -217,7 +233,11 @@ bool BaseZQServiceApplication::init(int argc, char* argv[])
 	//_strVersion = std::string(ZQ_INTERNAL_FILE_NAME) + " v" __N2S__(ZQ_PRODUCT_VER_MAJOR) "." __N2S__(ZQ_PRODUCT_VER_MINOR) "." __N2S__(ZQ_PRODUCT_VER_PATCH) "." __N2S__(ZQ_PRODUCT_VER_BUILD);
 	_strVersion = __N2S__(ZQ_PRODUCT_VER_MAJOR) "." __N2S__(ZQ_PRODUCT_VER_MINOR) "." __N2S__(ZQ_PRODUCT_VER_PATCH) "." __N2S__(ZQ_PRODUCT_VER_BUILD);
 
+<<<<<<< HEAD
 	(*_logger)(Log::L_INFO, CLOGFMT(ZQService, "========================= Service[%s] version[%s] starts ========================="), _serviceName.c_str(), _strVersion.c_str());
+=======
+	(*_logger)(Log::L_INFO, "========================= Service[%s] version[%s] starts =========================",_serviceName.c_str(), _strVersion.c_str());
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	ZQ::common::setGlogger(_logger);
 
 	//unsigned int svcInstanceId = getInstanceId();
@@ -241,8 +261,14 @@ bool BaseZQServiceApplication::init(int argc, char* argv[])
 	std::string serviceName = _serviceName;
 	size_t pos = serviceName.find_first_of("0123456789");
 	if (std::string::npos != pos)
+<<<<<<< HEAD
 		serviceName = serviceName.substr(0, pos);
 
+=======
+	{
+		serviceName = serviceName.substr(0, pos);
+	}
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	uint32 nServiceTypeId = ServiceMIB::oidOfServiceType((char*)serviceName.c_str());
 	std::string snmpLogFileName = _logDir + _serviceName + ".snmp.log";
 	ServiceMIB::_flog.open(snmpLogFileName.c_str(), _snmpLoggingMask & 0x0f, 3);
@@ -270,21 +296,37 @@ bool BaseZQServiceApplication::init(int argc, char* argv[])
 
 	// SNMPManageVariable("configDir", &_configDir, ZQSNMP_VARTYPE_STDSTRING, false);
 
+<<<<<<< HEAD
 	(*_logger)(Log::L_DEBUG, CLOGFMT(ZQService, "taking config-folder[%s]"), _configDir.c_str());
+=======
+	(*_logger)(Log::L_DEBUG, "loading service configuration in folder[%s]", _configDir.c_str());
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	_logger->flush();
 	if (!configLoader->loadInFolder(_configDir.c_str(), true))
 	{
+<<<<<<< HEAD
 		(*_logger)(Log::L_ERROR, CLOGFMT(ZQService, "failed to load config in folder[%s]"), _configDir.c_str());
+=======
+		(*_logger)(Log::L_ERROR, "failed to load config in folder[%s]", _configDir.c_str());
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 		_logger->flush();
 		return false;
 	}
 
+<<<<<<< HEAD
 	(*_logger)(Log::L_INFO, CLOGFMT(ZQService, "loaded configuration from folder[%s]"), _configDir.c_str());
 
 	res = OnInit();
 	if (res)
 		(*_logger)(Log::L_INFO, CLOGFMT(ZQService, "service[%s]/%u initialized"), _serviceName.c_str(), _instanceId);
+=======
+	(*_logger)(Log::L_INFO, "loaded configuration from folder[%s]", _configDir.c_str());
+
+	res = OnInit();
+	if (res)
+		(*_logger)(Log::L_INFO, "(%s/%u) initialized", _serviceName.c_str(), _instanceId);
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	ZQ::SNMP::ModuleMIB::_flags_VERBOSE = (_snmpLoggingMask >>8) & 0xff;
 	doEnumSnmpExports();
@@ -295,6 +337,7 @@ bool BaseZQServiceApplication::init(int argc, char* argv[])
 }
 
 bool BaseZQServiceApplication::start() {
+<<<<<<< HEAD
 	(*_logger)(Log::L_INFO, CLOGFMT(ZQService, "starting service[%s]/%u"), _serviceName.c_str(), _instanceId);
 
 	bool res = OnStart();
@@ -304,16 +347,34 @@ bool BaseZQServiceApplication::start() {
 		return res;
 	}
 
+=======
+	(*_logger)(Log::L_INFO, "starting service[%s]", _serviceName.c_str());
+
+	bool res = OnStart();
+	if (!res) {
+		_logger->flush();
+		return res;
+	}
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	_logger->flush();
 
 	int ret = 0;
 
 wait:
 	ret = sem_wait(_appStopEvent);
+<<<<<<< HEAD
 	if (ret == (-1) && errno == EINTR)
 		goto wait;
 
 	sem_close(_appStopEvent);
+=======
+	if (ret == (-1) && errno == EINTR) {
+		goto wait;
+	}
+
+	sem_close(_appStopEvent);
+
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	return ret == 0;
 }
 
@@ -348,13 +409,21 @@ bool BaseZQServiceApplication::isHealth() {
 }
 
 bool BaseZQServiceApplication::OnInit() {
+<<<<<<< HEAD
 	(*_logger)(Log::L_INFO, CLOGFMT(ZQService, "service[%s] initialized"), _serviceName.c_str());
+=======
+	(*_logger)(Log::L_INFO, "service[%s] initialized", _serviceName.c_str());
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	return true;
 }
 
 bool BaseZQServiceApplication::OnStart() {
+<<<<<<< HEAD
 	(*_logger)(Log::L_INFO, CLOGFMT(ZQService, "service[%s] started, initializing SNMP subagent"), _serviceName.c_str());
+=======
+	(*_logger)(Log::L_INFO, "service[%s] started, initializing SNMP subagent", _serviceName.c_str());
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	if (NULL != _pServiceMib)
 	{
@@ -363,11 +432,19 @@ bool BaseZQServiceApplication::OnStart() {
 			_pSnmpSA->start();
 	}
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	return true;
 }
 
 bool BaseZQServiceApplication::OnStop() {
+<<<<<<< HEAD
 	(*_logger)(Log::L_INFO, CLOGFMT(ZQService, "service[%s] Stop message recevied"), _serviceName.c_str());
+=======
+	(*_logger)(Log::L_INFO, "Service[%s]Recieve Stop message from service shell. ", _serviceName.c_str());
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	if (_pSnmpSA)
 		delete _pSnmpSA;
 	_pSnmpSA = NULL;
@@ -377,10 +454,16 @@ bool BaseZQServiceApplication::OnStop() {
 
 bool BaseZQServiceApplication::OnUnInit() {
 	if (_logger) {
+<<<<<<< HEAD
 		(*_logger)(Log::L_INFO, CLOGFMT(ZQService, "service[%s] OnUnInit"), _serviceName.c_str());
 		_logger->flush();
 	}
 	
+=======
+		(*_logger)(Log::L_INFO, "service[%s] unitialized", _serviceName.c_str());
+		_logger->flush();
+	}
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	return true;
 }
 

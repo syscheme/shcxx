@@ -34,6 +34,7 @@
 
 #include "ZQ_common_conf.h"
 
+<<<<<<< HEAD
 #include "uv.h"
 #include "uv-errno.h"
 
@@ -41,6 +42,14 @@ extern "C"{
 #ifdef ZQ_OS_LINUX
 #include <sys/time.h>
 #endif
+=======
+extern "C"{
+#ifdef ZQ_OS_LINUX
+	#include <sys/time.h>
+#endif
+#include "uv.h"
+#include "uv-errno.h"
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 };
 
 #include <string>
@@ -59,12 +68,34 @@ extern "C"{
 namespace ZQ {
 namespace eloop {
 
+<<<<<<< HEAD
 class ZQ_ELOOP_API Loop;
 class ZQ_ELOOP_API Handle;
 class ZQ_ELOOP_API IterationBlocker;
 class ZQ_ELOOP_API Timer;
 class ZQ_ELOOP_API Wakeup;
 class ZQ_ELOOP_API SysSignalSink;
+=======
+
+	static int64 usStampNow()
+	{
+		#ifdef ZQ_OS_LINUX
+
+				struct timeval tv;
+				gettimeofday(&tv, NULL);
+				return tv.tv_sec*1000*1000 + tv.tv_usec;
+		#else
+				return 0;
+		#endif
+	}
+
+class ZQ_ELOOP_API Loop;
+class ZQ_ELOOP_API Handle;
+class ZQ_ELOOP_API Idle;
+class ZQ_ELOOP_API Timer;
+class ZQ_ELOOP_API Async;
+class ZQ_ELOOP_API Signal;
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 class ZQ_ELOOP_API CpuInfo;
 class ZQ_ELOOP_API Process;
 
@@ -73,10 +104,16 @@ class ZQ_ELOOP_API Process;
 // ----------------------------------------------------
 class Handle
 {
+<<<<<<< HEAD
 	friend class AbstractStream;
 
 public:
 	typedef uv_os_fd_t fd_t;
+=======
+public:
+	typedef uv_os_fd_t fd_t;
+
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	typedef uv_buf_t eloop_buf_t;
 
 	typedef enum _ElpHandleType
@@ -99,7 +136,11 @@ public:
 		ELOOP_TTY = UV_TTY,
 		ELOOP_UDP = UV_UDP,
 		ELOOP_SIGNAL = UV_SIGNAL,
+<<<<<<< HEAD
 
+=======
+		
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 		ELOOP_FILE = UV_FILE,
 		ELOOP_HANDLE_TYPE_MAX = UV_HANDLE_TYPE_MAX
 	} eloop_handle_type;
@@ -160,7 +201,11 @@ public:
 		elpuEAI_SOCKTYPE        = UV__EAI_SOCKTYPE,
 		elpuEAI_BADHINTS        = UV__EAI_BADHINTS,
 		elpuEAI_PROTOCOL        = UV__EAI_PROTOCOL,
+<<<<<<< HEAD
 
+=======
+		
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 		elpuE2BIG               = UV__E2BIG,
 		elpuEACCES              = UV__EACCES,
 		elpuEADDRINUSE          = UV__EADDRINUSE,
@@ -221,11 +266,17 @@ public:
 		elpuENXIO               = UV__ENXIO,
 		elpuEMLINK              = UV__EMLINK,
 		elpuEHOSTDOWN           = UV__EHOSTDOWN,
+<<<<<<< HEAD
 		elpuUnKnown
 
 	} ElpeError;
 
 	static ElpeError uvErr2ElpeErr(int errCode);
+=======
+
+	} ElpeError;
+
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	static const char* errDesc(ElpeError err)  { return errDesc((int)err); }
 	static const char* errDesc(int err)  { return uv_strerror(err); }
 	static const char* errName(ElpeError err) { return errName((int) err); }
@@ -233,6 +284,7 @@ public:
 
 	static int exepath(char* buf,size_t* size){return uv_exepath(buf,size);}
 
+<<<<<<< HEAD
 protected:
 	Handle(Loop& loop);
 	// Handle(Handle &);
@@ -275,6 +327,47 @@ private:
 	static void _cbDeactived(uv_handle_t *uvhandle);
 };
 
+=======
+
+protected:
+	Handle();
+	Handle(Handle &);
+	Handle &operator=(Handle &);
+	virtual ~Handle();
+
+public:
+	void init(Loop &loop);
+
+	void* data;
+	void close();
+	void ref();
+	void unref();
+	int has_ref();
+
+	int is_active();
+	int is_closing();
+	int send_buffer_size(int *value);
+	int recv_buffer_size(int *value);
+	int fileno(fd_t* fd);
+	void _deleteContext();
+	Loop& get_loop();
+	uv_handle_t *context_ptr();
+
+protected:
+	virtual void OnClose(){delete this;}
+//	bool		_isStart;
+	bool		_isClose;
+	
+
+private:
+	static void _cbClose(uv_handle_t *uvhandle);
+
+	uv_any_handle* context;
+	Loop* _loop;
+};
+
+
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 // -----------------------------
 // class Request
 // -----------------------------
@@ -290,7 +383,11 @@ private:
 	EloopRequest &operator=(EloopRequest &){}
 protected:
 	uv_req_t *context_ptr();
+<<<<<<< HEAD
 
+=======
+	
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 private:
 	uv_any_req* context;
 };
@@ -319,7 +416,10 @@ public:
 
 	unsigned int getThreadPoolSize();
 	int setThreadPoolSize(const unsigned int size);
+<<<<<<< HEAD
 	uint threadId() const { return _thrdId; }
+=======
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	uint64_t now();
 	void update_time();
@@ -331,12 +431,16 @@ protected:
 
 private:
 	uv_loop_t* _uvLoop;
+<<<<<<< HEAD
 	uint _thrdId;
+=======
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	static void _doWalk(uv_handle_t* uvhandle, void *arg);
 };
 
 // -----------------------------
+<<<<<<< HEAD
 // class IterationBlocker
 // -----------------------------
 // this handle will be run once per loop iteration, right before the Prepare handles
@@ -355,6 +459,21 @@ protected: // event callback
 private: // impl of Handle
 	void init();
 
+=======
+// class Idle
+// -----------------------------
+class Idle : public Handle
+{
+public:
+	Idle();
+	int init(Loop &loop);
+	int start();
+	int stop();
+
+protected:
+	virtual void OnIdle() {}
+
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 private:
 	static void _cbOnIdle(uv_idle_t* uvhandle);
 };
@@ -365,6 +484,7 @@ private:
 class Timer : public Handle
 {
 public:
+<<<<<<< HEAD
 	Timer(Loop& loop) : Handle(loop) {}
 	int start(uint64_t timeout, bool bRepeat =false); // int start(uint64_t timeout, uint64_t repeat);
 	int stop();
@@ -381,11 +501,25 @@ protected: // event callback
 private: // impl of Handle
 	void init();
 
+=======
+//	Timer();
+	int init(Loop &loop);
+	int start(uint64_t timeout, uint64_t repeat);
+	int stop();
+	int again();
+	void set_repeat(uint64_t repeat);
+	uint64_t get_repeat();
+
+protected:
+	virtual void OnTimer() {}
+
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 private:
 	static void _cbOnTimer(uv_timer_t *timer);
 };
 
 // -----------------------------
+<<<<<<< HEAD
 // class Wakeup
 // -----------------------------
 // old name Async
@@ -401,12 +535,27 @@ protected: // event callback
 
 private: // impl of Handle
 	void init();
+=======
+// class Async
+// -----------------------------
+// the async class allow others, maybe the threads out of the eloop, to notify the handle registered in the eloop
+class Async : public Handle
+{
+public:
+	Async();
+	int init(Loop &loop);
+	int send();
+
+protected:
+	virtual void OnAsync() {}
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 private:
 	static void _cbAsync(uv_async_t *async);
 };
 
 // -----------------------------
+<<<<<<< HEAD
 // class SysSignalSink
 // -----------------------------
 // sinks Unix-style OS signals on a per-event loop base
@@ -423,6 +572,21 @@ protected: // event callback
 private: // impl of Handle
 	void init();
 
+=======
+// class Signal
+// -----------------------------
+class Signal : public Handle
+{
+public:
+	Signal();
+	int init(Loop &loop);
+	int start(int signum);
+	int stop();
+
+protected:
+	virtual void OnSignal(int signum) {}
+
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 private:
 	static void _cbSignal(uv_signal_t *signal, int signum);
 };
@@ -447,6 +611,7 @@ private:
 };
 
 // -----------------------------
+<<<<<<< HEAD
 // class ChildProcess
 // -----------------------------
 // old name Process
@@ -458,6 +623,15 @@ public:
 	typedef uint uid_t;
 	typedef uint gid_t;
 	typedef enum _stdioFlags {
+=======
+// class Process
+// -----------------------------
+class Stream;
+class Process : public Handle
+{
+public:
+	 typedef enum _stdioFlags{
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 		ELOOP_IGNORE = UV_IGNORE,
 		ELOOP_CREATE_PIPE = UV_CREATE_PIPE,
 		ELOOP_INHERIT_FD = UV_INHERIT_FD,
@@ -468,10 +642,17 @@ public:
 		// flags may be specified to create a duplex data stream.
 		ELOOP_READABLE_PIPE = UV_READABLE_PIPE,
 		ELOOP_WRITABLE_PIPE = UV_WRITABLE_PIPE
+<<<<<<< HEAD
 	} eloop_stdio_flags;
 
 	typedef enum _processFlags {
 		/*
+=======
+	}eloop_stdio_flags;
+
+	 typedef enum _processFlags{
+			  /*
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 		* Set the child process' user id. The user id is supplied in the `uid` field
 		* of the options struct. This does not work on windows; setting this flag
 		* will cause uv_spawn() to fail.
@@ -503,6 +684,7 @@ public:
 		* ignored.
 		*/
 		ELOOP_PROCESS_WINDOWS_HIDE = UV_PROCESS_WINDOWS_HIDE
+<<<<<<< HEAD
 	} eloop_process_flags;
 
 //typedef struct uv_stdio_container_s {
@@ -538,12 +720,40 @@ protected: // event callback
 
 private: // impl of Handle
 	void init() {} // do nothing because spawn() covers init()
+=======
+	 }eloop_process_flags;
+
+	typedef uv_stdio_container_t eloop_stdio_container_t;
+	typedef uv_uid_t	eloop_uid_t;
+	typedef uv_gid_t	eloop_gid_t;
+
+public:
+	void setenv(char** env);
+	void setcwd(const char* cwd);
+	void setflags(eloop_process_flags flags);
+	void setuid(eloop_uid_t uid);
+	void setgid(eloop_gid_t gid);
+
+	int spawn(const char* file,char** args,eloop_stdio_container_t* container=NULL,int stdio_count=0);
+
+	int pid();
+	int kill(int signum);
+	int kill(int pid,int signum);
+
+protected:
+	virtual void OnExit(int64_t exit_status,int term_signal) { close();}
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 private:
 	static void _cbExit(uv_process_t* handle,int64_t exit_status,int term_signal);
 	uv_process_options_t _opt;
 };
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 /*
 // -----------------------------
 // class AsyncBuf
@@ -551,6 +761,7 @@ private:
 class AsyncBuf
 {
 public:
+<<<<<<< HEAD
 typedef std::vector<uv_buf_t> ELBUFS;
 public:
 AsyncBuf(){}
@@ -566,6 +777,23 @@ _bufs.push_back(buf);
 
 private:
 ELBUFS _bufs;
+=======
+	typedef std::vector<uv_buf_t> ELBUFS;
+public:
+	AsyncBuf(){}
+	~AsyncBuf(){}
+
+	void push_back(char* base,size_t len)
+	{
+		uv_buf_t buf;
+		buf.base = base;
+		buf.len = len;
+		_bufs.push_back(buf);
+	}
+
+private:
+	ELBUFS _bufs;
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 };
 */
 

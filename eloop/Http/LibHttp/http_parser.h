@@ -30,7 +30,10 @@ extern "C" {
 #define HTTP_PARSER_VERSION_PATCH 1
 
 #include <sys/types.h>
+<<<<<<< HEAD
 
+=======
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 #if defined(_WIN32) && !defined(__MINGW32__) && \
   (!defined(_MSC_VER) || _MSC_VER<1600) && !defined(__WINE__)
 #include <BaseTsd.h>

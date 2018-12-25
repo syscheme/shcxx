@@ -1,5 +1,8 @@
 #include <ZQ_common_conf.h>
+<<<<<<< HEAD
 #include <boost/regex.hpp>
+=======
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 #include "HttpServer.h"
 #include "TimeUtil.h"
 #include <fcntl.h>
@@ -7,6 +10,7 @@
 #include <signal.h>
 #endif
 
+<<<<<<< HEAD
 #define	Header_RequestId			"X-Request-ID"
 
 namespace ZQ {
@@ -109,10 +113,118 @@ void HttpPassiveConn::OnMessageSubmitted(HttpMessage::Ptr msg)
 
 	//_logger(ZQ::common::Log::L_DEBUG, CONNFMT(OnMessageSubmitted, "disconnecting"));
 	//disconnect(true);
+=======
+namespace ZQ {
+namespace eloop {
+
+//---------------------------------------
+//class HttpMonitorTimer
+//----------------------------------------
+// void HttpMonitorTimer::OnTimer()
+// {
+// 	HttpPassiveConn* conn = (HttpPassiveConn*)data;
+// 	if (conn != NULL)
+// 		conn->stop();
+// }
+
+
+// ---------------------------------------
+// class HttpPassiveConn
+// ---------------------------------------
+HttpPassiveConn::HttpPassiveConn(HttpServer& server)
+	: HttpConnection(server._logger, NULL, &server), _server(server),
+	_handler(NULL), _keepAlive_Timeout(server.keepAliveTimeout()),
+	_startTime(0), _keepAlive(false)
+{
+}
+
+HttpPassiveConn::~HttpPassiveConn()
+{
+	//_handler = NULL;
+}
+
+void HttpPassiveConn::errorResponse( int code ) 
+{
+	_logger(ZQ::common::Log::L_DEBUG,CLOGFMT(HttpPassiveConn,"errorResponse, code %d"), code);
+
+	HttpMessage::Ptr msg = new HttpMessage(HttpMessage::MSG_RESPONSE);
+	msg->code(code);
+	msg->status(HttpMessage::code2status(code));
+	if (_tcpServer)
+		msg->header("Server", _tcpServer->_config.serverName );
+	msg->header("Date", HttpMessage::httpdate());
+
+	std::string response = msg->toRaw();
+	write(response.c_str(), response.length());
+
+	_keepAlive = false;
+	stop(true);
+}
+
+void HttpPassiveConn::onError(int error,const char* errorDescription)
+{
+	if (elpuEOF != error)
+	{
+		char locip[17] = { 0 };
+		int  locport = 0;
+		getlocaleIpPort(locip,locport);
+
+		char peerip[17] = { 0 };
+		int  peerport = 0;
+		getpeerIpPort(peerip,peerport);
+		
+		_logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpPassiveConn, "onError [%p] [%s:%d => %s:%d], errorCode[%d],Description[%s]"), 
+			this, locip, locport, peerip, peerport,error,errorDescription);
+	}
+
+	if (error > 0)		//Parse error message
+	{
+		errorResponse(400);
+		return;
+	}
+	
+	if(_handler)
+		_handler->onError(error,errorDescription);
+
+	stop(true);
+}
+
+void HttpPassiveConn::onHttpDataSent(size_t size) 
+{
+
+//  char locip[17] = { 0 };
+//	int  locport = 0;
+//	getlocaleIpPort(locip,locport);
+//
+//	char peerip[17] = { 0 };
+//	int  peerport = 0;
+//	getpeerIpPort(peerip,peerport);
+//	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpPassiveConn, "onHttpDataSent [%p] [%s:%d==>%s:%d]."), this, locip, locport, peerip, peerport);
+
+	if(NULL == _handler)
+		return;
+
+	_handler->onHttpDataSent(size);
+}
+
+void HttpPassiveConn::onRespComplete(bool isShutdown)
+{
+	HttpConnection::onRespComplete();
+	if (!_keepAlive || _keepAlive_Timeout <= 0)
+	{
+		_listpipe.clear();
+		stop(isShutdown);
+		return;
+	}
+
+	if (_startTime <= 0)
+		_startTime = ZQ::common::now();
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 }
 
 void HttpPassiveConn::OnTimer()
 {
+<<<<<<< HEAD
 	if (!_keepAlive)
 	{
 		if (!_msgOutgoing &&  _stampLastSent>0 && (ZQ::common::now() - _stampLastSent) > _server._config.watchDogInterval)
@@ -187,15 +299,98 @@ HttpMessage::StatusCodeEx HttpPassiveConn::OnHeadersReceived(const HttpMessage::
 }
 
 void HttpPassiveConn::OnMessageReceived(const HttpMessage::Ptr& req)
+=======
+	if (_keepAlive_Timeout>0 && _startTime>0 &&(ZQ::common::now() - _startTime > _keepAlive_Timeout))
+		stop(false);
+}
+
+void HttpPassiveConn::onHttpDataReceived( size_t size )
+{
+	// NOTE something here
+	if(_handler)
+		_handler->onHttpDataReceived(size);
+
+	//start();//this may fail because a receiving call has been fired		
+}
+
+bool HttpPassiveConn::onHeadersEnd( const HttpMessage::Ptr msg)
+{
+	if( msg->versionMajor() != 1 && msg->versionMinor() != 1 )
+	{
+		_logger(ZQ::common::Log::L_WARNING, CLOGFMT( HttpPassiveConn,"onHeadersEnd, unsupport http version[%u/%u], reject"),
+			msg->versionMajor(), msg->versionMinor());
+	
+		errorResponse(505);
+		return false;
+	}
+
+	 HttpServer* pSev = NULL;
+	 pSev = dynamic_cast<HttpServer*>(_tcpServer);
+	 if (pSev == NULL)
+	 {
+		 //should make a 404 response
+		 _logger(ZQ::common::Log::L_ERROR, CLOGFMT(HttpPassiveConn,"onHeadersEnd not found HttpServer."));
+		 errorResponse(503);
+		 return false;
+	 }
+
+	_handler = _server.createHandler( msg->url(), *this);
+
+	if(!_handler)
+	{
+		//should make a 404 response
+		_logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"onHeadersEnd failed to find a suitable handle to process url:[%s], msg[%s]"), msg->url().c_str(), msg->toRaw().c_str() );
+		errorResponse(404);
+		return false;
+	}
+
+	_keepAlive = msg->keepAlive();
+	if(!_handler->onHeadersEnd(msg) )
+	{
+		_logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"onHeadersEnd, user code return false in onHeadersEnd, may user code want to abort the procedure, url:%s"), msg->url().c_str());
+		_handler = NULL;
+		return false;
+	}
+
+	return true;
+}
+
+bool HttpPassiveConn::onBodyData( const char* data, size_t size)
+{
+	if(!_handler)
+	{
+		_logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpPassiveConn,"http body received, but no handler is ready"));
+		errorResponse(500);
+		return false;
+	}
+
+	if(!_handler->onBodyData(data, size) )
+	{
+		_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpPassiveConn,"handler refuse to continue after onBodyData"));
+		errorResponse(500);
+		_handler = NULL;
+		return false;
+	}
+
+	return true;
+}
+
+void HttpPassiveConn::onMessageCompleted()
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 {
 	if(!_handler)
 		return;
 
+<<<<<<< HEAD
 	HttpMessage::StatusCodeEx ret = _handler->OnRequestCompleted();
 	if (HttpMessage::errAsyncInProgress == ret)
 		return;
 }
 
+=======
+	_handler->onMessageCompleted();
+}
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 /*
 void HttpPassiveConn::OnClose()
 {
@@ -208,6 +403,7 @@ void HttpPassiveConn::OnClose()
 */
 
 // ---------------------------------------
+<<<<<<< HEAD
 // class HttpHandler
 // ---------------------------------------
 HttpHandler::HttpHandler(const HttpMessage::Ptr& req, IBaseApplication& app, HttpServer& server, const HttpHandler::Properties& dirProps)
@@ -339,12 +535,64 @@ TCPConnection* HttpServer::createPassiveConn()
 {
 	return new HttpPassiveConn(*this);
 }
+=======
+// class HttpServer
+// ---------------------------------------
+TCPConnection* HttpServer::createPassiveConn()
+{
+	return new HttpPassiveConn(*this);
+}
+
+/*
+int HttpServer::run()
+{
+	int64 timeLimit = 0,waitTime = _config.keepalive_timeout;
+	while(!_Quit)
+	{
+		SYS::SingleObject::STATE state = _sysWakeUp.wait(waitTime);
+		if (_Quit)
+			break;
+		waitTime = 5000;
+		if(SYS::SingleObject::SIGNALED == state || SYS::SingleObject::TIMEDOUT == state)
+		{
+			ZQ::common::MutexGuard gd(_connCountLock);
+			std::set<HttpPassiveConn*>::iterator itconn;
+			for(itconn = _connMap.begin();itconn != _connMap.end();itconn++)
+			{
+				timeLimit = ZQ::common::now() - (*itconn)->lastRespTime();
+				if (timeLimit >= _config.keepalive_timeout)
+				{
+					(*itconn)->shutdown();
+				}
+				if (waitTime > timeLimit)
+					waitTime = timeLimit;
+			}
+			if (_connMap.empty())
+				waitTime = _config.keepalive_timeout;
+			
+		}
+	}
+	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(HttpServer, "quit Monitor thread"));
+	return 0;
+}*/
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 bool HttpServer::mount(const std::string& uriEx, HttpHandler::AppPtr app, const HttpHandler::Properties& props, const char* virtualSite)
 {
 	std::string vsite = (virtualSite && *virtualSite) ? virtualSite :DEFAULT_SITE;
 
 	MountDir dir;
+<<<<<<< HEAD
+=======
+	try {
+		dir.re.assign(uriEx);
+	}
+	catch( const boost::regex_error& )
+	{
+		_logger(ZQ::common::Log::L_WARNING, CLOGFMT(HttpServer, "mount() failed to add [%s:%s] as url uriEx"), vsite.c_str(), uriEx.c_str());
+		return false;
+	}
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	dir.uriEx = uriEx;
 	dir.app = app;
@@ -362,6 +610,7 @@ bool HttpServer::mount(const std::string& uriEx, HttpHandler::AppPtr app, const 
 	return true;
 }
 
+<<<<<<< HEAD
 bool HttpServer::unmount(const std::string& uriEx, const char* virtualSite)
 {
 	std::string vsite = (virtualSite && *virtualSite) ? virtualSite :DEFAULT_SITE;
@@ -386,11 +635,18 @@ bool HttpServer::unmount(const std::string& uriEx, const char* virtualSite)
 }
 
 HttpHandler::Ptr HttpServer::createHandler(const HttpMessage::Ptr& req, HttpConnection& conn, const std::string& virtualSite)
+=======
+HttpHandler::Ptr HttpServer::createHandler(const std::string& uri, HttpPassiveConn& conn, const std::string& virtualSite)
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 {
 	HttpHandler::AppPtr app = NULL;
 
 	// cut off the paramesters
+<<<<<<< HEAD
 	std::string uriWithnoParams = req->uri();
+=======
+	std::string uriWithnoParams = uri;
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	size_t pos = uriWithnoParams.find_first_of("?#");
 	if (std::string::npos != pos)
 		uriWithnoParams = uriWithnoParams.substr(0, pos);
@@ -405,6 +661,7 @@ HttpHandler::Ptr HttpServer::createHandler(const HttpMessage::Ptr& req, HttpConn
 
 	for( ; it != itSite->second.end(); it++)
 	{
+<<<<<<< HEAD
 		boost::regex re;
 		try {
 			re.assign(it->uriEx);
@@ -419,6 +676,12 @@ HttpHandler::Ptr HttpServer::createHandler(const HttpMessage::Ptr& req, HttpConn
 		{
 			if (it->app)
 				handler = it->app->create(*this, req, it->props);
+=======
+		if (boost::regex_match(uriWithnoParams, it->re))
+		{
+			if (it->app)
+				handler = it->app->create(conn, it->props);
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 			break;
 		}
 	}

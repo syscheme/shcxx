@@ -1,14 +1,20 @@
+<<<<<<< HEAD
 #include "Log.h"
 #include "SystemUtils.h"
 
 #include "eloop.h"
 // #include "eloop_net.h"
+=======
+#include "eloop.h"
+#include "eloop_net.h"
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 //#include <stdlib.h>
 namespace ZQ {
 namespace eloop {
 
 #define DEFAULT_THREADPOOL_SIZE 4
 #define ELOOP_THREADPOOL_SIZE  "UV_THREADPOOL_SIZE"
+<<<<<<< HEAD
 
 Handle::ElpeError Handle::uvErr2ElpeErr(int errCode)
 {
@@ -281,17 +287,144 @@ int Handle::fileno(fd_t *fd)
 {
 	if (_context == NULL) return elpuEAI_NODATA;
 	return uv_fileno(&_context->handle, fd);
+=======
+// -----------------------------
+// class Handle
+// -----------------------------
+Handle::Handle()
+	:data(NULL),
+	context(NULL),
+	_isClose(false),
+	_loop(NULL) 
+{
+
+}
+
+Handle::~Handle() {
+
+	if (context != NULL)
+	{
+		if (is_active()) {
+			close();
+			uv_run(context->handle.loop, UV_RUN_DEFAULT);
+		}
+	}
+}
+
+Handle::Handle(Handle &other) {
+	context = other.context;
+	data = other.data;
+	_loop = other._loop;
+	other.context = NULL;
+	other.data = NULL;
+	other._loop =NULL;
+}
+
+void Handle::_cbClose(uv_handle_t *uvhandle)
+{
+	Handle *h = static_cast<Handle *>(uvhandle->data);
+	if (NULL != h)
+	{
+		h->_deleteContext();
+		h->OnClose();
+	}
+}
+
+Handle& Handle::operator=(Handle &other) {
+
+	context = other.context;
+	data = other.data;
+	_loop = other._loop;
+
+	other.context = NULL;
+	other.data = NULL;
+	other._loop =NULL;
+	return *this;
+}
+
+void Handle::init(Loop &loop) {
+	
+	_loop = &loop;
+	if (context != NULL)
+		return;
+	context = new uv_any_handle;
+	context->handle.data = static_cast<void *>(this);
+}
+
+uv_handle_t *Handle::context_ptr() {
+	if (context)
+		return &context->handle;
+	return NULL;
+}
+
+int Handle::is_active() {
+	return uv_is_active(&context->handle);
+}
+
+int Handle::is_closing() {
+	return uv_is_closing(&context->handle);
+}
+
+void Handle::close() {
+	if (_isClose)
+		return;
+	_isClose = true;
+	uv_close(&context->handle, _cbClose);
+}
+
+void Handle::_deleteContext()
+{
+	if (context != NULL)
+	{
+		delete context;
+		context = NULL;
+	}
+}
+
+void Handle::ref() {
+	uv_ref(&context->handle);
+}
+
+void Handle::unref() {
+	uv_unref(&context->handle);
+}
+
+int Handle::has_ref() {
+	return uv_has_ref(&context->handle);
+}
+
+int Handle::send_buffer_size(int *value) {
+	return uv_send_buffer_size(&context->handle, value);
+}
+
+int Handle::recv_buffer_size(int *value) {
+	return uv_recv_buffer_size(&context->handle, value);
+}
+
+int Handle::fileno(fd_t *fd) {
+	return uv_fileno(&context->handle, fd);
+}
+
+Loop& Handle::get_loop()
+{
+	return *_loop;
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 }
 
 // -----------------------------
 // class EloopRequest
 // -----------------------------
+<<<<<<< HEAD
 EloopRequest::EloopRequest()
 {
+=======
+EloopRequest::EloopRequest() {
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	context = new uv_any_req;
 	context->req.data = static_cast<void *>(this);
 }
 
+<<<<<<< HEAD
 EloopRequest::~EloopRequest()
 {
 	if (context == NULL)
@@ -300,11 +433,23 @@ EloopRequest::~EloopRequest()
 	cancel();
 	delete context;
 	context = NULL;
+=======
+EloopRequest::~EloopRequest() {
+
+	if (context != NULL) {
+		cancel();
+		delete context;
+		context = NULL;
+	}
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 }
 
 int EloopRequest::cancel()
 {
+<<<<<<< HEAD
 	if (context == NULL) return Handle::elpuEAI_NODATA;
+=======
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	return uv_cancel(&context->req);
 }
 
@@ -322,8 +467,14 @@ Loop::Loop(bool defaultLoop)
 :_uvLoop(defaultLoop ? uv_default_loop() : new uv_loop_t)
 {
 	if (!defaultLoop)
+<<<<<<< HEAD
 		uv_loop_init(_uvLoop);
 
+=======
+	{
+		uv_loop_init(_uvLoop);
+	}
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	_uvLoop->data = this;
 }
 
@@ -343,7 +494,10 @@ void Loop::_doWalk(uv_handle_t* uvhandle, void *arg)
 
 bool Loop::run(RunMode mode)
 {
+<<<<<<< HEAD
 	_thrdId = __THREADID__;
+=======
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	return uv_run(_uvLoop, (uv_run_mode)mode) == 0;
 }
 
@@ -360,7 +514,10 @@ int Loop::close()
 		_uvLoop = NULL;
 		return r;
 	}
+<<<<<<< HEAD
 
+=======
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	return -1;
 }
 
@@ -384,14 +541,20 @@ unsigned int Loop::getThreadPoolSize()
 	const char* val = getenv(ELOOP_THREADPOOL_SIZE);
 	if (val != NULL)
 		return atoi(val);
+<<<<<<< HEAD
 
+=======
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	return DEFAULT_THREADPOOL_SIZE;
 }
 int Loop::setThreadPoolSize(const unsigned int size)
 {
 	char chSize[8];
 	sprintf(chSize,"%d",size);
+<<<<<<< HEAD
 
+=======
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 #ifdef ZQ_OS_LINUX
 	return setenv(ELOOP_THREADPOOL_SIZE,chSize,1);
 #else	
@@ -420,6 +583,7 @@ void Loop::walk(void *arg)
 }
 
 // -----------------------------
+<<<<<<< HEAD
 // class IterationBlocker
 // -----------------------------
 void IterationBlocker::init()
@@ -446,11 +610,41 @@ int IterationBlocker::stop()
 {
 	CALL_ASSERT(-1);
 	return uv_idle_stop(UVTYPED_HANDLE(uv_idle_t));
+=======
+// class Idle
+// -----------------------------
+Idle::Idle()
+{
+}
+
+void Idle::_cbOnIdle(uv_idle_t* uvhandle)
+{
+	Idle *h = static_cast<Idle *>(uvhandle->data);
+	if (NULL != h)
+		h->OnIdle();
+}
+
+int Idle::init(Loop &loop) {
+	this->Handle::init(loop);
+	uv_idle_t* handle = (uv_idle_t *)context_ptr();
+	return uv_idle_init(loop.context_ptr(), handle);
+}
+
+int Idle::start() {
+	uv_idle_t* handle = (uv_idle_t *)context_ptr();
+	return uv_idle_start(handle, _cbOnIdle);
+}
+
+int Idle::stop() {
+	uv_idle_t* handle = (uv_idle_t *)context_ptr();
+	return uv_idle_stop(handle);
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 }
 
 // -----------------------------
 // class Timer
 // -----------------------------
+<<<<<<< HEAD
 void Timer::_cbOnTimer(uv_timer_t *uvhandle)
 {
 	CALLBACK_CTX(Timer, OnTimer, ());
@@ -573,6 +767,110 @@ int SysSignalSink::stop() {
 // -----------------------------
 // class CpuInfo
 // -----------------------------
+=======
+/*
+Timer::Timer()
+{
+}
+*/
+void Timer::_cbOnTimer(uv_timer_t *timer)
+{
+	Timer *h = static_cast<Timer *>(timer->data);
+	if (NULL != h)
+		h->OnTimer();
+}
+
+int Timer::init(Loop &loop) {
+	this->Handle::init(loop);
+	uv_timer_t * timer = (uv_timer_t *)context_ptr();
+	return uv_timer_init(loop.context_ptr(), timer);
+}
+
+int Timer::start(uint64_t timeout, uint64_t repeat) {
+
+	uv_timer_t* timer = (uv_timer_t *)context_ptr();
+	return uv_timer_start(timer, _cbOnTimer, timeout, repeat);
+}
+
+int Timer::stop() {
+
+	uv_timer_t* timer = (uv_timer_t *)context_ptr();
+	return uv_timer_stop(timer);
+}
+
+int Timer::again() {
+	uv_timer_t* timer = (uv_timer_t *)context_ptr();
+	return uv_timer_again(timer);
+}
+
+void Timer::set_repeat(uint64_t repeat) {
+	uv_timer_t* timer = (uv_timer_t *)context_ptr();
+	uv_timer_set_repeat(timer, repeat);
+}
+
+uint64_t Timer::get_repeat() {
+	uv_timer_t* timer = (uv_timer_t *)context_ptr();
+	return uv_timer_get_repeat(timer);
+}
+
+
+// -----------------------------
+// class Async
+// -----------------------------
+Async::Async() {
+}
+
+void Async::_cbAsync(uv_async_t *async)
+{
+	Async *h = static_cast<Async *>(async->data);
+	if (NULL != h)
+		h->OnAsync();
+}
+
+int Async::init(Loop &loop) {
+	this->Handle::init(loop);
+	uv_async_t * async = (uv_async_t *)context_ptr();
+	return uv_async_init(loop.context_ptr(), async, _cbAsync);
+}
+
+int Async::send() {
+	uv_async_t* async = (uv_async_t *)context_ptr();
+	return uv_async_send(async);
+}
+
+// -----------------------------
+// class Signal
+// -----------------------------
+Signal::Signal()
+{
+}
+
+int Signal::init(Loop &loop) {
+	this->Handle::init(loop);
+	uv_signal_t* signal = (uv_signal_t *)context_ptr();
+	return uv_signal_init(loop.context_ptr(), signal);
+}
+
+int Signal::start(int signum) {
+	uv_signal_t* signal = (uv_signal_t *)context_ptr();
+
+	return uv_signal_start(signal, _cbSignal, signum);
+}
+
+int Signal::stop() {
+	uv_signal_t* signal = (uv_signal_t *)context_ptr();
+	return uv_signal_stop(signal);
+}
+
+void Signal::_cbSignal(uv_signal_t *signal, int signum) {
+
+	Signal* self = static_cast<Signal *>(signal->data);
+	if (self != NULL) {
+		self->OnSignal(signum);
+	}
+}
+
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 CpuInfo::CpuInfo()
 	:_count(0),
 	_info(NULL),
@@ -616,6 +914,7 @@ void CpuInfo::freeCpuInfo()
 }
 
 // -----------------------------
+<<<<<<< HEAD
 // class ChildProcess
 // -----------------------------
 ChildProcess::ChildProcess(Loop& loop, const char* cwd, char** env, uid_t uid, gid_t gid)
@@ -701,6 +1000,87 @@ int ChildProcess::kill(int signum)
 int ChildProcess::kill(int pid,int signum)
 {
 	return uv_kill(pid, signum);
+=======
+// class Process
+// -----------------------------
+
+void Process::setenv(char** env)
+{
+	_opt.env = env;
+}
+void Process::setcwd(const char* cwd)
+{
+	_opt.cwd = cwd;
+}
+void Process::setflags(eloop_process_flags flags)
+{
+	_opt.flags = flags;
+}
+void Process::setuid(eloop_uid_t uid)
+{
+	_opt.uid = uid;
+}
+
+void Process::setgid(eloop_gid_t gid)
+{
+	_opt.gid = gid;
+}
+
+int Process::spawn(const char* file,char** args,eloop_stdio_container_t* container,int stdio_count)
+{
+	_opt.file = file;
+	_opt.args = args;
+	_opt.exit_cb = _cbExit;
+// 	_opt.flags = 0;
+// 	_opt.cwd = NULL;
+// 	_opt.env = NULL;
+	if (stdio_count > 0)
+	{
+		_opt.stdio_count = stdio_count;
+		_opt.stdio = container;
+	}
+	uv_process_t* h = (uv_process_t*)context_ptr();
+	return uv_spawn(get_loop().context_ptr(),h,&_opt);
+}
+/*
+int Process::spawn()
+{
+	Process::eloop_stdio_container_t child_stdio[3];
+
+	child_stdio[0].flags = (Process::eloop_stdio_flags)(Process::ELOOP_CREATE_PIPE | Process::ELOOP_READABLE_PIPE);
+	child_stdio[0].data.stream = (uv_stream_t*)(work.pipe->context_ptr());
+	child_stdio[1].flags = (Process::eloop_stdio_flags)Process::ELOOP_IGNORE;
+	child_stdio[2].flags = (Process::eloop_stdio_flags)Process::ELOOP_INHERIT_FD;
+	child_stdio[2].data.fd = 2;
+
+	_opt.stdio_count = 3;
+	_opt.stdio = child_stdio;
+}
+*/
+int Process::pid()
+{
+	uv_process_t* h = (uv_process_t*)context_ptr();
+	return h->pid;
+}
+
+int Process::kill(int signum)
+{
+	uv_process_t* h = (uv_process_t*)context_ptr();
+	return uv_process_kill(h,signum);
+}
+
+int Process::kill(int pid,int signum)
+{
+	return uv_kill(pid,signum);
+}
+
+void Process::_cbExit(uv_process_t* handle,int64_t exit_status,int term_signal)
+{
+	Process* self = static_cast<Process *>(handle->data);
+	if (self != NULL) {
+		self->OnExit(exit_status,term_signal);
+	}
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 }
 
 }} // namespace ZQ::eloop

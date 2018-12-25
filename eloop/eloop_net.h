@@ -31,9 +31,14 @@
 #ifndef __ZQ_COMMON_ELOOP_Net_H__
 #define __ZQ_COMMON_ELOOP_Net_H__
 
+<<<<<<< HEAD
 #include "ZQ_common_conf.h"
 #include "eloop.h"
 
+=======
+#include "eloop.h"
+#include "ZQ_common_conf.h"
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 namespace ZQ {
 namespace eloop {
 
@@ -44,6 +49,7 @@ class ZQ_ELOOP_API DNS;
 
 #define RECV_BUF_SIZE (32*1024)
 // -----------------------------
+<<<<<<< HEAD
 // class AbstractStream
 // -----------------------------
 class AbstractStream : public Handle
@@ -60,6 +66,21 @@ public:
 	int listen();
 	int accept(Handle* client);			//windows handle
 
+=======
+// class Stream
+// -----------------------------
+class Stream : public Handle
+{
+	friend class Process;
+protected:
+	Stream();
+	virtual ~Stream();
+
+public:
+	int shutdown();
+	int listen();
+	int accept(Handle* client);			//windows handle
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	int read_start();
 	int read_stop();
 	int write(const eloop_buf_t bufs[],unsigned int nbufs,Handle *send_handle = NULL);
@@ -73,7 +94,11 @@ public:
 
 protected:
 	// called when the stream is shutdown
+<<<<<<< HEAD
 	virtual void OnShutdown(ElpeError status) { deactive(); }
+=======
+	virtual void OnShutdown(ElpeError status) {close();}
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	// tiggered when a new incomming connection is detected by listen()
 	virtual void doAccept(ElpeError status) {}
@@ -105,13 +130,23 @@ protected:
 // -----------------------------
 // class TCP
 // -----------------------------
+<<<<<<< HEAD
 class TCP : public AbstractStream
+=======
+class TCP : public Stream
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 {
 public:
 	typedef uv_os_sock_t sock_t;
 
 public:
+<<<<<<< HEAD
 	TCP(Loop& loop, int initFlags=0): AbstractStream(loop), _initFlags(initFlags) {}
+=======
+	TCP();
+	int init(Loop &loop);
+	int init_ex(Loop &loop, int flags);
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	int open(sock_t sock);
 	int connected_open(sock_t sock);
 	int nodelay(int enable);
@@ -130,6 +165,7 @@ public:
 	int set_recv_buf_size(int* value);
 
 protected:
+<<<<<<< HEAD
 	friend class SingleLoopTCPEngine;
 
 	// TODO: must enumerate all the status in the class
@@ -138,14 +174,26 @@ protected:
 private: // impl of Handle
 	void init();
 
+=======
+	// TODO: must enumerate all the status in the class
+	virtual void OnConnected(ElpeError status) {}
+
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 private:
 	int connect(const struct sockaddr *addr);
 	int bind(const sockaddr *addr, unsigned int flags);
 	static void _cbConnect(uv_connect_t *req, int status);
+<<<<<<< HEAD
 	int _initFlags;
 
 };
 
+=======
+
+};
+
+
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 // -----------------------------
 // class UDP
 // -----------------------------
@@ -162,9 +210,16 @@ public:
 	typedef uv_membership membership_t;
 
 public:
+<<<<<<< HEAD
 	UDP(Loop& loop, int initFlags=0): Handle(loop), _initFlags(initFlags) { _buf.base =NULL, _buf.len =0; }
 	virtual ~UDP();
 
+=======
+	UDP();
+	virtual ~UDP();
+	int init(Loop &loop);
+	int init_ex(Loop &loop, unsigned int flags);
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	int open(sock_t sock);
 	int bind4(const char *ipv4, int port, unsigned int flags = Reuseaddr);
 	int bind6(const char *ipv6, int port, unsigned int flags = Reuseaddr);
@@ -204,6 +259,7 @@ protected:
 	virtual void doFree(eloop_buf_t* buf);
 	virtual void OnReceived(ssize_t nread, const char *buf, const struct sockaddr *addr, unsigned flags) {}
 
+<<<<<<< HEAD
 private: // impl of Handle
 	void init();
 
@@ -211,6 +267,10 @@ private:
 	eloop_buf_t   _buf;
 	int _initFlags;
 
+=======
+private:
+	eloop_buf_t   _buf;
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	int bind(const struct sockaddr *addr, unsigned int flags);
 	int try_send(const char *buf, size_t length, const struct sockaddr *addr);
 
@@ -225,7 +285,11 @@ private:
 class DNS
 {
 public:
+<<<<<<< HEAD
 	DNS() {}
+=======
+	DNS();
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	int getAddrInfo(Loop &loop,const char* node,const char* service,const struct addrinfo* hints);
 
 protected:
@@ -233,6 +297,10 @@ protected:
 
 private:
 	static void _cbResolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res);
+<<<<<<< HEAD
+=======
+
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 };
 
 } } // namespace ZQ::eloop

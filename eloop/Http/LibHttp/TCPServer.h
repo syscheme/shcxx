@@ -3,6 +3,7 @@
 
 #include "ZQ_common_conf.h"
 #include "Guid.h"
+<<<<<<< HEAD
 #include "FileLog.h"
 #include "NativeThread.h"
 #include "SystemUtils.h"
@@ -13,6 +14,19 @@
 #include <map>
 #include <string>
 
+=======
+
+#include "FileLog.h"
+#include "eloop_net.h"
+#include <NativeThread.h>
+#include <SystemUtils.h>
+#include <set>
+#include <string>
+
+#undef max
+#include <boost/regex.hpp>
+
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 #ifdef ZQ_OS_LINUX
 #include <signal.h>
 #endif
@@ -71,6 +85,7 @@ private:
 };
 
 class ITCPEngine;
+<<<<<<< HEAD
 // ---------------------------------------
 // class TCPConnection
 // ---------------------------------------
@@ -102,11 +117,55 @@ public:
 
 	int enqueueSend(const std::string& msg) { return enqueueSend((const uint8*) msg.c_str(), msg.length()); }
 	int enqueueSend(const uint8* data, size_t len);
+=======
+class AsyncTCPSender;
+// ---------------------------------------
+// class TCPConnection
+// ---------------------------------------
+class TCPConnection : public TCP, public WatchDog::IObservee 
+{
+	friend class AsyncTCPSender;
+
+public:
+	TCPConnection(ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL)
+		:_logger(log), _isConnected(false), _async(NULL), _tcpServer(tcpServer), _watchDog(NULL),_isShutdown(false),_isStop(false)
+	{
+		_lastCSeq.set(1);
+		if (connId != NULL)
+			_connId = connId;
+		else
+		{
+			char buf[80];
+			ZQ::common::Guid guid;
+			guid.create();
+			guid.toCompactIdstr(buf, sizeof(buf) -2);
+			_connId = buf;
+		}
+	}
+
+	int init(Loop &loop);
+	bool start();
+	bool stop(bool isShutdown = false);
+	const std::string& connId() const { return _connId; }
+	const std::string& hint() const 
+	{
+		if (!_tcpServer)
+			return _reverseHint;
+		return _Hint; 
+	}
+	virtual bool isPassive() const { return NULL != _tcpServer; }
+	uint lastCSeq();
+
+	int AsyncSend(const std::string& msg);
+
+	virtual void onError( int error,const char* errorDescription ) {}
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	void setWatchDog(WatchDog* watchDog)	{ _watchDog = watchDog; }
 	virtual void OnTimer() {}
 	virtual void OnUnwatch() {}
 
+<<<<<<< HEAD
 public: // tempraorly public // overwrite of TCP
 	virtual void OnConnected(ElpeError status);
 
@@ -145,6 +204,27 @@ private:
 
 	virtual void OnSendEnqueued();
 	// void OnCloseAsync();
+=======
+protected:
+	virtual bool onStart() {return true;}
+	virtual bool onStop()  { delete this; return true;}
+
+	// called after buffer has been written into the stream
+	virtual void OnWrote(int status) {}
+	// called after buffer has been read from the stream
+	
+	virtual void OnRead(ssize_t nread, const char *buf) {} // TODO: uv_buf_t is unacceptable to appear here, must take a new manner known in this C++ wrapper level
+
+private:
+	// NOTE: DO NOT INVOKE THIS METHOD unless you known what you are doing
+	void initHint();
+
+	virtual void OnClose();
+	virtual void OnShutdown(ElpeError status);
+
+	void OnAsyncSend();
+	void OnCloseAsync();
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 public:
 	ZQ::common::Log&		_logger;
@@ -153,6 +233,7 @@ public:
 
 protected:
 	WatchDog*			    _watchDog;
+<<<<<<< HEAD
 	std::string				_linkstr;
 	bool					_isConnected;
 //	bool					_isShutdown;
@@ -184,6 +265,19 @@ private: // TCPConnection stop export the following method in order to keep thre
 //	int write(const char *buf, size_t length);
 	int write(const char *buf, size_t length,Handle *send_handle = NULL)  { return TCP::write(buf, length, send_handle); }
 	int try_write(const char *buf, size_t length) { return TCP::try_write(buf, length); }
+=======
+	std::string				_Hint;
+	std::string				_reverseHint;
+	bool					_isConnected;
+	bool					_isShutdown;
+	bool					_isStop;
+	std::string				_connId;
+	ZQ::common::AtomicInt _lastCSeq;
+
+	ZQ::common::Mutex _lkSendMsgList;
+	std::list<std::string> _sendMsgList;
+	AsyncTCPSender* _async;
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 };
 
 // ---------------------------------------
@@ -224,6 +318,7 @@ public:
 		int		    port;
 		ServerMode	mode;
 		int			threadCount;
+<<<<<<< HEAD
 		uint		procTimeout;
 		uint		maxPendings;
 		uint		keepalive_timeout;
@@ -231,6 +326,15 @@ public:
 		uint		keepAliveIdleMax;
 		uint		maxConns;
 		uint		watchDogInterval;
+=======
+		uint64		procTimeout;
+		uint64		maxPendings;
+		uint64		keepalive_timeout;
+		uint64		keepAliveIdleMin;
+		uint64		keepAliveIdleMax;
+		uint64		maxConns;
+		uint64		watchDogInterval;
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	};
 
 public:
@@ -243,8 +347,13 @@ public:
 #endif
 	}
 
+<<<<<<< HEAD
 	virtual bool start();
 	virtual bool stop();
+=======
+	bool start();
+	bool stop();
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	virtual void OnTimer() {}
 	virtual void OnUnwatch() {}
@@ -256,7 +365,14 @@ public:
 	void	delConn( TCPConnection* servant );
 	TCPConnection*	findConn( const std::string& connId);
 
+<<<<<<< HEAD
 	int keepAliveTimeout() const { return _config.keepalive_timeout; }
+=======
+	int64 keepAliveTimeout() const
+	{
+		return _config.keepalive_timeout;
+	}
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 	void onLoopThreadStart(ZQ::eloop::Loop& loop);
 	void signal();
@@ -279,4 +395,8 @@ private:
 
 } }//namespace ZQ::eloop
 
+<<<<<<< HEAD
 #endif
+=======
+#endif
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534

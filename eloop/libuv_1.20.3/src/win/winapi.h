@@ -23,7 +23,11 @@
 #define UV_WIN_WINAPI_H_
 
 #include <windows.h>
+<<<<<<< HEAD
 #include <winbase.h>
+=======
+
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 /*
  * Ntdll headers
@@ -4587,14 +4591,22 @@ typedef NTSTATUS (NTAPI *sNtQueryDirectoryFile)
 # define SYMBOLIC_LINK_FLAG_DIRECTORY 0x1
 #endif
 
+<<<<<<< HEAD
 // #if defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR)
+=======
+#if defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR)
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
   typedef struct _OVERLAPPED_ENTRY {
       ULONG_PTR lpCompletionKey;
       LPOVERLAPPED lpOverlapped;
       ULONG_PTR Internal;
       DWORD dwNumberOfBytesTransferred;
   } OVERLAPPED_ENTRY, *LPOVERLAPPED_ENTRY;
+<<<<<<< HEAD
 // #endif
+=======
+#endif
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 /* from wincon.h */
 #ifndef ENABLE_INSERT_MODE

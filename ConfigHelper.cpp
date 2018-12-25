@@ -19,8 +19,14 @@ XmlNode toShared(ZQ::common::XMLPreferenceEx* p)
 XmlNodes locate(XmlNode root, const std::string &path)
 {
     if(!root)
+<<<<<<< HEAD
         throwf<NavigationException>(EXFMT(NavigationException, "XMLUtil::locate() bad node object. path [%s]"), path.c_str());
 
+=======
+    {
+        throwf<NavigationException>(EXFMT(NavigationException, "XMLUtil::locate() bad node object. path [%s]"), path.c_str());
+    }
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
     // step 1: parse the path
     typedef std::vector< std::string > StandardPath;
     StandardPath stdpath;
@@ -39,7 +45,13 @@ XmlNodes locate(XmlNode root, const std::string &path)
     {
         current = toShared(current->firstChild(it_tag->c_str()));
         if(!current)
+<<<<<<< HEAD
             throwf<NavigationException>(EXFMT(NavigationException, "XMLUtil::locate() failed to find element[%s] in path[%s]"), it_tag->c_str(), path.c_str());
+=======
+        {
+            throwf<NavigationException>(EXFMT(NavigationException, "XMLUtil::locate() can't find node [%s] in path [%s]"), it_tag->c_str(), path.c_str());
+        }
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
     }
     
     XmlNodes result;
@@ -57,7 +69,10 @@ XmlNodes locate(XmlNode root, const std::string &path)
         // the case of empty path
         result.push_back(current);
     }
+<<<<<<< HEAD
 
+=======
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
     return result;
 }
 
@@ -68,9 +83,13 @@ std::string fullPath(XmlNode node)
     node->getPreferenceName(&buf[0], false, (int)buf.size() - 1);
     return &buf[0];
 }
+<<<<<<< HEAD
 
 } // namespace XMLUtil
 
+=======
+} // namespace XMLUtil
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 //////////////////////////////////////////////////////////////////////////
 #define PPLOG if(_pLog) (*_pLog)
 // preprocessor that implement the macro replacement function
@@ -79,10 +98,16 @@ bool Preprocessor::define(const std::string &macroName, const std::string &macro
     // check macro name
     if(macroName.empty() || macroName.find("${") != std::string::npos)
     {
+<<<<<<< HEAD
         PPLOG(Log::L_WARNING, "bad macro name[%s]", macroName.c_str());
         return false;
     }
     
+=======
+        PPLOG(Log::L_WARNING, "Bad macro name, [%s]", macroName.c_str());
+        return false;
+    }
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
     std::string macro = std::string("${") + macroName + "}";
 //    VariableMap::iterator it = _variables.find(macro);
 //     if(it == _variables.end())
@@ -97,11 +122,19 @@ bool Preprocessor::define(const std::string &macroName, const std::string &macro
     if(fixup(macroValue))
     {
         _variables[macro] = macroValue;
+<<<<<<< HEAD
         PPLOG(Log::L_DEBUG, CLOGFMT(Preprocessor, "associated %s[%s]"), macroName.c_str(), macroValue.c_str());
         return true;
     }
 
 	PPLOG(Log::L_WARNING, CLOGFMT(Preprocessor, "failed to associate %s[%s]"), macroName.c_str(), macroDef.c_str());
+=======
+        PPLOG(Log::L_DEBUG, CLOGFMT(Preprocessor, "associated macro[%s]=value[%s]"), macroName.c_str(), macroValue.c_str());
+        return true;
+    }
+
+	PPLOG(Log::L_ERROR, CLOGFMT(Preprocessor, "failed to associate macro[%s]=exp[%s]"), macroName.c_str(), macroDef.c_str());
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 	return false;
 }
 
@@ -111,7 +144,11 @@ bool Preprocessor::define(const Macros& macros)
     {
         if(!define(it->first, it->second))
         {
+<<<<<<< HEAD
             PPLOG(Log::L_ERROR, CLOGFMT(Preprocessor, "failed to associate %s[%s]"), it->first.c_str(), it->second.c_str());
+=======
+            PPLOG(Log::L_ERROR, CLOGFMT(Preprocessor, "failed to associate macro[%s] with exp[%s]"), it->first.c_str(), it->second.c_str());
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
             return false;
         }
     }
@@ -162,13 +199,26 @@ bool Preprocessor::fixup(std::string &str) const
 	return true;
 }
 
+<<<<<<< HEAD
 namespace Config {
+=======
+namespace Config{
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 //////////////////////////////////////////////////////////////////////////
 
 // getter & setter of the global logger in the config module
 static ZQ::common::Log* gConfLog = NULL;
+<<<<<<< HEAD
 Log* getConfLog() { return gConfLog; }
 void setConfLog(ZQ::common::Log* logger) { gConfLog = logger; }
+=======
+Log* getConfLog() {
+    return gConfLog;
+}
+void setConfLog(ZQ::common::Log* logger) {
+    gConfLog = logger;
+}
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 
 // set/check the flag that if the program set the global logger pointer
 // in the Loader::setLogger(). Pass NULL for check-only.
@@ -178,7 +228,10 @@ bool setConfLogInLoader(bool* pEnabled) {
     if(pEnabled) {
         gSetConfLogInLoader = *pEnabled;
     }
+<<<<<<< HEAD
 
+=======
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
     return gSetConfLogInLoader;
 }
 
@@ -204,6 +257,7 @@ static bool isFullPath(const std::string &path)
 std::pair<std::string, std::string> parseFilePath(const std::string &path)
 {
     std::string::size_type pos = path.rfind(FNSEPC); // pos of '/'
+<<<<<<< HEAD
     if(std::string::npos == pos)
         return std::make_pair<std::string>("", path);
 
@@ -211,11 +265,25 @@ std::pair<std::string, std::string> parseFilePath(const std::string &path)
     std::string filename = path.substr(name_start_pos);
     std::string folder = path.substr(0, path.size() - filename.size());
     return std::make_pair(folder, filename);
+=======
+    if(std::string::npos != pos)
+    {
+        std::string::size_type name_start_pos = pos + 1; // one after the '/'
+        std::string filename = path.substr(name_start_pos);
+        std::string folder = path.substr(0, path.size() - filename.size());
+        return std::make_pair(folder, filename);
+    }
+    else // a file name
+    {
+        return std::make_pair<std::string>("", path);
+    }
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 }
 
 void MacroDefinition::readMacroReference(XMLUtil::XmlNode node, const Preprocessor* hPP)
 {
     // use as post action of got reference file
+<<<<<<< HEAD
     if(src.empty())
         return;
 
@@ -236,6 +304,31 @@ void MacroDefinition::readMacroReference(XMLUtil::XmlNode node, const Preprocess
         macros.swap(loader.macros);
     else
         throwf<CfgException>(EXFMT(CfgException, "failed to load macro definition file [%s]"), src.c_str());
+=======
+    if(!src.empty())
+    {
+        if(!isFullPath(src))
+        {
+            // treat as relative path
+            src = folder + src;
+        }
+
+        Config::Loader<MacroDefinition> loader("");
+        loader.setLogger(pLog); // enable log while loading
+        loader.pLog = pLog; // pass the log object
+        // parse the path
+        loader.folder = parseFilePath(src).first;
+
+        if(loader.load(src.c_str(), false))// disable the macro here
+        {
+            macros.swap(loader.macros);
+        }
+        else
+        {
+            throwf<CfgException>(EXFMT(CfgException, "Failed to load macro definition file [%s]"), src.c_str());
+        }
+    }
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
 }
 
 void MacroDefinition::readMacro(XMLUtil::XmlNode node, const Preprocessor* hPP)
@@ -245,5 +338,11 @@ void MacroDefinition::readMacro(XMLUtil::XmlNode node, const Preprocessor* hPP)
     macros.push_back(std::make_pair(nvholder.name, nvholder.value));
 }
 
+<<<<<<< HEAD
 }}} // namespace ZQTianShan::common::Config
 
+=======
+} // namespace Config
+} // namespace common
+} // namespace ZQTianShan
+>>>>>>> b6d312f638ee3d740af4a0af01bcfa621a177534
