@@ -38,39 +38,82 @@ class ZQ_ELOOP_HTTP_API TCPServer;
 class ZQ_ELOOP_HTTP_API TCPConnection;
 class ZQ_ELOOP_HTTP_API WatchDog;
 
-//-------------------------------------
-//	class WatchDog
-//-------------------------------------
-class WatchDog : public ZQ::eloop::Timer
+// ---------------------------------------
+// class WatchedLoop
+// ---------------------------------------
+// Single event loop
+class WatchedLoop : public ZQ::common::NativeThread, public ZQ::eloop::Loop, public ZQ::eloop::Interruptor
 {
 public:
-	//-------------------------------------
 	//	interface Osbervee
 	//-------------------------------------
 	class IObservee
 	{
 	public:
+		std::string ident() =0;
 		virtual void OnTimer() = 0;
 		virtual void OnUnwatch() = 0;
 	};
 
 public:
-	WatchDog(Loop& loop) : Timer(loop) {}
-	// WatchDog(IObservee* dog) { _observeeList.push_back(dog); }
+	WatchedLoop(int msStep, int cpuId=-1);
+	virtual ~WatchedLoop() { quit(); }
 
-	void watch(IObservee* observee);
-	void unwatch(IObservee* observee);
+	virtual bool start()
+	{
+		_timer.start(_msStep, true);
+		return NativeThread::start();
+	}
 
-protected: // impl of ZQ::eloop::Timer to redirect the OnTimer to _observeeList
-	virtual void OnTimer();
-	virtual void OnDeactived();
+	void quit()
+	{
+		_timer.stop();
+		_bQuit = true;
+		Interruptor::wakeup();
+	}
 
-private:
-	std::vector<IObservee*>	_observeeList;
-	ZQ::common::Mutex		_observeeLock;
+	void watch(IObservee* observee, int timeout);
+	void unwatch(IObservee* observee) { if (observee) unwatch(observee->ident); }
+	void unwatch(const std::string& ident);
+
+protected: // new entries
+	virtual void OnLoopStart() {} // 		_server._logger(ZQ::common::Log::L_INFO, CLOGFMT(TCPSvcLoop, "TCPSvcLoop starts affinite core[%d]"), _cpuId);
+	virtual void OnLoopQuit(int ret) {} //		_server._logger(ZQ::common::Log::L_INFO, CLOGFMT(TCPSvcLoop, "LoopThread quit!"));
+	virtual void poll(); 
+
+private: 
+	// impl of NativeThread
+	int run(void);
+	// impl of Interruptor
+	void OnWakedUp() { poll(); if (_bQuit) Loop::stop(); }
+
+	friend class class Heartbeat;
+	// subclass Heartbeat
+	//-------------------------------------
+	class Heartbeat : public ZQ::eloop::Timer
+	{
+	public:
+		Heartbeat(WatchedLoop& loop) : _owner(loop) {}
+		void OnTimer() { _owner.OnTimer(); if (_owner._bQuit) Timer::stop(); }
+
+		WatchedLoop& _owner;
+	};
+
+	typedef struct _WatchNode
+	{
+		IObservee* obj;
+		int64 expiration;
+	} WatchNode;
+
+	typedef std::map   < std::string, WatchNode > ObserveeMap; // ident to WatchNode map
+	ObserveeMap  	   _observeeMap;
+	ZQ::common::Mutex  _observeeLock;
+
+	Heartbeat _heartbeat;
+	bool      _bQuit;
+	int       _cpuId;
 };
 
-class ITCPEngine;
 
 // ---------------------------------------
 // class TCPConnection
@@ -79,10 +122,8 @@ class ITCPEngine;
 class TCPConnection : public TCP, public WatchDog::IObservee 
 {
 public:
-	TCPConnection(ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL);
+	TCPConnection(Loop& loop, ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL);
 	virtual ~TCPConnection() {}
-
-	int init(Loop &loop);
 
 	//// the access to TCP is mostly protected, but we do need some to export
 	//Loop& get_loop() { return TCP::get_loop(); }
@@ -139,7 +180,7 @@ private:
 		WakeUp(TCPConnection& conn): ZQ::eloop::Interruptor(conn.loop()), _conn(conn) {}
 
 	protected:
-		virtual void OnWakedUp() {_conn.OnSendEnqueued();}
+		virtual void OnWakedUp() { _conn.OnSendEnqueued();}
 		//virtual void OnClose() {} // to avoid trigger Handle 'delete this'
 		TCPConnection& _conn;
 	};

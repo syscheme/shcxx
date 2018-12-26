@@ -165,7 +165,7 @@ Handle::~Handle()
 
 	while (uv_is_closing(&_context->handle) && _loop.alive())
 	{
-		if (_loop.threadId() == __THREADID__)
+		if (_loop.inLoop())
 			uv_run(_context->handle.loop, UV_RUN_ONCE);
 		else SYS::sleep(1);
 	}

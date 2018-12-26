@@ -316,6 +316,7 @@ public:
 	int alive();
 	int backend_fd();
 	int backend_timeout();
+	bool inLoop() const { return (_thrdId == __THREADID__); }
 
 	unsigned int getThreadPoolSize();
 	int setThreadPoolSize(const unsigned int size);
