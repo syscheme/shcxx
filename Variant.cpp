@@ -92,7 +92,7 @@ namespace common {
 /// -----------------------------
 /// class VariantException
 /// -----------------------------
-VariantException::VariantException(const std::string &what_arg) throw()
+VariantException::VariantException(const std::string &what_arg) // throw()
             :Exception(what_arg)
 {
 }
@@ -256,7 +256,7 @@ Variant::~Variant()
 	clear();
 }
 
-void Variant::throwExcpt(const tchar* fmt, ...) throw (VariantException)
+void Variant::throwExcpt(const tchar* fmt, ...) // throw (VariantException)
 {
 	char msg[2048];
 	va_list args;
@@ -697,19 +697,19 @@ bool Variant::setQuadword(Variant& var, const tchar* key, const uint64 i)
 /// -----------------------------
 /// class VariantException
 /// -----------------------------
-UnserializeException::UnserializeException(const std::string &what_arg) throw()
+UnserializeException::UnserializeException(const std::string &what_arg) // throw()
             :Exception(what_arg)
 {
 }
 
-UnserializeException::~UnserializeException() throw()
+UnserializeException::~UnserializeException() // throw()
 {
 }
 
 /// -----------------------------
 /// class Unserializer
 /// -----------------------------
-void Unserializer::initArray(Variant& var) throw (VariantException)
+void Unserializer::initArray(Variant& var) // throw (VariantException)
 {
 	try {
 		var.assertArray(0);
@@ -717,7 +717,7 @@ void Unserializer::initArray(Variant& var) throw (VariantException)
 	catch(Exception e)	{ throwExcpt(e.getString());};
 }
 
-void Unserializer::initStruct(Variant& var) throw (VariantException)
+void Unserializer::initStruct(Variant& var) // throw (VariantException)
 {
 	try {
 		var.assertStruct();
@@ -725,7 +725,7 @@ void Unserializer::initStruct(Variant& var) throw (VariantException)
 	catch(Exception e)	{ throwExcpt(e.getString());};
 }
 
-void Unserializer::initBinary(Variant& var, const Variant::BinaryData& bindata) throw (VariantException)
+void Unserializer::initBinary(Variant& var, const Variant::BinaryData& bindata) // throw (VariantException)
 {
 	try {
 		var = Variant(bindata);
@@ -733,7 +733,7 @@ void Unserializer::initBinary(Variant& var, const Variant::BinaryData& bindata) 
 	catch(Exception e)	{ throwExcpt(e.getString());};
 }
 
-void Unserializer::throwExcpt(const tchar* fmt, ...) throw (UnserializeException)
+void Unserializer::throwExcpt(const tchar* fmt, ...) // throw (UnserializeException)
 {
 	char msg[2048];
 	va_list args;

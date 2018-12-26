@@ -11,6 +11,9 @@
 # Compiled Static libraries
 core
 core.*
+CMakeFiles
+CMakeCache.txt
+*.cmake
 *.core/spec.c*
 *.core/specs.c*
 # Ctags file

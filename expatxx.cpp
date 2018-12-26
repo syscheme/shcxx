@@ -258,8 +258,7 @@ ExpatBase::~ExpatBase()
 	_nest = NULL;
 }
 
-void ExpatBase::parse(const char *szBuffer, const int nBufferLen, const int nFinal)
- throw(ExpatException)
+void ExpatBase::parse(const char *szBuffer, const int nBufferLen, const int nFinal) // throw(ExpatException)
 {
 	if (NULL == _nest)
 		_nest = new ExpatNest(*this);
@@ -275,8 +274,7 @@ void ExpatBase::parse(const char *szBuffer, const int nBufferLen, const int nFin
 	}
 }
 
-void ExpatBase::parse(const char *szFilename)
- throw(ExpatException)
+void ExpatBase::parse(const char *szFilename) // throw(ExpatException)
 {
 	char szBuffer[8192];
 	bool done = false;
@@ -399,18 +397,4 @@ bool ExpatBase::emptyCharData(const XML_Char *s, int len)
 	return false;
 }
 
-/// -----------------------------
-/// class ExpatException
-/// -----------------------------
-ExpatException::ExpatException(const std::string &what_arg) throw()
-:Exception(what_arg)
-{
-}
-
-ExpatException::~ExpatException() throw()
-{
-}
-
-
-} // namespace common
-} // namespace ZQ
+}} // namespace ZQ::common

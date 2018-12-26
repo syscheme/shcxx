@@ -82,8 +82,11 @@ class  ExpatNest;
 class ExpatException : public Exception
 {
 public:
-	ExpatException(const std::string &what_arg) throw();
-	virtual ~ExpatException() throw();
+	ExpatException(const std::string &what_arg) // throw();
+	: Exception(what_arg) {}
+
+	virtual ~ExpatException() // throw();
+	{}
 };
 
 // -----------------------------
@@ -102,10 +105,10 @@ public:
 	bool emptyCharData(const XML_Char* s, int len); // utility often used in overridden OnCharData
 
 	// Parse the specified buffer
-	void parse(const char *szBuffer, const int nBufferLen, const int nFinal = 0) throw(ExpatException);
+	void parse(const char *szBuffer, const int nBufferLen, const int nFinal = 0); // throw(ExpatException);
 	
 	// Parse the specified file
-	void parse(const char *szFilename) throw(ExpatException);
+	void parse(const char *szFilename); // throw(ExpatException);
 
 	::std::string getHiberarchyName() const;
 	

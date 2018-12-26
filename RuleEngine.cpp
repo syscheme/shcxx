@@ -623,7 +623,7 @@ protected: // impls of ThreadRequest
 			}
 
 			stampNow = now();
-			_engine.ctxlog()(Log::L_DEBUG, CLOGFMT(RuleEngine, "RuleExecCmd[%p] action[%s] took %lldmsec returned (%d) on the following actions"), this, _itAction->actionName.c_str(), stampNow - stampLast, _ctx.statusCode);
+			_engine.ctxlog()(Log::L_DEBUG, CLOGFMT(RuleEngine, "RuleExecCmd[%p] action[%s] took %dmsec returned (%d) on the following actions"), this, _itAction->actionName.c_str(), (int)(stampNow - stampLast), _ctx.statusCode);
 			stampLast = stampNow;
 			
 			if (Action::aFailed == _ctx.statusCode)
@@ -709,11 +709,11 @@ public:
 	{
 	}
 
-	bool tryWait(long timeout = -1)
+	bool tryWait(int timeout = -1)
 	{
 		if (_engine._invokeTimeout >0 && (timeout <0 || timeout >_engine._invokeTimeout))
 		{
-			_engine.ctxlog()(Log::L_ERROR, CLOGFMT(RuleExecCmdLocal, "[%p] timeout %dmsec is adjusted to max %dmsec"), this, timeout, _engine._invokeTimeout);
+			_engine.ctxlog()(Log::L_ERROR, CLOGFMT(RuleExecCmdLocal, "[%p] timeout %dmsec is adjusted to max %dmsec"), this, timeout, (int)_engine._invokeTimeout);
 			timeout = _engine._invokeTimeout;
 		}
 
@@ -904,7 +904,7 @@ bool RuleEngine::registerRule(const ::std::string& ruleName, const Rule& Rule)
 
 				if (!reservedActNames[j])
 				{
-					_log(Log::L_ERROR, CLOGFMT(RuleEngine, "registerRule() No.%d action[%s] not recoganized, register failed"), i, Rule[i].actionName.c_str());
+					_log(Log::L_ERROR, CLOGFMT(RuleEngine, "registerRule() No.%d action[%s] not recoganized, register failed"), (int)i, Rule[i].actionName.c_str());
 					return false;
 				}
 			}

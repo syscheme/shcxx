@@ -84,7 +84,7 @@
 #include "ZQ_common_conf.h"
 #include <string>
 #ifdef ZQ_OS_LINUX
-#include <uuid/uuid.h>
+#  include <uuid/uuid.h>
 #endif
 
 namespace ZQ{

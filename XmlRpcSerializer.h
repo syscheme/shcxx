@@ -26,7 +26,7 @@ public:
 	XmlRpcUnserializer(ZQ::common::Variant& var, tistream& istrm);
 	virtual ~XmlRpcUnserializer();
 
-	virtual void unserialize() throw (ZQ::common::UnserializeException);
+	virtual void unserialize(); // throw (ZQ::common::UnserializeException);
 
 protected:
 

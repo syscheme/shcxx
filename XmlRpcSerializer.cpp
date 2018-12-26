@@ -59,7 +59,7 @@ typedef enum
 } add_tagtype;
 
 
-void XmlRpcUnserializer::unserialize() throw (ZQ::common::UnserializeException)
+void XmlRpcUnserializer::unserialize() // throw (ZQ::common::UnserializeException)
 {
 	_TCHAR line [80];
 

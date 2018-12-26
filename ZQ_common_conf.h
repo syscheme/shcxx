@@ -155,6 +155,7 @@
 #if defined(WIN64) || defined(WIN32) || defined(_Windows) || defined(__MINGW32__)
 #  define ZQ_OS_MSWIN
 #elif defined (__linux) || defined (__linux__)
+#  undef  ZQ_OS_LINUX
 #  define ZQ_OS_LINUX
 #else
 # error unsupported operating system
@@ -433,7 +434,7 @@ typedef	uint64			timeout64_t; // msec
 // definitions for macro #pragma message(__MSGLOC__  "blah blah")
 #  define __N2S2__(x) #x
 #  define __N2S__(x) __N2S2__(x)
-#  define __MSGLOC__ __FILE__ "("__N2S__(__LINE__)") : "
+#  define __MSGLOC__ __FILE__ "(" __N2S__(__LINE__) ") : "
 #endif // __MSGLOC__
 
 #define __TODO__ __MSGLOC__  "!TODO: " __FUNCTION__ "() "

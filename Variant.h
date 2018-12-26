@@ -64,17 +64,17 @@
 #ifndef __ZQ_Common_Variant_H__
 #define __ZQ_Common_Variant_H__
 
-
-#include<string>
-#include<vector>
-#include<iostream>
-
 #include "ZQ_common_conf.h"
 #include "Exception.h"
 #ifdef ZQ_OS_MSWIN
 #include "TCHAR.h"
 #endif
 
+#include <vector>
+#include <map>
+#include <string>
+#include <vector>
+#include <iostream>
 
 #if defined(_UNICODE_COMMON)
 #  define tstring std::wstring
@@ -94,9 +94,6 @@
 #  define tostream std::ostream
 #endif // !_UNICODE
 
-#include <vector>
-#include <map>
-
 namespace ZQ {
 namespace common {
 
@@ -112,8 +109,8 @@ class ZQ_COMMON_API Serializer;
 class VariantException : public Exception
 {
 public:
-	VariantException(const std::string &what_arg) throw();
-	virtual ~VariantException() throw();
+	VariantException(const std::string &what_arg); // throw();
+	virtual ~VariantException(); // throw();
 };
 
 /// -----------------------------
@@ -262,7 +259,7 @@ public:
 	
 protected:
 	
-	static void throwExcpt(const tchar* fmt, ...) throw (VariantException) PRINTFLIKE(1, 2);
+	static void throwExcpt(const tchar* fmt, ...) PRINTFLIKE(1, 2); // throw (VariantException) PRINTFLIKE(1, 2);
 
 	// type_e checking
 	void assertTypeOrInvalid(type_e t);
@@ -307,8 +304,8 @@ protected:
 class UnserializeException : public Exception
 {
 public:
-	UnserializeException(const std::string &what_arg) throw();
-	virtual ~UnserializeException() throw();
+	UnserializeException(const std::string &what_arg); // throw();
+	virtual ~UnserializeException(); // throw();
 };
 
 /// -----------------------------
@@ -320,14 +317,14 @@ public:
 	Unserializer(Variant& var, tistream& istrm) : _var(var), _istrm(istrm) {}
 	virtual ~Unserializer(){}
 	
-	virtual void unserialize() throw (UnserializeException) =0;
+	virtual void unserialize() =0; // throw (UnserializeException) =0;
 	
 protected:
-	static void throwExcpt(const tchar* fmt, ...)  throw (UnserializeException) PRINTFLIKE(1, 2);
+	static void throwExcpt(const tchar* fmt, ...) PRINTFLIKE(1, 2); // throw (UnserializeException) PRINTFLIKE(1, 2);
 
-	void initArray(Variant& var) throw (VariantException);
-	void initStruct(Variant& var) throw (VariantException);
-	void initBinary(Variant& var, const Variant::BinaryData& bindata) throw (VariantException);
+	void initArray(Variant& var);  // throw (VariantException);
+	void initStruct(Variant& var); //throw (VariantException);
+	void initBinary(Variant& var, const Variant::BinaryData& bindata); // throw (VariantException);
 
 	Variant& _var;
 	tistream& _istrm;

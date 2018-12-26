@@ -1108,7 +1108,7 @@ void FileLog::roll()
 		currenttime.wMonth, currenttime.wDay, currenttime.wHour, currenttime.wMinute, currenttime.wSecond, currenttime.wMilliseconds/100);
 #else
 	snprintf(seqname, sizeof(seqname)-1, "%02d%02d%02d%02d%02d%d", 
-		currenttime->tm_mon+1, currenttime->tm_mday, currenttime->tm_hour, currenttime->tm_min, currenttime->tm_sec, tv.tv_usec/100000);
+		currenttime->tm_mon+1, currenttime->tm_mday, currenttime->tm_hour, currenttime->tm_min, currenttime->tm_sec, (int)(tv.tv_usec/100000));
 #endif
 
 	char newName[MAX_PATH];
