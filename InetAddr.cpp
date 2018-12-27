@@ -1135,7 +1135,7 @@ InetMcastAddress::InetMcastAddress(const char *address) :
 /// -----------------------------	
 /// class InetdAddrException
 /// -----------------------------
-InetdAddrException::InetdAddrException(const std::string &what_arg) // throw()
+InetdAddrException::InetdAddrException(const std::string &what_arg) throw()
                    :Exception(what_arg)
 {
 }

@@ -44,7 +44,7 @@ namespace common{
 // -----------------------------
 /// class FileLogException
 /// -----------------------------
-FileLogException::FileLogException(const std::string &what_arg ) // throw()
+FileLogException::FileLogException(const std::string &what_arg ) throw()
             :IOException(what_arg)
 {
 }

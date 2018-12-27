@@ -92,12 +92,12 @@ namespace common {
 /// -----------------------------
 /// class VariantException
 /// -----------------------------
-VariantException::VariantException(const std::string &what_arg) // throw()
+VariantException::VariantException(const std::string &what_arg) throw()
             :Exception(what_arg)
 {
 }
 
-VariantException::~VariantException() // throw()
+VariantException::~VariantException() throw()
 {
 }
 
@@ -697,12 +697,12 @@ bool Variant::setQuadword(Variant& var, const tchar* key, const uint64 i)
 /// -----------------------------
 /// class VariantException
 /// -----------------------------
-UnserializeException::UnserializeException(const std::string &what_arg) // throw()
+UnserializeException::UnserializeException(const std::string &what_arg) throw()
             :Exception(what_arg)
 {
 }
 
-UnserializeException::~UnserializeException() // throw()
+UnserializeException::~UnserializeException() throw()
 {
 }
 

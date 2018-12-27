@@ -109,8 +109,8 @@ class ZQ_COMMON_API Serializer;
 class VariantException : public Exception
 {
 public:
-	VariantException(const std::string &what_arg); // throw();
-	virtual ~VariantException(); // throw();
+	VariantException(const std::string &what_arg) throw();
+	virtual ~VariantException() throw();
 };
 
 /// -----------------------------
@@ -304,8 +304,8 @@ protected:
 class UnserializeException : public Exception
 {
 public:
-	UnserializeException(const std::string &what_arg); // // throw();
-	virtual ~UnserializeException(); // // throw();
+	UnserializeException(const std::string &what_arg) throw();
+	virtual ~UnserializeException() throw();
 };
 
 /// -----------------------------

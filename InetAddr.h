@@ -554,7 +554,7 @@ private:
 class InetdAddrException : public Exception
 {
 public:
-	InetdAddrException(const std::string &what_arg); // throw();
+	InetdAddrException(const std::string &what_arg) throw();
 };
 
 

@@ -47,8 +47,8 @@ class ZQ_COMMON_API FileLogException;
 class FileLogException : public IOException
 {
 public:
-	FileLogException(const std::string &what_arg); // throw();
-	virtual ~FileLogException(); // throw();
+	FileLogException(const std::string &what_arg) throw();
+	virtual ~FileLogException() throw();
 };
 
 class FileLog;

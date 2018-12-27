@@ -7,12 +7,12 @@ namespace ZQ
 namespace common
 {
 
-MdbLogError::MdbLogError(const std::string &what_arg) // throw()
+MdbLogError::MdbLogError(const std::string &what_arg) throw()
 : IOException(what_arg)
 {
 }
 
-MdbLogError::~MdbLogError() // throw()
+MdbLogError::~MdbLogError() throw()
 {
 }
 

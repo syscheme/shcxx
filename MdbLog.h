@@ -25,8 +25,8 @@ namespace common
 class MdbLogError : public ::ZQ::common::IOException
 {
 public: 
-	MdbLogError(const std::string &what_arg); // throw();
-	virtual ~MdbLogError(); // throw();
+	MdbLogError(const std::string &what_arg) throw();
+	virtual ~MdbLogError() throw();
 };
 
 class MdbLog;
