@@ -529,7 +529,7 @@ public:
 
 public:
 	ChildProcess(Loop& loop, const char* cwd, char** env, uid_t uid, gid_t gid);
-	int spawn(const char* exec, char** args, eloop_process_flags flags, Streams& pipes =Streams());
+	int spawn(const char* exec, char** args, eloop_process_flags flags, const Streams& pipes =Streams());
 
 	int pid();
 	int kill(int signum);
