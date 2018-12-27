@@ -160,7 +160,7 @@ public:
 
 	HttpHandler::Ptr createHandler(const HttpMessage::Ptr& req, HttpConnection& conn, const std::string& virtualSite = std::string(DEFAULT_SITE));
 
-	virtual TCPConnection* createPassiveConn();
+	virtual TCPConnection* createPassiveConn(InterruptibleLoop& loop);
 
 public: // about the await responses
 	void checkReqStatus();

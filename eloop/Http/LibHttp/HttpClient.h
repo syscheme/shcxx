@@ -121,12 +121,12 @@ private: // final overrides of HttpRequest
 // class HTTPUserAgent
 // ---------------------------------------
 // HTTPUserAgent inherit ZQ::eloop::Async in order to call send/receive within the eloop thread via Async::OnAsync()
-class HTTPUserAgent : public ZQ::eloop::Async, protected ZQ::eloop::Timer
+class HTTPUserAgent : public InterruptibleLoop
 {
 friend class HttpRequest;
 
 public:
-	HTTPUserAgent(ZQ::common::Log& logger, ZQ::eloop::Loop& loop, const std::string& userAgent="TianShan", const std::string& bindIP="");
+	HTTPUserAgent(ZQ::common::Log& logger, const std::string& userAgent="TianShan", const std::string& bindIP="", int msHeatbeat=-1, int cpuId=-1);
     virtual ~HTTPUserAgent();
 
 	HttpRequest::Ptr createRequest(HttpMessage::HttpMethod method, const std::string& url, const std::string& reqbody="", const HttpMessage::Properties& params = HttpMessage::Properties(), const HttpMessage::Headers& headers = HttpMessage::Headers());
@@ -146,7 +146,6 @@ protected:
 	std::string          _userAgent;
 	ZQ::common::Log&     _log;
 	std::string          _bindIP;
-	ZQ::eloop::Loop&     _eloop;
 
 private:
 	typedef std::map<std::string, HttpRequest::Ptr>  RequestMap;

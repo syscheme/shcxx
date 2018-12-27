@@ -13,8 +13,8 @@ class ZQ_ELOOP_HTTP_API RTSPClient;
 class RTSPClient : public RTSPConnection 
 {
 public:
-	RTSPClient(ZQ::common::Log& logger)
-		:RTSPConnection(logger){}
+	RTSPClient(InterruptibleLoop& loop, ZQ::common::Log& logger)
+		:RTSPConnection(loop, logger){}
 
 protected: // impl of RTSPParseSink
 	virtual void OnResponse(RTSPMessage::Ptr resp){}

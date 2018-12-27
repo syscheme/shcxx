@@ -19,7 +19,7 @@ namespace eloop {
 class HttpPassiveConn : public HttpConnection
 {
 public:
-	HttpPassiveConn(HttpServer& server);
+	HttpPassiveConn(HttpServer& server, InterruptibleLoop& loop);
 	virtual ~HttpPassiveConn() {}
 
 	bool	keepAlive() const { return _keepAlive && (_idleTimeout >0); }
@@ -54,8 +54,8 @@ protected:
 #define CONNFMT(FUNC, FMT) CLOGFMT(HttpPassiveConn, #FUNC "() " FMT)
 #define SEND_GUARD()  ZQ::common::MutexGuard sg(_lkSend)
 
-HttpPassiveConn::HttpPassiveConn(HttpServer& server)
-	: HttpConnection(server._logger, NULL, &server), _server(server),
+HttpPassiveConn::HttpPassiveConn(HttpServer& server, InterruptibleLoop& loop)
+	: HttpConnection(loop, server._logger, NULL, &server), _server(server),
 	_handler(NULL), _idleTimeout(server.keepAliveTimeout()), _keepAlive(false)
 {
 }
@@ -335,9 +335,9 @@ HttpServer::~HttpServer()
 {
 }
 
-TCPConnection* HttpServer::createPassiveConn()
+TCPConnection* HttpServer::createPassiveConn(InterruptibleLoop& loop)
 {
-	return new HttpPassiveConn(*this);
+	return new HttpPassiveConn(*this, loop);
 }
 
 bool HttpServer::mount(const std::string& uriEx, HttpHandler::AppPtr app, const HttpHandler::Properties& props, const char* virtualSite)
@@ -510,4 +510,4 @@ HttpStatistics::CountersOfMethod& HttpStatistics::_getCounter(HttpMessage::HttpM
 	return _counters[METHOD_UNKNOWN];
 }
 
-} }//namespace ZQ::eloop
+}}//namespace ZQ::eloop

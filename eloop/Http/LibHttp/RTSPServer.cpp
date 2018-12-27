@@ -14,8 +14,8 @@ namespace eloop {
 class RTSPPassiveConn : public RTSPConnection
 {
 public:
-	RTSPPassiveConn(RTSPServer& server)
-		: RTSPConnection(server._logger, NULL, &server), _server(server)
+	RTSPPassiveConn(RTSPServer& server, InterruptibleLoop& loop)
+		: RTSPConnection(loop, server._logger, NULL, &server), _server(server)
 	{}
 
 	virtual ~RTSPPassiveConn(){}
@@ -33,7 +33,7 @@ protected:
 	RTSPServer&  _server;
 
 private:
-	static void simpleResponse(int code,uint32 cseq,RTSPConnection* conn);
+	static void simpleResponse(int code,uint32 cseq, RTSPConnection* conn);
 };
 
 // ---------------------------------------
@@ -469,9 +469,9 @@ RTSPServer::RTSPServer( const TCPServer::ServerConfig& conf, ZQ::common::Log& lo
 
 RTSPServer::~RTSPServer(){}
 
-TCPConnection* RTSPServer::createPassiveConn()
+TCPConnection* RTSPServer::createPassiveConn(InterruptibleLoop& loop)
 {
-	return new RTSPPassiveConn(*this);
+	return new RTSPPassiveConn(*this, loop);
 }
 
 bool RTSPServer::mount(const std::string& uriEx, RTSPHandler::AppPtr app, const RTSPHandler::Properties& props, const char* virtualSite)

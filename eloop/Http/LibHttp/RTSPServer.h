@@ -186,7 +186,7 @@ public:
 	RTSPHandler::Ptr createHandler(const RTSPMessage::Ptr& req, RTSPPassiveConn& conn, const std::string& virtualSite = std::string(DEFAULT_SITE));
 	// RTSPHandler::Ptr findSessionHandler(const std::string& sessId); //TODO: PLAY/PAUSE et operation other than SETUP will give dummy uri, so a RTSPServer should be able to find the proper Handler by session ID
 
-	virtual TCPConnection* createPassiveConn();
+	virtual TCPConnection* createPassiveConn(InterruptibleLoop& loop);
 
 public: // about the session management
 	std::string	generateSessionID();

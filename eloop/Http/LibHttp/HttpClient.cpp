@@ -11,20 +11,14 @@ namespace eloop {
 // ---------------------------------------
 // class HTTPUserAgent
 // ---------------------------------------
-HTTPUserAgent::HTTPUserAgent(ZQ::common::Log& logger, ZQ::eloop::Loop& loop, const std::string& userAgent, const std::string& bindIP)
-: _log(logger), _eloop(loop), _userAgent(userAgent), _bindIP(bindIP)
+HTTPUserAgent::HTTPUserAgent(ZQ::common::Log& logger, const std::string& userAgent, const std::string& bindIP, int msHeatbeat, int cpuId)
+: InterruptibleLoop(msHeatbeat, cpuId), _log(logger), _userAgent(userAgent), _bindIP(bindIP)
 {
-	Async::init(_eloop);
-	Timer::init(_eloop);
-	Timer::start(TIMER_INTERVAL, TIMER_INTERVAL);
 }
 
 HTTPUserAgent::~HTTPUserAgent()
 {
-	Timer::stop();
-	Timer::close();
-	Async::close();
-
+	InterruptibleLoop::stop();
 	ZQ::common::MutexGuard gGuard(_locker);
 	_outgoings.clear();
 	_awaits.clear();
@@ -47,7 +41,7 @@ void HTTPUserAgent::enqueue(HttpRequest::Ptr req)
 
     ZQ::common::MutexGuard gGuard(_locker);
 	_outgoings.push_back(req);
-	Async::send();
+	InterruptibleLoop::wakeup();
 }
 
 void HTTPUserAgent::poll()
@@ -66,7 +60,7 @@ void HTTPUserAgent::poll()
 			if (!req)
 				continue;
 
-			MAPSET(RequestMap, _awaits, req->connId(), req);
+			MAPSET(RequestMap, _awaits, req->ident(), req);
 
 			// kick off the request by starting connection
 			req->startRequest();
@@ -110,7 +104,7 @@ void HTTPUserAgent::poll()
 #define REQFMT(FUNC, FMT) CLOGFMT(HttpRequest, #FUNC "txn[%s] " FMT), _txnId.c_str()
 
 HttpRequest::HttpRequest(HTTPUserAgent& ua, HttpMethod _method, const std::string& url, const std::string& reqbody, const Properties& params, const Properties& headers)
-: _ua(ua), HttpMessage(MSG_REQUEST), HttpConnection(ua._log), _port(80), _cb(NULL), _stampRequested(0), _timeout(TIMEOUT_INF), _localPort(0), _localIP("0.0.0.0")
+: _ua(ua), HttpMessage(MSG_REQUEST), HttpConnection(ua, ua._log), _port(80), _cb(NULL), _stampRequested(0), _timeout(TIMEOUT_INF), _localPort(0), _localIP("0.0.0.0")
 {
 	// bound with a dummy response initially
 	_respMsg = new HttpMessage(MSG_RESPONSE);
@@ -181,7 +175,7 @@ HttpRequest::HttpRequest(HTTPUserAgent& ua, HttpMethod _method, const std::strin
 	}	
 	//}
 
-	_txnId = connId() + " [" + url+"]";
+	_txnId = ident() + " [" + url+"]";
 
 	if (_qstr.length() >1 && HTTP_POST == _method)
 	{
@@ -204,7 +198,7 @@ HttpRequest::HttpRequest(HTTPUserAgent& ua, HttpMethod _method, const std::strin
 		_payloadOutgoing.push(new PayloadChunk((const uint8*) reqbody.c_str(), reqbody.length()));
 
     char tmp[80] = {0};
-	snprintf(tmp, sizeof(tmp)-2, "%s:%s[", connId().c_str(), method2str(HttpMessage::method()));
+	snprintf(tmp, sizeof(tmp)-2, "%s:%s[", ident().c_str(), method2str(HttpMessage::method()));
 	_txnId = tmp; _txnId += url +"]";
 
 	_logger(ZQ::common::Log::L_DEBUG, REQFMT(HttpRequest, "created, bodylen %d"), reqbody.length());
@@ -213,7 +207,7 @@ HttpRequest::HttpRequest(HTTPUserAgent& ua, HttpMethod _method, const std::strin
 HttpRequest::~HttpRequest()
 {
     ZQ::common::MutexGuard gGuard(_ua._locker);
-	_ua._awaits.erase(connId());
+	_ua._awaits.erase(ident());
 }
 
 int HttpRequest::getTimeLeft() const
@@ -312,7 +306,7 @@ void HttpRequest::dispatchResult()
 		_cb->OnHttpResult(this);
 
 	ZQ::common::MutexGuard gGuard(_ua._locker);
-	_ua._awaits.erase(connId());
+	_ua._awaits.erase(ident());
 }
 
 void HttpRequest::OnMessagingError(int error, const char* errorDescription)

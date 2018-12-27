@@ -258,7 +258,7 @@ public:
 		headerName.clear();
 		headerValue = "";
 
-		msg = new HttpMessage(_passive ? HttpMessage::MSG_REQUEST : HttpMessage::MSG_RESPONSE, _conn.connId());
+		msg = new HttpMessage(_passive ? HttpMessage::MSG_REQUEST : HttpMessage::MSG_RESPONSE, _conn.ident());
 		if(msg)
 			msg->_phase = HttpMessage::hmpStarted;
 	}
@@ -489,10 +489,10 @@ bool MIMEReader::search(const char* data, size_t len, SearchResult& result)
 #define SEND_GUARD()  ZQ::common::MutexGuard sg(_lkSend)
 #define RECV_GUARD()  // ZQ::common::MutexGuard rg(_locker)
 
-#define CONNFMT(_FUNC, _X) CLOGFMT(HttpConn, "%s " #_FUNC "() " _X), connId().c_str()
+#define CONNFMT(_FUNC, _X) CLOGFMT(HttpConn, "%s " #_FUNC "() " _X), ident().c_str()
 
-HttpConnection::HttpConnection(ZQ::common::Log& logger,const char* connId, TCPServer* tcpServer)
-		: TCPConnection(logger, connId, tcpServer), _nestedParser(NULL), _bOutgoingOpen(true), _stampLastRecv(0), _stampLastSent(0) // , _lastRecvError(HttpMessage::scOK)
+HttpConnection::HttpConnection(InterruptibleLoop &loop, ZQ::common::Log& logger,const char* connId, TCPServer* tcpServer)
+		: TCPConnection(loop, logger, connId, tcpServer), _nestedParser(NULL), _bOutgoingOpen(true), _stampLastRecv(0), _stampLastSent(0) // , _lastRecvError(HttpMessage::scOK)
 {
 	RECV_GUARD();
 	_nestedParser = new NestedParser(*this, isPassive());

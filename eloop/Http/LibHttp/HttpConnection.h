@@ -12,10 +12,6 @@
 
 #include "http_parser.h" // TO remove
 
-#ifndef MAPSET
-#  define MAPSET(_MAPTYPE, _MAP, _KEY, _VAL) if (_MAP.end() ==_MAP.find(_KEY)) _MAP.insert(_MAPTYPE::value_type(_KEY, _VAL)); else _MAP[_KEY] = _VAL
-#endif // MAPSET
-
 struct http_parser;
 struct http_parser_settings;
 
@@ -233,7 +229,7 @@ private: // forbid copier constructor
 	HttpConnection& operator=( const HttpConnection&);
 
 protected:
-	HttpConnection(ZQ::common::Log& logger, const char* connId = NULL, TCPServer* tcpServer = NULL);
+	HttpConnection(InterruptibleLoop &loop, ZQ::common::Log& logger, const char* connId = NULL, TCPServer* tcpServer = NULL);
 	
 protected: // impl of TCPConnection, no more overwriteable
 	void OnConnected(ElpeError status);

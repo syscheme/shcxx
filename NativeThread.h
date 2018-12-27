@@ -250,13 +250,13 @@ public:
 	/// A thread affinity mask is a bit vector in which each bit represents a logical processor that a thread is allowed to run on.
 	/// If the function succeeds, the return value is the thread's previous affinity mask.
 	/// If the function fails, the return value is zero. To get extended error information, call GetLastError.
-	bool setCPUAffinity(uint cpuId);
+	int setCPUAffinity(uint cpuId);
 
 	/// set the affinity of the current caller thread
 #ifdef ZQ_OS_MSWIN
-	static bool setAffinityOfThread(uint cpuId, HANDLE hThread =NULL);
+	static int setAffinityOfThread(uint cpuId, HANDLE hThread =NULL);
 #else
-	static bool setAffinityOfThread(uint cpuId, ThreadId_t hThread =0);
+	static int setAffinityOfThread(uint cpuId, ThreadId_t hThread =0);
 #endif
 };
 

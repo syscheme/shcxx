@@ -31,110 +31,105 @@
 #  define ZQ_ELOOP_HTTP_API
 #endif // OS
 
+#ifndef MAPSET
+#  define MAPSET(_MAPTYPE, _MAP, _KEY, _VAL) if (_MAP.end() ==_MAP.find(_KEY)) _MAP.insert(_MAPTYPE::value_type(_KEY, _VAL)); else _MAP[_KEY] = _VAL
+#endif // MAPSET
+
 namespace ZQ {
 namespace eloop {
 
 class ZQ_ELOOP_HTTP_API TCPServer;
 class ZQ_ELOOP_HTTP_API TCPConnection;
-class ZQ_ELOOP_HTTP_API WatchDog;
+class ZQ_ELOOP_HTTP_API InterruptibleLoop;
+
+#define LOOP_HEARTBEAT_MIN      (200)   // 200msec
+#define LOOP_HEARTBEAT_DEFAULT  (500)   // 500msec
+#define LOOP_HEARTBEAT_MAX      (5000)  // 5sec
 
 // ---------------------------------------
-// class WatchedLoop
+// class InterruptibleLoop
 // ---------------------------------------
 // Single event loop
-class WatchedLoop : public ZQ::common::NativeThread, public ZQ::eloop::Loop, public ZQ::eloop::Interruptor
+class InterruptibleLoop : public ZQ::common::NativeThread, public ZQ::eloop::Loop, public ZQ::eloop::Interruptor
 {
 public:
 	//	interface Osbervee
 	//-------------------------------------
-	class IObservee
+	class IPing
 	{
 	public:
-		std::string ident() =0;
-		virtual void OnTimer() = 0;
-		virtual void OnUnwatch() = 0;
+		virtual std::string ident() =0;
+		virtual void OnPing(bool isHeartbeat) = 0;
 	};
 
 public:
-	WatchedLoop(int msStep, int cpuId=-1);
-	virtual ~WatchedLoop() { quit(); }
+	InterruptibleLoop(int msStep, int cpuId=-1);
+	virtual ~InterruptibleLoop() { quit(); }
 
-	virtual bool start()
-	{
-		_timer.start(_msStep, true);
-		return NativeThread::start();
-	}
+	virtual bool start();
+	void quit();
 
-	void quit()
-	{
-		_timer.stop();
-		_bQuit = true;
-		Interruptor::wakeup();
-	}
+	int affinitedId() { return _cpuId; }
 
-	void watch(IObservee* observee, int timeout);
-	void unwatch(IObservee* observee) { if (observee) unwatch(observee->ident); }
+	// about the watched handle in the loop
+	void watch(IPing* observee);
 	void unwatch(const std::string& ident);
+	void unwatch(IPing* obj) { if (obj) unwatch(obj->ident()); }
+	void ping(const std::string& ident);
+	void ping(IPing* obj) { if (obj) ping(obj->ident()); }
 
 protected: // new entries
 	virtual void OnLoopStart() {} // 		_server._logger(ZQ::common::Log::L_INFO, CLOGFMT(TCPSvcLoop, "TCPSvcLoop starts affinite core[%d]"), _cpuId);
 	virtual void OnLoopQuit(int ret) {} //		_server._logger(ZQ::common::Log::L_INFO, CLOGFMT(TCPSvcLoop, "LoopThread quit!"));
-	virtual void poll(); 
+
+	// the only loop entry
+	virtual void poll(bool isHeartbeat=false); 
 
 private: 
 	// impl of NativeThread
 	int run(void);
 	// impl of Interruptor
-	void OnWakedUp() { poll(); if (_bQuit) Loop::stop(); }
+	void OnWakedUp() { poll(false); if (_bQuit) Loop::stop(); }
+	void OnDeactived();
 
-	friend class class Heartbeat;
+	bool inLoop();
+
+	friend class Heartbeat;
 	// subclass Heartbeat
 	//-------------------------------------
 	class Heartbeat : public ZQ::eloop::Timer
 	{
 	public:
-		Heartbeat(WatchedLoop& loop) : _owner(loop) {}
-		void OnTimer() { _owner.OnTimer(); if (_owner._bQuit) Timer::stop(); }
+		Heartbeat(InterruptibleLoop& loop) : Timer(loop), _owner(loop) {}
+		void OnTimer() { _owner.poll(true); if (_owner._bQuit) Timer::stop(); }
 
-		WatchedLoop& _owner;
+		InterruptibleLoop& _owner;
 	};
 
-	typedef struct _WatchNode
-	{
-		IObservee* obj;
-		int64 expiration;
-	} WatchNode;
+	typedef std::map < std::string, IPing* > PingMap; // ident to WatchNode map
+	typedef std::vector< std::string > Wakee;
+	PingMap            _pingMap;
+	Wakee              _wakees;
+	ZQ::common::Mutex  _lkLoop;
 
-	typedef std::map   < std::string, WatchNode > ObserveeMap; // ident to WatchNode map
-	ObserveeMap  	   _observeeMap;
-	ZQ::common::Mutex  _observeeLock;
-
-	Heartbeat _heartbeat;
 	bool      _bQuit;
-	int       _cpuId;
+	int       _cpuId, _msHeartbeat;
+	Heartbeat _heartbeat;
+	ZQ::common::AtomicInt _loopDepth;
 };
-
 
 // ---------------------------------------
 // class TCPConnection
 // ---------------------------------------
 // extend TCP intend to provide thread-safe send/recv by include bufferring
-class TCPConnection : public TCP, public WatchDog::IObservee 
+class TCPConnection : public TCP, public InterruptibleLoop::IPing 
 {
 public:
-	TCPConnection(Loop& loop, ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL);
-	virtual ~TCPConnection() {}
+	TCPConnection(InterruptibleLoop& loop, ZQ::common::Log& log, const char* connId = NULL, TCPServer* tcpServer = NULL);
+	virtual ~TCPConnection();
 
-	//// the access to TCP is mostly protected, but we do need some to export
-	//Loop& get_loop() { return TCP::get_loop(); }
-	//int fileno(fd_t *fd) { return TCP::fileno(fd); }
-	//void getlocaleIpPort(char* ip,int& port) { TCP::getlocaleIpPort(ip, port); }
-	//int getpeername(struct sockaddr *name, int *namelen) { return TCP::getpeername(name, namelen); }
-	//void getpeerIpPort(char* ip, int& port) { TCP::getpeerIpPort(ip, port); }
-
-	// bool start();
 	bool disconnect(bool isShutdown = false); // used named stop()
-	const std::string& connId() const { return _connId; }
+	std::string ident() { return _connId; } // impl of IPing // const std::string& connId() const { return _connId; }
 	const char* linkstr() const { return _linkstr.c_str(); }
 
 	virtual bool isPassive() const { return NULL != _tcpServer; }
@@ -145,10 +140,6 @@ public:
 	int enqueueSend(const std::string& msg) { return enqueueSend((const uint8*) msg.c_str(), msg.length()); }
 	int enqueueSend(const uint8* data, size_t len);
 
-	void setWatchDog(WatchDog* watchDog)	{ _watchDog = watchDog; }
-	virtual void OnTimer() {}
-	virtual void OnUnwatch() {}
-
 public: // tempraorly public // overwrite of TCP
 	virtual void OnConnected(ElpeError status);
 
@@ -157,6 +148,8 @@ protected: // overwrite of TCP
 	virtual void OnRead(ssize_t nread, const char *buf) {} // TODO: uv_buf_t is unacceptable to appear here, must take a new manner known in this C++ wrapper level
 	// called after buffer has been written into the stream
 	virtual void OnWrote(int status);
+
+	virtual void OnDeactived();
 
 // new entry points introduced
 // ------------------------------
@@ -168,36 +161,21 @@ protected:
 	void _sendNext(size_t maxlen =16*1024);
 	int  _enqueueSend(const uint8* data, size_t len); // thread-unsafe methods
 
-	void OnClose();
 	void OnShutdown(ElpeError status);
 
-private:
-	// subclass WakeUp
-	// ------------------------------------------------
-	class WakeUp : public ZQ::eloop::Interruptor
-	{
-	public:
-		WakeUp(TCPConnection& conn): ZQ::eloop::Interruptor(conn.loop()), _conn(conn) {}
-
-	protected:
-		virtual void OnWakedUp() { _conn.OnSendEnqueued();}
-		//virtual void OnClose() {} // to avoid trigger Handle 'delete this'
-		TCPConnection& _conn;
-	};
-
-	virtual void OnSendEnqueued();
-	// void OnCloseAsync();
+	// impl of IPing
+	virtual void OnPing(bool isHeartbeat); // void OnSendEnqueued();
 
 public:
 	ZQ::common::Log&		_logger;
-	TCPServer*				_tcpServer;
 	static	uint			_enableHexDump;
 
 protected:
-	WatchDog*			    _watchDog;
+	InterruptibleLoop&      _intLoop;
+	TCPServer*				_tcpServer;
+
 	std::string				_linkstr;
 	bool					_isConnected;
-//	bool					_isShutdown;
 	std::string				_connId;
 	ZQ::common::AtomicInt   _lastCSeq;
 
@@ -214,8 +192,6 @@ protected:
 
 	ZQ::common::Mutex      _lkSend;
 	Buffer::Queue          _queSend;
-	WakeUp*				   _pWakeup;
-	//WakeUp			   _wakeup;
 	int64                  _stampBusySend;
 
 	std::string _peerIp, _localIp;
@@ -231,7 +207,7 @@ private: // TCPConnection stop export the following method in order to keep thre
 // ---------------------------------------
 // class TCPServer
 // ---------------------------------------
-class TCPServer : public WatchDog::IObservee
+class TCPServer : public InterruptibleLoop::IPing
 {
 public:
 	enum ServerMode
@@ -288,21 +264,22 @@ public:
 	virtual bool start();
 	virtual bool stop();
 
-	virtual void OnTimer() {}
-	virtual void OnUnwatch() {}
+	// impl of IPing
+	virtual std::string ident();
+	virtual void OnPing(bool isHeartbeat);
 
-	virtual bool onStart(ZQ::eloop::Loop& loop){ return true; }
-	virtual bool onStop(){ return true; }
+	// virtual bool onStart(ZQ::eloop::Loop& loop) { return true; }
+	// virtual bool onStop(){ return true; }
 
-	void	addConn( TCPConnection* servant );
-	void	delConn( TCPConnection* servant );
 	TCPConnection*	findConn( const std::string& connId);
+	void	addConn(TCPConnection* conn);
+	void	delConn(TCPConnection* conn);
 
 	int keepAliveTimeout() const { return _config.keepalive_timeout; }
 
-	void onLoopThreadStart(ZQ::eloop::Loop& loop);
-	void signal();
-	virtual TCPConnection* createPassiveConn(ZQ::eloop::Loop& loop);
+	void onLoopThreadStart(InterruptibleLoop& loop);
+	// void signal();
+	virtual TCPConnection* createPassiveConn(InterruptibleLoop& loop) { return new TCPConnection(loop, _logger, NULL, this); }
 
 	ServerConfig		_config;
 	ZQ::common::Log&	_logger;
@@ -314,16 +291,10 @@ private:
 	ServiceSocket* _soService;
 
 	typedef std::map<std::string, TCPConnection*>	ConnMAP;
-	ConnMAP					_connMap;
-	std::vector<TCPSvcLoop*> _thrdLoops;
-	size_t _idxLoop;
-	ZQ::common::Mutex		_connCountLock;
-
-	//SYS::SingleObject		_sysWakeUp;
-	//ITCPEngine*				_engine;
-	//bool					_isStart;
-	//bool					_isOnStart;
-	//ZQ::common::Mutex		_onStartLock;
+	ConnMAP				 _connMap;
+	std::vector<TCPSvcLoop* > _thrdLoops;
+	size_t               _idxLoop;
+	ZQ::common::Mutex	 _connCountLock;
 };
 
 } }//namespace ZQ::eloop
