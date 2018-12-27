@@ -134,11 +134,9 @@ public:
 
 	ZQ::common::Log& getLogger(){return _log;}
 
-protected: // impl of ZQ::eloop::Async and Timer
-	void OnAsync() { poll(); }
-	void OnTimer() { poll(); }
-
-	virtual void poll();
+protected:
+	// impl of InterruptibleLoop
+	virtual void poll(bool isHeartbeat=false);
 
 protected:
 	void enqueue(HttpRequest::Ptr req);

@@ -33,6 +33,7 @@
 
 
 #include "ZQ_common_conf.h"
+#include "Log.h"
 
 #include "uv.h"
 #include "uv-errno.h"

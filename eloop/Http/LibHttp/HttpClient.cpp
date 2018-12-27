@@ -44,7 +44,7 @@ void HTTPUserAgent::enqueue(HttpRequest::Ptr req)
 	InterruptibleLoop::wakeup();
 }
 
-void HTTPUserAgent::poll()
+void HTTPUserAgent::poll(bool isHeartbeat)
 {
 	std::vector<HttpRequest::Ptr> list2expire;
 	std::string txnExpired, txnStarted;

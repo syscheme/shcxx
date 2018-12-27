@@ -140,12 +140,12 @@ public:
 	{
 	}
 
-	void addSocket(int sock)
-	{
-		ZQ::common::MutexGuard gd(_LockSocket);
-		_ListSocket.push_back(sock);
-		Interruptor::wakeup();
-	}
+	//void addSocket(int sock)
+	//{
+	//	ZQ::common::MutexGuard gd(_LockSocket);
+	//	_ListSocket.push_back(sock);
+	//	Interruptor::wakeup();
+	//}
 
 protected: // impl of InterruptibleLoop
 	void OnLoopStart() { _server._logger(ZQ::common::Log::L_INFO, CLOGFMT(TCPSvcLoop, "TCPSvcLoop starts affinite core[%d]"), affinitedId()); }
@@ -154,7 +154,7 @@ protected: // impl of InterruptibleLoop
 	void poll(bool isHeartbeat)
 	{
 		// case 1. wakeup to accept new connection
-		ZQ::common::MutexGuard gd(_LockSocket);
+		/*ZQ::common::MutexGuard gd(_LockSocket);
 		if (_ListSocket.empty())
 			return;
 
@@ -185,7 +185,7 @@ protected: // impl of InterruptibleLoop
 				watch(client);
 
 			client->OnConnected(elpeSuccess);
-		}
+		}*/
 
 		InterruptibleLoop::poll(isHeartbeat);
 	}
@@ -282,11 +282,14 @@ bool TCPConnection::disconnect(bool bShutdown)
 void TCPConnection::OnDeactived()
 {
 	_isConnected = false;
-	if (_tcpServer)
-		_tcpServer->delConn(this);
-
 	_logger(ZQ::common::Log::L_DEBUG, CLOGFMT(TCPConnection, "OnClose() conn[%s] %s"),_connId.c_str(), _linkstr.c_str());
 	_linkstr ="";
+	
+	if (_tcpServer)
+	{
+		_tcpServer->delConn(this);
+		delete this;
+	}
 }
 
 void TCPConnection::OnWrote(int status)
