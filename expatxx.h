@@ -82,10 +82,10 @@ class  ExpatNest;
 class ExpatException : public Exception
 {
 public:
-	ExpatException(const std::string &what_arg) // throw();
+	ExpatException(const std::string &what_arg) throw()
 	: Exception(what_arg) {}
 
-	virtual ~ExpatException() // throw();
+	virtual ~ExpatException() throw()
 	{}
 };
 

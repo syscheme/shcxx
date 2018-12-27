@@ -553,7 +553,7 @@ con:
 	return res;
 }
 
-int setCPUAffinity(uint cpuId)
+int NativeThread::setCPUAffinity(uint cpuId)
 {
 	return setAffinityOfThread(cpuId, _thrdID); 
 }
