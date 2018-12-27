@@ -72,8 +72,7 @@ VException::VException( const string& msg,
 }
 
 
-VException::~VException()
-    throw()
+VException::~VException() // throw()
 {
 }
 

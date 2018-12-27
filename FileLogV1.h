@@ -4,7 +4,7 @@
 // Author: copyright (c) Han Guan
 //////////////////////////////////////////////////////////////////////
 
-// Ê¹ÓÃÊ±Çë×¢Òâ£¬Ê¹ÓÃÊ±Çë×¢Òâ£¬Ê¹ÓÃÊ±Çë×¢Òâ£¬Ê¹ÓÃÊ±Çë×¢Òâ£¬Ê¹ÓÃÊ±Çë×¢Òâ£¬Ê¹ÓÃÊ±Çë×¢Òâ
+// Ê¹ï¿½ï¿½Ê±ï¿½ï¿½×¢ï¿½â£¬Ê¹ï¿½ï¿½Ê±ï¿½ï¿½×¢ï¿½â£¬Ê¹ï¿½ï¿½Ê±ï¿½ï¿½×¢ï¿½â£¬Ê¹ï¿½ï¿½Ê±ï¿½ï¿½×¢ï¿½â£¬Ê¹ï¿½ï¿½Ê±ï¿½ï¿½×¢ï¿½â£¬Ê¹ï¿½ï¿½Ê±ï¿½ï¿½×¢ï¿½ï¿½
 //////////////////////////////////////////////////////////////////////////
 // You can create an object of FileLog like the following.
 // 1. FileLog _logFile;
@@ -19,7 +19,7 @@
 // into the file. Because the C run-time will call the destructor of FileLog which 
 // will flush the data in the buffer to file when the application crushes.
 //////////////////////////////////////////////////////////////////////////
-// Ê¹ÓÃÊ±Çë×¢Òâ£¬Ê¹ÓÃÊ±Çë×¢Òâ£¬Ê¹ÓÃÊ±Çë×¢Òâ£¬Ê¹ÓÃÊ±Çë×¢Òâ£¬Ê¹ÓÃÊ±Çë×¢Òâ£¬Ê¹ÓÃÊ±Çë×¢Òâ
+// Ê¹ï¿½ï¿½Ê±ï¿½ï¿½×¢ï¿½â£¬Ê¹ï¿½ï¿½Ê±ï¿½ï¿½×¢ï¿½â£¬Ê¹ï¿½ï¿½Ê±ï¿½ï¿½×¢ï¿½â£¬Ê¹ï¿½ï¿½Ê±ï¿½ï¿½×¢ï¿½â£¬Ê¹ï¿½ï¿½Ê±ï¿½ï¿½×¢ï¿½â£¬Ê¹ï¿½ï¿½Ê±ï¿½ï¿½×¢ï¿½ï¿½
 
 
 #ifndef __ZQ_COMMON_FileLogV1_H__
@@ -32,12 +32,12 @@
 
 #define		Min_FileNum 2
 #define		Max_FileNum 30
-#define		ZQLOG_DEFAULT_FILENUM		10					// ×î¶à¿ÉÒÔÓÐ¼¸¸ölog±¸·ÝÎÄ¼þ
-#define		ZQLOG_DEFAULT_FILESIZE		1024*1024*10		// Ä¬ÈÏlogÎÄ¼þ´óÐ¡£¬µ¥Î»×Ö½Ú
-#define		ZQLOG_DEFAULT_BUFFSIZE		8*1024				// Ä¬ÈÏ»º³åÇø´óÐ¡£¬µ¥Î»×Ö½Ú
-#define		ZQLOG_DEFAULT_MAXLINESIZE	2*1024				// Ä¬ÈÏÃ¿ÐÐ×î¶à×Ö·ûÊý
-#define		ZQLOG_DEFAULT_FLUSHINTERVAL 2					// µ¥Î»Ãë£¬Ã¿¸ô¶à³¤Ê±¼ä½«»º³åÇøÖÐµÄÊý¾ÝÐ´ÈëÎÄ¼þ£¬²»¹Ü»º³åÇøÓÐÃ»ÓÐÂú
-#define		ZQLOG_DEFAULT_EVENTLOGLEVEL	ZQ::common::Log::L_EMERG	// µ±Ð¡ÓÚ»òµÈÓÚ¸Ã¼¶±ðµÄlog»á±»Í¬Ê±Ð´Èëµ½ÏµÍ³µÄEventLogÀïÃæ
+#define		ZQLOG_DEFAULT_FILENUM		10					// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¼ï¿½ï¿½ï¿½logï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½
+#define		ZQLOG_DEFAULT_FILESIZE		1024*1024*10		// Ä¬ï¿½ï¿½logï¿½Ä¼ï¿½ï¿½ï¿½Ð¡ï¿½ï¿½ï¿½ï¿½Î»ï¿½Ö½ï¿½
+#define		ZQLOG_DEFAULT_BUFFSIZE		8*1024				// Ä¬ï¿½Ï»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½ï¿½ï¿½ï¿½Î»ï¿½Ö½ï¿½
+#define		ZQLOG_DEFAULT_MAXLINESIZE	2*1024				// Ä¬ï¿½ï¿½Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½
+#define		ZQLOG_DEFAULT_FLUSHINTERVAL 2					// ï¿½ï¿½Î»ï¿½ë£¬Ã¿ï¿½ï¿½à³¤Ê±ï¿½ä½«ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ðµï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ü»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½
+#define		ZQLOG_DEFAULT_EVENTLOGLEVEL	ZQ::common::Log::L_EMERG	// ï¿½ï¿½Ð¡ï¿½Ú»ï¿½ï¿½ï¿½Ú¸Ã¼ï¿½ï¿½ï¿½ï¿½logï¿½á±»Í¬Ê±Ð´ï¿½ëµ½ÏµÍ³ï¿½ï¿½EventLogï¿½ï¿½ï¿½ï¿½
 
 namespace ZQ {
 namespace common {
@@ -49,8 +49,8 @@ class ZQ_COMMON_API FileLogException;
 class FileLogException : public IOException
 {
 public:
-	FileLogException(const std::string &what_arg) throw();
-	virtual ~FileLogException() throw();
+	FileLogException(const std::string &what_arg); // throw();
+	virtual ~FileLogException(); // throw();
 };
 
 class FileLog;
@@ -104,16 +104,16 @@ protected:
 
 public:
 	// Params:
-		// filename£ºÖ¸¶¨logÎÄ¼þµÄÃû×Ö
-		// verbosity£ºÖ¸¶¨Ð´ÈëlogÎÄ¼þµÄ×îµÍ¼¶±ð£¬µÍÓÚÕâ¸ö¼¶±ðµÄlog²»»á±»Ð´Èëµ½logÎÄ¼þÖÐ
-		// logFileNum£ºÖ¸¶¨²úÉúµÄlog±¸·ÝÎÄ¼þµÄÊýÄ¿£¬Ä¬ÈÏÖµÎª ZQLOG_DEFAULT_FILENUM = 5
-		// fileSize£ºÖ¸¶¨logÎÄ¼þµÄ´óÐ¡£¬Ä¬ÈÏÖµÎª ZQLOG_DEFAULT_FILESIZE = 1024*1024*10(byte)£¬µÈÓÚ10MB¡£
-		// buffSize£ºÖ¸¶¨ÓëlogÎÄ¼þÅä±¸µÄ»º³åÇøµÄ´óÐ¡£¬Ä¬ÈÏÖµÎª ZQLOG_DEFAULT_BUFFSIZE = 8024(byte)¡£
-		// flushInterval£ºÖ¸¶¨¶¨Ê±½«»º³åÇøµÄÊý¾ÝÐ´Èëµ½logÎÄ¼þµÄÊ±¼ä¼ä¸ô£¬Ä¬ÈÏÖµÎª ZQLOG_DEFAULT_FLUSHINTERVAL = 2(s)
-		// eventLogLevel£ºµ±Ð´ÈëµÄlogµÄ¼¶±ðÐ¡ÓÚ»òµÈÓÚÖ¸¶¨µÄ¼¶±ðÊ±£¬¸ÃlogÒ²½«±»Ð´Èëµ½ÏµÍ³µÄEventLogÖÐ£¬Ä¬ÈÏ¼¶±ðÎª ZQLOG_DEFAULT_EVENTLOGLEVEL (Log::L_CRIT = 2)¡£
-		// appName£ºÏÔÊ¾ÔÚÏµÍ³EventLogÖÐµÄÃû×Ö
-	// Exception£º
-		// Èç¹ûÎÄ¼þ´´½¨²»ÁË£¬»áÅ×³öÒ»¸öFileLogExceptionÒì³£
+		// filenameï¿½ï¿½Ö¸ï¿½ï¿½logï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+		// verbosityï¿½ï¿½Ö¸ï¿½ï¿½Ð´ï¿½ï¿½logï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½Í¼ï¿½ï¿½ð£¬µï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½logï¿½ï¿½ï¿½á±»Ð´ï¿½ëµ½logï¿½Ä¼ï¿½ï¿½ï¿½
+		// logFileNumï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½logï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½Ä¬ï¿½ï¿½ÖµÎª ZQLOG_DEFAULT_FILENUM = 5
+		// fileSizeï¿½ï¿½Ö¸ï¿½ï¿½logï¿½Ä¼ï¿½ï¿½Ä´ï¿½Ð¡ï¿½ï¿½Ä¬ï¿½ï¿½ÖµÎª ZQLOG_DEFAULT_FILESIZE = 1024*1024*10(byte)ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½10MBï¿½ï¿½
+		// buffSizeï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½logï¿½Ä¼ï¿½ï¿½ä±¸ï¿½Ä»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½Ð¡ï¿½ï¿½Ä¬ï¿½ï¿½ÖµÎª ZQLOG_DEFAULT_BUFFSIZE = 8024(byte)ï¿½ï¿½
+		// flushIntervalï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ëµ½logï¿½Ä¼ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ä¬ï¿½ï¿½ÖµÎª ZQLOG_DEFAULT_FLUSHINTERVAL = 2(s)
+		// eventLogLevelï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½logï¿½Ä¼ï¿½ï¿½ï¿½Ð¡ï¿½Ú»ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½logÒ²ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ëµ½ÏµÍ³ï¿½ï¿½EventLogï¿½Ð£ï¿½Ä¬ï¿½Ï¼ï¿½ï¿½ï¿½Îª ZQLOG_DEFAULT_EVENTLOGLEVEL (Log::L_CRIT = 2)ï¿½ï¿½
+		// appNameï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½ÏµÍ³EventLogï¿½Ðµï¿½ï¿½ï¿½ï¿½ï¿½
+	// Exceptionï¿½ï¿½
+		// ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë£ï¿½ï¿½ï¿½ï¿½×³ï¿½Ò»ï¿½ï¿½FileLogExceptionï¿½ì³£
 	FileLog(const char* filename, \
 		const int verbosity=L_ERROR, \
 		int logFileNum = ZQLOG_DEFAULT_FILENUM, \
@@ -126,16 +126,16 @@ public:
 	FileLog();
 
 	// Params:
-		// filename£ºÖ¸¶¨logÎÄ¼þµÄÃû×Ö
-		// verbosity£ºÖ¸¶¨Ð´ÈëlogÎÄ¼þµÄ×îµÍ¼¶±ð£¬µÍÓÚÕâ¸ö¼¶±ðµÄlog²»»á±»Ð´Èëµ½logÎÄ¼þÖÐ
-		// logFileNum£ºÖ¸¶¨²úÉúµÄlog±¸·ÝÎÄ¼þµÄÊýÄ¿£¬Ä¬ÈÏÖµÎª ZQLOG_DEFAULT_FILENUM = 5
-		// fileSize£ºÖ¸¶¨logÎÄ¼þµÄ´óÐ¡£¬Ä¬ÈÏÖµÎª ZQLOG_DEFAULT_FILESIZE = 1024*1024*10(byte)£¬µÈÓÚ10MB¡£
-		// buffSize£ºÖ¸¶¨ÓëlogÎÄ¼þÅä±¸µÄ»º³åÇøµÄ´óÐ¡£¬Ä¬ÈÏÖµÎª ZQLOG_DEFAULT_BUFFSIZE = 8024(byte)¡£
-		// flushInterval£ºÖ¸¶¨¶¨Ê±½«»º³åÇøµÄÊý¾ÝÐ´Èëµ½logÎÄ¼þµÄÊ±¼ä¼ä¸ô£¬Ä¬ÈÏÖµÎª ZQLOG_DEFAULT_FLUSHINTERVAL = 2(s)
-		// eventLogLevel£ºµ±Ð´ÈëµÄlogµÄ¼¶±ðÐ¡ÓÚ»òµÈÓÚÖ¸¶¨µÄ¼¶±ðÊ±£¬¸ÃlogÒ²½«±»Ð´Èëµ½ÏµÍ³µÄEventLogÖÐ£¬Ä¬ÈÏ¼¶±ðÎª ZQLOG_DEFAULT_EVENTLOGLEVEL (Log::L_CRIT = 2)¡£
-		// appName£ºÏÔÊ¾ÔÚÏµÍ³EventLogÖÐµÄÃû×Ö
-	// Exception£º
-		// Èç¹ûÎÄ¼þ´´½¨²»ÁË£¬»áÅ×³öÒ»¸öFileLogExceptionÒì³£
+		// filenameï¿½ï¿½Ö¸ï¿½ï¿½logï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+		// verbosityï¿½ï¿½Ö¸ï¿½ï¿½Ð´ï¿½ï¿½logï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½Í¼ï¿½ï¿½ð£¬µï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½logï¿½ï¿½ï¿½á±»Ð´ï¿½ëµ½logï¿½Ä¼ï¿½ï¿½ï¿½
+		// logFileNumï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½logï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½Ä¬ï¿½ï¿½ÖµÎª ZQLOG_DEFAULT_FILENUM = 5
+		// fileSizeï¿½ï¿½Ö¸ï¿½ï¿½logï¿½Ä¼ï¿½ï¿½Ä´ï¿½Ð¡ï¿½ï¿½Ä¬ï¿½ï¿½ÖµÎª ZQLOG_DEFAULT_FILESIZE = 1024*1024*10(byte)ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½10MBï¿½ï¿½
+		// buffSizeï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½logï¿½Ä¼ï¿½ï¿½ä±¸ï¿½Ä»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½Ð¡ï¿½ï¿½Ä¬ï¿½ï¿½ÖµÎª ZQLOG_DEFAULT_BUFFSIZE = 8024(byte)ï¿½ï¿½
+		// flushIntervalï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ëµ½logï¿½Ä¼ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ä¬ï¿½ï¿½ÖµÎª ZQLOG_DEFAULT_FLUSHINTERVAL = 2(s)
+		// eventLogLevelï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½logï¿½Ä¼ï¿½ï¿½ï¿½Ð¡ï¿½Ú»ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½logÒ²ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ëµ½ÏµÍ³ï¿½ï¿½EventLogï¿½Ð£ï¿½Ä¬ï¿½Ï¼ï¿½ï¿½ï¿½Îª ZQLOG_DEFAULT_EVENTLOGLEVEL (Log::L_CRIT = 2)ï¿½ï¿½
+		// appNameï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½ÏµÍ³EventLogï¿½Ðµï¿½ï¿½ï¿½ï¿½ï¿½
+	// Exceptionï¿½ï¿½
+		// ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë£ï¿½ï¿½ï¿½ï¿½×³ï¿½Ò»ï¿½ï¿½FileLogExceptionï¿½ì³£
 	void open(const char* filename, \
 		const int verbosity=L_ERROR, \
 		int logFileNum = ZQLOG_DEFAULT_FILENUM, \
@@ -147,7 +147,7 @@ public:
 
 	virtual ~FileLog();
 
-	// Ç¿ÖÆ½«»º³åÇøÀïµÄÊý¾ÝÐ´ÈëÎÄ¼þ
+	// Ç¿ï¿½Æ½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½Ä¼ï¿½
 	void flush();
 
 	const char* getLogFilePathname() const;
@@ -158,28 +158,28 @@ public:
 	void setLevel(const int& level);
 
 protected: 
-	// ÇåÀí×ÊÔ´
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô´
 	void clear();
 
 	// called by LogThread
 	int run_interval();
 	
-	//Ïò»º³åÇøÐ´ÈëÊý¾Ý
+	//ï¿½ò»º³ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	virtual void writeMessage(const char *msg, int level=-1);
 	virtual void writeMessage(const wchar_t *msg, int level=-1);
 	
-	//Ç¿ÖÆ½«»º³åÇøÊý¾ÝÐ´ÈëlogÎÄ¼þ
+	//Ç¿ï¿½Æ½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½logï¿½Ä¼ï¿½
 	virtual void flushData();
 
 	virtual int		run();
 
-	//ÓëlogÎÄ¼þÏà¹ØµÄ±äÁ¿
+	//ï¿½ï¿½logï¿½Ä¼ï¿½ï¿½ï¿½ØµÄ±ï¿½ï¿½ï¿½
 protected:
-	SysLog		m_SysLog;					//ÏµÍ³ÊÂ¼þlog
-	int			m_nMaxLogfileNum;			//×î¶àlogÎÄ¼þÊýÄ¿
-	int			m_nCurrentFileSize;			//µ±Ç°ÎÄ¼þsize
-	int			m_nMaxFileSize;				//ÎÄ¼þ×î´ósize
-	char		m_FileName[MAX_PATH];		//logÎÄ¼þÃû
+	SysLog		m_SysLog;					//ÏµÍ³ï¿½Â¼ï¿½log
+	int			m_nMaxLogfileNum;			//ï¿½ï¿½ï¿½logï¿½Ä¼ï¿½ï¿½ï¿½Ä¿
+	int			m_nCurrentFileSize;			//ï¿½ï¿½Ç°ï¿½Ä¼ï¿½size
+	int			m_nMaxFileSize;				//ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½size
+	char		m_FileName[MAX_PATH];		//logï¿½Ä¼ï¿½ï¿½ï¿½
 	FileLogNest* _pNest;
 
 private:
@@ -200,7 +200,7 @@ private:
 	void		makeBufferToBeFlush( LogBuffer* buf );
 	bool		getAvailBuffer( );
 
-	//Óëlog»º³åÇøÏà¹ØµÄ±äÁ¿
+	//ï¿½ï¿½logï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ØµÄ±ï¿½ï¿½ï¿½
 protected:
 	void	createDir(const std::string& dirName);
 	void	RenameAndCreateFile();
@@ -218,13 +218,13 @@ typedef void*	BOOSTCOND;
 
 	bool			mbRunning;
 
-	int				m_nFlushInterval;			//¶¨Ê±½«»º³åÇøÖÐµÄÊý¾ÝÐ´ÈëlogÎÄ¼þ
-	uint16			m_currentMonth;				//µ±Ç°ÔÂ·Ý
-	int				m_eventLogLevel;			//Ð´ÈëÏµÍ³EventLogµÄlog¼¶±ð
+	int				m_nFlushInterval;			//ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ðµï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½logï¿½Ä¼ï¿½
+	uint16			m_currentMonth;				//ï¿½ï¿½Ç°ï¿½Â·ï¿½
+	int				m_eventLogLevel;			//Ð´ï¿½ï¿½ÏµÍ³EventLogï¿½ï¿½logï¿½ï¿½ï¿½ï¿½
 	int				m_instIdent;
 
 	static LogThread* m_staticThread;
-	static int		m_lastInstIdent;			// ¼ÇÂ¼ÉÏÒ»¸ölog instanceµÄidentity
+	static int		m_lastInstIdent;			// ï¿½ï¿½Â¼ï¿½ï¿½Ò»ï¿½ï¿½log instanceï¿½ï¿½identity
 	Mutex			m_lockLastInstIdent;
 	int				m_cYield;
     int64 m_stampLastReportedFailure; // the timestamp of last rolling file failure that had been reported to system

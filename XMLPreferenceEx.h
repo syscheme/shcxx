@@ -182,7 +182,8 @@ protected:
 class XMLException : public IOException
 {
 public:
-	XMLException(const std::string &what_arg) throw() : IOException(what_arg) {};
+	XMLException(const std::string &what_arg) // throw()
+	 : IOException(what_arg) {};
 };
 
 } // namespace common

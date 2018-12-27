@@ -304,8 +304,8 @@ protected:
 class UnserializeException : public Exception
 {
 public:
-	UnserializeException(const std::string &what_arg); // throw();
-	virtual ~UnserializeException(); // throw();
+	UnserializeException(const std::string &what_arg); // // throw();
+	virtual ~UnserializeException(); // // throw();
 };
 
 /// -----------------------------

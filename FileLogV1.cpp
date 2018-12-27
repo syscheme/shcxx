@@ -47,12 +47,12 @@ namespace common{
 /// -----------------------------
 /// class FileLogException
 /// -----------------------------
-FileLogException::FileLogException(const std::string &what_arg) throw()
+FileLogException::FileLogException(const std::string &what_arg) // throw()
             :IOException(what_arg)
 {
 }
 
-FileLogException::~FileLogException() throw()
+FileLogException::~FileLogException() // throw()
 {
 }
 
@@ -65,7 +65,7 @@ public:
 	FileLogNest():m_FileStream(NULL){};
 private:
 	friend class FileLog;
-	std::ofstream*	m_FileStream;			//logÎÄ¼þÁ÷
+	std::ofstream*	m_FileStream;			//logï¿½Ä¼ï¿½ï¿½ï¿½
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -361,7 +361,7 @@ FileLog::FileLog()
 	m_semFlush = reinterpret_cast<void*>( new boost::condition_variable());
 	mRunningBuffer = NULL;
 
-	// ´´½¨Êä³öÎÄ¼þÁ÷
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½
 	try
 	{
 		_pNest = new FileLogNest();
@@ -391,7 +391,7 @@ FileLog::FileLog(const char* filename, const int verbosity, int logFileNum, int 
 	m_semFlush = reinterpret_cast<void*>( new boost::condition_variable());
 	mRunningBuffer = NULL;
 
-	// ´´½¨Êä³öÎÄ¼þÁ÷
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½
 	try
 	{
 		_pNest = new FileLogNest();
@@ -406,7 +406,7 @@ FileLog::FileLog(const char* filename, const int verbosity, int logFileNum, int 
 
 FileLog::~FileLog()
 {
-	// ÇåÀí¶ÔÏó
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	clear();
 
 	boost::mutex *pMutex = reinterpret_cast<boost::mutex*>(m_buffMtx);
@@ -420,7 +420,7 @@ FileLog::~FileLog()
 
 void FileLog::clear()
 {
-	// ´Óstatic threadÉÏÃæ×¢Ïú
+	// ï¿½ï¿½static threadï¿½ï¿½ï¿½ï¿½×¢ï¿½ï¿½
 	{
 		MutexGuard lk(m_lockLastInstIdent);
 		if (NULL != m_staticThread)
@@ -434,11 +434,11 @@ void FileLog::clear()
 		}
 	}
 
-	// Ç¿ÖÆÐ´ÎÄ¼þ
+	// Ç¿ï¿½ï¿½Ð´ï¿½Ä¼ï¿½
 	flush();
 	flushData();
 
-	//Ïú»Ù»º³åÇø
+	//ï¿½ï¿½ï¿½Ù»ï¿½ï¿½ï¿½ï¿½ï¿½
 	mbRunning = false;
 	(reinterpret_cast<boost::condition_variable*>(m_semFlush))->notify_all();
 	waitHandle(-1);
@@ -455,7 +455,7 @@ void FileLog::clear()
 		mAvailBuffers.clear();
 	}
 
-	// ¹Ø±ÕÎÄ¼þ
+	// ï¿½Ø±ï¿½ï¿½Ä¼ï¿½
 	if (NULL != _pNest && NULL != _pNest->m_FileStream && true == _pNest->m_FileStream->is_open())
 		_pNest->m_FileStream->close();
 
@@ -470,10 +470,10 @@ void FileLog::clear()
 
 void FileLog::open(const char* filename, const int verbosity, int logFileNum, int fileSize, int buffersize, int flushInterval, int eventLogLevel, const char* appName)
 {
-	// ÉèÖÃlog¼¶±ð
+	// ï¿½ï¿½ï¿½ï¿½logï¿½ï¿½ï¿½ï¿½
 	setVerbosity(verbosity);
 
-	// ÉèÖÃ´ËlogÔÚeventlogÖÐÏÔÊ¾µÄÃû³Æ
+	// ï¿½ï¿½ï¿½Ã´ï¿½logï¿½ï¿½eventlogï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	char mdlName[MAX_PATH];
 	memset(mdlName, 0, sizeof(mdlName));
 
@@ -489,10 +489,10 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 		snprintf(mdlName, sizeof(mdlName) - 1, "%s", appName);
 */
 
-	// ´ò¿ªevent log
+	// ï¿½ï¿½event log
 	m_SysLog.open(appName, eventLogLevel);
 	
-	//ÉèÖÃµ±Ç°ÈÕÆÚ£¬ÒÔ±ã·¢ÏÖÈÕÆÚ¸Ä±ä
+	//ï¿½ï¿½ï¿½Ãµï¿½Ç°ï¿½ï¿½ï¿½Ú£ï¿½ï¿½Ô±ã·¢ï¿½ï¿½ï¿½ï¿½ï¿½Ú¸Ä±ï¿½
 	SYSTEMTIME time;
 	GetLocalTime(&time);
 	m_currentMonth = time.wMonth;
@@ -519,7 +519,7 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 	ptm = localtime(&tmt);
 	m_currentMonth = ptm->tm_mon + 1;//base from 0
 #endif
-	// »ñµÃÎÄ¼þÃû
+	// ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½
 	if (NULL == filename || strlen(filename) == 0)
 	{
 		SYSTEMFILELOG(Log::L_EMERG,"file name is empty!");
@@ -527,7 +527,7 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 	}
 	snprintf(m_FileName, sizeof(m_FileName) - 1, "%s", filename);
 	{
-		// ÈôÀ©Õ¹Ãû²»ÊÇ".log"£¬Ôò¼ÓÉÏ".log"¡£
+		// ï¿½ï¿½ï¿½ï¿½Õ¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½".log"ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½".log"ï¿½ï¿½
 #ifdef ZQ_OS_MSWIN
 		if (stricmp(nRightStr(m_FileName, 4).c_str(), ".log") != 0)
 #else
@@ -540,7 +540,7 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 		}
 	}
 	
-	// ÉèÖÃlogµÄÎÄ¼þ´óÐ¡Îª1MBµÄÕûÊý±¶£¬²¢ÇÒ×îÐ¡ÖµÎª2MB£¬×î´óÖµÎª2000MB
+	// ï¿½ï¿½ï¿½ï¿½logï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½Ð¡Îª1MBï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ÖµÎª2MBï¿½ï¿½ï¿½ï¿½ï¿½ÖµÎª2000MB
 	int nLogSizeIn1MB = fileSize / (1024 * 1024);
 	if (fileSize % (1024 * 1024) != 0)
 		nLogSizeIn1MB += 1;
@@ -554,7 +554,7 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 	}
 	m_nMaxFileSize = nLogSizeIn1MB * 1024 * 1024;
 	
-	m_nMaxLogfileNum = logFileNum;					//ÉèÖÃlogÎÄ¼þµÄÊýÄ¿, Min_FileNum ~ Max_FileNum¸ö
+	m_nMaxLogfileNum = logFileNum;					//ï¿½ï¿½ï¿½ï¿½logï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿, Min_FileNum ~ Max_FileNumï¿½ï¿½
 	if(m_nMaxLogfileNum > Max_FileNum)
 		m_nMaxLogfileNum = Max_FileNum;
 	if (m_nMaxLogfileNum < Min_FileNum)
@@ -566,8 +566,8 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 		flushInterval = 10;
 	m_nFlushInterval = flushInterval;
 
-	m_nCurrentFileSize		= 0;							//ÉèÖÃµ±Ç°µÄlogÎÄ¼þ´óÐ¡
-	m_eventLogLevel = eventLogLevel;						//ÉèÖÃÐ´ÈëÏµÍ³EventLogµÄlog¼¶±ð
+	m_nCurrentFileSize		= 0;							//ï¿½ï¿½ï¿½Ãµï¿½Ç°ï¿½ï¿½logï¿½Ä¼ï¿½ï¿½ï¿½Ð¡
+	m_eventLogLevel = eventLogLevel;						//ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ÏµÍ³EventLogï¿½ï¿½logï¿½ï¿½ï¿½ï¿½
 
 	int buffSizeIn8KB = buffersize / (8 * 1024);
 	if (buffersize % (8 * 1024) != 0)
@@ -580,12 +580,12 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 
 	for( size_t i = 0 ; i < 8; i ++ ) {
 		size_t	m_nMaxBuffSize = buffSizeIn8KB * (8 * 1024);
-		char* m_Buff = new char[m_nMaxBuffSize];					//·ÖÅä»º³åÇø
+		char* m_Buff = new char[m_nMaxBuffSize];					//ï¿½ï¿½ï¿½ä»ºï¿½ï¿½ï¿½ï¿½
 		LogBuffer* buf = new LogBuffer(m_Buff, m_nMaxBuffSize);
 		makeBufferAvail(buf);
 	}
 	
-	// ¸ù¾ÝÎÄ¼þÃû´´½¨ËùÐèµÄdirectory
+	// ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½directory
 	std::string pathName = getPath(m_FileName);	
 	createDir(pathName);
 
@@ -599,7 +599,7 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 
 	if (IsFileExsit(m_FileName, m_nCurrentFileSize))
 	{
-		//Èç¹ûÎÄ¼þÒÑ¾­´æÔÚ£¬´ò¿ªÎÄ¼þ£¬´ËÊ±¸ÃÎÄ¼þ´óÐ¡ÒÑ¾­´æ·ÅÔÚm_nCurrentFileSizeÖÐ		
+		//ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½Ú£ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½Ð¡ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½m_nCurrentFileSizeï¿½ï¿½		
 		_pNest->m_FileStream->open(m_FileName, std::ios::app | std::ios::binary);
 		if(!_pNest->m_FileStream->is_open())
 		{
@@ -612,7 +612,7 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 	}
 	else
 	{
-		//ÎÄ¼þ²»´æÔÚ£¬´´½¨ÎÄ¼þ
+		//ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½
 		_pNest->m_FileStream->open(m_FileName,std::ios::out | std::ios::binary);
 		if(!_pNest->m_FileStream->is_open())
 		{
@@ -627,7 +627,7 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 
 	{
 		MutexGuard lk(m_lockLastInstIdent);
-		// Èç¹ûm_staticThreadÃ»ÓÐ´´½¨£¬´´½¨²¢Æô¶¯Ö®
+		// ï¿½ï¿½ï¿½m_staticThreadÃ»ï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö®
 		if (NULL == m_staticThread)
 		{
 			m_staticThread = new LogThread();
@@ -639,32 +639,32 @@ void FileLog::open(const char* filename, const int verbosity, int logFileNum, in
 			throw FileLogException("alloc static thread failed");
 			}
 		}
-		// ´ËÊ±m_staticThread±ØÐë²»ÎªNULL
+		// ï¿½ï¿½Ê±m_staticThreadï¿½ï¿½ï¿½ë²»ÎªNULL
 		if (NULL == m_staticThread)
 		{
 			SYSTEMFILELOG(Log::L_EMERG,"Create static thread failed");
 			throw FileLogException("Create static thread failed");
 		}
 		m_instIdent = ++ m_lastInstIdent;
-		m_staticThread->addLogInst(this); // Ïòstatic thread×¢²á
+		m_staticThread->addLogInst(this); // ï¿½ï¿½static thread×¢ï¿½ï¿½
 	}
 	mbRunning = true;
 	NativeThread::start();
 }
 
-//Ïòbuffer ÖÐÐ´ÈëÊý¾Ý£¬Òª¶Ôbuffer½øÐÐ¼ÓËø
+//ï¿½ï¿½buffer ï¿½ï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½Ý£ï¿½Òªï¿½ï¿½bufferï¿½ï¿½ï¿½Ð¼ï¿½ï¿½ï¿½
 void FileLog::writeMessage(const char *msg, int level)
 {
-	// DO: ¹¹ÔìmsgÎªÖ¸¶¨µÄ½á¹¹£¬´øÓÐÊ±¼äºÍ»Ø³µ»»ÐÐ·û
+	// DO: ï¿½ï¿½ï¿½ï¿½msgÎªÖ¸ï¿½ï¿½ï¿½Ä½á¹¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½Í»Ø³ï¿½ï¿½ï¿½ï¿½Ð·ï¿½
 	int nMsgSize = strlen(msg);
-	if(nMsgSize == 0)//ÐÅÏ¢³¤¶ÈÎª0Ôò·µ»Ø
+	if(nMsgSize == 0)//ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½Îª0ï¿½ò·µ»ï¿½
 		return;
 
 #ifdef ZQ_OS_MSWIN
 	SYSTEMTIME time;
 	GetLocalTime(&time);
 
-	// Èç¹ûÈÕÆÚ·¢Éú¸Ä±ä
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú·ï¿½ï¿½ï¿½ï¿½Ä±ï¿½
 	if(time.wMonth != m_currentMonth)
 	{
 		m_currentMonth = time.wMonth;
@@ -675,7 +675,7 @@ void FileLog::writeMessage(const char *msg, int level)
 	}
 	char line[ZQLOG_DEFAULT_MAXLINESIZE];
 
-	// ×¢Òâ²»ÄÜ½«"\r\n0"·ÅÔÚsnprintf()ÖÐ£¬Èç¹ûÒªcopyµÄ»º³åÇø¹ý´óµÄ»°£¬"\r\n0"²»»á±»copyµ½logÖÐ¡£
+	// ×¢ï¿½â²»ï¿½Ü½ï¿½"\r\n0"ï¿½ï¿½ï¿½ï¿½snprintf()ï¿½Ð£ï¿½ï¿½ï¿½ï¿½Òªcopyï¿½Ä»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä»ï¿½ï¿½ï¿½"\r\n0"ï¿½ï¿½ï¿½á±»copyï¿½ï¿½logï¿½Ð¡ï¿½
 	int nCount = _snprintf(line,ZQLOG_DEFAULT_MAXLINESIZE-3, "%02d-%02d %02d:%02d:%02d.%03d [ %7s ] %s",
 		           time.wMonth, time.wDay, time.wHour, time.wMinute, time.wSecond, time.wMilliseconds, getVerbosityStr(level), msg);
 #else
@@ -729,7 +729,7 @@ void FileLog::writeMessage(const char *msg, int level)
 
 #endif
 
-	// ÅÐ¶ÏlevelÊÇ·ñÐ¡ÓÚm_eventLogLevel
+	// ï¿½Ð¶ï¿½levelï¿½Ç·ï¿½Ð¡ï¿½ï¿½m_eventLogLevel
 	if (level <= m_eventLogLevel)
 	{
 		SYSTEMFILELOG(level, msg);
@@ -762,7 +762,7 @@ void FileLog::writeMessage(const char *msg, int level)
 		int totalBuffSize = mRunningBuffer->m_nCurrentBuffSize + nLineSize;
 		if(totalBuffSize >= mRunningBuffer->m_nMaxBuffSize)
 		{
-			//Èô»º³åÇø²»ÄÜÈÝÄÉ£¬Ôò½«»º³åÇøÐÅÏ¢flushµ½ÎÄ¼þÀïÃæ
+			//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É£ï¿½ï¿½ò½«»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢flushï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½
 			makeBufferToBeFlush( mRunningBuffer );
 			continue;
 		}
@@ -782,7 +782,7 @@ void FileLog::writeMessage(const wchar_t *msg, int level)
 }
 
 /*
-//ÔÚ½«bufferÖÐµÄÊý¾ÝÐ´ÈëÎÄ¼þÊ±£¬²»ÓÃÔÙ¼ÓËø£¬Ó¦Îª¸Ãº¯ÊýÖ¸»ÓÍ¨¹ýwriteMessageº¯Êýµ÷ÓÃ£¬¶øÔÚwriteMessageÖÐÒÑ¾­¶Ôbuffer½øÐÐ¼ÓËø
+//ï¿½Ú½ï¿½bufferï¿½Ðµï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½Ä¼ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ù¼ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦Îªï¿½Ãºï¿½ï¿½ï¿½Ö¸ï¿½ï¿½Í¨ï¿½ï¿½writeMessageï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã£ï¿½ï¿½ï¿½ï¿½ï¿½writeMessageï¿½ï¿½ï¿½Ñ¾ï¿½ï¿½ï¿½bufferï¿½ï¿½ï¿½Ð¼ï¿½ï¿½ï¿½
 void FileLog::flushData()
 {
 	if (m_nCurrentBuffSize == 0)
@@ -791,7 +791,7 @@ void FileLog::flushData()
 	int totalFileSize = m_nCurrentFileSize + m_nCurrentBuffSize;
 	if (totalFileSize > m_nMaxFileSize)
 	{
-		//Èô´óÓÚÎÄ¼þ×Ü´óÐ¡£¬Ôò´´½¨ÐÂÎÄ¼þ£¬²¢ÐÞ¸ÄÎÄ¼þÃû¡£
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½Ü´ï¿½Ð¡ï¿½ï¿½ï¿½ò´´½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Þ¸ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½
 		RenameAndCreateFile();
 		if (NULL == _pNest->m_FileStream)
 			return;
@@ -803,7 +803,7 @@ void FileLog::flushData()
 	}
 	else
 	{
-		//Èô²»´óÓÚÎÄ¼þµÄmaxsize£¬ÔòÐ´ÈëÎÄ¼þ
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½maxsizeï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½Ä¼ï¿½
 		if( NULL == _pNest->m_FileStream)
 		{
 			SYSTEMFILELOG(Log::L_DEBUG, "The file[%s] has not been opened, reopen", m_FileName);
@@ -842,12 +842,12 @@ void FileLog::flushData()
 
 	std::vector<LogBuffer*>::const_iterator it = buffers.begin();
 	
-	char*			m_Buff;						//»º³åÇøÖ¸Õë
-	int				m_nMaxBuffSize;				//»º³åÇø×î´ósize
-	int				m_nCurrentBuffSize;			//µ±Ç°»º³åÇøsize
+	char*			m_Buff;						//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½
+	int				m_nMaxBuffSize;				//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½size
+	int				m_nCurrentBuffSize;			//ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½size
 
 	for( ; it != buffers.end() ; it ++ ) {
-		//Èô²»´óÓÚÎÄ¼þµÄmaxsize£¬ÔòÐ´ÈëÎÄ¼þ
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½maxsizeï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½Ä¼ï¿½
 		LogBuffer* buf = *it;
 		m_Buff = buf->m_Buff;
 		m_nMaxBuffSize = buf->m_nMaxBuffSize;
@@ -949,27 +949,27 @@ bool FileLog::IsFileExsit(const char* filename,int& retFileSize)
 	HANDLE hHandle;
 	hHandle = ::FindFirstFileA(filename, &finddata);
 
-	//filenameÀïÃæÓÐÍ¨Åä·û*?
+	//filenameï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¨ï¿½ï¿½ï¿½*?
 	if(strstr(filename,"*") != NULL || strstr(filename,"?") != NULL)
 	{
 		throw FileLogException("Invalid file name!");
 		return false;
 	}
 
-	//ÕÒ²»µ½ÎÄ¼þ
+	//ï¿½Ò²ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½
 	if(hHandle == INVALID_HANDLE_VALUE)
 	{
 		return false;
 	}
 
-	//ÕÒµ½µÄÎÄ¼þÎªÎÄ¼þ¼Ð
+	//ï¿½Òµï¿½ï¿½ï¿½ï¿½Ä¼ï¿½Îªï¿½Ä¼ï¿½ï¿½ï¿½
 	if((finddata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE_DIRECTORY)
 	{
 		FindClose(hHandle);
 		return false;
 	}
 
-	//µÃµ½ÎÄ¼þ´óÐ¡
+	//ï¿½Ãµï¿½ï¿½Ä¼ï¿½ï¿½ï¿½Ð¡
 	retFileSize = (finddata.nFileSizeHigh * MAXDWORD + finddata.nFileSizeHigh) + finddata.nFileSizeLow;
 	FindClose(hHandle);
 #else
@@ -1192,17 +1192,17 @@ void FileLog::RenameAndCreateFile()
     }
 
 /*
-	// noExtName: Ã»ÓÐÀ©Õ¹ÃûµÄ´øÓÐÂ·¾¶µÄÎÄ¼þÃû
-	// extName: À©Õ¹Ãû
-	// dirName: Â·¾¶Ãû½áÎ²Ã»ÓÐ"\\"
+	// noExtName: Ã»ï¿½ï¿½ï¿½ï¿½Õ¹ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½
+	// extName: ï¿½ï¿½Õ¹ï¿½ï¿½
+	// dirName: Â·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î²Ã»ï¿½ï¿½"\\"
 	::std::string noExtName, extName, dirName;
 	noExtName = getLeftStr(m_FileName, ".", false);
 	extName = getRightStr(m_FileName, ".", false);
 	dirName = getPath(m_FileName);
 	//                 |       noExtName      | extName |
-	// ¼ÙÉèµ±Ç°ÎÄ¼þÃûÎª"directoryname\filename.extension"
+	// ï¿½ï¿½ï¿½èµ±Ç°ï¿½Ä¼ï¿½ï¿½ï¿½Îª"directoryname\filename.extension"
 	//                 |   dirName   |
-	// DO: directoryname\filename.*.extensionÆ¥ÅäµÄÎÄ¼þÃû
+	// DO: directoryname\filename.*.extensionÆ¥ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½
 	std::vector<std::string> tempArray;
 
 #ifdef ZQ_OS_MSWIN
@@ -1233,7 +1233,7 @@ void FileLog::RenameAndCreateFile()
 	}
 #endif
 
-	// ½«ÎÄ¼þ°´ÐÂÀÏÅÅÐò£¬×î½üµÄ·ÅÔÚÊý×éµÄÇ°Ãæ
+	// ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½
 	std::vector<int> vctInts;
 	vctInts.clear();
 	int i = 0,count = 0;
@@ -1254,7 +1254,7 @@ void FileLog::RenameAndCreateFile()
 		fileArray.push_back(fullName);
 	}
 
-	// É¾³ý¹ýÆÚµÄ±¸·ÝÎÄ¼þ
+	// É¾ï¿½ï¿½ï¿½ï¿½ï¿½ÚµÄ±ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½
 #ifdef ZQ_OS_MSWIN
 	while (int(fileArray.size()) >= m_nMaxLogfileNum)
 	{
@@ -1271,7 +1271,7 @@ void FileLog::RenameAndCreateFile()
 	}
 
 #endif
-	// ¿ªÊ¼rename
+	// ï¿½ï¿½Ê¼rename
 	for (i = fileArray.size() - 1; i >= 0; i --)
 	{
 		char newName[MAX_PATH];
@@ -1281,7 +1281,7 @@ void FileLog::RenameAndCreateFile()
 	}
 */
 
-	// ¹Ø±Õµ±Ç°¶ÁÐ´µÄÎÄ¼þ²¢ÐÞ¸ÄÆäÃû³Æ
+	// ï¿½Ø±Õµï¿½Ç°ï¿½ï¿½Ð´ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½Þ¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	if( NULL != _pNest->m_FileStream && _pNest->m_FileStream->is_open())
 	{
 		_pNest->m_FileStream->close();
@@ -1305,10 +1305,10 @@ void FileLog::RenameAndCreateFile()
 	if(NULL == _pNest->m_FileStream)
 		throw FileLogException("Failed to new a fstream");
 
-	// ´´½¨Ò»¸öÐÂµÄÎÄ¼þ
+	// ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Âµï¿½ï¿½Ä¼ï¿½
 	if (true == bRenameSuccess)
 	{
-		// Ö®Ç°rename¹ý³ÌÃ»ÓÐ´íÎó£¬Ôò´´½¨Ò»¸öÐÂµÄÎÄ¼þ£¬²¢ÖÃµ±Ç°ÎÄ¼þ´óÐ¡Îª0
+		// Ö®Ç°renameï¿½ï¿½ï¿½ï¿½Ã»ï¿½Ð´ï¿½ï¿½ï¿½ï¿½ò´´½ï¿½Ò»ï¿½ï¿½ï¿½Âµï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ãµï¿½Ç°ï¿½Ä¼ï¿½ï¿½ï¿½Ð¡Îª0
 		_pNest->m_FileStream->open(m_FileName, std::ios::out | std::ios::binary);
 		m_nCurrentFileSize = 0;
 	}
@@ -1358,7 +1358,7 @@ void FileLog::setFileSize(const int& fileSize)
 {
 	boost::mutex::scoped_lock lk(*(reinterpret_cast<boost::mutex*>(m_buffMtx)));
 
-	// ÉèÖÃlogµÄÎÄ¼þ´óÐ¡Îª1MBµÄÕûÊý±¶£¬²¢ÇÒ×îÐ¡ÖµÎª2MB£¬×î´óÖµÎª2000MB
+	// ï¿½ï¿½ï¿½ï¿½logï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½Ð¡Îª1MBï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ÖµÎª2MBï¿½ï¿½ï¿½ï¿½ï¿½ÖµÎª2000MB
 	int nLogSizeIn1MB = fileSize / (1024 * 1024);
 	if (fileSize % (1024 * 1024) != 0)
 		nLogSizeIn1MB += 1;
@@ -1377,7 +1377,7 @@ void FileLog::setFileCount(const int& fileCount)
 {
 	boost::mutex::scoped_lock lk(*(reinterpret_cast<boost::mutex*>(m_buffMtx)));
 	
-	m_nMaxLogfileNum = fileCount;					//ÉèÖÃlogÎÄ¼þµÄÊýÄ¿, Min_FileNum ~ Max_FileNum¸ö
+	m_nMaxLogfileNum = fileCount;					//ï¿½ï¿½ï¿½ï¿½logï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿, Min_FileNum ~ Max_FileNumï¿½ï¿½
 	if(m_nMaxLogfileNum > Max_FileNum)
 		m_nMaxLogfileNum = Max_FileNum;
 	if (m_nMaxLogfileNum < Min_FileNum)
@@ -1415,7 +1415,7 @@ void FileLog::setBufferSize(const int& buffSize)
 	int m_nMaxBuffSize = buffSizeIn8KB * (8 * 1024);
 
 	for( size_t i = 0 ; i < 8; i ++ ) {
-		char* m_Buff = new char[m_nMaxBuffSize];					//·ÖÅä»º³åÇø
+		char* m_Buff = new char[m_nMaxBuffSize];					//ï¿½ï¿½ï¿½ä»ºï¿½ï¿½ï¿½ï¿½
 		LogBuffer* buf = new LogBuffer(m_Buff, m_nMaxBuffSize);
 		makeBufferAvail(buf);
 	}

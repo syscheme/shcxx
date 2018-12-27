@@ -25,8 +25,8 @@ namespace common
 class MdbLogError : public ::ZQ::common::IOException
 {
 public: 
-	MdbLogError(const std::string &what_arg) throw();
-	virtual ~MdbLogError() throw();
+	MdbLogError(const std::string &what_arg); // throw();
+	virtual ~MdbLogError(); // throw();
 };
 
 class MdbLog;
@@ -162,7 +162,7 @@ protected:
 	int				m_instIdent;
 
 	static MdbLogThread* m_staticThread;
-	static int		m_lastInstIdent;			// ¼ÇÂ¼ÉÏÒ»¸ölog instanceµÄidentity
+	static int		m_lastInstIdent;			// ï¿½ï¿½Â¼ï¿½ï¿½Ò»ï¿½ï¿½log instanceï¿½ï¿½identity
 	Mutex			m_lockLastInstIdent;
 };
 

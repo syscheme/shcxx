@@ -29,7 +29,7 @@ namespace common {
 class CfgException : public ZQ::common::Exception
 {
 public:
-	CfgException(const std::string& what_arg) throw()
+	CfgException(const std::string& what_arg) // throw()
 		:ZQ::common::Exception(what_arg)
 	{
 	}
@@ -41,7 +41,7 @@ public:
 class NavigationException : public CfgException
 {
 public:
-	NavigationException(const std::string& what_arg) throw()
+	NavigationException(const std::string& what_arg) // throw()
 		:CfgException(what_arg)
 	{
 	}
@@ -53,7 +53,7 @@ public:
 class PreprocessException : public CfgException
 {
 public:
-	PreprocessException(const std::string& what_arg) throw()
+	PreprocessException(const std::string& what_arg) // throw()
 		:CfgException(what_arg)
 	{
 	}

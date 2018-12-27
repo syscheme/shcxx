@@ -91,8 +91,8 @@ private:
 	std::string _what;
 
 public:
-	Exception(const std::string& what_arg) throw();
-	virtual ~Exception() throw();
+	Exception(const std::string& what_arg); // throw();
+	virtual ~Exception(); // throw();
 	virtual const char *getString() const; 
 };
 
@@ -104,8 +104,8 @@ public:
 class IOException : public Exception
 {
 public:
-	IOException(const std::string &what_arg) throw();
-	virtual ~IOException() throw();
+	IOException(const std::string &what_arg); // throw();
+	virtual ~IOException(); // throw();
 };
 
 // -----------------------------

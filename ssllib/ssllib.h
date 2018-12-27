@@ -154,22 +154,17 @@ public:
 	SSLContext(SSLVersion ver = VER_TLSv1);
 	int create(bool isServer = true);
 
-	int loadCertificate(const char* pathname)
-		throw(SSLException);
+	int loadCertificate(const char* pathname); // throw(SSLException);
 
-	int loadCertificateChain(const char* pathname)
-		throw(SSLException);
+	int loadCertificateChain(const char* pathname); // throw(SSLException);
 
-	int loadPrivateKeyFile(const char* pathname, const char* password)
-		throw(SSLException);
+	int loadPrivateKeyFile(const char* pathname, const char* password); // throw(SSLException);
 
-	int loadRootCertificates(const char* pathname)
-		throw(SSLException);
+	int loadRootCertificates(const char* pathname); // throw(SSLException);
 
 	int loadClientCAs(const char* pathname);
 
-	int loadDHParams(const char* path)
-		throw(SSLException);
+	int loadDHParams(const char* path); // throw(SSLException);
 
 	int generateTemporaryRSA(int len = 512);
 
@@ -311,8 +306,7 @@ public:
 	SSLServerSocket(SSLContext& ctx, const char* host, u_short port);
 	~SSLServerSocket();
 
-	int loadDHParams(const char* path)
-		throw(SSLException);
+	int loadDHParams(const char* path); // throw(SSLException);
 
 	int generateTemporaryRSA(int len = 512);
 

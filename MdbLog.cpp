@@ -7,11 +7,12 @@ namespace ZQ
 namespace common
 {
 
-MdbLogError::MdbLogError(const std::string &what_arg) throw() : IOException(what_arg)
+MdbLogError::MdbLogError(const std::string &what_arg) // throw()
+: IOException(what_arg)
 {
 }
 
-MdbLogError::~MdbLogError() throw()
+MdbLogError::~MdbLogError() // throw()
 {
 }
 
@@ -258,7 +259,7 @@ bool MdbLog::internalInit(const char* pDbPath, const char* pDbTemplate,
 	_user = getRightStr(_moduleName, "\\/", false);
 	_pwd = getRightStr(_moduleName, "\\/", false);
 
-	// ÉèÖÃdbµÄÎÄ¼þ´óÐ¡Îª1MBµÄÕûÊý±¶£¬²¢ÇÒ×îÐ¡ÖµÎª2MB£¬×î´óÖµÎª2000MB
+	// ï¿½ï¿½ï¿½ï¿½dbï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½Ð¡Îª1MBï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ÖµÎª2MBï¿½ï¿½ï¿½ï¿½ï¿½ÖµÎª2000MB
 	int nDBSizeInMB = _maxDBSize / (1024 * 1024);
 	if (_maxDBSize % (1024 * 1024) != 0)
 		nDBSizeInMB ++;
@@ -268,7 +269,7 @@ bool MdbLog::internalInit(const char* pDbPath, const char* pDbTemplate,
 		nDBSizeInMB = 2000;
 	_maxDBSize = nDBSizeInMB * 1024 * 1024;
 
-	//ÉèÖÃlogÎÄ¼þµÄÊýÄ¿, Min_FileNum ~ Max_FileNum¸ö
+	//ï¿½ï¿½ï¿½ï¿½logï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿, Min_FileNum ~ Max_FileNumï¿½ï¿½
 	if(_maxDBNum > Max_DBNum)
 		_maxDBNum = Max_DBNum;
 	if (_maxDBNum < Min_DBNum)
@@ -353,7 +354,7 @@ bool MdbLog::internalInit(const char* pDbPath, const char* pDbTemplate,
 
 	{
 		MutexGuard lk(m_lockLastInstIdent);
-		// Èç¹ûm_staticThreadÃ»ÓÐ´´½¨£¬´´½¨²¢Æô¶¯Ö®
+		// ï¿½ï¿½ï¿½m_staticThreadÃ»ï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö®
 		if (NULL == m_staticThread)
 		{
 			m_staticThread = new MdbLogThread();
@@ -366,7 +367,7 @@ bool MdbLog::internalInit(const char* pDbPath, const char* pDbTemplate,
 				return false;
 			}
 		}
-		// ´ËÊ±m_staticThread±ØÐë²»ÎªNULL
+		// ï¿½ï¿½Ê±m_staticThreadï¿½ï¿½ï¿½ë²»ÎªNULL
 		if (NULL == m_staticThread)
 		{
 			_snprintf(errBuff, buffSize - 1, "Create static thread failed");
@@ -374,7 +375,7 @@ bool MdbLog::internalInit(const char* pDbPath, const char* pDbTemplate,
 			return false;
 		}
 		m_instIdent = ++m_lastInstIdent;
-		m_staticThread->addLogInst(this); // Ïòstatic thread×¢²á
+		m_staticThread->addLogInst(this); // ï¿½ï¿½static thread×¢ï¿½ï¿½
 	}
 
 	return true;
@@ -401,7 +402,7 @@ void MdbLog::initialize(const char* pDbPath, const char* pDbTemplate,
 
 void MdbLog::uninitialize()
 {
-	// ´Óstatic threadÉÏÃæ×¢Ïú
+	// ï¿½ï¿½static threadï¿½ï¿½ï¿½ï¿½×¢ï¿½ï¿½
 	if (m_staticThread)
 	{
 		MutexGuard lk(m_lockLastInstIdent);
@@ -435,17 +436,17 @@ void MdbLog::uninitialize()
 
 bool MdbLog::backupDB()
 {
-	// noExtName: Ã»ÓÐÀ©Õ¹ÃûµÄ´øÓÐÂ·¾¶µÄÎÄ¼þÃû
-	// extName: À©Õ¹Ãû
-	// dirName: Â·¾¶Ãû½áÎ²Ã»ÓÐ"\\"
+	// noExtName: Ã»ï¿½ï¿½ï¿½ï¿½Õ¹ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½
+	// extName: ï¿½ï¿½Õ¹ï¿½ï¿½
+	// dirName: Â·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î²Ã»ï¿½ï¿½"\\"
 	::std::string noExtName, extName, dirName;
 	noExtName = getLeftStr(_dbPath, ".", false);
 	extName = getRightStr(_dbPath, ".", false);
 	dirName = getPath(_dbPath);
 	//                 |       noExtName      | extName |
-	// ¼ÙÉèµ±Ç°ÎÄ¼þÃûÎª"directoryname\filename.extension"
+	// ï¿½ï¿½ï¿½èµ±Ç°ï¿½Ä¼ï¿½ï¿½ï¿½Îª"directoryname\filename.extension"
 	//                 |   dirName   |
-	// DO: directoryname\filename.*.extensionÆ¥ÅäµÄÎÄ¼þÃû
+	// DO: directoryname\filename.*.extensionÆ¥ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½
 	::std::vector<::std::string> tempArray;
 	WIN32_FIND_DATAA findData;
 	HANDLE hHandle;
@@ -465,7 +466,7 @@ bool MdbLog::backupDB()
 	}
 	::FindClose(hHandle);
 
-	// ½«ÎÄ¼þ°´ÐÂÀÏÅÅÐò£¬×î½üµÄ·ÅÔÚÊý×éµÄÇ°Ãæ
+	// ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½
 	std::vector<int> vctInts;
 	vctInts.clear();
 	int i =0;
@@ -487,7 +488,7 @@ bool MdbLog::backupDB()
 		fileArray.push_back(fullName);
 	}
 
-	// É¾³ý¹ýÆÚµÄ±¸·ÝÎÄ¼þ
+	// É¾ï¿½ï¿½ï¿½ï¿½ï¿½ÚµÄ±ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½
 	while (fileArray.size() >= _maxDBNum)
 	{
 		if (0 == ::DeleteFileA(fileArray.back().c_str()))
@@ -495,7 +496,7 @@ bool MdbLog::backupDB()
 		fileArray.pop_back();
 	}
 
-	// ¿ªÊ¼rename
+	// ï¿½ï¿½Ê¼rename
 	for (i = fileArray.size() - 1; i >= 0; i --)
 	{
 		char newName[MAX_PATH];

@@ -170,9 +170,10 @@ public:
 class ObjectStoreException : public ZQ::common::Exception
 {
 public:
-	ObjectStoreException(const std::string& what_arg) throw()
+	ObjectStoreException(const std::string& what_arg) // throw()
 		 : Exception(what_arg) {}
-	virtual ~ObjectStoreException() throw() {}
+	virtual ~ObjectStoreException() // throw()
+		{}
 };
 
 // -----------------------------
@@ -181,7 +182,7 @@ public:
 class AlreadyExists : public ObjectStoreException
 {
 public:
-	AlreadyExists(const std::string& what_arg) throw()
+	AlreadyExists(const std::string& what_arg) // throw()
 		 : ObjectStoreException(what_arg) {}
 };
 
@@ -191,7 +192,7 @@ public:
 class NotFound : public ObjectStoreException
 {
 public:
-	NotFound(const std::string& what_arg) throw() 
+	NotFound(const std::string& what_arg) // throw() 
 		: ObjectStoreException(what_arg) {}
 };
 
@@ -201,7 +202,7 @@ public:
 class BadRecord : public ObjectStoreException
 {
 public:
-	BadRecord(const std::string& what_arg) throw() 
+	BadRecord(const std::string& what_arg) // throw() 
 		: ObjectStoreException(what_arg) {}
 };
 

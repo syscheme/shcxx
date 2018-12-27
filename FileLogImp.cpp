@@ -40,12 +40,12 @@ namespace ZQ{
 		/// -----------------------------
 		/// class FileLogException
 		/// -----------------------------
-		FileLogException::FileLogException(const std::string &what_arg) throw()
+		FileLogException::FileLogException(const std::string &what_arg) // throw()
 			:IOException(what_arg)
 		{
 		}
 
-		FileLogException::~FileLogException() throw()
+		FileLogException::~FileLogException() // throw()
 		{
 		}
 
@@ -58,7 +58,7 @@ namespace ZQ{
 			FileLogNest():m_FileStream(NULL){};
 		private:
 			friend class FileLogImp;
-			std::ofstream*	m_FileStream;			//logÎÄ¼þÁ÷
+			std::ofstream*	m_FileStream;			//logï¿½Ä¼ï¿½ï¿½ï¿½
 		};
 
 		//////////////////////////////////////////////////////////////////////////
@@ -352,7 +352,7 @@ namespace ZQ{
 		{
 			memset(m_FileName, 0, sizeof(m_FileName));
 
-			// ´´½¨Êä³öÎÄ¼þÁ÷
+			// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½
 			try
 			{
 				_pNest = new FileLogNest();
@@ -381,7 +381,7 @@ namespace ZQ{
 			memset(m_FileName, 0, sizeof(m_FileName));
 			memset(m_FileNameAppend, 0, sizeof(m_FileNameAppend));
 
-			// ´´½¨Êä³öÎÄ¼þÁ÷
+			// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½
 			try
 			{
 				_pNest = new FileLogNest();
@@ -396,13 +396,13 @@ namespace ZQ{
 
 		FileLogImp::~FileLogImp()
 		{
-			// ÇåÀí¶ÔÏó
+			// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			try {clear();} catch (...) {}
 		}
 
 		void FileLogImp::clear()
 		{
-			// ´Óstatic threadÉÏÃæ×¢Ïú
+			// ï¿½ï¿½static threadï¿½ï¿½ï¿½ï¿½×¢ï¿½ï¿½
 			{
 				MutexGuard lk(m_lockLastInstIdent);
 				if (NULL != m_staticThread)
@@ -416,15 +416,15 @@ namespace ZQ{
 				}
 			}
 
-			// Ç¿ÖÆÐ´ÎÄ¼þ
+			// Ç¿ï¿½ï¿½Ð´ï¿½Ä¼ï¿½
 			flush();
 
-			//Ïú»Ù»º³åÇø
+			//ï¿½ï¿½ï¿½Ù»ï¿½ï¿½ï¿½ï¿½ï¿½
 			if (NULL != m_Buff)
 				delete []m_Buff;
 			m_Buff = NULL;
 
-			// ¹Ø±ÕÎÄ¼þ
+			// ï¿½Ø±ï¿½ï¿½Ä¼ï¿½
 			if (NULL != _pNest && NULL != _pNest->m_FileStream && true == _pNest->m_FileStream->is_open())
 				_pNest->m_FileStream->close();
 
@@ -439,18 +439,18 @@ namespace ZQ{
 
 		void FileLogImp::open(const char* filename, const int verbosity, int logFileNum, int fileSize, int buffersize, int flushInterval, int eventLogLevel, const char* appName)
 		{
-			// ÉèÖÃlog¼¶±ð
+			// ï¿½ï¿½ï¿½ï¿½logï¿½ï¿½ï¿½ï¿½
 			setVerbosity(verbosity);
 
-			// ÉèÖÃ´ËlogÔÚeventlogÖÐÏÔÊ¾µÄÃû³Æ
+			// ï¿½ï¿½ï¿½Ã´ï¿½logï¿½ï¿½eventlogï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			char mdlName[MAX_PATH];
 			memset(mdlName, 0, sizeof(mdlName));
 
 #ifdef ZQ_OS_MSWIN
-			// ´ò¿ªevent log
+			// ï¿½ï¿½event log
 			m_SysLog.open(appName, eventLogLevel);
 
-			//ÉèÖÃµ±Ç°ÈÕÆÚ£¬ÒÔ±ã·¢ÏÖÈÕÆÚ¸Ä±ä
+			//ï¿½ï¿½ï¿½Ãµï¿½Ç°ï¿½ï¿½ï¿½Ú£ï¿½ï¿½Ô±ã·¢ï¿½ï¿½ï¿½ï¿½ï¿½Ú¸Ä±ï¿½
 			SYSTEMTIME time;
 			GetLocalTime(&time);
 			m_currentMonth = time.wMonth;
@@ -481,7 +481,7 @@ namespace ZQ{
 			int nCount = snprintf(m_FileNameAppend, MAX_PATH-3, "%04d-%02d-%02d_%02d-%02d_%02d-%03d",
 				ptm->tm_year + 1900, ptm->tm_mon+1,ptm->tm_mday,ptm->tm_hour,ptm->tm_min,ptm->tm_sec,(int)tv.tv_usec/1000);
 #endif
-			// »ñµÃÎÄ¼þÃû
+			// ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½
 			if (NULL == filename || strlen(filename) == 0)
 			{
 				SYSTEMFILELOG(Log::L_EMERG,"file name is empty!");
@@ -516,7 +516,7 @@ namespace ZQ{
 			snprintf(m_FileName, sizeof(m_FileName) - 1, "%s/%s.%s.%s", 
 				m_FileDir, m_FileShortName, m_FileNameAppend, extname.c_str() );
 
-			// ÉèÖÃlogµÄÎÄ¼þ´óÐ¡Îª1MBµÄÕûÊý±¶£¬²¢ÇÒ×îÐ¡ÖµÎª2MB£¬×î´óÖµÎª2000MB
+			// ï¿½ï¿½ï¿½ï¿½logï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½Ð¡Îª1MBï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ÖµÎª2MBï¿½ï¿½ï¿½ï¿½ï¿½ÖµÎª2000MB
 			int nLogSizeIn1MB = fileSize / (1024 * 1024);
 			if (fileSize % (1024 * 1024) != 0)
 				nLogSizeIn1MB += 1;
@@ -530,7 +530,7 @@ namespace ZQ{
 			}
 			m_nMaxFileSize = nLogSizeIn1MB * 1024 * 1024;
 
-			m_nMaxLogfileNum = logFileNum;					//ÉèÖÃlogÎÄ¼þµÄÊýÄ¿, Min_FileNum ~ Max_FileNum¸ö
+			m_nMaxLogfileNum = logFileNum;					//ï¿½ï¿½ï¿½ï¿½logï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿, Min_FileNum ~ Max_FileNumï¿½ï¿½
 			if(m_nMaxLogfileNum > Max_FileNum)
 				m_nMaxLogfileNum = Max_FileNum;
 			if (m_nMaxLogfileNum < Min_FileNum)
@@ -542,9 +542,9 @@ namespace ZQ{
 				flushInterval = 10;
 			m_nFlushInterval = flushInterval;
 
-			m_nCurrentFileSize		= 0;							//ÉèÖÃµ±Ç°µÄlogÎÄ¼þ´óÐ¡
-			m_nCurrentBuffSize		= 0;							//ÉèÖÃµ±Ç°µÄbuffer size
-			m_eventLogLevel = eventLogLevel;						//ÉèÖÃÐ´ÈëÏµÍ³EventLogµÄlog¼¶±ð
+			m_nCurrentFileSize		= 0;							//ï¿½ï¿½ï¿½Ãµï¿½Ç°ï¿½ï¿½logï¿½Ä¼ï¿½ï¿½ï¿½Ð¡
+			m_nCurrentBuffSize		= 0;							//ï¿½ï¿½ï¿½Ãµï¿½Ç°ï¿½ï¿½buffer size
+			m_eventLogLevel = eventLogLevel;						//ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ÏµÍ³EventLogï¿½ï¿½logï¿½ï¿½ï¿½ï¿½
 
 			int buffSizeIn8KB = buffersize / (8 * 1024);
 			if (buffersize % (8 * 1024) != 0)
@@ -554,10 +554,10 @@ namespace ZQ{
 			if (buffSizeIn8KB > 1024)
 				buffSizeIn8KB = 1024; // 8 MB
 			m_nMaxBuffSize = buffSizeIn8KB * (8 * 1024);
-			m_Buff = new char[m_nMaxBuffSize];					//·ÖÅä»º³åÇø
+			m_Buff = new char[m_nMaxBuffSize];					//ï¿½ï¿½ï¿½ä»ºï¿½ï¿½ï¿½ï¿½
 			memset(m_Buff, 0, m_nMaxBuffSize);
 
-			// ¸ù¾ÝÎÄ¼þÃû´´½¨ËùÐèµÄdirectory
+			// ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½directory
 			createDir(dirname);
 
 			if (NULL == _pNest->m_FileStream)
@@ -582,7 +582,7 @@ namespace ZQ{
 			}
 			if (IsFileExsit(m_FileName, m_nCurrentFileSize))
 			{
-				//Èç¹ûÎÄ¼þÒÑ¾­´æÔÚ£¬´ò¿ªÎÄ¼þ£¬´ËÊ±¸ÃÎÄ¼þ´óÐ¡ÒÑ¾­´æ·ÅÔÚm_nCurrentFileSizeÖÐ		
+				//ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½Ú£ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½Ð¡ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½m_nCurrentFileSizeï¿½ï¿½		
 				_pNest->m_FileStream->open(m_FileName, std::ios::app | std::ios::binary);
 				if(!_pNest->m_FileStream->is_open())
 				{
@@ -595,7 +595,7 @@ namespace ZQ{
 			}
 			else
 			{
-				//ÎÄ¼þ²»´æÔÚ£¬´´½¨ÎÄ¼þ
+				//ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½
 				_pNest->m_FileStream->open(m_FileName,std::ios::out | std::ios::binary);
 				if(!_pNest->m_FileStream->is_open())
 				{
@@ -610,7 +610,7 @@ namespace ZQ{
 
 			{
 				MutexGuard lk(m_lockLastInstIdent);
-				// Èç¹ûm_staticThreadÃ»ÓÐ´´½¨£¬´´½¨²¢Æô¶¯Ö®
+				// ï¿½ï¿½ï¿½m_staticThreadÃ»ï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö®
 				if (NULL == m_staticThread)
 				{
 					m_staticThread = new LogThread();
@@ -622,30 +622,30 @@ namespace ZQ{
 						throw FileLogException("alloc static thread failed");
 					}
 				}
-				// ´ËÊ±m_staticThread±ØÐë²»ÎªNULL
+				// ï¿½ï¿½Ê±m_staticThreadï¿½ï¿½ï¿½ë²»ÎªNULL
 				if (NULL == m_staticThread)
 				{
 					SYSTEMFILELOG(Log::L_EMERG,"Create static thread failed");
 					throw FileLogException("Create static thread failed");
 				}
 				m_instIdent = ++ m_lastInstIdent;
-				m_staticThread->addLogInst(this); // Ïòstatic thread×¢²á
+				m_staticThread->addLogInst(this); // ï¿½ï¿½static thread×¢ï¿½ï¿½
 			}
 		}
 
-		//Ïòbuffer ÖÐÐ´ÈëÊý¾Ý£¬Òª¶Ôbuffer½øÐÐ¼ÓËø
+		//ï¿½ï¿½buffer ï¿½ï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½Ý£ï¿½Òªï¿½ï¿½bufferï¿½ï¿½ï¿½Ð¼ï¿½ï¿½ï¿½
 		void FileLogImp::writeMessage(const char *msg, int level)
 		{
-			// DO: ¹¹ÔìmsgÎªÖ¸¶¨µÄ½á¹¹£¬´øÓÐÊ±¼äºÍ»Ø³µ»»ÐÐ·û
+			// DO: ï¿½ï¿½ï¿½ï¿½msgÎªÖ¸ï¿½ï¿½ï¿½Ä½á¹¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½Í»Ø³ï¿½ï¿½ï¿½ï¿½Ð·ï¿½
 			int nMsgSize = strlen(msg);
-			if(nMsgSize == 0)//ÐÅÏ¢³¤¶ÈÎª0Ôò·µ»Ø
+			if(nMsgSize == 0)//ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½Îª0ï¿½ò·µ»ï¿½
 				return;
 
 #ifdef ZQ_OS_MSWIN
 			SYSTEMTIME time;
 			GetLocalTime(&time);
 
-			// Èç¹ûÈÕÆÚ·¢Éú¸Ä±ä
+			// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú·ï¿½ï¿½ï¿½ï¿½Ä±ï¿½
 			if(time.wMonth != m_currentMonth)
 			{
 				m_currentMonth = time.wMonth;
@@ -657,7 +657,7 @@ namespace ZQ{
 			}
 			char line[ZQLOG_DEFAULT_MAXLINESIZE];
 
-			// ×¢Òâ²»ÄÜ½«"\r\n0"·ÅÔÚsnprintf()ÖÐ£¬Èç¹ûÒªcopyµÄ»º³åÇø¹ý´óµÄ»°£¬"\r\n0"²»»á±»copyµ½logÖÐ¡£
+			// ×¢ï¿½â²»ï¿½Ü½ï¿½"\r\n0"ï¿½ï¿½ï¿½ï¿½snprintf()ï¿½Ð£ï¿½ï¿½ï¿½ï¿½Òªcopyï¿½Ä»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä»ï¿½ï¿½ï¿½"\r\n0"ï¿½ï¿½ï¿½á±»copyï¿½ï¿½logï¿½Ð¡ï¿½
 			int nCount = _snprintf(line,ZQLOG_DEFAULT_MAXLINESIZE-3, "%02d-%02d %02d:%02d:%02d.%03d [ %7s ] %s",
 				time.wMonth, time.wDay, time.wHour, time.wMinute, time.wSecond, time.wMilliseconds, getVerbosityStr(level), msg);
 #else
@@ -712,7 +712,7 @@ namespace ZQ{
 
 #endif
 
-			// ÅÐ¶ÏlevelÊÇ·ñÐ¡ÓÚm_eventLogLevel
+			// ï¿½Ð¶ï¿½levelï¿½Ç·ï¿½Ð¡ï¿½ï¿½m_eventLogLevel
 			if (level <= m_eventLogLevel)
 			{
 				SYSTEMFILELOG(level, msg);
@@ -735,7 +735,7 @@ namespace ZQ{
 				int totalBuffSize = m_nCurrentBuffSize + nLineSize;
 				if(totalBuffSize > m_nMaxBuffSize)
 				{
-					//Èô»º³åÇø²»ÄÜÈÝÄÉ£¬Ôò½«»º³åÇøÐÅÏ¢flushµ½ÎÄ¼þÀïÃæ
+					//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É£ï¿½ï¿½ò½«»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢flushï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½
 					flushData();
 					memcpy(m_Buff, line, nLineSize);
 					m_nCurrentBuffSize = nLineSize;
@@ -762,7 +762,7 @@ namespace ZQ{
 			if (m_nCurrentBuffSize == 0)
 				return; // no need to flush buffer data
 
-			//Èô²»´óÓÚÎÄ¼þµÄmaxsize£¬ÔòÐ´ÈëÎÄ¼þ
+			//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½maxsizeï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½Ä¼ï¿½
 			if( NULL == _pNest->m_FileStream)
 			{
 				SYSTEMFILELOG(Log::L_DEBUG, "opening logfile[%s]", m_FileName);
@@ -808,27 +808,27 @@ namespace ZQ{
 			HANDLE hHandle;
 			hHandle = ::FindFirstFileA(filename, &finddata);
 
-			//filenameÀïÃæÓÐÍ¨Åä·û*?
+			//filenameï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¨ï¿½ï¿½ï¿½*?
 			if(strstr(filename,"*") != NULL || strstr(filename,"?") != NULL)
 			{
 				throw FileLogException("Invalid file name!");
 				return false;
 			}
 
-			//ÕÒ²»µ½ÎÄ¼þ
+			//ï¿½Ò²ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½
 			if(hHandle == INVALID_HANDLE_VALUE)
 			{
 				return false;
 			}
 
-			//ÕÒµ½µÄÎÄ¼þÎªÎÄ¼þ¼Ð
+			//ï¿½Òµï¿½ï¿½ï¿½ï¿½Ä¼ï¿½Îªï¿½Ä¼ï¿½ï¿½ï¿½
 			if((finddata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE_DIRECTORY)
 			{
 				FindClose(hHandle);
 				return false;
 			}
 
-			//µÃµ½ÎÄ¼þ´óÐ¡
+			//ï¿½Ãµï¿½ï¿½Ä¼ï¿½ï¿½ï¿½Ð¡
 			retFileSize = (finddata.nFileSizeHigh * MAXDWORD + finddata.nFileSizeHigh) + finddata.nFileSizeLow;
 			FindClose(hHandle);
 #else
@@ -934,7 +934,7 @@ namespace ZQ{
 #ifdef ZQ_OS_MSWIN
 			SYSTEMTIME time;
 			GetLocalTime(&time);
-			m_currentMonth = time.wMonth;//ÉèÖÃµ±Ç°ÈÕÆÚ£¬ÒÔ±ã·¢ÏÖÈÕÆÚ¸Ä±ä
+			m_currentMonth = time.wMonth;//ï¿½ï¿½ï¿½Ãµï¿½Ç°ï¿½ï¿½ï¿½Ú£ï¿½ï¿½Ô±ã·¢ï¿½ï¿½ï¿½ï¿½ï¿½Ú¸Ä±ï¿½
 			int nCount = _snprintf(m_FileNameAppend, MAX_PATH-3, "%04d-%02d-%02d_%02d-%02d_%02d-%03d",
 				time.wYear, time.wMonth, time.wDay, time.wHour, time.wMinute, time.wSecond, time.wMilliseconds);
 #else
@@ -950,7 +950,7 @@ namespace ZQ{
 				ptm->tm_year + 1900, ptm->tm_mon + 1,ptm->tm_mday,ptm->tm_hour,ptm->tm_min,ptm->tm_sec,(int)tv.tv_usec/1000);
 #endif
 			if( NULL != _pNest->m_FileStream && _pNest->m_FileStream->is_open())
-			{// ¹Ø±Õµ±Ç°¶ÁÐ´µÄÎÄ¼þ
+			{// ï¿½Ø±Õµï¿½Ç°ï¿½ï¿½Ð´ï¿½ï¿½ï¿½Ä¼ï¿½
 				_pNest->m_FileStream->close();
 				delete _pNest->m_FileStream;
 				_pNest->m_FileStream = NULL;
@@ -963,7 +963,7 @@ namespace ZQ{
 				throw FileLogException("Failed to new a fstream");
 
 			snprintf(m_FileName, sizeof(m_FileName)-1, "%s/%s.%s.log", m_FileDir, m_FileShortName, m_FileNameAppend);
-			_pNest->m_FileStream->open(m_FileName, std::ios::out | std::ios::binary);// ´´½¨Ò»¸öÐÂµÄÎÄ¼þ£¬²¢ÖÃÎÄ¼þ´óÐ¡Îª0
+			_pNest->m_FileStream->open(m_FileName, std::ios::out | std::ios::binary);// ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Âµï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½Ð¡Îª0
 			m_nCurrentFileSize = 0;
 			if(!_pNest->m_FileStream->is_open())
 			{	
@@ -1003,7 +1003,7 @@ namespace ZQ{
 		{
 			MutexGuard lk(m_buffMtx);
 
-			// ÉèÖÃlogµÄÎÄ¼þ´óÐ¡Îª1MBµÄÕûÊý±¶£¬²¢ÇÒ×îÐ¡ÖµÎª2MB£¬×î´óÖµÎª2000MB
+			// ï¿½ï¿½ï¿½ï¿½logï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½Ð¡Îª1MBï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ÖµÎª2MBï¿½ï¿½ï¿½ï¿½ï¿½ÖµÎª2000MB
 			int nLogSizeIn1MB = fileSize / (1024 * 1024);
 			if (fileSize % (1024 * 1024) != 0)
 				nLogSizeIn1MB += 1;
@@ -1022,7 +1022,7 @@ namespace ZQ{
 		{
 			MutexGuard lk(m_buffMtx);
 
-			m_nMaxLogfileNum = fileCount;					//ÉèÖÃlogÎÄ¼þµÄÊýÄ¿, Min_FileNum ~ Max_FileNum¸ö
+			m_nMaxLogfileNum = fileCount;					//ï¿½ï¿½ï¿½ï¿½logï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿, Min_FileNum ~ Max_FileNumï¿½ï¿½
 			if(m_nMaxLogfileNum > Max_FileNum)
 				m_nMaxLogfileNum = Max_FileNum;
 			if (m_nMaxLogfileNum < Min_FileNum)
@@ -1035,7 +1035,7 @@ namespace ZQ{
 
 			flushData();
 
-			//Ïú»Ù»º³åÇø
+			//ï¿½ï¿½ï¿½Ù»ï¿½ï¿½ï¿½ï¿½ï¿½
 			if (NULL != m_Buff)
 				delete []m_Buff;
 			m_Buff = NULL;
@@ -1048,7 +1048,7 @@ namespace ZQ{
 			if (buffSizeIn8KB > 1024)
 				buffSizeIn8KB = 1024; // 8 MB
 			m_nMaxBuffSize = buffSizeIn8KB * (8 * 1024);
-			m_Buff = new char[m_nMaxBuffSize];					//·ÖÅä»º³åÇø
+			m_Buff = new char[m_nMaxBuffSize];					//ï¿½ï¿½ï¿½ä»ºï¿½ï¿½ï¿½ï¿½
 			memset(m_Buff, 0, m_nMaxBuffSize);
 		}
 

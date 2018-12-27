@@ -80,7 +80,7 @@ class VException : public std::exception
 
         /** destroys the exception object
          */
-        ~VException() throw();
+        ~VException(); // throw();
 
         /** Returns the predefined name of the exception
          */

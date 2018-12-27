@@ -97,7 +97,7 @@ VariantException::VariantException(const std::string &what_arg) // throw()
 {
 }
 
-VariantException::~VariantException() throw()
+VariantException::~VariantException() // throw()
 {
 }
 

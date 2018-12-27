@@ -18,7 +18,7 @@ void throwf(const char *fmt, ...) PRINTFLIKE(1, 2);
 class FormattingException: public ZQ::common::Exception
 {
 public:
-    FormattingException(const std::string& what_arg) throw()
+    FormattingException(const std::string& what_arg) // throw()
         :ZQ::common::Exception(what_arg)
     {
     }
@@ -28,7 +28,7 @@ public:
 /// format a piece or text with $VAR embedded
 /// throw FormattingException on failure
 ///
-std::string format(const std::string& fmt, const Properties& parameters) throw(FormattingException);
+std::string format(const std::string& fmt, const Properties& parameters); // throw(FormattingException);
 
 ///////////////////////////////////////////////////
 /// trim function

@@ -388,7 +388,7 @@ int SSLContext::create(bool isServer /* = true */)
 }
 
 int SSLContext::loadCertificateChain(const char* pathname)
-	throw(SSLException)
+	// throw(SSLException)
 {
 	int result;
 	assert(_ctx != NULL);
@@ -402,7 +402,7 @@ int SSLContext::loadCertificateChain(const char* pathname)
 }
 
 int SSLContext::loadCertificate(const char* pathname)
-	throw(SSLException)
+	// throw(SSLException)
 {
 	int result;
 	assert(_ctx != NULL);
@@ -417,7 +417,7 @@ int SSLContext::loadCertificate(const char* pathname)
 
 
 int SSLContext::loadPrivateKeyFile(const char* pathname, const char* password)
-	throw(SSLException)
+	// throw(SSLException)
 {
 	int result;
 	assert(_ctx != NULL);
@@ -432,7 +432,7 @@ int SSLContext::loadPrivateKeyFile(const char* pathname, const char* password)
 }
 
 int SSLContext::loadRootCertificates(const char* pathname)
-	throw(SSLException)
+	// throw(SSLException)
 {
 	int result;
 	assert(_ctx != NULL);
@@ -458,7 +458,7 @@ int SSLContext::loadClientCAs(const char* pathname)
 }
 
 int SSLContext::loadDHParams(const char* path)
-	throw(SSLException)
+	// throw(SSLException)
 {
 	DH* ret = NULL;
     BIO* bio;
@@ -1219,7 +1219,7 @@ bool SSLSocket::checkCertificate(const CertChain& certs)
 
 //////////////////////////////////////////////////////////////////////////
 int SSLServerSocket::loadDHParams(const char* path)
-	throw(SSLException)
+	// throw(SSLException)
 {
 	DH* ret = NULL;
     BIO* bio;

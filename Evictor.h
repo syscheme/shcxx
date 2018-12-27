@@ -53,10 +53,10 @@ class ZQ_COMMON_API Evictor;
 class EvictorException : public Exception
 {
 public:
-	EvictorException(int code, const std::string &what_arg) throw()
+	EvictorException(int code, const std::string &what_arg) // throw()
 		:Exception(what_arg), _code(code) {}
 
-	virtual ~EvictorException() throw() {}
+	virtual ~EvictorException() {} // throw() {}
 
 protected:
 	int _code;

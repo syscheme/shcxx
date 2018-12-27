@@ -57,12 +57,12 @@ namespace common {
 /// -----------------------------
 /// class Exception
 /// -----------------------------
-Exception::Exception(const std::string& what_arg) throw()
+Exception::Exception(const std::string& what_arg) // throw()
           : _what(what_arg) 
 {
 }
 
-Exception::~Exception() throw()
+Exception::~Exception() // throw()
 {
 }
 
@@ -74,12 +74,12 @@ const char* Exception::getString() const
 /// -----------------------------
 /// class IOException
 /// -----------------------------
-IOException::IOException(const std::string &what_arg) throw()
+IOException::IOException(const std::string &what_arg) // throw()
             :Exception(what_arg)
 {
 }
 
-IOException::~IOException() throw()
+IOException::~IOException() // throw()
 {
 }
 

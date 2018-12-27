@@ -11,6 +11,9 @@ namespace eloop {
 #define MAX_CSEQ    0x0fffffff
 #define MAX_BUFS_PER_SEND  (10)
 
+#define WatchDog_MIN_STEP          (200) // 200msec
+#define WatchDog_MAX_STEP          (WatchDog_MIN_STEP *20) // 4sec
+
 //-------------------------------------
 //	class InterruptibleLoop
 //-------------------------------------
@@ -575,4 +578,4 @@ TCPConnection* TCPServer::findConn( const std::string& connId)
 //	onStart(loop);
 //}
 
-} }//namespace ZQ::eloop
+} } //namespace ZQ::eloop
