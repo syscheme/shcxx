@@ -15,7 +15,7 @@ void throwf(const char *fmt, ...)
     throw ExceptionT(msg);
 }
 
-std::string format(const std::string& fmt, const std::map<std::string, std::string>& parameters) throw (FormattingException)
+std::string format(const std::string& fmt, const std::map<std::string, std::string>& parameters) // throw (FormattingException)
 {
     std::string param; // the current param that need to be interpret
     param.reserve(100); // the parameter shouldn't very long
