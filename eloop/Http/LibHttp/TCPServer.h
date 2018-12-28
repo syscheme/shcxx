@@ -41,8 +41,6 @@ namespace eloop {
 class ZQ_ELOOP_HTTP_API TCPServer;
 class ZQ_ELOOP_HTTP_API TCPConnection;
 class ZQ_ELOOP_HTTP_API InterruptibleLoop;
-class ZQ_ELOOP_HTTP_API ServiceSocket;
-class ZQ_ELOOP_HTTP_API TCPSvcLoop;
 
 #define LOOP_HEARTBEAT_MIN      (200)   // 200msec
 #define LOOP_HEARTBEAT_DEFAULT  (500)   // 500msec

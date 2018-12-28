@@ -582,7 +582,6 @@ void TCPServer::OnPing(bool isHeartbeat)
 {
 }
 
-
 //void TCPServer::signal()
 //{
 //	_sysWakeUp.signal();
