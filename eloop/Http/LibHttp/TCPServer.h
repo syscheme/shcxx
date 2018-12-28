@@ -223,19 +223,19 @@ public:
 	{
 		ServerConfig()
 		{
-			serverName		= "Eloop TCP Server";
-			host			= "127.0.0.1";
-			port			= 8888;
-			procTimeout				= 5000;
-			maxPendings				= 1000;
-			keepalive_timeout		= -1;		//ms
-			keepAliveIdleMin		= 5 * 60 * 1000;
-			keepAliveIdleMax		= 10 * 60 *1000;
-			maxConns 				= 100 * 1000;
-			mode					= DEFAULT_MODE;
-			threadCount				= 4;
-			cpuIds					="1";
-			watchDogInterval		= 500;		//ms;
+			serverName		   = "eloop::TCPServer";
+			host			   = "127.0.0.1";
+			port			   = 8888;
+			procTimeout		   = 5000;
+			maxPendings		   = 1000;
+			keepalive_timeout  = -1;		//ms
+			keepAliveIdleMin   = 5 * 60 * 1000;
+			keepAliveIdleMax   = 10 * 60 *1000;
+			maxConns           = 100 * 1000;
+			mode			   = DEFAULT_MODE;
+			threadCount		   = 4;
+			cpuIds			   ="1";
+			watchDogInterval   = 500;		//ms;
 		}
 
 		std::string cpuIds;
@@ -254,20 +254,14 @@ public:
 	};
 
 public:
-	TCPServer(const ServerConfig& conf, ZQ::common::Log& logger)
-	: _config(conf), _logger(logger), _soService(NULL) // ,_isStart(false),_isOnStart(false)
-	{
-#ifdef ZQ_OS_LINUX
-		//Ignore SIGPIPE signal
-		::signal(SIGPIPE, SIG_IGN);
-#endif
-	}
+	TCPServer(const ServerConfig& conf, ZQ::common::Log& logger);
+	virtual ~TCPServer() { stop(); }
 
 	virtual bool start();
 	virtual bool stop();
 
 	// impl of IPing
-	virtual std::string ident();
+	virtual std::string ident() { return _ident; }
 	virtual void OnPing(bool isHeartbeat);
 
 	// virtual bool onStart(ZQ::eloop::Loop& loop) { return true; }
@@ -285,6 +279,7 @@ public:
 
 	ServerConfig		_config;
 	ZQ::common::Log&	_logger;
+	std::string         _ident;
 
 private:
 

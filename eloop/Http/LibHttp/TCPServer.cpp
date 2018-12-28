@@ -445,6 +445,19 @@ public:
 // ---------------------------------------
 // class TCPServer
 // ---------------------------------------
+TCPServer::TCPServer(const ServerConfig& conf, ZQ::common::Log& logger)
+: _config(conf), _logger(logger), _soService(NULL) // ,_isStart(false),_isOnStart(false)
+{
+#ifdef ZQ_OS_LINUX
+	//Ignore SIGPIPE signal
+	::signal(SIGPIPE, SIG_IGN);
+#endif
+
+	char tmp[60];
+	snprintf(tmp, sizeof(tmp), "%s:%d", _config.host.c_str(), _config.port);
+	_ident = tmp;
+}
+
 bool TCPServer::start()
 {
 	if (NULL != _soService)
@@ -505,6 +518,10 @@ bool TCPServer::start()
 		return false;
 	}
 
+	char tmp[60];
+	snprintf(tmp, sizeof(tmp), "%s:%d", _config.host.c_str(), _config.port);
+	_ident = tmp;
+
 	_logger(ZQ::common::Log::L_INFO, CLOGFMT(TCPServer, "start serving[%s :%d]"), _config.host.c_str(), _config.port);
 	return true;
 }
@@ -559,6 +576,12 @@ TCPConnection* TCPServer::findConn( const std::string& connId)
 		return it->second;
 	return NULL;
 }
+
+// impl of IPing
+void TCPServer::OnPing(bool isHeartbeat)
+{
+}
+
 
 //void TCPServer::signal()
 //{
