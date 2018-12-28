@@ -15,6 +15,8 @@ class ZQ_ELOOP_API UnixSocket;
 #define FLG_TRACE               FLAG(0)
 #define FLG_INFO                FLAG(1)
 
+class ZQ_ELOOP_API Waker;
+
 // -----------------------------
 // class UnixSocket
 // -----------------------------

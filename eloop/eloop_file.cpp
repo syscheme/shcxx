@@ -306,7 +306,7 @@ int Pipe::sendfd(const eloop_buf_t bufs[],unsigned int nbufs,int fd)
 int Pipe::acceptfd()
 {
 	CALL_ASSERT(-1);
-	return uv_acceptfd(UVTYPED_HANDLE(uv_pipe_t));
+	return uv_acceptfd((uv_stream_t*)(UVTYPED_HANDLE(uv_pipe_t)));
 	//uv_pipe_t* pipe = (uv_pipe_t *)context_ptr();
 	//return uv_acceptfd((uv_stream_t*)pipe);
 }

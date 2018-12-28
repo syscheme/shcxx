@@ -133,17 +133,18 @@ Handle::ElpeError Handle::uvErr2ElpeErr(int errCode)
 	return elpuUnKnown;
 }
 
-//static int64 usStampNow()
-//{
-//#ifdef ZQ_OS_LINUX
+/*
+static int64 usStampNow()
+{
+#ifdef ZQ_OS_LINUX
 
-//	struct timeval tv;
-//	gettimeofday(&tv, NULL);
-//	return tv.tv_sec*1000*1000 + tv.tv_usec;
-//#else
-//	return 0;
-//#endif
-//}
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	return tv.tv_sec*1000*1000 + tv.tv_usec;
+#else
+	return 0;
+#endif
+}*/
 
 // -----------------------------
 // class Handle

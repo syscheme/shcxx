@@ -303,9 +303,10 @@ protected: // redirect from UnixSocket
 protected: // impl of ZQ::eloop::Timer
 	void OnTimer() { poll(); }
 
-private:
+protected:
 	ZQ::common::LogWrapper _log;
 
+private:
 	void _doDisconnect();
 
 	std::string		_localPipeName;

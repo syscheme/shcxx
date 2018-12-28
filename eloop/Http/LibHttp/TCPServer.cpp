@@ -18,7 +18,7 @@ namespace eloop {
 //	class InterruptibleLoop
 //-------------------------------------
 InterruptibleLoop::InterruptibleLoop(int msHeartbeat, int cpuId)
-	: Loop(false), Interruptor(*this), _heartbeat(*this),
+	: Loop(false), Interruptor(*((Loop*)this)), _heartbeat(*this),
 	_bQuit(false), _cpuId(cpuId), _msHeartbeat(msHeartbeat)
 {
 	if (_cpuId >=0)
@@ -420,7 +420,7 @@ public:
 		TCPConnection* client = NULL;
 		{
 			ZQ::common::MutexGuard g(_server._connCountLock);
-			if (_server._thrdLoops.size()<=0)
+			if (_server._thrdLoops.size() <= 0)
 				return;
 
 			_server._idxLoop = ++_server._idxLoop % _server._thrdLoops.size();
