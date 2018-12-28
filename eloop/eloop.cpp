@@ -423,11 +423,18 @@ void Loop::walk(void *arg)
 // -----------------------------
 // class IterationBlocker
 // -----------------------------
-void IterationBlocker::init()
+IterationBlocker::IterationBlocker(Loop& loop) 
+	:Handle(loop)
 {
 	CALL_ASSERTV();
 	uv_idle_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_idle_t));
 }
+
+//void IterationBlocker::init()
+//{
+//	CALL_ASSERTV();
+//	uv_idle_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_idle_t));
+//}
 
 void IterationBlocker::_cbOnIdle(uv_idle_t* uvhandle)
 {
@@ -457,15 +464,22 @@ void Timer::_cbOnTimer(uv_timer_t *uvhandle)
 	CALLBACK_CTX(Timer, OnTimer, ());
 }
 
-void Timer::init()
+Timer::Timer(Loop& loop) 
+	:Handle(loop) 
 {
 	CALL_ASSERTV();
 	uv_timer_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_timer_t));
-
-	//this->Handle::init(loop);
-	//uv_timer_t * timer = (uv_timer_t *)context_ptr();
-	//return uv_timer_init(loop.context_ptr(), timer);
 }
+
+//void Timer::init()
+//{
+//	CALL_ASSERTV();
+//	uv_timer_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_timer_t));
+//
+//	//this->Handle::init(loop);
+//	//uv_timer_t * timer = (uv_timer_t *)context_ptr();
+//	//return uv_timer_init(loop.context_ptr(), timer);
+//}
 
 int Timer::start(uint64_t timeout, bool bRepeat)
 {
@@ -515,15 +529,22 @@ void Interruptor::_cbAsync(uv_async_t *uvhandle)
 	//	h->OnWakedUp();
 }
 
-void Interruptor::init()
+Interruptor::Interruptor(Loop& loop)
+	:Handle(loop) 
 {
 	CALL_ASSERTV();
 	uv_async_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_async_t), _cbAsync);
-
-	//this->Handle::init(loop);
-	//uv_async_t * async = (uv_async_t *)context_ptr();
-	//return uv_async_init(loop.context_ptr(), async, _cbAsync);
 }
+
+//void Interruptor::init()
+//{
+//	CALL_ASSERTV();
+//	uv_async_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_async_t), _cbAsync);
+//
+//	//this->Handle::init(loop);
+//	//uv_async_t * async = (uv_async_t *)context_ptr();
+//	//return uv_async_init(loop.context_ptr(), async, _cbAsync);
+//}
 
 int Interruptor::wakeup()
 {
@@ -547,14 +568,21 @@ void SysSignalSink::_cbSignal(uv_signal_t *uvhandle, int signum)
 	//}
 }
 
-void SysSignalSink::init()
+SysSignalSink::SysSignalSink(Loop& loop)
+	:Handle(loop) 
 {
 	CALL_ASSERTV();
 	uv_signal_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_signal_t));
-	//this->Handle::init(loop);
-	//uv_signal_t* signal = (uv_signal_t *)context_ptr();
-	//return uv_signal_init(loop.context_ptr(), signal);
 }
+
+//void SysSignalSink::init()
+//{
+//	CALL_ASSERTV();
+//	uv_signal_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_signal_t));
+//	//this->Handle::init(loop);
+//	//uv_signal_t* signal = (uv_signal_t *)context_ptr();
+//	//return uv_signal_init(loop.context_ptr(), signal);
+//}
 
 int SysSignalSink::subscribe(int signum)
 {

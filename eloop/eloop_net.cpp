@@ -318,17 +318,26 @@ delete req;
 // -----------------------------
 // class TCP
 // -----------------------------
-void TCP::init()
+TCP::TCP(Loop& loop, int initFlags)
+	:AbstractStream(loop), _initFlags(initFlags)
 {
 	CALL_ASSERTV();
 	if (0 ==_initFlags)
 		uv_tcp_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_tcp_t));
 	else uv_tcp_init_ex(_loop.context_ptr(), UVTYPED_HANDLE(uv_tcp_t), _initFlags);
-
-	//this->Handle::init(loop);
-	//uv_tcp_t* tcp = (uv_tcp_t *)context_ptr();
-	//return uv_tcp_init(loop.context_ptr(), tcp);
 }
+
+//void TCP::init()
+//{
+//	CALL_ASSERTV();
+//	if (0 ==_initFlags)
+//		uv_tcp_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_tcp_t));
+//	else uv_tcp_init_ex(_loop.context_ptr(), UVTYPED_HANDLE(uv_tcp_t), _initFlags);
+//
+//	//this->Handle::init(loop);
+//	//uv_tcp_t* tcp = (uv_tcp_t *)context_ptr();
+//	//return uv_tcp_init(loop.context_ptr(), tcp);
+//}
 //
 //int TCP::init_ex(Loop &loop, int flags) {
 //	this->Handle::init(loop);
@@ -496,6 +505,19 @@ int TCP::set_recv_buf_size(int* value)
 // -----------------------------
 // class UDP
 // -----------------------------
+UDP::UDP(Loop& loop, int initFlags)
+	:Handle(loop), _initFlags(initFlags)
+{ 
+	_buf.base =NULL;
+	_buf.len =0; 
+
+	//about init
+	CALL_ASSERTV();
+	if (0 ==_initFlags)
+		uv_udp_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_udp_t));
+	else uv_udp_init_ex(_loop.context_ptr(), UVTYPED_HANDLE(uv_udp_t), _initFlags);
+}
+
 UDP::~UDP()
 {
 	if (_buf.base != NULL)

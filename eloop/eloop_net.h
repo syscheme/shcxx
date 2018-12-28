@@ -51,7 +51,7 @@ class AbstractStream : public Handle
 	friend class Process;
 protected:
 	AbstractStream(Loop& loop): Handle(loop), _byteSeen(0) { _recvBuf.base = NULL, _recvBuf.len=0; }
-	virtual void init() =0;
+	//virtual void init() =0;
 
 public:
 	virtual ~AbstractStream();
@@ -111,7 +111,7 @@ public:
 	typedef uv_os_sock_t sock_t;
 
 public:
-	TCP(Loop& loop, int initFlags=0): AbstractStream(loop), _initFlags(initFlags) {}
+	TCP(Loop& loop, int initFlags=0);
 	int open(sock_t sock);
 	int connected_open(sock_t sock);
 	int nodelay(int enable);
@@ -162,7 +162,7 @@ public:
 	typedef uv_membership membership_t;
 
 public:
-	UDP(Loop& loop, int initFlags=0): Handle(loop), _initFlags(initFlags) { _buf.base =NULL, _buf.len =0; }
+	UDP(Loop& loop, int initFlags=0);
 	virtual ~UDP();
 
 	int open(sock_t sock);

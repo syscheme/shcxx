@@ -238,7 +238,7 @@ protected:
 	Handle(Loop& loop);
 	// Handle(Handle &);
 	// Handle &operator=(Handle &);
-	virtual void init() =0;
+	//virtual void init() =0;
 	uv_any_handle* context() { return _context; };
 
 
@@ -346,7 +346,7 @@ private:
 class IterationBlocker : public Handle
 {
 public:
-	IterationBlocker(Loop& loop) : Handle(loop) {}
+	IterationBlocker(Loop& loop);
 
 	int start();
 	int stop();
@@ -354,8 +354,8 @@ public:
 protected: // event callback
 	virtual void OnIdle() {}
 
-private: // impl of Handle
-	void init();
+//private: // impl of Handle
+	//void init();
 
 private:
 	static void _cbOnIdle(uv_idle_t* uvhandle);
@@ -367,7 +367,7 @@ private:
 class Timer : public Handle
 {
 public:
-	Timer(Loop& loop) : Handle(loop) {}
+	Timer(Loop& loop);
 	int start(uint64_t timeout, bool bRepeat =false); // int start(uint64_t timeout, uint64_t repeat);
 	int stop();
 	int again();
@@ -380,8 +380,8 @@ public:
 protected: // event callback
 	virtual void OnTimer() {}
 
-private: // impl of Handle
-	void init();
+//private: // impl of Handle
+//	void init();
 
 private:
 	static void _cbOnTimer(uv_timer_t *timer);
@@ -395,7 +395,7 @@ private:
 class Interruptor : public Handle
 {
 public:
-	Interruptor(Loop& loop) : Handle(loop) {}
+	Interruptor(Loop& loop);
 	int wakeup();
 
 protected: // event callback
@@ -415,15 +415,15 @@ private:
 class SysSignalSink : public Handle
 {
 public:
-	SysSignalSink(Loop& loop) : Handle(loop) {}
+	SysSignalSink(Loop& loop);
 	int subscribe(int signum);
 	int stop();
 
 protected: // event callback
 	virtual void OnSignal(int signum) {}
 
-private: // impl of Handle
-	void init();
+//private: // impl of Handle
+//	void init();
 
 private:
 	static void _cbSignal(uv_signal_t *signal, int signum);
@@ -538,8 +538,8 @@ public:
 protected: // event callback
 	virtual void OnExit(int64_t exit_status, int term_signal) { deactive(); }
 
-private: // impl of Handle
-	void init() {} // do nothing because spawn() covers init()
+//private: // impl of Handle
+//	void init() {} // do nothing because spawn() covers init()
 
 private:
 	static void _cbExit(uv_process_t* handle,int64_t exit_status,int term_signal);

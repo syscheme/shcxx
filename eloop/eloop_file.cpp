@@ -22,14 +22,21 @@ void FSMonitor::_cbFSevent(uv_fs_event_t *uvhandle, const char *filename, int ev
 	//}
 }
 
-void FSMonitor::init()
+FSMonitor::FSMonitor(Loop& loop)
+	:Handle(loop)
 {
 	CALL_ASSERTV();
 	uv_fs_event_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_fs_event_t));
-	//this->Handle::init(loop);
-	//uv_fs_event_t* event = (uv_fs_event_t *)context_ptr();
-	//return uv_fs_event_init(loop.context_ptr(), event);
 }
+
+//void FSMonitor::init()
+//{
+//	CALL_ASSERTV();
+//	uv_fs_event_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_fs_event_t));
+//	//this->Handle::init(loop);
+//	//uv_fs_event_t* event = (uv_fs_event_t *)context_ptr();
+//	//return uv_fs_event_init(loop.context_ptr(), event);
+//}
 
 int FSMonitor::monitor(const char *path, uint flags)
 {
@@ -221,7 +228,8 @@ void File::_cbMkdir(uv_fs_t* req)
 // -----------------------------
 // class Pipe
 // -----------------------------
-void Pipe::init()
+Pipe::Pipe(Loop& loop, int ipc)
+	:AbstractStream(loop), _ipc(ipc)
 {
 	CALL_ASSERTV();
 	if(_ipc == 1)
@@ -229,6 +237,15 @@ void Pipe::init()
 
 	uv_pipe_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_pipe_t), _ipc);
 }
+
+//void Pipe::init()
+//{
+//	CALL_ASSERTV();
+//	if(_ipc == 1)
+//		uv_pipe_init(_loop.context_ptr(), &_fdContainer, _ipc);
+//
+//	uv_pipe_init(_loop.context_ptr(), UVTYPED_HANDLE(uv_pipe_t), _ipc);
+//}
 
 //int Pipe::init(Loop &loop, int ipc) {
 //	if(ipc == 1)

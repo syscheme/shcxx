@@ -87,7 +87,7 @@ public:
 	} StartFlags ;
 	
 public:
-	FSMonitor(Loop& loop) : Handle(loop) {}
+	FSMonitor(Loop& loop);
 
 	//@param flags - flag combination of StartFlags
 	int monitor(const char *path, uint flags = fsfNone);
@@ -98,8 +98,8 @@ protected:
 	//@param events  - combination of flags of Event
 	virtual void OnFileEvent(const char *filename, uint events, ElpeError status) {}
 
-private: // impl of Handle
-	void init();
+//private: // impl of Handle
+//	void init();
 private:
 	static void _cbFSevent(uv_fs_event_t *handle, const char *filename, int events, int status);
 };
@@ -173,7 +173,7 @@ private:
 class Pipe : public AbstractStream
 {
 public:
-	Pipe(Loop& loop, int ipc=1): AbstractStream(loop), _ipc(ipc) {}
+	Pipe(Loop& loop, int ipc=1);
 
 	int  open(uv_file file);
 	int  bind(const char *name);
